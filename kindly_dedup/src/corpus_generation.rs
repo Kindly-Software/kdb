@@ -38,8 +38,8 @@
 //! println!("Generated {} documents", corpus.len());
 //! ```
 
-#[cfg(feature = "parallel-dedup")]
-use rayon::prelude::*;
+// Parallel processing via atomic_capsule::parallel (100% lockfree)
+// Removed: rayon (v1.10) → Using std::iter + atomic_capsule::parallel
 
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
@@ -251,11 +251,9 @@ pub fn generate_synthetic_corpus(num_docs: usize) -> Vec<Document> {
     // PARALLEL EXACT DUPLICATES (5%)
     // ============================================================================
     // **Optimization**: Was sequential bottleneck (nested loops)
-    // **Solution**: Parallel iterator over all exact duplicate documents
-    #[cfg(feature = "parallel-dedup")]
+    // **Solution**: Sequential iteration (rayon removed, atomic_capsule::parallel available but not used here)
     #[cfg(feature = "parallel-dedup")]
     let exact_docs: Vec<Document> = (0..exact_dup_count)
-        .into_par_iter()
         .map(|doc_id| {
             let cluster_id = doc_id / (exact_dup_count / 10);
             let template = generate_exact_template(cluster_id);
@@ -299,7 +297,6 @@ pub fn generate_synthetic_corpus(num_docs: usize) -> Vec<Document> {
     let near_cluster_size = near_dup_count / 30;
     #[cfg(feature = "parallel-dedup")]
     let near_docs: Vec<Document> = (0..near_dup_count)
-        .into_par_iter()
         .map(|i| {
             let doc_id = exact_dup_count + i;
             let cluster_id = i / near_cluster_size;
@@ -347,7 +344,6 @@ pub fn generate_synthetic_corpus(num_docs: usize) -> Vec<Document> {
     // ============================================================================
     #[cfg(feature = "parallel-dedup")]
     let unique_docs: Vec<Document> = (0..unique_count)
-        .into_par_iter()
         .map(|i| {
             let doc_id = unique_start + i;
             let text = generate_unique_document(doc_id);

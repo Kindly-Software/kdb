@@ -68,8 +68,8 @@
 //! }
 //! ```
 
-#[cfg(feature = "parallel-dedup")]
-use rayon::prelude::*;
+// Parallel processing (rayon removed 2025-11-17)
+// Note: Current implementation uses sequential iteration
 
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicU64, Ordering};

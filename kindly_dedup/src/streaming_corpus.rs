@@ -88,8 +88,10 @@ use atomic_capsule_derive::ComputationalCapsule;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Instant;
 
-#[cfg(feature = "parallel-dedup")]
-use rayon::prelude::*;
+// Parallel processing (rayon removed 2025-11-17)
+// Note: Current implementation uses sequential iteration
+// #[cfg(feature = "parallel-dedup")]
+// use atomic_capsule::parallel::get_global_pool;
 
 // Re-export Document from corpus_generation for consistency
 pub use crate::corpus_generation::Document;
@@ -426,7 +428,7 @@ fn generate_batch_optimized(start_offset: usize, batch_size: usize) -> Vec<Docum
             .collect();
 
         let near_docs: Vec<Document> = near_indices
-            .into_par_iter()
+            .into_iter()
             .enumerate()
             .map(|(i, (_cluster_id, doc_idx))| {
                 let doc_id = start_offset + corpus.len() + i;
@@ -514,7 +516,7 @@ fn generate_batch_optimized(start_offset: usize, batch_size: usize) -> Vec<Docum
         let current_len = corpus.len();
         let unique_indices: Vec<usize> = (0..unique_count).collect();
         let unique_docs: Vec<Document> = unique_indices
-            .into_par_iter()
+            .into_iter()
             .enumerate()
             .map(|(idx, i)| {
                 let doc_id = start_offset + current_len + idx;
