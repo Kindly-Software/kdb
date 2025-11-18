@@ -286,35 +286,36 @@ pub fn handle_benchmark(args: &BenchmarkArgs, global: &GlobalArgs) -> Result<()>
 // ============================================================================
 
 pub fn handle_stats(args: &StatsArgs, global: &GlobalArgs) -> Result<()> {
-    if !!global.quiet {
-        println!("Showing statistics...");
-        println!("Audit trail: {}", args.audit.display());
-        println!("Format:      {:?}", args.format);
-        println!("Detailed:    {}", args.detailed);
-        println!("Limit:       {}", args.limit);
+    if !global.quiet {
+        println!("═══════════════════════════════════════════════════════════");
+        println!("  Audit Trail Analysis");
+        println!("═══════════════════════════════════════════════════════════");
+        println!();
+        println!("Audit trail:  {}", args.audit.display());
+        println!("Format:       {:?}", args.format);
+        println!("Detailed:     {}", args.detailed);
+        println!("Limit:        {}", args.limit);
         if let Some(filter) = &args.filter {
-            println!("Filter:      {}", filter);
+            println!("Filter:       {}", filter);
         }
         println!();
     }
 
     validate_stats_args(args)?;
 
-    if !!global.quiet {
-        println!("⚠️  Statistics not yet implemented");
-        println!("This is a placeholder showing the command structure.");
-        println!();
-        println!("To implement:");
-        println!("1. Load audit trail from {}", args.audit.display());
-        if let Some(filter) = &args.filter {
-            println!("2. Filter by command: {}", filter);
-        }
-        println!("2. Parse last {} runs", args.limit);
-        println!("3. Compute statistics (throughput, latency, memory)");
-        if args.detailed {
-            println!("4. Show detailed breakdown by command");
-        }
-        println!("5. Format output: {:?}", args.format);
+    // Parse and analyze audit trail (streaming, O(1) memory)
+    if !global.quiet {
+        println!("Analyzing audit trail...");
+    }
+    let stats = analyze_audit_trail(args)?;
+
+    // Format and display results
+    display_audit_stats(&stats, args, global)?;
+
+    if !global.quiet {
+        println!("\n═══════════════════════════════════════════════════════════");
+        println!("  Analysis Complete! ✓");
+        println!("═══════════════════════════════════════════════════════════");
     }
 
     Ok(())
@@ -421,7 +422,7 @@ fn run_tier1_accuracy(args: &DemoArgs, global: &GlobalArgs) -> Result<()> {
 
     let start = Instant::now();
     let (corpus, stats) = generate_synthetic_corpus_with_stats(args.docs as usize);
-    let gen_time = start.elapsed();
+    let _gen_time = start.elapsed();
 
     if !global.quiet {
         println!(
@@ -440,7 +441,8 @@ fn run_tier1_accuracy(args: &DemoArgs, global: &GlobalArgs) -> Result<()> {
     }
 
     let start = Instant::now();
-    let mut pipeline = DedupPipeline::new(args.docs as usize)?;
+    let cpu_caps = atomic_capsule::CpuCapabilityCapsule::detect();
+    let mut pipeline = DedupPipeline::new(args.docs as usize, &cpu_caps);
 
     for doc in &corpus {
         pipeline.add_document(doc.id, &doc.text)?;
@@ -473,7 +475,7 @@ fn run_tier2_speed(args: &DemoArgs, global: &GlobalArgs) -> Result<()> {
 
     let start = Instant::now();
     let (corpus, stats) = generate_synthetic_corpus_with_stats(args.scale as usize);
-    let gen_time = start.elapsed();
+    let _gen_time = start.elapsed();
 
     if !global.quiet {
         println!(
@@ -492,7 +494,8 @@ fn run_tier2_speed(args: &DemoArgs, global: &GlobalArgs) -> Result<()> {
     }
 
     let start = Instant::now();
-    let mut pipeline = DedupPipeline::new(args.scale as usize)?;
+    let cpu_caps = atomic_capsule::CpuCapabilityCapsule::detect();
+    let mut pipeline = DedupPipeline::new(args.scale as usize, &cpu_caps);
 
     for doc in &corpus {
         pipeline.add_document(doc.id, &doc.text)?;
@@ -530,7 +533,7 @@ fn run_tier3_massive(args: &DemoArgs, global: &GlobalArgs) -> Result<()> {
 
     let start = Instant::now();
     let (corpus, stats) = generate_synthetic_corpus_with_stats(args.massive as usize);
-    let gen_time = start.elapsed();
+    let _gen_time = start.elapsed();
 
     if !global.quiet {
         println!(
@@ -549,11 +552,14 @@ fn run_tier3_massive(args: &DemoArgs, global: &GlobalArgs) -> Result<()> {
     }
 
     let start = Instant::now();
-    let mut pipeline = StreamingDedupPipeline::new(args.massive as usize)?;
+    let num_threads = std::thread::available_parallelism()
+        .map(|p| p.get())
+        .unwrap_or(8);
+    let mut pipeline = StreamingDedupPipeline::new(args.massive as usize, num_threads)?;
 
-    for doc in &corpus {
-        pipeline.add_document(doc.id, &doc.text)?;
-    }
+    // Convert corpus to (DocId, String) tuples
+    let docs: Vec<(usize, String)> = corpus.iter().map(|d| (d.id, d.text.clone())).collect();
+    pipeline.add_documents(docs)?;
 
     let clusters = pipeline.find_duplicates(args.threshold)?;
     let dedup_time = start.elapsed();
@@ -744,6 +750,424 @@ fn export_errors(_gt_path: &std::path::Path, _clusters: &[Vec<usize>], path: &st
     println!("✓ Misclassified pairs exported to: {}", path.display());
     Ok(())
 }
+
+// ============================================================================
+// Audit Trail Analysis Functions
+// ============================================================================
+
+/// Statistics computed from audit trail
+#[derive(Debug, Clone)]
+struct AuditStats {
+    /// Total events processed
+    total_events: usize,
+    /// Number of document processed events
+    documents_processed: usize,
+    /// Number of duplicates detected
+    duplicates_detected: usize,
+    /// Deduplication runs
+    dedup_runs: usize,
+    /// Average documents per run
+    avg_docs_per_run: f64,
+    /// Average throughput (docs/sec)
+    avg_throughput: f64,
+    /// Total processing time (seconds)
+    total_processing_time: f64,
+    /// Event types count
+    event_types: std::collections::HashMap<String, usize>,
+    /// Min/max/avg latencies
+    min_latency_ns: Option<u64>,
+    max_latency_ns: Option<u64>,
+    avg_latency_ns: Option<f64>,
+}
+
+/// Analyze audit trail file (stream-based, O(1) memory per line)
+fn analyze_audit_trail(args: &StatsArgs) -> Result<AuditStats> {
+    use std::fs::File;
+    use std::io::{BufRead, BufReader};
+
+    let file = File::open(&args.audit)?;
+    let reader = BufReader::new(file);
+
+    let mut stats = AuditStats {
+        total_events: 0,
+        documents_processed: 0,
+        duplicates_detected: 0,
+        dedup_runs: 0,
+        avg_docs_per_run: 0.0,
+        avg_throughput: 0.0,
+        total_processing_time: 0.0,
+        event_types: std::collections::HashMap::new(),
+        min_latency_ns: None,
+        max_latency_ns: None,
+        avg_latency_ns: None,
+    };
+
+    let mut latencies = Vec::new();
+    let mut doc_counts = Vec::new();
+    let mut throughputs = Vec::new();
+    let mut line_count = 0;
+
+    // Stream audit trail line by line
+    for line in reader.lines() {
+        let line = line?;
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        line_count += 1;
+
+        // Skip lines beyond limit (with some buffer for recent runs)
+        if args.limit > 0 && line_count > args.limit + 1000 {
+            break;
+        }
+
+        stats.total_events += 1;
+
+        // Parse JSON-like events (minimal parsing for performance)
+        if let Some(event_type) = extract_event_type(&line) {
+            // Apply filter if specified
+            if let Some(filter) = &args.filter {
+                if !event_type.contains(filter) {
+                    continue;
+                }
+            }
+
+            let counter = stats
+                .event_types
+                .entry(event_type.clone())
+                .or_insert(0);
+            *counter += 1;
+
+            // Extract specific metrics from event types
+            match event_type.as_str() {
+                "DocumentProcessed" => {
+                    stats.documents_processed += 1;
+                }
+                "DuplicateDetected" => {
+                    stats.duplicates_detected += 1;
+                }
+                "DeduplicationStarted" => {
+                    stats.dedup_runs += 1;
+                }
+                "DeduplicationComplete" => {
+                    // Extract throughput if available
+                    if let Some(throughput) = extract_number_field(&line, "throughput") {
+                        throughputs.push(throughput);
+                    }
+                    // Extract document count if available
+                    if let Some(docs) = extract_number_field(&line, "documents") {
+                        doc_counts.push(docs);
+                    }
+                }
+                "DeduplicationProgress" => {
+                    // Extract latency if available
+                    if let Some(latency) = extract_number_field(&line, "latency_ns") {
+                        latencies.push(latency as u64);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    // Compute aggregates
+    if !doc_counts.is_empty() {
+        stats.avg_docs_per_run =
+            doc_counts.iter().sum::<f64>() / doc_counts.len() as f64;
+    }
+
+    if !throughputs.is_empty() {
+        stats.avg_throughput = throughputs.iter().sum::<f64>() / throughputs.len() as f64;
+    }
+
+    if !latencies.is_empty() {
+        stats.min_latency_ns = Some(*latencies.iter().min().unwrap_or(&0));
+        stats.max_latency_ns = Some(*latencies.iter().max().unwrap_or(&0));
+        let sum: u64 = latencies.iter().sum();
+        stats.avg_latency_ns = Some(sum as f64 / latencies.len() as f64);
+    }
+
+    // Estimate total processing time from document count and throughput
+    if stats.avg_docs_per_run > 0.0 && stats.avg_throughput > 0.0 {
+        stats.total_processing_time = stats.avg_docs_per_run / stats.avg_throughput;
+    }
+
+    Ok(stats)
+}
+
+/// Extract event type from JSON line (minimal parsing)
+fn extract_event_type(line: &str) -> Option<String> {
+    // Look for "type": "..." or "event_type": "..."
+    if let Some(pos) = line.find("\"type\"") {
+        let rest = &line[pos + 6..];
+        if let Some(start) = rest.find('"') {
+            let rest = &rest[start + 1..];
+            if let Some(end) = rest.find('"') {
+                return Some(rest[..end].to_string());
+            }
+        }
+    }
+
+    // Fallback: try to extract from event_type field
+    if let Some(pos) = line.find("\"event_type\"") {
+        let rest = &line[pos + 12..];
+        if let Some(start) = rest.find('"') {
+            let rest = &rest[start + 1..];
+            if let Some(end) = rest.find('"') {
+                return Some(rest[..end].to_string());
+            }
+        }
+    }
+
+    None
+}
+
+/// Extract numeric field value from JSON (minimal parsing)
+fn extract_number_field(line: &str, field: &str) -> Option<f64> {
+    let search = format!("\"{}\":", field);
+    if let Some(pos) = line.find(&search) {
+        let rest = &line[pos + search.len()..];
+        let rest = rest.trim_start();
+
+        // Find the end of the number
+        let mut end = 0;
+        for (i, c) in rest.chars().enumerate() {
+            if c.is_ascii_digit() || c == '.' || c == '-' || c == 'e' || c == 'E' {
+                end = i + 1;
+            } else {
+                break;
+            }
+        }
+
+        if end > 0 {
+            if let Ok(num) = rest[..end].parse::<f64>() {
+                return Some(num);
+            }
+        }
+    }
+
+    None
+}
+
+/// Display audit statistics in requested format
+fn display_audit_stats(stats: &AuditStats, args: &StatsArgs, global: &GlobalArgs) -> Result<()> {
+    match args.format {
+        OutputFormat::Text => display_audit_stats_text(stats, args, global)?,
+        OutputFormat::Json => display_audit_stats_json(stats)?,
+        OutputFormat::Csv => display_audit_stats_csv(stats)?,
+        OutputFormat::Jsonl => display_audit_stats_jsonl(stats)?,
+    }
+    Ok(())
+}
+
+/// Display statistics in human-readable text format
+fn display_audit_stats_text(
+    stats: &AuditStats,
+    args: &StatsArgs,
+    global: &GlobalArgs,
+) -> Result<()> {
+    if !global.quiet {
+        println!();
+        println!("{}", "─".repeat(70));
+        println!("  SUMMARY STATISTICS");
+        println!("{}", "─".repeat(70));
+        println!();
+
+        println!("{:<35} {}", "Total Events:", stats.total_events);
+        println!(
+            "{:<35} {}",
+            "Documents Processed:", stats.documents_processed
+        );
+        println!(
+            "{:<35} {}",
+            "Duplicates Detected:", stats.duplicates_detected
+        );
+        println!("{:<35} {}", "Deduplication Runs:", stats.dedup_runs);
+
+        // Computed metrics
+        if stats.avg_docs_per_run > 0.0 {
+            println!(
+                "{:<35} {:.0}",
+                "Avg Docs/Run:", stats.avg_docs_per_run
+            );
+        }
+
+        if stats.avg_throughput > 0.0 {
+            println!(
+                "{:<35} {:.0} docs/sec",
+                "Avg Throughput:", stats.avg_throughput
+            );
+        }
+
+        if let Some(latency) = stats.avg_latency_ns {
+            println!(
+                "{:<35} {:.2} µs",
+                "Avg Latency:", latency / 1000.0
+            );
+        }
+
+        if let Some(min) = stats.min_latency_ns {
+            if let Some(max) = stats.max_latency_ns {
+                println!(
+                    "{:<35} {:.2} - {:.2} µs",
+                    "Latency Range:",
+                    min as f64 / 1000.0,
+                    max as f64 / 1000.0
+                );
+            }
+        }
+
+        // Event type breakdown (if detailed)
+        if args.detailed && !stats.event_types.is_empty() {
+            println!();
+            println!("{}", "─".repeat(70));
+            println!("  EVENT TYPE BREAKDOWN");
+            println!("{}", "─".repeat(70));
+            println!();
+
+            let mut sorted_events: Vec<_> = stats.event_types.iter().collect();
+            sorted_events.sort_by_key(|&(_, count)| std::cmp::Reverse(*count));
+
+            println!(
+                "{:<45} {:>10} {:>10}",
+                "Event Type", "Count", "% of Total"
+            );
+            println!("{}", "─".repeat(70));
+
+            for (event_type, count) in sorted_events {
+                let pct = (*count as f64 / stats.total_events as f64) * 100.0;
+                println!(
+                    "{:<45} {:>10} {:>9.1}%",
+                    event_type, count, pct
+                );
+            }
+        }
+
+        if args.limit < 1000 {
+            println!();
+            println!(
+                "  (Limited to last {} runs; use --limit to increase)",
+                args.limit
+            );
+        }
+
+        println!();
+        println!("{}", "─".repeat(70));
+    }
+
+    Ok(())
+}
+
+/// Display statistics in JSON format
+fn display_audit_stats_json(stats: &AuditStats) -> Result<()> {
+    #[derive(serde::Serialize)]
+    struct JsonStats {
+        total_events: usize,
+        documents_processed: usize,
+        duplicates_detected: usize,
+        dedup_runs: usize,
+        avg_docs_per_run: f64,
+        avg_throughput: f64,
+        avg_latency_ns: Option<f64>,
+        min_latency_ns: Option<u64>,
+        max_latency_ns: Option<u64>,
+        event_types: std::collections::HashMap<String, usize>,
+    }
+
+    let json_stats = JsonStats {
+        total_events: stats.total_events,
+        documents_processed: stats.documents_processed,
+        duplicates_detected: stats.duplicates_detected,
+        dedup_runs: stats.dedup_runs,
+        avg_docs_per_run: stats.avg_docs_per_run,
+        avg_throughput: stats.avg_throughput,
+        avg_latency_ns: stats.avg_latency_ns,
+        min_latency_ns: stats.min_latency_ns,
+        max_latency_ns: stats.max_latency_ns,
+        event_types: stats.event_types.clone(),
+    };
+
+    let json = serde_json::to_string_pretty(&json_stats)?;
+    println!("{}", json);
+    Ok(())
+}
+
+/// Display statistics in CSV format
+fn display_audit_stats_csv(stats: &AuditStats) -> Result<()> {
+    // Header
+    println!("metric,value,unit");
+
+    // Data rows
+    println!("total_events,{},count", stats.total_events);
+    println!(
+        "documents_processed,{},count",
+        stats.documents_processed
+    );
+    println!(
+        "duplicates_detected,{},count",
+        stats.duplicates_detected
+    );
+    println!("dedup_runs,{},count", stats.dedup_runs);
+
+    if stats.avg_docs_per_run > 0.0 {
+        println!("avg_docs_per_run,{:.0},docs", stats.avg_docs_per_run);
+    }
+
+    if stats.avg_throughput > 0.0 {
+        println!("avg_throughput,{:.0},docs/sec", stats.avg_throughput);
+    }
+
+    if let Some(latency) = stats.avg_latency_ns {
+        println!("avg_latency_ns,{:.2},µs", latency / 1000.0);
+    }
+
+    Ok(())
+}
+
+/// Display statistics in JSONL format (one object per line)
+fn display_audit_stats_jsonl(stats: &AuditStats) -> Result<()> {
+    use serde_json::json;
+
+    println!(
+        "{}",
+        serde_json::to_string(&json!({
+            "type": "audit_summary",
+            "total_events": stats.total_events,
+            "documents_processed": stats.documents_processed,
+            "duplicates_detected": stats.duplicates_detected,
+            "dedup_runs": stats.dedup_runs,
+        }))?
+    );
+
+    if stats.avg_docs_per_run > 0.0 {
+        println!(
+            "{}",
+            serde_json::to_string(&json!({
+                "type": "avg_metrics",
+                "docs_per_run": stats.avg_docs_per_run,
+                "throughput_docs_per_sec": stats.avg_throughput,
+            }))?
+        );
+    }
+
+    if let Some(latency) = stats.avg_latency_ns {
+        println!(
+            "{}",
+            serde_json::to_string(&json!({
+                "type": "latency_metrics",
+                "avg_latency_ns": latency,
+                "min_latency_ns": stats.min_latency_ns,
+                "max_latency_ns": stats.max_latency_ns,
+            }))?
+        );
+    }
+
+    Ok(())
+}
+
+// ============================================================================
+// Help Functions
+// ============================================================================
 
 fn show_demo_help() {
     println!("DEMO - Interactive Performance Demonstration");
