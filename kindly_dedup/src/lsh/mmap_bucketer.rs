@@ -49,6 +49,38 @@
 use atomic_capsule::mmap::MmapManager;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+/// Region base offset calculator
+///
+/// Since MmapManager doesn't expose region offsets directly, we track them ourselves
+/// based on how PersistentDedupPipeline allocates regions.
+///
+/// # Layout (from persistent_pipeline.rs)
+/// - Header: 128B
+/// - Region 0 (Signatures): capacity × 256B (page-aligned)
+/// - Region 1 (LSH Buckets): capacity × 2.3KB (page-aligned)
+///
+/// # Arguments
+/// - `_mmap_manager`: Mmap manager (unused, for API consistency)
+/// - `region_id`: Region ID (0 = signatures, 1 = LSH buckets)
+/// - `signature_region_size`: Size of signature region (from PersistentDedupPipeline)
+///
+/// # Returns
+/// Base offset in mmap file for this region
+fn region_base_offset_with_size(_mmap_manager: &MmapManager, region_id: usize, signature_region_size: usize) -> usize {
+    const HEADER_SIZE: usize = 128;
+
+    if region_id == 0 {
+        // Region 0 (signatures): starts after header
+        HEADER_SIZE
+    } else if region_id == 1 {
+        // Region 1 (LSH buckets): starts after header + signatures
+        HEADER_SIZE + signature_region_size
+    } else {
+        // Unsupported region
+        panic!("Unsupported region_id: {}", region_id)
+    }
+}
+
 /// Bucket entry in mmap: u32 count + Vec<u32> doc_ids (variable-size)
 ///
 /// # Layout (variable-size)
@@ -99,6 +131,10 @@ pub struct MmapLshBucketer {
 
     /// Region ID in MmapManager (typically 1, after signatures in Region 0)
     region_id: usize,
+
+    /// Size of signature region (needed to calculate Region 1 offset)
+    /// Set during construction from PersistentDedupPipeline
+    signature_region_size: usize,
 }
 
 impl MmapLshBucketer {
@@ -106,6 +142,7 @@ impl MmapLshBucketer {
     ///
     /// # Arguments
     /// - `region_id`: Mmap region ID (typically 1 for LSH buckets)
+    /// - `signature_region_size`: Size of signature region (for offset calculation)
     ///
     /// # Performance
     /// - Allocation: <1μs (empty Vec initialization)
@@ -113,13 +150,14 @@ impl MmapLshBucketer {
     ///
     /// # Example
     /// ```rust,ignore
-    /// let bucketer = MmapLshBucketer::new(1); // Region 1 for LSH buckets
+    /// let bucketer = MmapLshBucketer::new(1, aligned_signature_size); // Region 1 for LSH buckets
     /// ```
-    pub fn new(region_id: usize) -> Self {
+    pub fn new(region_id: usize, signature_region_size: usize) -> Self {
         Self {
             index: Vec::new(),
             offset: AtomicU64::new(0),
             region_id,
+            signature_region_size,
         }
     }
 
@@ -156,21 +194,22 @@ impl MmapLshBucketer {
         band_hash: u64,
         doc_id: u32,
     ) -> Result<(), std::io::Error> {
-        // Get base pointer from MmapManager (covers all regions)
-        // Offset calculation includes region offset internally
-        let base_ptr = mmap_manager.base_ptr();
+        // Get base pointer from MmapManager + calculate region offset
+        let mmap_base = mmap_manager.base_ptr();
+        let region_offset = region_base_offset_with_size(mmap_manager, self.region_id, self.signature_region_size);
 
         // Binary search for existing bucket
         match self.index.binary_search_by_key(&band_hash, |e| e.band_hash) {
             Ok(idx) => {
                 // Bucket exists: Append doc_id
                 let entry = &self.index[idx];
-                let offset = entry.mmap_offset as usize;
+                let bucket_offset = entry.mmap_offset as usize;
+                let absolute_offset = region_offset + bucket_offset;
 
                 // Safety: Read bucket size from mmap
                 // #ASSUME_MMAP_ALIGNMENT: Offset is within bounds
                 let size = unsafe {
-                    let size_ptr = base_ptr.add(offset) as *const u32;
+                    let size_ptr = mmap_base.add(absolute_offset) as *const u32;
                     (*size_ptr).to_le()
                 } as usize;
 
@@ -183,16 +222,16 @@ impl MmapLshBucketer {
                 }
 
                 // Write doc_id at end of bucket
-                let doc_id_offset = offset + BUCKET_ENTRY_HEADER_SIZE + (size * 4);
+                let doc_id_offset = absolute_offset + BUCKET_ENTRY_HEADER_SIZE + (size * 4);
                 unsafe {
-                    let doc_id_ptr = base_ptr.add(doc_id_offset) as *mut u32;
+                    let doc_id_ptr = mmap_base.add(doc_id_offset) as *mut u32;
                     *doc_id_ptr = doc_id.to_le();
                 }
 
                 // Update bucket size
                 let new_size = (size + 1) as u32;
                 unsafe {
-                    let size_ptr = base_ptr.add(offset) as *mut u32;
+                    let size_ptr = mmap_base.add(absolute_offset) as *mut u32;
                     *size_ptr = new_size.to_le();
                 }
             }
@@ -201,13 +240,14 @@ impl MmapLshBucketer {
                 // Layout: [u32: size=1] [u32: doc_id]
                 let current_offset = self.offset.load(Ordering::Acquire);
                 let bucket_size = (BUCKET_ENTRY_HEADER_SIZE + 4) as u64; // size + 1 doc_id
+                let absolute_offset = region_offset + (current_offset as usize);
 
                 // Write bucket: size=1, doc_id
                 unsafe {
-                    let size_ptr = base_ptr.add(current_offset as usize) as *mut u32;
+                    let size_ptr = mmap_base.add(absolute_offset) as *mut u32;
                     *size_ptr = 1u32.to_le();
 
-                    let doc_id_ptr = base_ptr.add((current_offset as usize) + BUCKET_ENTRY_HEADER_SIZE) as *mut u32;
+                    let doc_id_ptr = mmap_base.add(absolute_offset + BUCKET_ENTRY_HEADER_SIZE) as *mut u32;
                     *doc_id_ptr = doc_id.to_le();
                 }
 
@@ -250,15 +290,16 @@ impl MmapLshBucketer {
         // Binary search for bucket
         let idx = self.index.binary_search_by_key(&band_hash, |e| e.band_hash).ok()?;
         let entry = &self.index[idx];
-        let offset = entry.mmap_offset as usize;
+        let bucket_offset = entry.mmap_offset as usize;
 
-        // Get base pointer for this region
-        let region = mmap_manager.region(self.region_id)?;
-        let base_ptr = region.as_ptr() as *const u8;
+        // Get base pointer + calculate region offset
+        let mmap_base = mmap_manager.base_ptr();
+        let region_offset = region_base_offset_with_size(mmap_manager, self.region_id, self.signature_region_size);
+        let absolute_offset = region_offset + bucket_offset;
 
         // Safety: Read bucket size from mmap
         let size = unsafe {
-            let size_ptr = base_ptr.add(offset) as *const u32;
+            let size_ptr = mmap_base.add(absolute_offset) as *const u32;
             (*size_ptr).to_le()
         } as usize;
 
@@ -269,7 +310,7 @@ impl MmapLshBucketer {
         // Read doc_ids
         let mut doc_ids = Vec::with_capacity(size);
         unsafe {
-            let doc_ids_ptr = base_ptr.add(offset + BUCKET_ENTRY_HEADER_SIZE) as *const u32;
+            let doc_ids_ptr = mmap_base.add(absolute_offset + BUCKET_ENTRY_HEADER_SIZE) as *const u32;
             for i in 0..size {
                 doc_ids.push((*doc_ids_ptr.add(i)).to_le());
             }
@@ -339,7 +380,7 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let bucketer = MmapLshBucketer::new(1);
+        let bucketer = MmapLshBucketer::new(1, 1024 * 1024); // 1MB signature region
         assert_eq!(bucketer.len(), 0);
         assert_eq!(bucketer.size(), 0);
         assert!(bucketer.is_empty());
@@ -357,7 +398,7 @@ mod tests {
         let layout = MmapLayout::new(1024 * 1024, 2).unwrap(); // 2 regions
         let mmap = MmapManager::new(Path::new(temp_path), &layout).unwrap();
 
-        let mut bucketer = MmapLshBucketer::new(1);
+        let mut bucketer = MmapLshBucketer::new(1, 1024 * 1024);
 
         // Insert 3 docs into same bucket
         bucketer.insert_band(&mmap, 42, 10).unwrap();
@@ -385,7 +426,7 @@ mod tests {
         let layout = MmapLayout::new(1024 * 1024, 2).unwrap();
         let mmap = MmapManager::new(Path::new(temp_path), &layout).unwrap();
 
-        let mut bucketer = MmapLshBucketer::new(1);
+        let mut bucketer = MmapLshBucketer::new(1, 1024 * 1024);
 
         // Insert into 3 different buckets
         bucketer.insert_band(&mmap, 10, 100).unwrap();
@@ -413,7 +454,7 @@ mod tests {
         let layout = MmapLayout::new(1024 * 1024, 2).unwrap();
         let mmap = MmapManager::new(Path::new(temp_path), &layout).unwrap();
 
-        let bucketer = MmapLshBucketer::new(1);
+        let bucketer = MmapLshBucketer::new(1, 1024 * 1024);
 
         // Query nonexistent bucket
         assert!(bucketer.get_bucket(&mmap, 999).is_none());
@@ -432,7 +473,7 @@ mod tests {
         let layout = MmapLayout::new(1024 * 1024, 2).unwrap();
         let mmap = MmapManager::new(Path::new(temp_path), &layout).unwrap();
 
-        let mut bucketer = MmapLshBucketer::new(1);
+        let mut bucketer = MmapLshBucketer::new(1, 1024 * 1024);
 
         // Insert into 3 buckets
         bucketer.insert_band(&mmap, 10, 1).unwrap();
@@ -457,7 +498,7 @@ mod tests {
         let layout = MmapLayout::new(10 * 1024 * 1024, 2).unwrap();
         let mmap = MmapManager::new(Path::new(temp_path), &layout).unwrap();
 
-        let mut bucketer = MmapLshBucketer::new(1);
+        let mut bucketer = MmapLshBucketer::new(1, 1024 * 1024);
 
         // Insert 100 docs into same bucket
         for i in 0..100 {
