@@ -88,12 +88,6 @@ libc = "0.2"
 
 # CPU detection (replaced with std::thread::available_parallelism() - Rust 1.59+)
 
-# Crossbeam utilities (for atomic operations in streaming pipeline)
-crossbeam-utils = "0.8"
-
-# Crossbeam channels (for streaming pipeline coordination)
-crossbeam-channel = "0.5"
-
 # Hex encoding/decoding (for audit trail hex serialization)
 hex = "0.4"
 
