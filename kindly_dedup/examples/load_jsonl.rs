@@ -27,9 +27,9 @@
 //! - **Q17**: Performance budgets (<50ms for 1000 docs)
 //! - **Q18**: Realistic corpus (100K docs, 50% duplicates)
 
+use atomic_capsule::CpuCapabilityCapsule;
 use kindly_dedup::format::load_documents_auto;
 use kindly_dedup::DedupPipeline;
-use atomic_capsule::CpuCapabilityCapsule;
 use std::time::Instant;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -100,8 +100,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("===== Summary Statistics =====");
     println!("Total documents:        {}", docs.len());
     println!("Unique clusters:        {}", clusters.len());
-    println!("Duplicate clusters:     {}", clusters.iter().filter(|c| c.len() > 1).count());
-    println!("Total time:             {:.2}ms", (load_time + add_time + find_time).as_secs_f64() * 1000.0);
+    println!(
+        "Duplicate clusters:     {}",
+        clusters.iter().filter(|c| c.len() > 1).count()
+    );
+    println!(
+        "Total time:             {:.2}ms",
+        (load_time + add_time + find_time).as_secs_f64() * 1000.0
+    );
     println!(
         "End-to-end throughput:  {:.0} docs/sec",
         docs.len() as f64 / (load_time + add_time + find_time).as_secs_f64()

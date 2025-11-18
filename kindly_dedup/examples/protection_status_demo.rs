@@ -9,9 +9,7 @@
 //!
 //! **Output**: Real-time protection layer status with Byzantine purple + gold styling
 
-use kindly_dedup::tui::components::{
-    LayerStatus, ProtectionStatusCapsule, ProtectionStatusViewer,
-};
+use kindly_dedup::tui::components::{LayerStatus, ProtectionStatusCapsule, ProtectionStatusViewer};
 use std::thread;
 use std::time::Duration;
 
@@ -91,7 +89,10 @@ fn main() {
     // Final stats
     println!("\nDemo Complete!");
     println!("  Total Events: {}", capsule.get_events_logged());
-    println!("  Hash Chain: {}", if capsule.is_chain_intact() { "INTACT" } else { "BROKEN" });
+    println!(
+        "  Hash Chain: {}",
+        if capsule.is_chain_intact() { "INTACT" } else { "BROKEN" }
+    );
     println!("  Active Layers: {}/5", capsule.active_layer_count());
     println!("  Overall Status: {:?}\n", capsule.overall_status());
 }

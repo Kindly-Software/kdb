@@ -3,7 +3,7 @@
 //! This is a debug version to isolate the T5 streaming performance issue
 //! and avoid the sequential baseline which adds 10+ minutes
 
-use kindly_dedup::{StreamingDedupPipeline, generate_synthetic_corpus};
+use kindly_dedup::{generate_synthetic_corpus, StreamingDedupPipeline};
 use std::time::Instant;
 
 fn main() {
@@ -17,22 +17,22 @@ fn main() {
     let corpus_start = Instant::now();
     let corpus = generate_synthetic_corpus(10_000_000);
     let corpus_time = corpus_start.elapsed();
-    println!("✓ Corpus: {} docs in {:.2}s ({:.0} docs/sec)\n",
+    println!(
+        "✓ Corpus: {} docs in {:.2}s ({:.0} docs/sec)\n",
         corpus.len(),
         corpus_time.as_secs_f64(),
         10_000_000.0 / corpus_time.as_secs_f64()
     );
 
-    let documents: Vec<(usize, String)> = corpus.iter()
+    let documents: Vec<(usize, String)> = corpus
+        .iter()
         .enumerate()
         .map(|(i, doc)| (i, doc.text.clone()))
         .collect();
 
     // T5 Pipeline
     println!("[Phase 2: T5 Streaming Pipeline]");
-    let num_threads = std::thread::available_parallelism()
-        .map(|n| n.get())
-        .unwrap_or(16);
+    let num_threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(16);
     println!("Threads: {}", num_threads);
 
     println!("Initializing StreamingDedupPipeline...");
@@ -50,14 +50,15 @@ fn main() {
     println!("Adding 10M documents...");
     let add_start = Instant::now();
     match pipeline.add_documents(documents.clone()) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(e) => {
             eprintln!("ERROR during add_documents: {:?}", e);
             return;
         }
     }
     let add_time = add_start.elapsed();
-    println!("✓ Add phase complete: {:.3}s ({:.0} docs/sec)\n",
+    println!(
+        "✓ Add phase complete: {:.3}s ({:.0} docs/sec)\n",
         add_time.as_secs_f64(),
         10_000_000.0 / add_time.as_secs_f64()
     );
@@ -94,11 +95,13 @@ fn main() {
     println!("╚════════════════════════════════════════════════════════════╝\n");
 
     println!("Timing:");
-    println!("  Add phase:        {:.3}s ({:.0} docs/sec)",
+    println!(
+        "  Add phase:        {:.3}s ({:.0} docs/sec)",
         add_time.as_secs_f64(),
         10_000_000.0 / add_time.as_secs_f64()
     );
-    println!("  Find phase:       {:.3}s ({:.0} docs/sec)",
+    println!(
+        "  Find phase:       {:.3}s ({:.0} docs/sec)",
         find_time.as_secs_f64(),
         10_000_000.0 / find_time.as_secs_f64()
     );
@@ -107,21 +110,22 @@ fn main() {
 
     println!("Metrics:");
     println!("  Ingested:         {}", metrics.documents_ingested);
-    println!("  Tokenized:        {} ({:.1}%)",
+    println!(
+        "  Tokenized:        {} ({:.1}%)",
         metrics.documents_tokenized,
         (metrics.documents_tokenized as f64 / metrics.documents_ingested.max(1) as f64) * 100.0
     );
-    println!("  Skipped (Bloom):  {} ({:.1}%)",
-        metrics.documents_skipped,
-        bloom_skip_rate
+    println!(
+        "  Skipped (Bloom):  {} ({:.1}%)",
+        metrics.documents_skipped, bloom_skip_rate
     );
     println!("  Signatures:       {}", metrics.signatures_computed);
     println!("  Pairs Verified:   {}", metrics.pairs_verified);
     println!("  Clusters Found:   {}\n", clusters.len());
 
     println!("ASSUM Safety Metrics:");
-    let total_panics = metrics.tokenization_panics + metrics.minhash_panics +
-                       metrics.lsh_panics + metrics.verification_panics;
+    let total_panics =
+        metrics.tokenization_panics + metrics.minhash_panics + metrics.lsh_panics + metrics.verification_panics;
     println!("  Tokenization panics: {}", metrics.tokenization_panics);
     println!("  MinHash panics:      {}", metrics.minhash_panics);
     println!("  LSH panics:          {}", metrics.lsh_panics);

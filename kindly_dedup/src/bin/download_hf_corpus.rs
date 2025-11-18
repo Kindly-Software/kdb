@@ -191,10 +191,7 @@ fn render_progress_bar(progress: &DownloadProgressCapsule) -> String {
 /// Construct HuggingFace dataset file URL
 /// Format: https://huggingface.co/datasets/{dataset}/resolve/{revision}/{file_path}
 fn construct_hf_url(dataset: &str, file_path: &str, revision: &str) -> String {
-    format!(
-        "{}/{}/resolve/{}/{}",
-        HF_BASE_URL, dataset, revision, file_path
-    )
+    format!("{}/{}/resolve/{}/{}", HF_BASE_URL, dataset, revision, file_path)
 }
 
 /// HuggingFace Hub API response for file tree listing
@@ -213,11 +210,7 @@ struct HfTreeEntry {
 /// - #ASSUME_HF_API_STABLE: HuggingFace Hub API tree endpoint returns JSON array of files
 /// - #ASSUME_FILE_PATTERN: C4 uses "c4-train.XXXXX-of-01024.json.gz" naming (1,024 shards)
 /// - #ASSUME_TIMEOUT_SUFFICIENT: 60s timeout covers API latency for file listing
-async fn fetch_dataset_files(
-    client: &Client,
-    dataset: &str,
-    subset: Option<&str>,
-) -> Result<Vec<String>> {
+async fn fetch_dataset_files(client: &Client, dataset: &str, subset: Option<&str>) -> Result<Vec<String>> {
     println!("{}{}Discovering dataset shards...{}", BOLD, PURPLE, RESET);
 
     // For C4: Use HF Hub tree API to discover all 1,024 shards
@@ -253,8 +246,8 @@ async fn fetch_dataset_files(
                 .await
                 .context("Failed to read HF Hub tree API response")?;
 
-            let entries: Vec<HfTreeEntry> = serde_json::from_str(&response_json)
-                .context("Failed to parse HF Hub tree API response")?;
+            let entries: Vec<HfTreeEntry> =
+                serde_json::from_str(&response_json).context("Failed to parse HF Hub tree API response")?;
 
             // Filter for train files: "c4-train.XXXXX-of-01024.json.gz"
             let mut train_files: Vec<String> = entries
@@ -318,8 +311,7 @@ fn parse_jsonl_record(line: &str, doc_id: usize) -> Result<Option<Document>> {
     }
 
     // Parse JSON line
-    let record: HfRecord = serde_json::from_str(line)
-        .context("Failed to parse JSONL line")?;
+    let record: HfRecord = serde_json::from_str(line).context("Failed to parse JSONL line")?;
 
     // Filter by minimum text length
     if record.text.len() < MIN_TEXT_LENGTH {
@@ -363,17 +355,9 @@ async fn download_hf_file(
             Ok(resp) if resp.status().is_success() => break resp,
             Ok(resp) => {
                 if attempts >= MAX_RETRIES {
-                    anyhow::bail!(
-                        "HTTP error after {} retries: {}",
-                        MAX_RETRIES,
-                        resp.status()
-                    );
+                    anyhow::bail!("HTTP error after {} retries: {}", MAX_RETRIES, resp.status());
                 }
-                eprintln!(
-                    "HTTP error (attempt {}): {}, retrying...",
-                    attempts,
-                    resp.status()
-                );
+                eprintln!("HTTP error (attempt {}): {}, retrying...", attempts, resp.status());
                 tokio::time::sleep(Duration::from_secs(2)).await;
             }
             Err(e) => {
@@ -391,10 +375,7 @@ async fn download_hf_file(
     progress.reset(0, total_bytes);
 
     // Get response bytes
-    let bytes = response
-        .bytes()
-        .await
-        .context("Failed to read HF file response")?;
+    let bytes = response.bytes().await.context("Failed to read HF file response")?;
 
     // Update progress
     progress.update(bytes.len() as u64, total_bytes);
@@ -409,8 +390,7 @@ async fn download_hf_file(
             .context("Failed to decompress gzip file")?;
         decompressed
     } else {
-        String::from_utf8(bytes.to_vec())
-            .context("Failed to decode file as UTF-8")?
+        String::from_utf8(bytes.to_vec()).context("Failed to decode file as UTF-8")?
     };
 
     // Parse JSONL line by line (streaming)
@@ -531,9 +511,7 @@ async fn download_hf_corpus(
         );
         let _ = std::io::stdout().flush();
 
-        match download_hf_file(&client, &url, all_docs.len(), remaining, &progress, api_token)
-            .await
-        {
+        match download_hf_file(&client, &url, all_docs.len(), remaining, &progress, api_token).await {
             Ok(docs) => {
                 let count = docs.len();
                 all_docs.extend(docs);
@@ -557,17 +535,11 @@ async fn download_hf_corpus(
                 );
 
                 if count == 0 {
-                    eprintln!(
-                        "{}Warning: No documents extracted from {}{}",
-                        PURPLE, file_path, RESET
-                    );
+                    eprintln!("{}Warning: No documents extracted from {}{}", PURPLE, file_path, RESET);
                 }
             }
             Err(e) => {
-                eprintln!(
-                    "\n{}Error downloading {}: {}{}",
-                    PURPLE, file_path, e, RESET
-                );
+                eprintln!("\n{}Error downloading {}: {}{}", PURPLE, file_path, e, RESET);
                 eprintln!("Skipping this shard and continuing...");
                 continue;
             }
@@ -592,11 +564,7 @@ async fn download_hf_corpus(
     println!();
 
     // 3. Save to JSONL (NOT pretty-printed JSON array for streaming compatibility)
-    println!(
-        "Saving {} documents to {}...",
-        all_docs.len(),
-        output_path.display()
-    );
+    println!("Saving {} documents to {}...", all_docs.len(), output_path.display());
 
     let mut file = File::create(output_path).context("Failed to create output file")?;
 
@@ -622,10 +590,7 @@ async fn download_hf_corpus(
     println!("  Total documents: {}", all_docs.len());
     println!("  Total characters: {}", total_chars);
     println!("  Average doc length: {} chars", avg_chars);
-    println!(
-        "  File size: {} MB",
-        std::fs::metadata(output_path)?.len() / 1_000_000
-    );
+    println!("  File size: {} MB", std::fs::metadata(output_path)?.len() / 1_000_000);
 
     Ok(())
 }
@@ -816,14 +781,7 @@ async fn main() -> Result<()> {
     println!();
 
     // Run download
-    download_hf_corpus(
-        dataset,
-        subset.as_deref(),
-        limit,
-        output,
-        api_token.as_deref(),
-    )
-    .await?;
+    download_hf_corpus(dataset, subset.as_deref(), limit, output, api_token.as_deref()).await?;
 
     // Generate manifest if requested
     if generate_manifest_flag {
@@ -899,8 +857,7 @@ mod tests {
         let doc = Document {
             id: 0,
             url: "https://example.com".to_string(),
-            text: "Test content with sufficient length to pass the minimum text filter threshold."
-                .to_string(),
+            text: "Test content with sufficient length to pass the minimum text filter threshold.".to_string(),
         };
 
         let json = serde_json::to_string(&doc).unwrap();
@@ -947,10 +904,7 @@ mod tests {
 
     #[test]
     fn test_min_text_length() {
-        assert!(
-            MIN_TEXT_LENGTH >= 100,
-            "MIN_TEXT_LENGTH should filter out tiny docs"
-        );
+        assert!(MIN_TEXT_LENGTH >= 100, "MIN_TEXT_LENGTH should filter out tiny docs");
     }
 
     #[test]
@@ -964,13 +918,7 @@ mod tests {
         temp_file.flush().unwrap();
 
         let path = temp_file.path();
-        let result = generate_manifest(
-            path,
-            "allenai/c4",
-            Some("en"),
-            1000,
-            Some("hf_test_token_1234567890"),
-        );
+        let result = generate_manifest(path, "allenai/c4", Some("en"), 1000, Some("hf_test_token_1234567890"));
 
         assert!(result.is_ok());
 

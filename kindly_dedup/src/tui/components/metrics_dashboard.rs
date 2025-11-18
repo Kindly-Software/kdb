@@ -19,9 +19,9 @@
 //! - Throughput (docs/sec)
 //! - Documents processed counter
 
+use crate::utils::terminal::{Color, Colorize};
 use std::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
-use crate::utils::terminal::{Color, Colorize};
 
 /// Byzantine purple for headers (approximated with magenta)
 const HEADER_COLOR: Color = Color::Magenta;
@@ -193,7 +193,10 @@ impl MetricsDashboardCapsule {
     ///
     /// Memory usage monitoring removed - use external system monitoring tools.
     /// This method is a no-op for backward compatibility.
-    #[deprecated(since = "1.11.0", note = "Memory auto-detection removed - use manual update_memory()")]
+    #[deprecated(
+        since = "1.11.0",
+        note = "Memory auto-detection removed - use manual update_memory()"
+    )]
     pub fn auto_update_memory(&self) {
         // No-op: Removed sysinfo dependency
         // Users should manually call update_memory() if needed
@@ -258,10 +261,7 @@ impl MetricsDashboardCapsule {
             1 => "SSE4.2 detected (3.5× speedup)".to_string(),
             _ => "Scalar mode (1.0× baseline)".to_string(),
         };
-        output.push_str(&format!(
-            "  SIMD:             {}\n",
-            simd_str.color(VALUE_COLOR)
-        ));
+        output.push_str(&format!("  SIMD:             {}\n", simd_str.color(VALUE_COLOR)));
 
         let bloom_rate = self.bloom_hit_rate.load(Ordering::Relaxed) as f64 / 65536.0;
         output.push_str(&format!(
@@ -283,7 +283,9 @@ impl MetricsDashboardCapsule {
 
         output.push_str(&format!(
             "  Throughput:       {}\n",
-            format!("{} docs/sec", format_thousands(throughput)).color(VALUE_COLOR).bold()
+            format!("{} docs/sec", format_thousands(throughput))
+                .color(VALUE_COLOR)
+                .bold()
         ));
         output.push_str(&format!(
             "  Processed:        {}\n",

@@ -16,8 +16,20 @@ fn main() {
     // Test 1: Basic PDF generation with embedded fonts
     println!("Test 1: Basic PDF generation (embedded fonts)...");
     let logger = SecurityAuditLogger::new();
-    let _ = logger.log_event(SecurityEventType::LicenseValidation, "test-customer", None, 0, "Test event data");
-    let _ = logger.log_event(SecurityEventType::TamperDetected, "test-customer", None, 0, "More test data");
+    let _ = logger.log_event(
+        SecurityEventType::LicenseValidation,
+        "test-customer",
+        None,
+        0,
+        "Test event data",
+    );
+    let _ = logger.log_event(
+        SecurityEventType::TamperDetected,
+        "test-customer",
+        None,
+        0,
+        "More test data",
+    );
 
     let output = Path::new("/tmp/phase3_basic.pdf");
     match generate_binary_pdf(&logger, output) {
@@ -29,8 +41,18 @@ fn main() {
     println!("\nTest 2: Multi-page support (100 events)...");
     let logger2 = SecurityAuditLogger::new();
     for i in 0..100 {
-        let event_type = if i % 2 == 0 { SecurityEventType::LicenseValidation } else { SecurityEventType::PufValidation };
-        let _ = logger2.log_event(event_type, "test-customer", None, 0, &format!("Event {} - multi-page test", i));
+        let event_type = if i % 2 == 0 {
+            SecurityEventType::LicenseValidation
+        } else {
+            SecurityEventType::PufValidation
+        };
+        let _ = logger2.log_event(
+            event_type,
+            "test-customer",
+            None,
+            0,
+            &format!("Event {} - multi-page test", i),
+        );
     }
 
     let output2 = Path::new("/tmp/phase3_multipage.pdf");
@@ -49,7 +71,13 @@ fn main() {
             2 => SecurityEventType::PufValidation,
             _ => SecurityEventType::CircuitBreakerTrip,
         };
-        let _ = logger3.log_event(event_type, "test-customer", None, 0, &format!("Event {} - performance test", i));
+        let _ = logger3.log_event(
+            event_type,
+            "test-customer",
+            None,
+            0,
+            &format!("Event {} - performance test", i),
+        );
     }
 
     let output3 = Path::new("/tmp/phase3_large.pdf");
@@ -70,7 +98,13 @@ fn main() {
     // Test 4: Real data verification
     println!("\nTest 4: Real audit data integration...");
     let logger4 = SecurityAuditLogger::new();
-    let _ = logger4.log_event(SecurityEventType::TamperDetected, "test-customer", None, 0, "Unique data for testing");
+    let _ = logger4.log_event(
+        SecurityEventType::TamperDetected,
+        "test-customer",
+        None,
+        0,
+        "Unique data for testing",
+    );
 
     let output4 = Path::new("/tmp/phase3_realdata.pdf");
     match generate_binary_pdf(&logger4, output4) {

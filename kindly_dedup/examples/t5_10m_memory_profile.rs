@@ -14,8 +14,8 @@
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
 
-use kindly_dedup::{StreamingDedupPipeline, generate_synthetic_corpus};
 use atomic_capsule::CpuCapabilityCapsule;
+use kindly_dedup::{generate_synthetic_corpus, StreamingDedupPipeline};
 use std::time::Instant;
 
 fn main() {
@@ -29,11 +29,18 @@ fn main() {
     // Hardware detection
     println!("[Hardware Detection]");
     let cpu_caps = CpuCapabilityCapsule::detect();
-    let num_threads = std::thread::available_parallelism()
-        .map(|n| n.get())
-        .unwrap_or(1);
+    let num_threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
     println!("CPU Cores: {}", num_threads);
-    println!("SIMD: {}", if cpu_caps.has_avx2() { "AVX2" } else if cpu_caps.has_sse42() { "SSE4.2" } else { "Scalar" });
+    println!(
+        "SIMD: {}",
+        if cpu_caps.has_avx2() {
+            "AVX2"
+        } else if cpu_caps.has_sse42() {
+            "SSE4.2"
+        } else {
+            "Scalar"
+        }
+    );
     println!();
 
     // Phase 1: Corpus Generation
@@ -42,13 +49,15 @@ fn main() {
     let corpus_start = Instant::now();
     let corpus = generate_synthetic_corpus(10_000_000);
     let corpus_time = corpus_start.elapsed();
-    println!("✓ Corpus generated: {} docs in {:.2}s", corpus.len(), corpus_time.as_secs_f64());
+    println!(
+        "✓ Corpus generated: {} docs in {:.2}s",
+        corpus.len(),
+        corpus_time.as_secs_f64()
+    );
     println!("  Memory checkpoint: Post-corpus generation\n");
 
     // Convert to (id, text) tuples
-    let documents: Vec<(usize, String)> = corpus.iter()
-        .map(|doc| (doc.id, doc.text.clone()))
-        .collect();
+    let documents: Vec<(usize, String)> = corpus.iter().map(|doc| (doc.id, doc.text.clone())).collect();
 
     println!("  Memory checkpoint: Post-document conversion\n");
 
@@ -68,7 +77,7 @@ fn main() {
     println!("Adding 10M documents...");
     let add_start = Instant::now();
     match pipeline.add_documents(documents.clone()) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(e) => {
             eprintln!("ERROR during add_documents: {:?}", e);
             std::process::exit(1);
@@ -100,9 +109,11 @@ fn main() {
     println!("║                 MEMORY PROFILE RESULTS                     ║");
     println!("╚════════════════════════════════════════════════════════════╝");
     println!("Documents ingested: {}", metrics.documents_ingested);
-    println!("Bloom skipped: {} ({:.2}%)",
+    println!(
+        "Bloom skipped: {} ({:.2}%)",
         metrics.documents_skipped,
-        (metrics.documents_skipped as f64 / metrics.documents_ingested as f64) * 100.0);
+        (metrics.documents_skipped as f64 / metrics.documents_ingested as f64) * 100.0
+    );
     println!("Duplicate clusters: {}", clusters.len());
     println!("\nPhase timings:");
     println!("  Corpus generation: {:.2}s", corpus_time.as_secs_f64());

@@ -15,15 +15,15 @@
 //! The example shows how to create a progress tracker and pass it
 //! to the format reader.
 
+use atomic_capsule::CpuCapabilityCapsule;
 use kindly_dedup::format::{FormatReaderCapsule, FormatRegistryCapsule, ProgressTrackerCapsule};
 use kindly_dedup::DedupPipeline;
-use atomic_capsule::CpuCapabilityCapsule;
 use std::fs::File;
 use std::io::Write;
-use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
-use std::time::Instant;
+use std::sync::Arc;
 use std::thread;
+use std::time::Instant;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("===== Format Loading with Progress Tracking =====\n");

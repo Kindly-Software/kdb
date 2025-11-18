@@ -15,13 +15,13 @@
 //! - Compliance badges
 //! - Final summary with speedup chart
 
-use kindly_dedup::{
-    DedupPipeline,
-    audit_dashboard::{AuditDashboard, DemoSummary},
-};
 use atomic_capsule::CpuCapabilityCapsule;
-use std::time::{Duration, Instant};
+use kindly_dedup::{
+    audit_dashboard::{AuditDashboard, DemoSummary},
+    DedupPipeline,
+};
 use std::thread;
+use std::time::{Duration, Instant};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Audit Dashboard Demo - kindly_dedup v0.2.1\n");

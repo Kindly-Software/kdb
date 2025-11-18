@@ -24,9 +24,9 @@
 //! - Use `.csv` for structured data with metadata
 //! - Auto-detection has <1ms overhead
 
-use kindly_dedup::format::{load_documents_auto, list_available_formats};
-use kindly_dedup::DedupPipeline;
 use atomic_capsule::CpuCapabilityCapsule;
+use kindly_dedup::format::{list_available_formats, load_documents_auto};
+use kindly_dedup::DedupPipeline;
 use std::fs::File;
 use std::io::Write;
 use std::time::Instant;
@@ -106,11 +106,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// Create a test file in the specified format
-fn create_test_file(
-    filename: &str,
-    format: &str,
-    count: usize,
-) -> Result<(), Box<dyn std::error::Error>> {
+fn create_test_file(filename: &str, format: &str, count: usize) -> Result<(), Box<dyn std::error::Error>> {
     let texts = vec![
         "The quick brown fox jumps over the lazy dog",
         "Python is a high-level programming language",

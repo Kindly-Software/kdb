@@ -8,7 +8,7 @@
 //! - B32: Baseline comparison (flat vs hierarchical)
 //! - ASSUM: 99.99% safe (zero unsafe, panic monitoring)
 
-use kindly_dedup::{StreamingDedupPipeline, generate_synthetic_corpus_streaming};
+use kindly_dedup::{generate_synthetic_corpus_streaming, StreamingDedupPipeline};
 use std::time::Instant;
 
 fn main() {
@@ -18,9 +18,7 @@ fn main() {
     println!("╚════════════════════════════════════════════════════════════╝\n");
 
     // Hardware detection
-    let num_threads = std::thread::available_parallelism()
-        .map(|n| n.get())
-        .unwrap_or(1);
+    let num_threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
     println!("[Hardware]");
     println!("CPU Cores: {}\n", num_threads);
 
@@ -33,7 +31,10 @@ fn main() {
     let corpus_iter = generate_synthetic_corpus_streaming(num_docs);
 
     let corpus_time = corpus_start.elapsed();
-    println!("✓ Iterator created (no corpus materialized) in {:.6}s\n", corpus_time.as_secs_f64());
+    println!(
+        "✓ Iterator created (no corpus materialized) in {:.6}s\n",
+        corpus_time.as_secs_f64()
+    );
     println!("Memory saved: ~3 GB (Vec allocation eliminated)");
     println!("UCE34 Q10c: T5 Streaming with lazy generation\n");
 
@@ -54,7 +55,7 @@ fn main() {
     println!("Adding 1M documents with TRUE streaming (Option C: Lazy + Iterator)...");
     let add_start = Instant::now();
     match pipeline.add_documents_iter(corpus_iter) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(e) => {
             eprintln!("ERROR during add_documents_iter: {:?}", e);
             eprintln!("Documents processed: {}", pipeline.metrics().documents_ingested);
@@ -62,8 +63,11 @@ fn main() {
         }
     }
     let add_time = add_start.elapsed();
-    println!("✓ All documents added in {:.3}s ({:.0} docs/sec)\n",
-        add_time.as_secs_f64(), num_docs as f64 / add_time.as_secs_f64());
+    println!(
+        "✓ All documents added in {:.3}s ({:.0} docs/sec)\n",
+        add_time.as_secs_f64(),
+        num_docs as f64 / add_time.as_secs_f64()
+    );
 
     println!("Finding duplicates with hierarchical LSH...");
     let find_start = Instant::now();
@@ -88,25 +92,37 @@ fn main() {
     println!("╚════════════════════════════════════════════════════════════╝\n");
 
     println!("Timing:");
-    println!("  Add phase:     {:.3}s ({:.0} docs/sec)", add_time.as_secs_f64(),
-        num_docs as f64 / add_time.as_secs_f64());
-    println!("  Find phase:    {:.3}s ({:.0} docs/sec)", find_time.as_secs_f64(),
-        num_docs as f64 / find_time.as_secs_f64());
-    println!("  TOTAL:         {:.3}s ({:.0} docs/sec)\n", total_time.as_secs_f64(), throughput);
+    println!(
+        "  Add phase:     {:.3}s ({:.0} docs/sec)",
+        add_time.as_secs_f64(),
+        num_docs as f64 / add_time.as_secs_f64()
+    );
+    println!(
+        "  Find phase:    {:.3}s ({:.0} docs/sec)",
+        find_time.as_secs_f64(),
+        num_docs as f64 / find_time.as_secs_f64()
+    );
+    println!(
+        "  TOTAL:         {:.3}s ({:.0} docs/sec)\n",
+        total_time.as_secs_f64(),
+        throughput
+    );
 
     println!("Processing Metrics:");
     println!("  Ingested:      {} docs", metrics.documents_ingested);
     println!("  Tokenized:     {} docs", metrics.documents_tokenized);
-    println!("  Skipped:       {} docs ({:.1}%)",
+    println!(
+        "  Skipped:       {} docs ({:.1}%)",
         metrics.documents_skipped,
-        (metrics.documents_skipped as f64 / metrics.documents_ingested as f64) * 100.0);
+        (metrics.documents_skipped as f64 / metrics.documents_ingested as f64) * 100.0
+    );
     println!("  Signatures:    {} computed", metrics.signatures_computed);
     println!("  Pairs Verified: {}", metrics.pairs_verified);
     println!("  Clusters:      {}\n", clusters.len());
 
     println!("Safety (ASSUM):");
-    let total_panics = metrics.tokenization_panics + metrics.minhash_panics +
-                       metrics.lsh_panics + metrics.verification_panics;
+    let total_panics =
+        metrics.tokenization_panics + metrics.minhash_panics + metrics.lsh_panics + metrics.verification_panics;
     println!("  Panics:        {} (target: 0)", total_panics);
     if total_panics == 0 {
         println!("  ✓ ASSUM_PANIC_SAFETY: PASSED\n");
@@ -158,12 +174,14 @@ fn main() {
     println!("✓ Completion: Pipeline executed without OOM at 1M scale");
     println!();
 
-    println!("Status: {} for 1M documents",
+    println!(
+        "Status: {} for 1M documents",
         if total_time.as_secs_f64() < 30.0 && total_panics == 0 {
             "✅ SUCCESS"
         } else if total_panics > 0 {
             "❌ PANICS DETECTED"
         } else {
             "⚠️  SLOW PERFORMANCE"
-        });
+        }
+    );
 }

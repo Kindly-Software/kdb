@@ -43,8 +43,7 @@ fn test_add_document_single() {
     let path = temp_dir.path().join("test.bin");
     let cpu_caps = CpuCapabilityCapsule::detect();
 
-    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps)
-        .expect("Failed to create pipeline");
+    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps).expect("Failed to create pipeline");
 
     let result = pipeline.add_document(0, "The quick brown fox jumps over the lazy dog");
     assert!(result.is_ok(), "Failed to add document");
@@ -58,8 +57,7 @@ fn test_add_multiple_documents() {
     let path = temp_dir.path().join("test.bin");
     let cpu_caps = CpuCapabilityCapsule::detect();
 
-    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps)
-        .expect("Failed to create pipeline");
+    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps).expect("Failed to create pipeline");
 
     for i in 0..100 {
         let doc = format!("Document number {}", i);
@@ -77,8 +75,7 @@ fn test_file_created_with_correct_size() {
     let cpu_caps = CpuCapabilityCapsule::detect();
 
     let capacity = 1_000;
-    let _ = PersistentDedupPipeline::create(&path, capacity, 1, &cpu_caps)
-        .expect("Failed to create pipeline");
+    let _ = PersistentDedupPipeline::create(&path, capacity, 1, &cpu_caps).expect("Failed to create pipeline");
 
     let metadata = fs::metadata(&path).expect("Failed to get file metadata");
     let header_size = 128; // HEADER_SIZE constant
@@ -86,9 +83,11 @@ fn test_file_created_with_correct_size() {
     let expected_size = header_size + (capacity * sig_size);
 
     assert_eq!(
-        metadata.len() as usize, expected_size,
+        metadata.len() as usize,
+        expected_size,
         "File size mismatch: expected {}, got {}",
-        expected_size, metadata.len()
+        expected_size,
+        metadata.len()
     );
 }
 
@@ -99,15 +98,21 @@ fn test_generation_counter_increments() {
     let path = temp_dir.path().join("test.bin");
     let cpu_caps = CpuCapabilityCapsule::detect();
 
-    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps)
-        .expect("Failed to create pipeline");
+    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps).expect("Failed to create pipeline");
 
-    assert_eq!(pipeline.generation(), 0, "Should start with generation 0 (even/committed)");
+    assert_eq!(
+        pipeline.generation(),
+        0,
+        "Should start with generation 0 (even/committed)"
+    );
     assert!(pipeline.is_committed(), "Should be committed initially");
 
     pipeline.add_document(0, "test").expect("Failed to add document");
     // After add_document, generation should be even (committed)
-    assert!(pipeline.generation() % 2 == 0, "Generation should be even after committed write");
+    assert!(
+        pipeline.generation() % 2 == 0,
+        "Generation should be even after committed write"
+    );
     assert!(pipeline.is_committed(), "Should be committed after add");
 }
 
@@ -120,16 +125,15 @@ fn test_recovery_basic() {
 
     // Create and add documents
     {
-        let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps)
-            .expect("Failed to create pipeline");
+        let mut pipeline =
+            PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps).expect("Failed to create pipeline");
         pipeline.add_document(0, "Document 1").expect("Failed to add doc 1");
         pipeline.add_document(1, "Document 2").expect("Failed to add doc 2");
         pipeline.flush().expect("Failed to flush");
     }
 
     // Recover pipeline
-    let recovered = PersistentDedupPipeline::recover(&path, 1, &cpu_caps)
-        .expect("Failed to recover pipeline");
+    let recovered = PersistentDedupPipeline::recover(&path, 1, &cpu_caps).expect("Failed to recover pipeline");
 
     assert_eq!(recovered.count(), 2, "Recovered pipeline should have 2 documents");
     assert_eq!(recovered.capacity(), 10_000, "Capacity should be preserved");
@@ -144,8 +148,8 @@ fn test_mmap_integrity_after_recovery() {
 
     // Create, add, and flush
     {
-        let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps)
-            .expect("Failed to create pipeline");
+        let mut pipeline =
+            PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps).expect("Failed to create pipeline");
         for i in 0..50 {
             let doc = format!("Document {}", i);
             pipeline.add_document(i, &doc).expect("Failed to add document");
@@ -154,8 +158,7 @@ fn test_mmap_integrity_after_recovery() {
     }
 
     // Recover and check consistency
-    let recovered = PersistentDedupPipeline::recover(&path, 1, &cpu_caps)
-        .expect("Failed to recover");
+    let recovered = PersistentDedupPipeline::recover(&path, 1, &cpu_caps).expect("Failed to recover");
 
     assert_eq!(recovered.count(), 50, "Recovery should preserve all 50 documents");
 }
@@ -171,8 +174,7 @@ fn test_generation_monotonicity() {
     let path = temp_dir.path().join("test.bin");
     let cpu_caps = CpuCapabilityCapsule::detect();
 
-    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps)
-        .expect("Failed to create pipeline");
+    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps).expect("Failed to create pipeline");
 
     let mut prev_gen = pipeline.generation();
     for i in 0..20 {
@@ -181,7 +183,8 @@ fn test_generation_monotonicity() {
         assert!(
             curr_gen > prev_gen || curr_gen == 0,
             "Generation not monotonic: {} -> {}",
-            prev_gen, curr_gen
+            prev_gen,
+            curr_gen
         );
         prev_gen = curr_gen;
     }
@@ -194,15 +197,11 @@ fn test_committed_state_invariant() {
     let path = temp_dir.path().join("test.bin");
     let cpu_caps = CpuCapabilityCapsule::detect();
 
-    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps)
-        .expect("Failed to create pipeline");
+    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps).expect("Failed to create pipeline");
 
     for i in 0..50 {
         pipeline.add_document(i, "test").expect("Failed to add document");
-        assert!(
-            pipeline.is_committed(),
-            "Pipeline should be committed after each add"
-        );
+        assert!(pipeline.is_committed(), "Pipeline should be committed after each add");
     }
 }
 
@@ -214,8 +213,8 @@ fn test_capacity_never_exceeded() {
     let cpu_caps = CpuCapabilityCapsule::detect();
 
     let capacity = 100;
-    let mut pipeline = PersistentDedupPipeline::create(&path, capacity, 1, &cpu_caps)
-        .expect("Failed to create pipeline");
+    let mut pipeline =
+        PersistentDedupPipeline::create(&path, capacity, 1, &cpu_caps).expect("Failed to create pipeline");
 
     // Add up to capacity
     for i in 0..capacity {
@@ -236,8 +235,7 @@ fn test_path_preserved() {
     let path_str = path.to_str().unwrap().to_string();
     let cpu_caps = CpuCapabilityCapsule::detect();
 
-    let pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps)
-        .expect("Failed to create pipeline");
+    let pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps).expect("Failed to create pipeline");
 
     assert_eq!(pipeline.path(), path_str, "Path should be preserved");
 }
@@ -249,8 +247,7 @@ fn test_skip_rate_computation() {
     let path = temp_dir.path().join("test.bin");
     let cpu_caps = CpuCapabilityCapsule::detect();
 
-    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps)
-        .expect("Failed to create pipeline");
+    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps).expect("Failed to create pipeline");
 
     pipeline.add_document(0, "test").expect("Failed to add document");
     let skip_rate = pipeline.skip_rate();
@@ -285,8 +282,7 @@ fn test_find_duplicates_consistency() {
     let path = temp_dir.path().join("test.bin");
     let cpu_caps = CpuCapabilityCapsule::detect();
 
-    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps)
-        .expect("Failed to create pipeline");
+    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps).expect("Failed to create pipeline");
 
     // Add duplicate documents
     pipeline.add_document(0, "duplicate text").expect("Failed to add doc 0");
@@ -316,15 +312,13 @@ fn test_create_add_flush_recover() {
 
     // Workflow step 1: Create
     {
-        let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps)
-            .expect("Failed to create pipeline");
+        let mut pipeline =
+            PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps).expect("Failed to create pipeline");
 
         // Workflow step 2: Add multiple documents
         for i in 0..200 {
             let doc = format!("Document with unique content {}", i);
-            pipeline
-                .add_document(i, &doc)
-                .expect("Failed to add document");
+            pipeline.add_document(i, &doc).expect("Failed to add document");
         }
 
         // Workflow step 3: Flush to disk
@@ -332,8 +326,7 @@ fn test_create_add_flush_recover() {
     }
 
     // Workflow step 4: Recover
-    let recovered = PersistentDedupPipeline::recover(&path, 1, &cpu_caps)
-        .expect("Failed to recover");
+    let recovered = PersistentDedupPipeline::recover(&path, 1, &cpu_caps).expect("Failed to recover");
 
     assert_eq!(recovered.count(), 200, "Should have 200 documents after recovery");
 }
@@ -347,21 +340,18 @@ fn test_incremental_updates() {
 
     // Initial batch
     {
-        let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps)
-            .expect("Failed to create pipeline");
+        let mut pipeline =
+            PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps).expect("Failed to create pipeline");
         for i in 0..100 {
             let doc = format!("Initial batch document {}", i);
-            pipeline
-                .add_document(i, &doc)
-                .expect("Failed to add document");
+            pipeline.add_document(i, &doc).expect("Failed to add document");
         }
         pipeline.flush().expect("Failed to flush");
     }
 
     // Incremental update after recovery
     {
-        let mut pipeline = PersistentDedupPipeline::recover(&path, 1, &cpu_caps)
-            .expect("Failed to recover");
+        let mut pipeline = PersistentDedupPipeline::recover(&path, 1, &cpu_caps).expect("Failed to recover");
         assert_eq!(pipeline.count(), 100, "Should have 100 documents from initial batch");
 
         for i in 100..150 {
@@ -374,9 +364,12 @@ fn test_incremental_updates() {
     }
 
     // Final recovery
-    let final_pipeline = PersistentDedupPipeline::recover(&path, 1, &cpu_caps)
-        .expect("Failed to recover final");
-    assert_eq!(final_pipeline.count(), 150, "Should have 150 documents after all updates");
+    let final_pipeline = PersistentDedupPipeline::recover(&path, 1, &cpu_caps).expect("Failed to recover final");
+    assert_eq!(
+        final_pipeline.count(),
+        150,
+        "Should have 150 documents after all updates"
+    );
 }
 
 #[test]
@@ -388,8 +381,8 @@ fn test_parallel_threads_recovery() {
 
     // Create with 4 threads
     {
-        let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 4, &cpu_caps)
-            .expect("Failed to create pipeline");
+        let mut pipeline =
+            PersistentDedupPipeline::create(&path, 10_000, 4, &cpu_caps).expect("Failed to create pipeline");
         for i in 0..100 {
             pipeline
                 .add_document(i, &format!("Doc {}", i))
@@ -399,8 +392,8 @@ fn test_parallel_threads_recovery() {
     }
 
     // Recover with 2 threads
-    let pipeline = PersistentDedupPipeline::recover(&path, 2, &cpu_caps)
-        .expect("Failed to recover with different thread count");
+    let pipeline =
+        PersistentDedupPipeline::recover(&path, 2, &cpu_caps).expect("Failed to recover with different thread count");
     assert_eq!(
         pipeline.count(),
         100,
@@ -416,23 +409,18 @@ fn test_memory_usage_validation() {
     let path = temp_dir.path().join("test.bin");
     let cpu_caps = CpuCapabilityCapsule::detect();
 
-    let mut pipeline = PersistentDedupPipeline::create(&path, 100_000, 1, &cpu_caps)
-        .expect("Failed to create pipeline");
+    let mut pipeline =
+        PersistentDedupPipeline::create(&path, 100_000, 1, &cpu_caps).expect("Failed to create pipeline");
 
     // Add 1K documents
     for i in 0..1_000 {
         let doc = format!("Test document number {}", i);
-        pipeline
-            .add_document(i, &doc)
-            .expect("Failed to add document");
+        pipeline.add_document(i, &doc).expect("Failed to add document");
     }
 
     // File size should be preallocated but RSS should be low
     let metadata = fs::metadata(&path).expect("Failed to get metadata");
-    assert!(
-        metadata.len() > 0,
-        "File should have non-zero size (mmap allocated)"
-    );
+    assert!(metadata.len() > 0, "File should have non-zero size (mmap allocated)");
 }
 
 #[test]
@@ -455,8 +443,8 @@ fn test_duplicate_detection_after_recovery() {
     let cpu_caps = CpuCapabilityCapsule::detect();
 
     {
-        let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps)
-            .expect("Failed to create pipeline");
+        let mut pipeline =
+            PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps).expect("Failed to create pipeline");
         pipeline
             .add_document(0, "This is a duplicate")
             .expect("Failed to add doc 0");
@@ -469,19 +457,13 @@ fn test_duplicate_detection_after_recovery() {
         pipeline.flush().expect("Failed to flush");
     }
 
-    let recovered = PersistentDedupPipeline::recover(&path, 1, &cpu_caps)
-        .expect("Failed to recover");
+    let recovered = PersistentDedupPipeline::recover(&path, 1, &cpu_caps).expect("Failed to recover");
 
-    let clusters = recovered
-        .find_duplicates(0.8)
-        .expect("Failed to find duplicates");
+    let clusters = recovered.find_duplicates(0.8).expect("Failed to find duplicates");
 
     // Should find at least one duplicate pair (docs 0 and 1)
     let found_pair = clusters.iter().any(|cluster: &Vec<usize>| cluster.len() >= 2);
-    assert!(
-        found_pair,
-        "Should detect duplicate documents after recovery"
-    );
+    assert!(found_pair, "Should detect duplicate documents after recovery");
 }
 
 #[test]
@@ -491,8 +473,7 @@ fn test_multuple_threads_parameter() {
     let path = temp_dir.path().join("test.bin");
     let cpu_caps = CpuCapabilityCapsule::detect();
 
-    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 8, &cpu_caps)
-        .expect("Failed to create pipeline");
+    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 8, &cpu_caps).expect("Failed to create pipeline");
 
     for i in 0..50 {
         pipeline
@@ -514,17 +495,13 @@ fn test_crash_recovery_generation_validation() {
     let path = temp_dir.path().join("test.bin");
     let cpu_caps = CpuCapabilityCapsule::detect();
 
-    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps)
-        .expect("Failed to create pipeline");
+    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps).expect("Failed to create pipeline");
 
-    pipeline
-        .add_document(0, "test")
-        .expect("Failed to add document");
+    pipeline.add_document(0, "test").expect("Failed to add document");
     pipeline.flush().expect("Failed to flush");
 
     // Recovery should succeed with even generation
-    let recovered = PersistentDedupPipeline::recover(&path, 1, &cpu_caps)
-        .expect("Failed to recover committed state");
+    let recovered = PersistentDedupPipeline::recover(&path, 1, &cpu_caps).expect("Failed to recover committed state");
     assert!(recovered.is_committed(), "Recovered pipeline should be committed");
 }
 
@@ -536,8 +513,8 @@ fn test_fsync_durability() {
     let cpu_caps = CpuCapabilityCapsule::detect();
 
     {
-        let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps)
-            .expect("Failed to create pipeline");
+        let mut pipeline =
+            PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps).expect("Failed to create pipeline");
 
         for i in 0..100 {
             pipeline
@@ -550,8 +527,8 @@ fn test_fsync_durability() {
     }
 
     // Recovery should work even after process exit simulation
-    let recovered = PersistentDedupPipeline::recover(&path, 1, &cpu_caps)
-        .expect("Failed to recover after simulated crash");
+    let recovered =
+        PersistentDedupPipeline::recover(&path, 1, &cpu_caps).expect("Failed to recover after simulated crash");
     assert_eq!(recovered.count(), 100, "Should have all 100 documents after recovery");
 }
 
@@ -562,15 +539,12 @@ fn test_performance_throughput() {
     let path = temp_dir.path().join("test.bin");
     let cpu_caps = CpuCapabilityCapsule::detect();
 
-    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps)
-        .expect("Failed to create pipeline");
+    let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps).expect("Failed to create pipeline");
 
     let start = std::time::Instant::now();
     for i in 0..1_000 {
         let doc = format!("Performance test document {}", i);
-        pipeline
-            .add_document(i, &doc)
-            .expect("Failed to add document");
+        pipeline.add_document(i, &doc).expect("Failed to add document");
     }
     let elapsed = start.elapsed();
 
@@ -583,10 +557,7 @@ fn test_performance_throughput() {
     );
 
     // NOTE: This is an informational test - actual validation requires B32 framework
-    assert!(
-        throughput > 50_000.0,
-        "Throughput should be reasonable (>50K docs/sec)"
-    );
+    assert!(throughput > 50_000.0, "Throughput should be reasonable (>50K docs/sec)");
 }
 
 #[test]
@@ -597,8 +568,8 @@ fn test_mmap_zero_copy_semantics() {
     let cpu_caps = CpuCapabilityCapsule::detect();
 
     {
-        let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps)
-            .expect("Failed to create pipeline");
+        let mut pipeline =
+            PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps).expect("Failed to create pipeline");
 
         for i in 0..50 {
             pipeline
@@ -609,8 +580,7 @@ fn test_mmap_zero_copy_semantics() {
     }
 
     // Recovery reads signatures from mmap without copying Vec
-    let recovered = PersistentDedupPipeline::recover(&path, 1, &cpu_caps)
-        .expect("Failed to recover");
+    let recovered = PersistentDedupPipeline::recover(&path, 1, &cpu_caps).expect("Failed to recover");
 
     // If zero-copy is working, recovery should be fast
     assert_eq!(recovered.count(), 50, "Recovery should preserve all documents");
@@ -623,16 +593,13 @@ fn test_large_document_handling() {
     let path = temp_dir.path().join("test.bin");
     let cpu_caps = CpuCapabilityCapsule::detect();
 
-    let mut pipeline = PersistentDedupPipeline::create(&path, 1_000, 1, &cpu_caps)
-        .expect("Failed to create pipeline");
+    let mut pipeline = PersistentDedupPipeline::create(&path, 1_000, 1, &cpu_caps).expect("Failed to create pipeline");
 
     // Create large documents (e.g., 10KB)
     let large_doc = "a".repeat(10_000);
     for i in 0..10 {
         let doc = format!("{}-{}", large_doc, i);
-        pipeline
-            .add_document(i, &doc)
-            .expect("Failed to add large document");
+        pipeline.add_document(i, &doc).expect("Failed to add large document");
     }
 
     assert_eq!(pipeline.count(), 10, "Should handle large documents");
@@ -646,8 +613,8 @@ fn test_concurrent_recovery_consistency() {
     let cpu_caps = CpuCapabilityCapsule::detect();
 
     {
-        let mut pipeline = PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps)
-            .expect("Failed to create pipeline");
+        let mut pipeline =
+            PersistentDedupPipeline::create(&path, 10_000, 1, &cpu_caps).expect("Failed to create pipeline");
         for i in 0..500 {
             pipeline
                 .add_document(i, &format!("Document {}", i))
@@ -657,10 +624,8 @@ fn test_concurrent_recovery_consistency() {
     }
 
     // Multiple sequential recoveries should be consistent
-    let rec1 = PersistentDedupPipeline::recover(&path, 1, &cpu_caps)
-        .expect("Failed first recovery");
-    let rec2 = PersistentDedupPipeline::recover(&path, 1, &cpu_caps)
-        .expect("Failed second recovery");
+    let rec1 = PersistentDedupPipeline::recover(&path, 1, &cpu_caps).expect("Failed first recovery");
+    let rec2 = PersistentDedupPipeline::recover(&path, 1, &cpu_caps).expect("Failed second recovery");
 
     assert_eq!(rec1.count(), rec2.count(), "Recoveries should be consistent");
 }
@@ -675,8 +640,8 @@ fn test_memory_reduction_validation() {
     let cpu_caps = CpuCapabilityCapsule::detect();
 
     let capacity = 100_000;
-    let mut pipeline = PersistentDedupPipeline::create(&path, capacity, 1, &cpu_caps)
-        .expect("Failed to create pipeline");
+    let mut pipeline =
+        PersistentDedupPipeline::create(&path, capacity, 1, &cpu_caps).expect("Failed to create pipeline");
 
     // Calculate expected file size
     let header_size = 128; // HEADER_SIZE
@@ -685,7 +650,8 @@ fn test_memory_reduction_validation() {
 
     let metadata = fs::metadata(&path).expect("Failed to get file metadata");
     assert_eq!(
-        metadata.len() as usize, expected_file_size,
+        metadata.len() as usize,
+        expected_file_size,
         "File size should match capacity × signature size"
     );
 
@@ -714,9 +680,6 @@ fn test_memory_reduction_validation() {
         capacity,
         pipeline.count()
     );
-    println!(
-        "File size: {} bytes (mmap-backed, not counted in RSS)",
-        metadata.len()
-    );
+    println!("File size: {} bytes (mmap-backed, not counted in RSS)", metadata.len());
     println!("Expected RSS: ~100MB (Bloom filter only, no Vec<Signatures>)");
 }

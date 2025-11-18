@@ -1,0 +1,39 @@
+[package]
+name = "kindly-web"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+resolver = "2"
+
+[dependencies]
+leptos = { version = "0.8", features = ["csr"] }
+leptos_meta = "0.8"
+leptos_router = "0.8"
+wasm-bindgen = "0.2"
+thiserror = "1.0"
+
+# INTEGRATED: atomic_capsule v0.4.0 (WASM-compatible, no_std)
+# I20 Q6: API compatibility - Both no_std, WASM-compatible ✓
+# I20 Q7: Performance - Bundle size target <2MB ✓
+# I20 Q10: Boundary safety - no_std prevents std leakage ✓
+
+[dependencies.atomic_capsule]
+path = "../../../atomic_capsule"
+version = "0.4.0"
+default-features = false
+
+[dependencies.atomic_capsule_derive]
+path = "../../../atomic_capsule_derive"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.release-with-debug]
+inherits = "release"
+debug = true
+strip = false

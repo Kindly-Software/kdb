@@ -51,8 +51,8 @@
 #![allow(unsafe_code)] // Required for header serialization (FileHeader ↔ bytes)
 
 use crate::ParallelDedupPipeline;
+use atomic_capsule::mmap::{MmapLayout, MmapManager};
 use atomic_capsule::probabilistic::MinHashSignatureCapsule;
-use atomic_capsule::mmap::{MmapManager, MmapLayout};
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Seek, Write as _};
 use std::path::Path;
@@ -147,25 +147,20 @@ impl From<crate::pipeline::PipelineError> for PersistentError {
             crate::pipeline::PipelineError::ProtectionViolation(prot_err) => {
                 PersistentError::ProtectionViolation(prot_err)
             }
-            crate::pipeline::PipelineError::DocumentIdOutOfBounds { .. } => {
-                PersistentError::IndexFull
-            }
+            crate::pipeline::PipelineError::DocumentIdOutOfBounds { .. } => PersistentError::IndexFull,
             crate::pipeline::PipelineError::SignatureNotFound { doc_id } => {
                 PersistentError::IoError(std::io::Error::new(
                     std::io::ErrorKind::NotFound,
-                    format!("Signature not found for doc {}", doc_id)
+                    format!("Signature not found for doc {}", doc_id),
                 ))
             }
-            crate::pipeline::PipelineError::LshBucketingError { reason } => {
-                PersistentError::IoError(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("LSH bucketing error: {}", reason)
-                ))
-            }
+            crate::pipeline::PipelineError::LshBucketingError { reason } => PersistentError::IoError(
+                std::io::Error::new(std::io::ErrorKind::Other, format!("LSH bucketing error: {}", reason)),
+            ),
             crate::pipeline::PipelineError::ResourceLimitExceeded { reason } => {
                 PersistentError::IoError(std::io::Error::new(
                     std::io::ErrorKind::Other,
-                    format!("Resource limit exceeded: {}", reason)
+                    format!("Resource limit exceeded: {}", reason),
                 ))
             }
         }
@@ -177,32 +172,16 @@ impl std::fmt::Display for PersistentError {
         match self {
             PersistentError::IoError(e) => write!(f, "I/O error: {}", e),
             PersistentError::InvalidMagic { expected, actual } => {
-                write!(
-                    f,
-                    "Invalid magic: expected 0x{:016x}, got 0x{:016x}",
-                    expected, actual
-                )
+                write!(f, "Invalid magic: expected 0x{:016x}, got 0x{:016x}", expected, actual)
             }
             PersistentError::UnsupportedVersion { expected, actual } => {
-                write!(
-                    f,
-                    "Unsupported version: expected {}, got {}",
-                    expected, actual
-                )
+                write!(f, "Unsupported version: expected {}, got {}", expected, actual)
             }
             PersistentError::FileTooSmall { expected, actual } => {
-                write!(
-                    f,
-                    "File too small: expected {} bytes, got {}",
-                    expected, actual
-                )
+                write!(f, "File too small: expected {} bytes, got {}", expected, actual)
             }
             PersistentError::GenerationMismatch { expected, actual } => {
-                write!(
-                    f,
-                    "Generation mismatch: expected {}, got {}",
-                    expected, actual
-                )
+                write!(f, "Generation mismatch: expected {}, got {}", expected, actual)
             }
             PersistentError::IndexFull => write!(f, "Index is full"),
             PersistentError::CorruptedIndex => write!(f, "Index corrupted"),
@@ -243,7 +222,10 @@ struct FileHeader {
 impl FileHeader {
     /// Create new header
     fn new(capacity: usize) -> Self {
-        let file_size = HEADER_SIZE + (capacity * SIGNATURE_SIZE);
+        let file_size_raw = HEADER_SIZE + (capacity * SIGNATURE_SIZE);
+        // Round up to 4KB page alignment (MmapLayout requirement)
+        const PAGE_SIZE: usize = 4096;
+        let file_size = ((file_size_raw + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE;
         Self {
             magic: MAGIC,
             version: VERSION,
@@ -379,7 +361,12 @@ impl<'a> PersistentDedupPipeline<'a> {
     /// - `#VERIFY_DISK_SPACE`: File allocation fails if insufficient
     /// - `#ASSUME_PARALLEL_SAFETY`: ParallelDedupPipeline is thread-safe (100% lockfree)
     /// - `#VERIFY_PARALLEL_SAFETY`: Phase 4.4 validated 100% COCA compliance
-    pub fn create<P: AsRef<Path>>(path: P, capacity: usize, num_threads: usize, cpu_caps: &'a atomic_capsule::CpuCapabilityCapsule) -> Result<Self, PersistentError> {
+    pub fn create<P: AsRef<Path>>(
+        path: P,
+        capacity: usize,
+        num_threads: usize,
+        cpu_caps: &'a atomic_capsule::CpuCapabilityCapsule,
+    ) -> Result<Self, PersistentError> {
         let path_str = path.as_ref().to_str().unwrap().to_string();
         let header = FileHeader::new(capacity);
 
@@ -393,13 +380,17 @@ impl<'a> PersistentDedupPipeline<'a> {
 
         // Allocate file (header + signatures)
         // v1.3: Single region for signatures (Region 0)
-        let file_size = HEADER_SIZE + (capacity * SIGNATURE_SIZE);
+        let file_size_raw = HEADER_SIZE + (capacity * SIGNATURE_SIZE);
+
+        // Round up to 4KB page alignment (MmapLayout requirement)
+        const PAGE_SIZE: usize = 4096;
+        let file_size = ((file_size_raw + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE;
+
         file.set_len(file_size as u64)?;
 
         // Write header
-        let header_bytes = unsafe {
-            std::slice::from_raw_parts(&header as *const FileHeader as *const u8, HEADER_SIZE)
-        };
+        let header_bytes =
+            unsafe { std::slice::from_raw_parts(&header as *const FileHeader as *const u8, HEADER_SIZE) };
         file.write_all(header_bytes)?;
         file.flush()?;
 
@@ -408,23 +399,22 @@ impl<'a> PersistentDedupPipeline<'a> {
         // #ASSUME_MMAP_ALIGNMENT: MmapManager returns page-aligned memory
         // #VERIFY: Mmap setup tested in persistent_mmap_tests.rs
         let file_size_u64 = file_size as u64;
-        let layout = MmapLayout::new(file_size_u64, 1)
-            .map_err(|_| PersistentError::IoError(io::Error::new(
+        let layout = MmapLayout::new(file_size_u64, 1).map_err(|_| {
+            PersistentError::IoError(io::Error::new(
                 io::ErrorKind::Other,
-                "Failed to create MmapLayout for signatures"
-            )))?;
+                "Failed to create MmapLayout for signatures",
+            ))
+        })?;
 
-        let mmap_manager = MmapManager::new(path.as_ref(), &layout)
-            .map_err(|_| PersistentError::IoError(io::Error::new(
-                io::ErrorKind::Other,
-                "Failed to initialize MmapManager"
-            )))?;
+        let mmap_manager = MmapManager::new(path.as_ref(), &layout).map_err(|_| {
+            PersistentError::IoError(io::Error::new(io::ErrorKind::Other, "Failed to initialize MmapManager"))
+        })?;
 
         let generation = AtomicU64::new(0);
 
         // Phase 4.4: Use ParallelDedupPipeline for 912K docs/sec throughput
-        let pipeline = ParallelDedupPipeline::new(capacity, num_threads, cpu_caps)
-            .map_err(|_| PersistentError::CorruptedIndex)?;
+        let pipeline =
+            ParallelDedupPipeline::new(capacity, num_threads, cpu_caps).map_err(|_| PersistentError::CorruptedIndex)?;
 
         Ok(Self {
             path: path_str,
@@ -465,7 +455,11 @@ impl<'a> PersistentDedupPipeline<'a> {
     /// - `#ASSUME_PARALLEL_RECOVERY`: ParallelDedupPipeline can be rebuilt from signatures
     /// - `#VERIFY_PARALLEL_RECOVERY`: Tests validate recovery correctness
     /// - `#ASSUME_MMAP_VALIDITY`: Mmap pointers valid until Drop
-    pub fn recover<P: AsRef<Path>>(path: P, num_threads: usize, cpu_caps: &'a atomic_capsule::CpuCapabilityCapsule) -> Result<Self, PersistentError> {
+    pub fn recover<P: AsRef<Path>>(
+        path: P,
+        num_threads: usize,
+        cpu_caps: &'a atomic_capsule::CpuCapabilityCapsule,
+    ) -> Result<Self, PersistentError> {
         let path_str = path.as_ref().to_str().unwrap().to_string();
 
         // Open file
@@ -492,17 +486,19 @@ impl<'a> PersistentDedupPipeline<'a> {
         // #ASSUME_MMAP_VALIDITY: Mmap pointers remain valid until Drop
         // #VERIFY: Crash recovery tests validate recovery correctness
         let file_size = header.file_size as u64;
-        let layout = MmapLayout::new(file_size, 1)
-            .map_err(|_| PersistentError::IoError(io::Error::new(
+        let layout = MmapLayout::new(file_size, 1).map_err(|_| {
+            PersistentError::IoError(io::Error::new(
                 io::ErrorKind::Other,
-                "Failed to create MmapLayout for recovery"
-            )))?;
+                "Failed to create MmapLayout for recovery",
+            ))
+        })?;
 
-        let mmap_manager = MmapManager::new(path.as_ref(), &layout)
-            .map_err(|_| PersistentError::IoError(io::Error::new(
+        let mmap_manager = MmapManager::new(path.as_ref(), &layout).map_err(|_| {
+            PersistentError::IoError(io::Error::new(
                 io::ErrorKind::Other,
-                "Failed to re-mmap file for recovery"
-            )))?;
+                "Failed to re-mmap file for recovery",
+            ))
+        })?;
 
         // Rebuild parallel pipeline (Phase 4.4)
         let mut pipeline = ParallelDedupPipeline::new(header.capacity as usize, num_threads, cpu_caps)
@@ -586,9 +582,8 @@ impl<'a> PersistentDedupPipeline<'a> {
         // Write signature to mmap (v1.3 - via file handle, mmap for zero-copy reads)
         // #ASSUME_SIGNATURE_SIZE_CONST: MinHashSignatureCapsule always 256B
         // #VERIFY: Compile-time assertion enforces size
-        let sig_bytes: &[u8] = unsafe {
-            std::slice::from_raw_parts(signature.signature().as_ptr() as *const u8, SIGNATURE_SIZE)
-        };
+        let sig_bytes: &[u8] =
+            unsafe { std::slice::from_raw_parts(signature.signature().as_ptr() as *const u8, SIGNATURE_SIZE) };
 
         // Write signature to file at appropriate offset
         // v1.3: File handle writes, mmap automatically reflects changes (MAP_SHARED)
@@ -633,9 +628,8 @@ impl<'a> PersistentDedupPipeline<'a> {
         crate::protection::check_protection()?;
 
         // Write header
-        let header_bytes = unsafe {
-            std::slice::from_raw_parts(&self.header as *const FileHeader as *const u8, HEADER_SIZE)
-        };
+        let header_bytes =
+            unsafe { std::slice::from_raw_parts(&self.header as *const FileHeader as *const u8, HEADER_SIZE) };
 
         use std::io::Seek;
         self.file.seek(std::io::SeekFrom::Start(0))?;
@@ -648,11 +642,9 @@ impl<'a> PersistentDedupPipeline<'a> {
 
         // Also sync mmap region via mmap_manager
         // #ASSUME_MMAP_CONSISTENCY: Mmap fsync consistent with file fsync
-        self.mmap_manager.fsync()
-            .map_err(|_| PersistentError::IoError(io::Error::new(
-                io::ErrorKind::Other,
-                "Failed to fsync mmap region"
-            )))?;
+        self.mmap_manager.fsync().map_err(|_| {
+            PersistentError::IoError(io::Error::new(io::ErrorKind::Other, "Failed to fsync mmap region"))
+        })?;
 
         Ok(())
     }

@@ -25,9 +25,9 @@
 //! };
 //! ```
 
+use atomic_capsule::CpuCapabilityCapsule;
 use kindly_dedup::format::{CsvConfig, FormatReaderCapsule};
 use kindly_dedup::DedupPipeline;
-use atomic_capsule::CpuCapabilityCapsule;
 use std::fs::File;
 use std::io::Write;
 use std::time::Instant;
@@ -64,9 +64,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let start = Instant::now();
 
         let file = File::open(test_file)?;
-        let docs: Vec<_> = reader
-            .stream_documents(file, None)
-            .collect::<Result<Vec<_>, _>>()?;
+        let docs: Vec<_> = reader.stream_documents(file, None).collect::<Result<Vec<_>, _>>()?;
 
         let load_time = start.elapsed();
 
@@ -115,10 +113,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("===== Summary =====");
         println!("Total documents:   {}", docs.len());
         println!("Unique clusters:   {}", clusters.len());
-        println!(
-            "Duplicates found:  {}",
-            clusters.iter().filter(|c| c.len() > 1).count()
-        );
+        println!("Duplicates found:  {}", clusters.iter().filter(|c| c.len() > 1).count());
     }
 
     #[cfg(not(feature = "format-csv"))]
@@ -151,13 +146,7 @@ fn create_test_corpus(path: &str, count: usize) -> Result<(), Box<dyn std::error
     for i in 0..count {
         let text_idx = i % texts.len();
         let category = if i % 2 == 0 { "training" } else { "validation" };
-        writeln!(
-            file,
-            "{},{},{}",
-            i,
-            texts[text_idx],
-            category
-        )?;
+        writeln!(file, "{},{},{}", i, texts[text_idx], category)?;
     }
 
     Ok(())

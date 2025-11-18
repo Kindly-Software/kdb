@@ -1,0 +1,5 @@
+# Python dependencies for B32 baseline benchmarks
+
+datasketch==1.6.4     # Industry-standard MinHash/LSH
+mmh3==4.0.1           # MurmurHash3 (same as kindly_dedup)
+numpy==1.26.0         # NumPy for optimized baseline

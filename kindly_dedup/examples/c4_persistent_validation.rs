@@ -45,13 +45,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         let load_time = start_load.elapsed();
-        println!("├─ Loaded: {} documents in {:.2}s", documents.len(), load_time.as_secs_f64());
+        println!(
+            "├─ Loaded: {} documents in {:.2}s",
+            documents.len(),
+            load_time.as_secs_f64()
+        );
 
         // Create persistent pipeline (T9 mmap architecture)
         let mmap_path = format!("/tmp/dedup_{}.mmap", label.replace(" ", "_"));
+        let cpu_caps = atomic_capsule::CpuCapabilityCapsule::detect();
+        let num_threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
         let start_dedup = Instant::now();
 
-        let mut pipeline = match PersistentDedupPipeline::create(&mmap_path, documents.len()) {
+        let mut pipeline = match PersistentDedupPipeline::create(&mmap_path, documents.len(), num_threads, &cpu_caps) {
             Ok(p) => p,
             Err(e) => {
                 println!("└─ ⚠ Failed to create pipeline: {}\n", e);
@@ -98,7 +104,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let latency_us = dedup_time.as_micros() as f64 / documents.len() as f64;
         let bytes_per_doc = rss_kb as f64 * 1024.0 / documents.len() as f64;
 
-        println!("├─ Duplicates: {} clusters found ({:.1}% duplicate rate)",
+        println!(
+            "├─ Duplicates: {} clusters found ({:.1}% duplicate rate)",
             clusters.len(),
             (1.0 - clusters.len() as f64 / documents.len() as f64) * 100.0
         );

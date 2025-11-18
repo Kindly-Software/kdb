@@ -26,10 +26,7 @@ fn main() {
     if build_info.verify_integrity() {
         println!("\n✅ Layer 1 verification PASSED");
         println!("   - Customer ID embedded: {}", build_info.customer_id());
-        println!(
-            "   - Binary signature: {}...",
-            &build_info.build_signature()[..16]
-        );
+        println!("   - Binary signature: {}...", &build_info.build_signature()[..16]);
         println!("   - Build timestamp: {}", build_info.build_timestamp());
     } else {
         eprintln!("\n❌ Layer 1 verification FAILED");

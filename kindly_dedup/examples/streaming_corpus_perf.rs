@@ -16,7 +16,12 @@ fn main() {
     let batch = gen1.next().unwrap();
     let elapsed = start.elapsed();
     let throughput = 1_000_000.0 / elapsed.as_secs_f64();
-    println!("  {} docs in {:.3}s = {:.2}M docs/sec", batch.len(), elapsed.as_secs_f64(), throughput / 1_000_000.0);
+    println!(
+        "  {} docs in {:.3}s = {:.2}M docs/sec",
+        batch.len(),
+        elapsed.as_secs_f64(),
+        throughput / 1_000_000.0
+    );
     println!("  Memory: ~400MB peak (single batch)\n");
 
     // Test 2: 10M docs with 1M batches (10 batches)
@@ -29,7 +34,12 @@ fn main() {
     }
     let elapsed = start.elapsed();
     let throughput = 10_000_000.0 / elapsed.as_secs_f64();
-    println!("  {} docs in {:.3}s = {:.2}M docs/sec", total, elapsed.as_secs_f64(), throughput / 1_000_000.0);
+    println!(
+        "  {} docs in {:.3}s = {:.2}M docs/sec",
+        total,
+        elapsed.as_secs_f64(),
+        throughput / 1_000_000.0
+    );
     println!("  Memory: ~400MB peak (never holds full 10M)\n");
 
     // Test 3: Progress tracking

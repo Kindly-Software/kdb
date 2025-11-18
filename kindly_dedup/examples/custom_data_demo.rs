@@ -9,7 +9,7 @@
 //! ```
 
 use kindly_dedup::custom_data::{
-    CustomDataError, load_custom_corpus, load_json, load_jsonl, load_plaintext, print_progress,
+    load_custom_corpus, load_json, load_jsonl, load_plaintext, print_progress, CustomDataError,
 };
 use std::fs::File;
 use std::io::Write;
@@ -62,7 +62,10 @@ fn demo_jsonl(temp_dir: &tempfile::TempDir) -> Result<(), Box<dyn std::error::Er
     let jsonl_path = temp_dir.path().join("corpus.jsonl");
     let mut file = File::create(&jsonl_path)?;
     writeln!(file, r#"{{"id": 1, "text": "Machine learning is transforming AI"}}"#)?;
-    writeln!(file, r#"{{"id": 2, "text": "Neural networks power deep learning", "url": "http://example.com"}}"#)?;
+    writeln!(
+        file,
+        r#"{{"id": 2, "text": "Neural networks power deep learning", "url": "http://example.com"}}"#
+    )?;
     writeln!(file, r#"{{"id": 3, "text": "Data analysis drives insights"}}"#)?;
     file.flush()?;
 
@@ -186,11 +189,7 @@ fn demo_progress(temp_dir: &tempfile::TempDir) -> Result<(), Box<dyn std::error:
     let jsonl_path = temp_dir.path().join("progress.jsonl");
     let mut file = File::create(&jsonl_path)?;
     for i in 1..=100 {
-        writeln!(
-            file,
-            r#"{{"id": {}, "text": "Document number {}"}}"#,
-            i, i
-        )?;
+        writeln!(file, r#"{{"id": {}, "text": "Document number {}"}}"#, i, i)?;
     }
     file.flush()?;
 

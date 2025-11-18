@@ -1,11 +1,9 @@
-use kindly_dedup::{StreamingDedupPipeline, generate_synthetic_corpus};
+use kindly_dedup::{generate_synthetic_corpus, StreamingDedupPipeline};
 
 fn main() {
     println!("Generating 10K corpus...");
     let corpus = generate_synthetic_corpus(10_000);
-    let documents: Vec<(usize, String)> = corpus.iter()
-        .map(|doc| (doc.id, doc.text.clone()))
-        .collect();
+    let documents: Vec<(usize, String)> = corpus.iter().map(|doc| (doc.id, doc.text.clone())).collect();
 
     println!("Testing T5 with 10K documents...");
     let mut pipeline = StreamingDedupPipeline::new(10_000, 16).unwrap();
@@ -32,10 +30,8 @@ fn main() {
     println!("Skipped (Bloom): {}", metrics.documents_skipped);
     println!("Signatures: {}", metrics.signatures_computed);
     println!("Clusters: {}", clusters.len());
-    println!("Panics: tok={}, min={}, lsh={}, ver={}",
-        metrics.tokenization_panics,
-        metrics.minhash_panics,
-        metrics.lsh_panics,
-        metrics.verification_panics
+    println!(
+        "Panics: tok={}, min={}, lsh={}, ver={}",
+        metrics.tokenization_panics, metrics.minhash_panics, metrics.lsh_panics, metrics.verification_panics
     );
 }

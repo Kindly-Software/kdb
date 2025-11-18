@@ -146,7 +146,11 @@ fn demo_control_flow() -> Result<(), Box<dyn std::error::Error>> {
     }
     let elapsed = start.elapsed();
     let ns_per_op = elapsed.as_nanos() as f64 / 1_000_000.0;
-    println!("  Time: {:.2}ms ({:.2}ns per operation)", elapsed.as_millis(), ns_per_op);
+    println!(
+        "  Time: {:.2}ms ({:.2}ns per operation)",
+        elapsed.as_millis(),
+        ns_per_op
+    );
     println!("  Target: <30ns per operation");
     println!("  ✓ Performance: {}", if ns_per_op < 30.0 { "PASS" } else { "SLOW" });
     println!();
@@ -161,13 +165,13 @@ fn demo_code_encryption() -> Result<(), Box<dyn std::error::Error>> {
     println!("-".repeat(80));
 
     // Create capsule with AES-256-GCM key and nonce
-    let key = [0x42u8; 32];  // Mock 256-bit key
+    let key = [0x42u8; 32]; // Mock 256-bit key
     let nonce = [0x13u8; 12]; // Mock 96-bit nonce
     let capsule = CodeEncryptionCapsule::new(key, nonce)?;
 
     // Test single block decryption (with mock data)
     println!("Testing single block decryption:");
-    let encrypted = vec![0u8; 16];  // Mock encrypted block (16 bytes, AES block size)
+    let encrypted = vec![0u8; 16]; // Mock encrypted block (16 bytes, AES block size)
     let result: EncryptionResult<Vec<u8>> = capsule.decrypt_block(0, &encrypted, &[]);
     match result {
         Ok(decrypted) => {
@@ -184,7 +188,7 @@ fn demo_code_encryption() -> Result<(), Box<dyn std::error::Error>> {
     println!("Testing cache statistics:");
     // Perform multiple decryptions to populate cache
     for i in 0..100 {
-        let _ = capsule.decrypt_block(i % 16, &encrypted, &[]);  // Cache wraps at 16
+        let _ = capsule.decrypt_block(i % 16, &encrypted, &[]); // Cache wraps at 16
     }
     let (hits, misses, hit_rate) = capsule.cache_stats();
     println!("  Cache hits: {}", hits);
@@ -224,7 +228,7 @@ fn demo_instruction_substitution() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test SIMD batch mutation
     println!("Testing SIMD batch mutation (16 opcodes):");
-    let batch = [0x01; 16];  // 16 ADD opcodes
+    let batch = [0x01; 16]; // 16 ADD opcodes
     let mutated_batch = capsule.apply_simd_mutations(&batch);
     println!("  Original: {:?}", &batch[..8]);
     println!("  Mutated:  {:?}", &mutated_batch[..8]);
@@ -368,17 +372,24 @@ fn demo_parameter_encryption() -> Result<(), Box<dyn std::error::Error>> {
         let _ = capsule.get_minhash_seed(i % 128);
     }
     let elapsed = start.elapsed();
-    let ns_per_access = elapsed.as_nanos() as f64 / 300_000.0;  // 3 accesses per iteration
-    println!("  Time: {:.2}ms ({:.2}ns per access)", elapsed.as_millis(), ns_per_access);
+    let ns_per_access = elapsed.as_nanos() as f64 / 300_000.0; // 3 accesses per iteration
+    println!(
+        "  Time: {:.2}ms ({:.2}ns per access)",
+        elapsed.as_millis(),
+        ns_per_access
+    );
     println!("  Target: <1ns cached access");
-    println!("  ✓ Performance: {}", if ns_per_access < 10.0 { "EXCELLENT" } else { "SLOW" });
+    println!(
+        "  ✓ Performance: {}",
+        if ns_per_access < 10.0 { "EXCELLENT" } else { "SLOW" }
+    );
     println!();
 
     // Test cache invalidation
     println!("Testing cache invalidation:");
     capsule.invalidate_cache();
     println!("  Cache invalidated");
-    let lsh_l_after = capsule.get_lsh_l();  // Should decrypt again
+    let lsh_l_after = capsule.get_lsh_l(); // Should decrypt again
     println!("  LSH L after invalidation: {}", lsh_l_after);
     println!("  ✓ Re-decryption successful");
     println!();
@@ -390,7 +401,10 @@ fn demo_parameter_encryption() -> Result<(), Box<dyn std::error::Error>> {
     let gen_after = capsule.state() >> 48 & 0x7FFF;
     println!("  Generation before: {}", gen_before);
     println!("  Generation after: {}", gen_after);
-    println!("  ✓ Generation incremented: {}", gen_after == gen_before.wrapping_add(1));
+    println!(
+        "  ✓ Generation incremented: {}",
+        gen_after == gen_before.wrapping_add(1)
+    );
     println!();
 
     Ok(())
@@ -400,11 +414,11 @@ fn demo_parameter_encryption() -> Result<(), Box<dyn std::error::Error>> {
 fn estimate_overhead(layer_count: usize) -> f64 {
     match layer_count {
         0 => 0.0,
-        1 => 0.1,   // Parameter encryption only
-        2 => 0.43,  // + one more layer
-        3 => 0.63,  // + instruction substitution
-        4 => 0.93,  // + SIMD masking
-        5 => 1.17,  // All layers
+        1 => 0.1,  // Parameter encryption only
+        2 => 0.43, // + one more layer
+        3 => 0.63, // + instruction substitution
+        4 => 0.93, // + SIMD masking
+        5 => 1.17, // All layers
         _ => 1.17,
     }
 }
@@ -412,12 +426,12 @@ fn estimate_overhead(layer_count: usize) -> f64 {
 /// Estimate AI resistance based on enabled layers
 fn estimate_ai_resistance(layer_count: usize) -> usize {
     match layer_count {
-        0 => 2,  // No obfuscation
-        1 => 6,  // Parameter encryption only
-        2 => 7,  // + one more layer
-        3 => 7,  // + instruction substitution
-        4 => 8,  // + SIMD masking
-        5 => 9,  // All layers (8-9/10 range)
+        0 => 2, // No obfuscation
+        1 => 6, // Parameter encryption only
+        2 => 7, // + one more layer
+        3 => 7, // + instruction substitution
+        4 => 8, // + SIMD masking
+        5 => 9, // All layers (8-9/10 range)
         _ => 9,
     }
 }

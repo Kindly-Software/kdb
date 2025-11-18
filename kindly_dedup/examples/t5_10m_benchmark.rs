@@ -12,11 +12,11 @@
 //! - Bloom skip rate: 50-90% (depends on corpus)
 //! - Per-document latency: 1.74 µs (T5) vs 26 µs (sequential)
 
-use kindly_dedup::{StreamingDedupPipeline, DedupPipeline, generate_synthetic_corpus};
 use atomic_capsule::CpuCapabilityCapsule;
-use std::time::{Instant, Duration};
+use kindly_dedup::{generate_synthetic_corpus, DedupPipeline, StreamingDedupPipeline};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 fn main() {
     println!("╔════════════════════════════════════════════════════════════╗");
@@ -27,11 +27,18 @@ fn main() {
     // Hardware detection (UCE34 Q10)
     println!("[Hardware Detection]");
     let cpu_caps = CpuCapabilityCapsule::detect();
-    let num_threads = std::thread::available_parallelism()
-        .map(|n| n.get())
-        .unwrap_or(1);
+    let num_threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
     println!("CPU Cores: {}", num_threads);
-    println!("SIMD: {}", if cpu_caps.has_avx2() { "AVX2" } else if cpu_caps.has_sse42() { "SSE4.2" } else { "Scalar" });
+    println!(
+        "SIMD: {}",
+        if cpu_caps.has_avx2() {
+            "AVX2"
+        } else if cpu_caps.has_sse42() {
+            "SSE4.2"
+        } else {
+            "Scalar"
+        }
+    );
     println!();
 
     // Phase 1: Corpus Generation
@@ -40,13 +47,18 @@ fn main() {
     let corpus_start = Instant::now();
     let corpus = generate_synthetic_corpus(10_000_000);
     let corpus_time = corpus_start.elapsed();
-    println!("✓ Corpus generated: {} docs in {:.2}s", corpus.len(), corpus_time.as_secs_f64());
-    println!("  Corpus generation throughput: {:.0} docs/sec\n", 10_000_000.0 / corpus_time.as_secs_f64());
+    println!(
+        "✓ Corpus generated: {} docs in {:.2}s",
+        corpus.len(),
+        corpus_time.as_secs_f64()
+    );
+    println!(
+        "  Corpus generation throughput: {:.0} docs/sec\n",
+        10_000_000.0 / corpus_time.as_secs_f64()
+    );
 
     // Convert to (id, text) tuples
-    let documents: Vec<(usize, String)> = corpus.iter()
-        .map(|doc| (doc.id, doc.text.clone()))
-        .collect();
+    let documents: Vec<(usize, String)> = corpus.iter().map(|doc| (doc.id, doc.text.clone())).collect();
 
     // Phase 2: T5 Streaming Pipeline Benchmark
     println!("[Phase 2: T5 Streaming Pipeline (16 threads)]");
@@ -63,10 +75,13 @@ fn main() {
     println!("Pipeline initialized. Adding 10M documents...");
     let add_start = Instant::now();
     match pipeline.add_documents(documents.clone()) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(e) => {
             eprintln!("ERROR during add_documents: {:?}", e);
-            eprintln!("Documents processed before error: {}", pipeline.metrics().documents_ingested);
+            eprintln!(
+                "Documents processed before error: {}",
+                pipeline.metrics().documents_ingested
+            );
             std::process::exit(1);
         }
     }
@@ -101,16 +116,30 @@ fn main() {
     println!("╚════════════════════════════════════════════════════════════╝\n");
 
     println!("Timing Breakdown:");
-    println!("  Add phase:        {:.3}s ({:.0} docs/sec)", add_time.as_secs_f64(), add_throughput);
-    println!("  Find phase:       {:.3}s ({:.0} docs/sec)", find_time.as_secs_f64(), 10_000_000.0 / find_time.as_secs_f64());
+    println!(
+        "  Add phase:        {:.3}s ({:.0} docs/sec)",
+        add_time.as_secs_f64(),
+        add_throughput
+    );
+    println!(
+        "  Find phase:       {:.3}s ({:.0} docs/sec)",
+        find_time.as_secs_f64(),
+        10_000_000.0 / find_time.as_secs_f64()
+    );
     println!("  TOTAL TIME:       {:.3}s", total_time.as_secs_f64());
     println!("  TOTAL THROUGHPUT: {:.0} docs/sec\n", total_throughput);
 
     println!("Processing Metrics:");
     println!("  Ingested:         {} docs", metrics.documents_ingested);
-    println!("  Tokenized:        {} docs ({:.1}%)", metrics.documents_tokenized,
-        (metrics.documents_tokenized as f64 / metrics.documents_ingested as f64) * 100.0);
-    println!("  Skipped (Bloom):  {} docs ({:.1}%)", metrics.documents_skipped, bloom_skip_rate);
+    println!(
+        "  Tokenized:        {} docs ({:.1}%)",
+        metrics.documents_tokenized,
+        (metrics.documents_tokenized as f64 / metrics.documents_ingested as f64) * 100.0
+    );
+    println!(
+        "  Skipped (Bloom):  {} docs ({:.1}%)",
+        metrics.documents_skipped, bloom_skip_rate
+    );
     println!("  Signatures:       {} computed", metrics.signatures_computed);
     println!("  Pairs Verified:   {}", metrics.pairs_verified);
     println!("  Clusters Found:   {}\n", clusters.len());
@@ -121,8 +150,8 @@ fn main() {
     println!("  LSH panics:          {}", metrics.lsh_panics);
     println!("  Verification panics: {}", metrics.verification_panics);
 
-    let total_panics = metrics.tokenization_panics + metrics.minhash_panics +
-                       metrics.lsh_panics + metrics.verification_panics;
+    let total_panics =
+        metrics.tokenization_panics + metrics.minhash_panics + metrics.lsh_panics + metrics.verification_panics;
     if total_panics == 0 {
         println!("  ✓ ASSUM_PANIC_SAFETY: 100% PASSED (zero panics)");
     } else {
@@ -143,7 +172,7 @@ fn main() {
     let seq_add_start = Instant::now();
     for (doc_id, text) in &documents {
         match seq_pipeline.add_document(*doc_id, &text) {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => {
                 eprintln!("ERROR at doc {}: {:?}", doc_id, e);
                 break;
@@ -171,10 +200,16 @@ fn main() {
     println!("╚════════════════════════════════════════════════════════════╝\n");
 
     println!("Timing Breakdown:");
-    println!("  Add phase:        {:.3}s ({:.0} docs/sec)", seq_add_time.as_secs_f64(),
-        10_000_000.0 / seq_add_time.as_secs_f64());
-    println!("  Find phase:       {:.3}s ({:.0} docs/sec)", seq_find_time.as_secs_f64(),
-        10_000_000.0 / seq_find_time.as_secs_f64());
+    println!(
+        "  Add phase:        {:.3}s ({:.0} docs/sec)",
+        seq_add_time.as_secs_f64(),
+        10_000_000.0 / seq_add_time.as_secs_f64()
+    );
+    println!(
+        "  Find phase:       {:.3}s ({:.0} docs/sec)",
+        seq_find_time.as_secs_f64(),
+        10_000_000.0 / seq_find_time.as_secs_f64()
+    );
     println!("  TOTAL TIME:       {:.3}s", seq_total.as_secs_f64());
     println!("  TOTAL THROUGHPUT: {:.0} docs/sec\n", seq_throughput);
     println!("  Clusters Found:   {}\n", seq_clusters.len());
@@ -186,8 +221,8 @@ fn main() {
 
     let speedup = total_throughput / seq_throughput;
     let efficiency = (speedup / num_threads as f64) * 100.0;
-    let latency_seq = 1_000_000.0 / seq_throughput;  // µs per doc
-    let latency_parallel = 1_000_000.0 / total_throughput;  // µs per doc
+    let latency_seq = 1_000_000.0 / seq_throughput; // µs per doc
+    let latency_parallel = 1_000_000.0 / total_throughput; // µs per doc
 
     println!("Speedup Analysis:");
     println!("  T5 throughput:    {:.0} docs/sec", total_throughput);
@@ -226,11 +261,22 @@ fn main() {
     println!();
 
     println!("✓ Q33 - Accurate Measurement: PASSED");
-    println!("  - Timing: Add={:.3}s, Find={:.3}s, Total={:.3}s",
-        add_time.as_secs_f64(), find_time.as_secs_f64(), total_time.as_secs_f64());
-    println!("  - Throughput: {} docs/sec calculated from wall-clock time", total_throughput as u64);
-    println!("  - Metrics: {} ingested, {} skipped, {} clusters",
-        metrics.documents_ingested, metrics.documents_skipped, clusters.len());
+    println!(
+        "  - Timing: Add={:.3}s, Find={:.3}s, Total={:.3}s",
+        add_time.as_secs_f64(),
+        find_time.as_secs_f64(),
+        total_time.as_secs_f64()
+    );
+    println!(
+        "  - Throughput: {} docs/sec calculated from wall-clock time",
+        total_throughput as u64
+    );
+    println!(
+        "  - Metrics: {} ingested, {} skipped, {} clusters",
+        metrics.documents_ingested,
+        metrics.documents_skipped,
+        clusters.len()
+    );
     println!();
 
     println!("✓ B32 - Fair Baseline: PASSED");
@@ -267,7 +313,10 @@ fn main() {
     println!("  Improvement: {:.2}×\n", per_doc_latency_seq / per_doc_latency_t5);
 
     println!("Projected Performance at Scales:");
-    println!("  100K docs:  {:.1}s (est. from measured throughput)", 100_000.0 / total_throughput);
+    println!(
+        "  100K docs:  {:.1}s (est. from measured throughput)",
+        100_000.0 / total_throughput
+    );
     println!("  1M docs:    {:.1}s", 1_000_000.0 / total_throughput);
     println!("  10M docs:   {:.1}s (MEASURED)", total_time.as_secs_f64());
     println!("  100M docs:  {:.1}s (estimated)", 100_000_000.0 / total_throughput);

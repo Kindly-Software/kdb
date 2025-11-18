@@ -203,9 +203,8 @@ use std::collections::HashMap;
 
 #[cfg(feature = "meta-capsule")]
 use crate::protection::{
-    check_protection, get_corruption_mask, init_protection, BuildVerification, ProtectionError,
-    TamperType,
     audit::{log_security_event, SecurityEventType, TamperType as AuditTamperType},
+    check_protection, get_corruption_mask, init_protection, BuildVerification, ProtectionError, TamperType,
 };
 
 /// Initialize protection (startup, before TUI)
@@ -254,7 +253,10 @@ pub async fn init_protection_silent() -> Result<(), Box<dyn std::error::Error>> 
                     BuildVerification::get().customer_id(),
                     None,
                     0,
-                    &format!("TUI startup: Protection init warning: {}", sanitize_protection_error(&e)),
+                    &format!(
+                        "TUI startup: Protection init warning: {}",
+                        sanitize_protection_error(&e)
+                    ),
                 );
             }
         }
@@ -311,7 +313,10 @@ pub async fn checkpoint_before_command(_command: &str) -> Result<(), Box<dyn std
                     BuildVerification::get().customer_id(),
                     None,
                     mask,
-                    &format!("Command '{}': High corruption detected (mask={}), continuing with degraded protection", _command, mask),
+                    &format!(
+                        "Command '{}': High corruption detected (mask={}), continuing with degraded protection",
+                        _command, mask
+                    ),
                 );
 
                 eprintln!("⚠️  License validation warning: Reduced protection mode active");
@@ -485,50 +490,28 @@ fn check_protection_silent() -> Result<(), ()> {
 #[cfg(feature = "meta-capsule")]
 pub fn sanitize_protection_error(error: &ProtectionError) -> String {
     match error {
-        ProtectionError::Warning { .. } => {
-            "License validation warning. Contact support@kindly.ai".to_string()
-        }
-        ProtectionError::LicenseDeactivated { .. } => {
-            "License validation error. Contact support@kindly.ai".to_string()
-        }
-        ProtectionError::PermanentlyDisabled { .. } => {
-            "License expired. Contact support@kindly.ai".to_string()
-        }
-        ProtectionError::AlgorithmCorrupted => {
-            "License expired. Contact support@kindly.ai".to_string()
-        }
+        ProtectionError::Warning { .. } => "License validation warning. Contact support@kindly.ai".to_string(),
+        ProtectionError::LicenseDeactivated { .. } => "License validation error. Contact support@kindly.ai".to_string(),
+        ProtectionError::PermanentlyDisabled { .. } => "License expired. Contact support@kindly.ai".to_string(),
+        ProtectionError::AlgorithmCorrupted => "License expired. Contact support@kindly.ai".to_string(),
         // P2 Protection System Errors
-        ProtectionError::LayersFailed { .. } => {
-            "Protection layers failed. Contact support@kindly.ai".to_string()
-        }
+        ProtectionError::LayersFailed { .. } => "Protection layers failed. Contact support@kindly.ai".to_string(),
         ProtectionError::CriticalLayerFailed { .. } => {
             "Critical protection failed. Contact support@kindly.ai".to_string()
         }
-        ProtectionError::InvalidLayer { .. } => {
-            "Invalid protection layer. Contact support@kindly.ai".to_string()
-        }
+        ProtectionError::InvalidLayer { .. } => "Invalid protection layer. Contact support@kindly.ai".to_string(),
         ProtectionError::OrchestrationFailed => {
             "Protection orchestration failed. Contact support@kindly.ai".to_string()
         }
-        ProtectionError::BaselineNotInitialized => {
-            "Baseline not initialized. Contact support@kindly.ai".to_string()
-        }
+        ProtectionError::BaselineNotInitialized => "Baseline not initialized. Contact support@kindly.ai".to_string(),
         ProtectionError::InsufficientBaselineSamples { .. } => {
             "Insufficient baseline samples. Contact support@kindly.ai".to_string()
         }
-        ProtectionError::ZeroVarianceBaseline => {
-            "Invalid baseline state. Contact support@kindly.ai".to_string()
-        }
-        ProtectionError::CasRetryLimitExceeded => {
-            "Protection system busy. Contact support@kindly.ai".to_string()
-        }
+        ProtectionError::ZeroVarianceBaseline => "Invalid baseline state. Contact support@kindly.ai".to_string(),
+        ProtectionError::CasRetryLimitExceeded => "Protection system busy. Contact support@kindly.ai".to_string(),
         // P1 Protection Wrapper Errors
-        ProtectionError::ObfuscationTampered => {
-            "Code integrity check failed. Contact support@kindly.ai".to_string()
-        }
-        ProtectionError::AttestationFailed => {
-            "Remote attestation failed. Contact support@kindly.ai".to_string()
-        }
+        ProtectionError::ObfuscationTampered => "Code integrity check failed. Contact support@kindly.ai".to_string(),
+        ProtectionError::AttestationFailed => "Remote attestation failed. Contact support@kindly.ai".to_string(),
         ProtectionError::AttestationUnavailable => {
             "Remote attestation unavailable. Contact support@kindly.ai".to_string()
         }
@@ -582,11 +565,15 @@ mod tests {
         let elapsed = start.elapsed();
 
         // Invariant: Checkpoints never block (< 1ms)
-        assert!(elapsed.as_millis() < 1, "Checkpoint took {}ms (should be <1ms)", elapsed.as_millis());
+        assert!(
+            elapsed.as_millis() < 1,
+            "Checkpoint took {}ms (should be <1ms)",
+            elapsed.as_millis()
+        );
 
         // Either succeeds or returns sanitized error
         match result {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => {
                 let msg = e.to_string();
                 // Verify error is sanitized (no internal details)
@@ -621,7 +608,11 @@ mod tests {
         let elapsed = start.elapsed();
 
         // Invariant: <1µs (should be <50ns, but allow generous margin)
-        assert!(elapsed.as_micros() < 1, "Corruption check took {}ns (should be <50ns)", elapsed.as_nanos());
+        assert!(
+            elapsed.as_micros() < 1,
+            "Corruption check took {}ns (should be <50ns)",
+            elapsed.as_nanos()
+        );
     }
 
     #[test]
@@ -669,8 +660,18 @@ mod tests {
             ];
 
             let forbidden_keywords = vec![
-                "debugger", "timing", "tamper", "state", "injection", "memory",
-                "virtualization", "fault", "hardware", "corrupt", "cooldown", "days",
+                "debugger",
+                "timing",
+                "tamper",
+                "state",
+                "injection",
+                "memory",
+                "virtualization",
+                "fault",
+                "hardware",
+                "corrupt",
+                "cooldown",
+                "days",
             ];
 
             for error in errors {

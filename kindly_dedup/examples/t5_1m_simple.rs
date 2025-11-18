@@ -1,7 +1,7 @@
 //! Simple 1M document T5 benchmark (non-Criterion)
 
-use kindly_dedup::{StreamingDedupPipeline, DedupPipeline, generate_synthetic_corpus};
 use atomic_capsule::CpuCapabilityCapsule;
+use kindly_dedup::{generate_synthetic_corpus, DedupPipeline, StreamingDedupPipeline};
 use std::time::Instant;
 
 fn main() {
@@ -11,9 +11,7 @@ fn main() {
     let corpus = generate_synthetic_corpus(1_000_000);
     println!("  Corpus generation: {:.2}s", corpus_start.elapsed().as_secs_f64());
 
-    let documents: Vec<(usize, String)> = corpus.iter()
-        .map(|doc| (doc.id, doc.text.clone()))
-        .collect();
+    let documents: Vec<(usize, String)> = corpus.iter().map(|doc| (doc.id, doc.text.clone())).collect();
 
     println!("\n=== T5 Streaming Pipeline (16 threads) ===");
 
@@ -32,25 +30,32 @@ fn main() {
     let total_time = add_time + find_time;
     let throughput = 1_000_000.0 / total_time.as_secs_f64();
 
-    println!("Add phase: {:.3}s ({:.0} docs/sec)", add_time.as_secs_f64(), 1_000_000.0 / add_time.as_secs_f64());
-    println!("Find phase: {:.3}s ({:.0} docs/sec)", find_time.as_secs_f64(), 1_000_000.0 / find_time.as_secs_f64());
+    println!(
+        "Add phase: {:.3}s ({:.0} docs/sec)",
+        add_time.as_secs_f64(),
+        1_000_000.0 / add_time.as_secs_f64()
+    );
+    println!(
+        "Find phase: {:.3}s ({:.0} docs/sec)",
+        find_time.as_secs_f64(),
+        1_000_000.0 / find_time.as_secs_f64()
+    );
     println!("Total: {:.3}s", total_time.as_secs_f64());
     println!("Throughput: {:.0} docs/sec", throughput);
     println!("Clusters: {}", clusters.len());
     println!("\nMetrics:");
     println!("  Ingested: {}", metrics.documents_ingested);
     println!("  Tokenized: {}", metrics.documents_tokenized);
-    println!("  Skipped (Bloom): {} ({:.1}%)",
+    println!(
+        "  Skipped (Bloom): {} ({:.1}%)",
         metrics.documents_skipped,
         (metrics.documents_skipped as f64 / metrics.documents_ingested as f64) * 100.0
     );
     println!("  Signatures: {}", metrics.signatures_computed);
     println!("  Pairs verified: {}", metrics.pairs_verified);
-    println!("  Panics: tok={}, min={}, lsh={}, ver={}",
-        metrics.tokenization_panics,
-        metrics.minhash_panics,
-        metrics.lsh_panics,
-        metrics.verification_panics
+    println!(
+        "  Panics: tok={}, min={}, lsh={}, ver={}",
+        metrics.tokenization_panics, metrics.minhash_panics, metrics.lsh_panics, metrics.verification_panics
     );
 
     println!("\n=== Sequential Baseline (1 thread) ===");
@@ -72,8 +77,16 @@ fn main() {
     let seq_total = seq_add_time + seq_find_time;
     let seq_throughput = 1_000_000.0 / seq_total.as_secs_f64();
 
-    println!("Add phase: {:.3}s ({:.0} docs/sec)", seq_add_time.as_secs_f64(), 1_000_000.0 / seq_add_time.as_secs_f64());
-    println!("Find phase: {:.3}s ({:.0} docs/sec)", seq_find_time.as_secs_f64(), 1_000_000.0 / seq_find_time.as_secs_f64());
+    println!(
+        "Add phase: {:.3}s ({:.0} docs/sec)",
+        seq_add_time.as_secs_f64(),
+        1_000_000.0 / seq_add_time.as_secs_f64()
+    );
+    println!(
+        "Find phase: {:.3}s ({:.0} docs/sec)",
+        seq_find_time.as_secs_f64(),
+        1_000_000.0 / seq_find_time.as_secs_f64()
+    );
     println!("Total: {:.3}s", seq_total.as_secs_f64());
     println!("Throughput: {:.0} docs/sec", seq_throughput);
     println!("Clusters: {}", seq_clusters.len());

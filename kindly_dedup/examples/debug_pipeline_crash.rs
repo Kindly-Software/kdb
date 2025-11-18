@@ -1,6 +1,6 @@
 // Minimal test to isolate the segfault
-use kindly_dedup::DedupPipeline;
 use atomic_capsule::CpuCapabilityCapsule;
+use kindly_dedup::DedupPipeline;
 
 fn main() {
     println!("Step 1: Detecting CPU capabilities...");

@@ -70,10 +70,12 @@ fn main() {
 
     if valid {
         println!("  ✓ Successfully parsed 32 bytes from hex string");
-        println!("  ✓ First 4 bytes: {:02x} {:02x} {:02x} {:02x}",
+        println!(
+            "  ✓ First 4 bytes: {:02x} {:02x} {:02x} {:02x}",
             public_key[0], public_key[1], public_key[2], public_key[3]
         );
-        println!("  ✓ Last 4 bytes:  {:02x} {:02x} {:02x} {:02x}",
+        println!(
+            "  ✓ Last 4 bytes:  {:02x} {:02x} {:02x} {:02x}",
             public_key[28], public_key[29], public_key[30], public_key[31]
         );
     }

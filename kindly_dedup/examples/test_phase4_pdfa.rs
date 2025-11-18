@@ -88,10 +88,10 @@ fn main() -> anyhow::Result<()> {
         .arg("-dPDFA=1")
         .arg("-dBATCH")
         .arg("-dNOPAUSE")
-        .arg("-sColorConversionStrategy=UseDeviceIndependentColor")  // Proper color space conversion
+        .arg("-sColorConversionStrategy=UseDeviceIndependentColor") // Proper color space conversion
         .arg("-sDEVICE=pdfwrite")
-        .arg("-dCompressFonts=true")  // Compress fonts for compliance
-        .arg("-r150")                  // Resolution: 150 DPI (standard for archival)
+        .arg("-dCompressFonts=true") // Compress fonts for compliance
+        .arg("-r150") // Resolution: 150 DPI (standard for archival)
         .arg(format!("-sOutputFile={}", pdfa_pdf.display()))
         .arg(&standard_pdf)
         .output()?;
@@ -99,7 +99,10 @@ fn main() -> anyhow::Result<()> {
 
     if gs_output.status.success() {
         let file_size = std::fs::metadata(&pdfa_pdf)?.len();
-        println!("        PDF/A-1b conversion succeeded in {:.2}ms", duration.as_secs_f64() * 1000.0);
+        println!(
+            "        PDF/A-1b conversion succeeded in {:.2}ms",
+            duration.as_secs_f64() * 1000.0
+        );
         println!("        Output file: {}", pdfa_pdf.display());
         println!("        File size: {} bytes", file_size);
 

@@ -171,7 +171,14 @@ fn main() -> anyhow::Result<()> {
     // 5. Summary
     println!("\n[5/5] Test Summary:");
     println!("       Status:  PASSED (core functionality)");
-    println!("       Config Loading: {}", if config_path.exists() { "Available" } else { "Skipped (no config)" });
+    println!(
+        "       Config Loading: {}",
+        if config_path.exists() {
+            "Available"
+        } else {
+            "Skipped (no config)"
+        }
+    );
     println!("       PDF Generation:  Success");
     println!("       Retry Counter:  Working");
     println!("       HTML Body:  Valid structure");

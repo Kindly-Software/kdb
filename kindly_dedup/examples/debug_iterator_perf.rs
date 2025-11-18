@@ -6,7 +6,7 @@
 //! 3. Manually iterates through LSH buckets to measure performance
 //! 4. Reports timing and entry counts
 
-use kindly_dedup::{StreamingDedupPipeline, generate_synthetic_corpus};
+use kindly_dedup::{generate_synthetic_corpus, StreamingDedupPipeline};
 use std::time::Instant;
 
 fn main() {
@@ -18,11 +18,13 @@ fn main() {
     println!("[Phase 1: Corpus Generation]");
     let corpus_start = Instant::now();
     let corpus = generate_synthetic_corpus(100_000);
-    println!("✓ Generated {} docs in {:.2}s\n", corpus.len(), corpus_start.elapsed().as_secs_f64());
+    println!(
+        "✓ Generated {} docs in {:.2}s\n",
+        corpus.len(),
+        corpus_start.elapsed().as_secs_f64()
+    );
 
-    let documents: Vec<(usize, String)> = corpus.iter()
-        .map(|doc| (doc.id, doc.text.clone()))
-        .collect();
+    let documents: Vec<(usize, String)> = corpus.iter().map(|doc| (doc.id, doc.text.clone())).collect();
 
     // Initialize pipeline
     println!("[Phase 2: Pipeline Initialization]");

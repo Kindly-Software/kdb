@@ -10,7 +10,7 @@
 //!   cargo build --release --example profile_find_duplicates
 //!   sudo flamegraph --output /tmp/finding_duplicates.svg -- ./target/release/examples/profile_find_duplicates
 
-use kindly_dedup::{StreamingDedupPipeline, generate_synthetic_corpus};
+use kindly_dedup::{generate_synthetic_corpus, StreamingDedupPipeline};
 use std::time::Instant;
 
 fn main() {
@@ -22,11 +22,13 @@ fn main() {
     println!("[Phase 1: Corpus Generation]");
     let corpus_start = Instant::now();
     let corpus = generate_synthetic_corpus(100_000);
-    println!("✓ Generated {} docs in {:.2}s\n", corpus.len(), corpus_start.elapsed().as_secs_f64());
+    println!(
+        "✓ Generated {} docs in {:.2}s\n",
+        corpus.len(),
+        corpus_start.elapsed().as_secs_f64()
+    );
 
-    let documents: Vec<(usize, String)> = corpus.iter()
-        .map(|doc| (doc.id, doc.text.clone()))
-        .collect();
+    let documents: Vec<(usize, String)> = corpus.iter().map(|doc| (doc.id, doc.text.clone())).collect();
 
     // Initialize pipeline
     println!("[Phase 2: Pipeline Initialization]");
@@ -60,11 +62,9 @@ fn main() {
     let metrics = pipeline.metrics();
     println!("\n[Metrics]");
     println!("  Pairs verified: {}", metrics.pairs_verified);
-    println!("  Panics: tok={}, min={}, lsh={}, ver={}",
-        metrics.tokenization_panics,
-        metrics.minhash_panics,
-        metrics.lsh_panics,
-        metrics.verification_panics
+    println!(
+        "  Panics: tok={}, min={}, lsh={}, ver={}",
+        metrics.tokenization_panics, metrics.minhash_panics, metrics.lsh_panics, metrics.verification_panics
     );
 
     println!("\n✅ Profiling target completed successfully");

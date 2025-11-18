@@ -15,9 +15,9 @@
 //! - All speedups validated with fair baselines
 //! - 580× BREAKTHROUGH tier classification
 
+use crate::utils::terminal::{Color, Colorize};
 use std::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
-use crate::utils::terminal::{Color, Colorize};
 
 /// Byzantine purple for headers (approximated with magenta)
 const HEADER_COLOR: Color = Color::Magenta;
@@ -164,7 +164,7 @@ impl OptimizationTableCapsule {
                     "+ Batch parallel (580×)",
                     912_000,
                     (6.08 * 65536.0) as u64, // 6.08×
-                    580 * Q16_ONE, // 580.0×
+                    580 * Q16_ONE,           // 580.0×
                 ),
             ],
             baseline_throughput: AtomicU64::new(1_572),
@@ -243,7 +243,9 @@ impl OptimizationTableCapsule {
         output.push_str(&format!(
             "{:<35} {} {}\n\n",
             "TOTAL SPEEDUP:".bold(),
-            format!("{:>6} docs/sec", format_thousands(final_throughput)).color(VALUE_COLOR).bold(),
+            format!("{:>6} docs/sec", format_thousands(final_throughput))
+                .color(VALUE_COLOR)
+                .bold(),
             format!("{:>6.1}×", final_speedup).color(VALUE_COLOR).bold()
         ));
 
@@ -291,12 +293,7 @@ mod tests {
     #[test]
     fn test_optimization_entry_creation() {
         const Q16_ONE: u64 = 65536;
-        let entry = OptimizationEntry::new(
-            "Test optimization",
-            10_000,
-            7 * Q16_ONE,
-            70 * Q16_ONE,
-        );
+        let entry = OptimizationEntry::new("Test optimization", 10_000, 7 * Q16_ONE, 70 * Q16_ONE);
 
         assert_eq!(entry.load_throughput(), 10_000);
         assert!((entry.load_incremental() - 7.0).abs() < 0.01);

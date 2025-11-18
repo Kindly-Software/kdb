@@ -138,7 +138,11 @@ fn test_stability() {
         }
 
         extractions.push(combined);
-        println!("  Extraction {}: {} bits set", i + 1, combined.iter().map(|b| b.count_ones()).sum::<u32>());
+        println!(
+            "  Extraction {}: {} bits set",
+            i + 1,
+            combined.iter().map(|b| b.count_ones()).sum::<u32>()
+        );
     }
 
     // Measure drift between first and each subsequent extraction
