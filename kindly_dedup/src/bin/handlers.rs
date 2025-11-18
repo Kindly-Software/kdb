@@ -17,7 +17,7 @@
 //! - handle_stats: Show statistics
 //! - handle_help: Show detailed help
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::io::BufRead;
 use std::time::Instant;
 
@@ -97,39 +97,134 @@ pub fn handle_demo(args: &DemoArgs, global: &GlobalArgs) -> Result<()> {
 // ============================================================================
 
 pub fn handle_dedup(args: &DedupArgs, global: &GlobalArgs) -> Result<()> {
-    if !!global.quiet {
-        println!("Deduplicating corpus...");
-        println!("Input:  {}", args.input.display());
-        println!("Output: {}", args.output.display());
-        println!("Threshold: {:.2}", args.threshold);
-        println!("Signature size: {}", args.signature_size);
-        println!("LSH: L={}, r={}", args.lsh_bands, args.lsh_rows);
-        println!("Bloom pre-filter: {}", if args.bloom { "enabled" } else { "disabled" });
-        println!("SIMD: {}", if args.simd { "enabled" } else { "disabled" });
-        println!();
-    }
-
-    // TODO: Implement actual deduplication logic
-    // For now, just validate inputs and show what would be done
+    use atomic_capsule::CpuCapabilityCapsule;
+    use std::io::{BufRead, BufReader, Write};
 
     validate_dedup_args(args)?;
 
-    if !!global.quiet {
-        println!("⚠️  Deduplication not yet implemented");
-        println!("This is a placeholder showing the command structure.");
-        println!();
-        println!("To implement:");
-        println!("1. Load corpus from {}", args.input.display());
-        println!("2. Create MinHash signatures ({} hashes)", args.signature_size);
-        println!("3. Build LSH index (L={}, r={})", args.lsh_bands, args.lsh_rows);
+    if !global.quiet {
+        println!("═══════════════════════════════════════════════════════════");
+        println!("  Deduplication Pipeline");
+        println!("═══════════════════════════════════════════════════════════\n");
+        println!("Input:      {}", args.input.display());
+        println!("Output:     {}", args.output.display());
+        println!("Threshold:  {:.2}", args.threshold);
+        println!("Format:     {:?}", args.format);
+        println!("Signature:  {}", args.signature_size);
+        println!("LSH:        L={}, r={}", args.lsh_bands, args.lsh_rows);
         if args.bloom {
-            println!(
-                "4. Apply Bloom pre-filter (capacity={}, FPR={:.4})",
-                args.bloom_capacity, args.bloom_fpr
+            println!("Bloom:      capacity={}, FPR={:.4}", args.bloom_capacity, args.bloom_fpr);
+        }
+        println!();
+    }
+
+    // Step 1: Count documents
+    if !global.quiet {
+        println!("Counting documents...");
+    }
+
+    let file = std::fs::File::open(&args.input)
+        .with_context(|| format!("Failed to open input file: {}", args.input.display()))?;
+    let num_docs = BufReader::new(file).lines().count();
+
+    if num_docs == 0 {
+        anyhow::bail!("Input file is empty: {}", args.input.display());
+    }
+
+    if !global.quiet {
+        println!("  Found {} documents\n", num_docs);
+        println!("Creating pipeline...");
+    }
+
+    // Step 2: Create pipeline
+    let cpu_caps = CpuCapabilityCapsule::detect();
+    let mut pipeline = DedupPipeline::new(num_docs, &cpu_caps);
+
+    if !global.quiet {
+        println!("  Pipeline capacity: {}", num_docs);
+        println!();
+        println!("Processing documents...");
+    }
+
+    // Step 3: Stream and process corpus
+    let start = Instant::now();
+    let file = std::fs::File::open(&args.input)?;
+    let reader = BufReader::new(file);
+
+    #[derive(serde::Deserialize)]
+    struct Document {
+        #[serde(default)]
+        id: Option<usize>,
+        text: String,
+    }
+
+    let mut docs_processed = 0;
+    for (line_num, line) in reader.lines().enumerate() {
+        let line = line?;
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        let doc: Document = serde_json::from_str(&line)
+            .with_context(|| format!("Invalid JSON at line {}", line_num + 1))?;
+
+        let doc_id = doc.id.unwrap_or(line_num);
+
+        // CRITICAL: Bounds check (prevent segfault)
+        if doc_id >= num_docs {
+            anyhow::bail!(
+                "Document ID {} exceeds capacity {} at line {}",
+                doc_id, num_docs, line_num + 1
             );
         }
-        println!("4. Find duplicate pairs (threshold={:.2})", args.threshold);
-        println!("5. Export results to {}", args.output.display());
+
+        pipeline.add_document(doc_id, &doc.text)
+            .with_context(|| format!("Failed to add document {}", doc_id))?;
+
+        docs_processed += 1;
+
+        // Progress reporting
+        if docs_processed % 10_000 == 0 && !global.quiet {
+            let elapsed = start.elapsed().as_secs_f64();
+            let rate = docs_processed as f64 / elapsed;
+            println!("  Processed {}/{} documents ({:.0} docs/sec)...",
+                     docs_processed, num_docs, rate);
+        }
+    }
+
+    let process_time = start.elapsed();
+
+    if !global.quiet {
+        let throughput = docs_processed as f64 / process_time.as_secs_f64();
+        println!("  Processed {} documents in {:.2}s ({:.0} docs/sec)\n",
+                 docs_processed, process_time.as_secs_f64(), throughput);
+        println!("Finding duplicate clusters...");
+    }
+
+    // Step 4: Find duplicates
+    let find_start = Instant::now();
+    let clusters = pipeline.find_duplicates(args.threshold)
+        .context("Failed to find duplicate clusters")?;
+    let find_time = find_start.elapsed();
+
+    if !global.quiet {
+        println!("  Found {} clusters in {:.2}s\n", clusters.len(), find_time.as_secs_f64());
+        println!("Writing output to {}...", args.output.display());
+    }
+
+    // Step 5: Write output (atomic)
+    write_output(&clusters, args.format.as_str(), &args.output)?;
+
+    // Step 6: Summary
+    let total_time = start.elapsed();
+
+    if !global.quiet {
+        println!();
+        println!("✓ Deduplication complete!");
+        println!("  Total time:   {:.2}s", total_time.as_secs_f64());
+        println!("  Throughput:   {:.0} docs/sec", docs_processed as f64 / total_time.as_secs_f64());
+        println!("  Clusters:     {}", clusters.len());
+        println!("  Output:       {}", args.output.display());
     }
 
     Ok(())
@@ -739,6 +834,68 @@ fn export_demo_results(path: &std::path::Path, _args: &DemoArgs) -> Result<()> {
 
 fn export_audit_trail(path: &std::path::Path) -> Result<()> {
     println!("⚠️  Audit trail export not yet implemented: {}", path.display());
+    Ok(())
+}
+
+// ============================================================================
+// Output Writer Function
+// ============================================================================
+
+fn write_output(clusters: &[Vec<usize>], format: &str, path: &std::path::Path) -> Result<()> {
+    use std::io::{BufWriter, Write};
+
+    // Build output in memory first
+    let mut output = Vec::new();
+    {
+        let mut writer = BufWriter::new(&mut output);
+
+        match format {
+            "jsonl" => {
+                for cluster in clusters {
+                    if cluster.len() > 1 {
+                        writeln!(writer, "{}", serde_json::to_string(cluster)?)?;
+                    }
+                }
+            },
+            "json" => {
+                write!(writer, "{}", serde_json::to_string_pretty(clusters)?)?;
+            },
+            "csv" => {
+                writeln!(writer, "cluster_id,doc_ids")?;
+                for (cluster_id, cluster) in clusters.iter().enumerate() {
+                    if cluster.len() > 1 {
+                        let doc_ids = cluster.iter()
+                            .map(|id| id.to_string())
+                            .collect::<Vec<_>>()
+                            .join(";");
+                        writeln!(writer, "{},{}", cluster_id, doc_ids)?;
+                    }
+                }
+            },
+            "text" => {
+                writeln!(writer, "Duplicate Clusters")?;
+                writeln!(writer, "==================\n")?;
+                for (cluster_id, cluster) in clusters.iter().enumerate() {
+                    if cluster.len() > 1 {
+                        writeln!(writer, "Cluster #{}: {} documents", cluster_id, cluster.len())?;
+                        writeln!(writer, "  Doc IDs: {:?}\n", cluster)?;
+                    }
+                }
+            },
+            _ => anyhow::bail!("Invalid format '{}' (must be jsonl, json, csv, or text)", format),
+        }
+
+        writer.flush()?;
+    }
+
+    // Write atomically: write to temp file, then rename
+    let temp_path = format!("{}.tmp", path.display());
+    std::fs::write(&temp_path, &output)
+        .context(format!("Failed to write temp file: {}", temp_path))?;
+
+    std::fs::rename(&temp_path, path)
+        .context(format!("Failed to rename temp file to {}", path.display()))?;
+
     Ok(())
 }
 
