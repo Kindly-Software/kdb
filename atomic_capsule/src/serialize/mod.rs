@@ -680,3 +680,7 @@ pub use fixed_point_serialize_trait::FixedPointSerialize as FixedPointSerializeV
 /// ```
 pub mod json_writer;
 pub use json_writer::{JsonWriterCapsule, JsonWriterError, JsonWriterResult};
+
+/// Streaming JSON parser capsule (T5)
+pub mod json_parser;
+pub use json_parser::{JsonParserCapsule, JsonValue, JsonParserError, JsonParserResult};
