@@ -18,14 +18,16 @@ license = "Proprietary"
 publish = false  # TRADE SECRET - DO NOT PUBLISH
 
 [dependencies]
-atomic_capsule = { path = "../atomic_capsule", version = "0.6.0", features = ["std", "native", "derive", "probabilistic", "cpu-capabilities", "mmap-persistence", "capsule-serialize", "encrypted-state", "const-hashing", "crypto-license", "tokenization-batch", "cli", "queue-bounded", "queue-unbounded"] }
+atomic_capsule = { path = "../atomic_capsule", version = "0.6.0", features = ["std", "native", "derive", "probabilistic", "cpu-capabilities", "capsule-mmap", "capsule-serialize", "encrypted-state", "const-hashing", "crypto-license", "tokenization-batch", "cli", "queue-bounded", "queue-unbounded"] }
 atomic_capsule_derive = { path = "../atomic_capsule_derive" }
 # P0 Protection Capsules (Phase P0 Integration)
 # NOTE (2025-11-10): Cannot remove ed25519-dalek, rsa - transitive deps not directly importable
 ed25519-dalek = { version = "2.1", optional = true }
 rsa = { version = "0.9", optional = true }
 hkdf = "0.12"  # Required for trial_state encryption (Docker trials)
-# REMOVED (2025-11-08): rayon v1.10 → atomic_capsule::parallel (100% lockfree, zero mutex)
+# TEMPORARY (2025-11-17): Re-add rayon for legacy code compatibility
+# TODO: Complete P1 migration to atomic_capsule::parallel in all files
+rayon = { version = "1.10", optional = true }
 # REMOVED (2025-11-10): parking_lot → Only used in comments, not in production code
 # parking_lot = "0.12"  # TEMPORARY: Phase 1 cache (to be replaced with ConcurrentMapCapsule in Phase 2)
 # REMOVED: num_cpus = "1.16"  # Replaced with std::thread::available_parallelism()
@@ -163,11 +165,12 @@ avx512-minhash = ["simd-minhash", "nightly", "atomic_capsule/cpu-capabilities"]
 # Parallel deduplication (atomic_capsule::parallel + rayon temporarily)
 # Parallel deduplication using atomic_capsule::parallel (100% lockfree, zero rayon)
 # Migration complete: 2025-11-08 - All rayon usage replaced with atomic_capsule primitives
-parallel-dedup = ["std"]
+parallel-dedup = ["std", "dep:rayon"]
 
 # Persistent deduplication (T9+T10: mmap-backed streaming, 93% memory reduction)
+# v1.3: Migrated from mmap-persistence to capsule-mmap for zero-copy atomic storage
 # Note: Phase 4.4 integration - persistent mode uses parallel pipeline internally
-persistent-dedup = ["atomic_capsule/mmap-persistence", "atomic_capsule/nightly-atomic", "std", "parallel-dedup"]
+persistent-dedup = ["atomic_capsule/capsule-mmap", "atomic_capsule/nightly-atomic", "std", "parallel-dedup"]
 
 # HTTP server (pure atomic_capsule HTTP - legacy basic server)
 http-server = []
