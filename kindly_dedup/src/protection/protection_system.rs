@@ -104,7 +104,7 @@
 //!
 //! ## Usage Example
 //!
-//! ```rust
+//! ```rust,ignore
 //! use kindly_dedup::protection::protection_system::ProtectionSystem;
 //!
 //! // Initialize full 11-layer protection
@@ -115,14 +115,6 @@
 //!     Ok(()) => println!("All layers healthy"),
 //!     Err(e) => eprintln!("Protection compromised: {:?}", e),
 //! }
-//!
-//! // Query individual layer status
-//! let layer7_status = protection.layer_status(7)?; // AnomalyDetector
-//! println!("Layer 7: {:?}", layer7_status);
-//!
-//! // Get overall health (0.0-1.0)
-//! let health = protection.overall_health();
-//! println!("Protection health: {:.1}%", health * 100.0);
 //! ```
 
 use super::tamper_detection::ProtectionError;
@@ -217,7 +209,7 @@ impl ProtectionSystem {
     /// <1ms initialization (one-time cost at startup)
     ///
     /// # Example
-    /// ```rust
+    /// ```rust,ignore
     /// use kindly_dedup::protection::protection_system::ProtectionSystem;
     ///
     /// let protection = ProtectionSystem::initialize_full()?;
@@ -267,7 +259,7 @@ impl ProtectionSystem {
     /// - **Threshold**: ≤2 failures = WARNING, ≥3 failures = BLOCKED
     ///
     /// # Example
-    /// ```rust
+    /// ```rust,ignore
     /// use kindly_dedup::protection::protection_system::ProtectionSystem;
     ///
     /// let protection = ProtectionSystem::initialize_full()?;

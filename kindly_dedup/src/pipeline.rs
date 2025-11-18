@@ -114,16 +114,17 @@ impl From<crate::protection::ProtectionError> for PipelineError {
 /// let mut pipeline = DedupPipeline::new(1000, &cpu_caps);
 ///
 /// // Add documents
-/// pipeline.add_document(0, "The quick brown fox jumps");
-/// pipeline.add_document(1, "The quick brown fox leaps");
-/// pipeline.add_document(2, "A completely different document");
+/// pipeline.add_document(0, "The quick brown fox jumps")?;
+/// pipeline.add_document(1, "The quick brown fox leaps")?;
+/// pipeline.add_document(2, "A completely different document")?;
 ///
 /// // Find duplicates (Jaccard ≥ 0.85)
-/// let clusters = pipeline.find_duplicates(0.85);
+/// let clusters = pipeline.find_duplicates(0.85)?;
 ///
 /// // Number of clusters depends on MinHash estimation
 /// // For 3 documents (997 empty slots), expect multiple clusters
 /// assert!(clusters.len() >= 1); // At least one cluster
+/// # Ok::<(), kindly_dedup::PipelineError>(())
 /// ```
 pub struct DedupPipeline<'a> {
     /// Document signatures (doc_id → MinHashSignatureCapsule)
@@ -211,7 +212,7 @@ impl<'a> DedupPipeline<'a> {
     /// use atomic_capsule::CpuCapabilityCapsule;
     ///
     /// let cpu_caps = CpuCapabilityCapsule::detect();
-    /// let pipeline = DedupPipeline::new(10_000, &cpu_caps);
+    /// let _pipeline = DedupPipeline::new(10_000, &cpu_caps);
     /// ```
     ///
     /// # Production Note
@@ -311,8 +312,12 @@ impl<'a> DedupPipeline<'a> {
     /// # Example
     /// ```
     /// use kindly_dedup::DedupPipeline;
-    /// let mut pipeline = DedupPipeline::new(10);
-    /// pipeline.add_document(0, "The quick brown fox").unwrap();
+    /// use atomic_capsule::CpuCapabilityCapsule;
+    ///
+    /// let cpu_caps = CpuCapabilityCapsule::detect();
+    /// let mut pipeline = DedupPipeline::new(10, &cpu_caps);
+    /// pipeline.add_document(0, "The quick brown fox")?;
+    /// # Ok::<(), kindly_dedup::PipelineError>(())
     /// ```
     pub fn add_document(&mut self, doc_id: DocId, text: &str) -> Result<(), PipelineError> {
         // -1. Protection check (Phase P2: 11-Layer Orchestrated Protection)
@@ -439,13 +444,17 @@ impl<'a> DedupPipeline<'a> {
     /// # Example
     /// ```
     /// use kindly_dedup::DedupPipeline;
-    /// let mut pipeline = DedupPipeline::new(3);
-    /// pipeline.add_document(0, "The quick brown fox").unwrap();
-    /// pipeline.add_document(1, "The quick brown fox").unwrap(); // Duplicate
-    /// pipeline.add_document(2, "A different document").unwrap();
+    /// use atomic_capsule::CpuCapabilityCapsule;
     ///
-    /// let clusters = pipeline.find_duplicates(0.85).unwrap();
+    /// let cpu_caps = CpuCapabilityCapsule::detect();
+    /// let mut pipeline = DedupPipeline::new(3, &cpu_caps);
+    /// pipeline.add_document(0, "The quick brown fox")?;
+    /// pipeline.add_document(1, "The quick brown fox")?; // Duplicate
+    /// pipeline.add_document(2, "A different document")?;
+    ///
+    /// let clusters = pipeline.find_duplicates(0.85)?;
     /// assert_eq!(clusters.len(), 2); // {0,1} and {2}
+    /// # Ok::<(), kindly_dedup::PipelineError>(())
     /// ```
     pub fn find_duplicates(&self, threshold: JaccardThreshold) -> Result<Vec<Vec<DocId>>, PipelineError> {
         // Protection check (Phase P2: 11-Layer Orchestrated Protection)

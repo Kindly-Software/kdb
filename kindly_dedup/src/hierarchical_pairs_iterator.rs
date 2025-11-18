@@ -239,7 +239,7 @@ impl<'a> Iterator for HierarchicalPairsIterator<'a> {
     /// 5. If all shards exhausted, return None
     ///
     /// # Loop Nesting (4 levels)
-    /// ```
+    /// ```text
     /// for shard in 0..16:                          // 16 iterations
     ///     for coarse_bucket in shard:              // ~2.5K per shard
     ///         for fine_bucket in coarse:           // ~8 per coarse

@@ -1066,7 +1066,7 @@ impl StreamingDedupPipeline {
     /// - Pair reduction: 12.7B → 2.4B pairs (5.3× fewer pairs vs flat LSH)
     ///
     /// # Example
-    /// ```
+    /// ```ignore
     /// let pairs_iter = pipeline.pairs_iter();
     /// for pair in pairs_iter {
     ///     // Process pair

@@ -64,7 +64,7 @@ fn terminal_caps() -> &'static TerminalCapabilityCapsule {
 ///
 /// # Example
 /// ```rust,no_run
-/// use kindly_dedup::utils::terminal::refresh_terminal_capabilities;
+/// use kindly_dedup::utils::terminal::{refresh_terminal_capabilities, terminal_size};
 ///
 /// // After terminal resize signal (SIGWINCH)
 /// refresh_terminal_capabilities();

@@ -184,11 +184,9 @@ impl CpuFeatures {
     ///
     /// let features = CpuFeatures::detect();
     /// if features.has_sse42() {
-    ///     // Use SSE4.2 SIMD path (4-lane)
-    ///     compute_sse42(data);
+    ///     println!("SSE4.2 available");
     /// } else {
-    ///     // Fallback to scalar
-    ///     compute_scalar(data);
+    ///     println!("SSE4.2 not available");
     /// }
     /// ```
     #[inline(always)]

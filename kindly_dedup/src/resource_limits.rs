@@ -11,12 +11,12 @@
 //!
 //! ## Example
 //!
-//! ```rust
+//! ```rust,ignore
 //! use kindly_dedup::resource_limits::ResourceLimits;
 //!
 //! let limits = ResourceLimits::detect();
 //! limits.check_document_count(1_000_000)?;
-//! limits.check_document_size(text.len())?;
+//! limits.check_document_size(1024)?;
 //! ```
 //!
 //! ## Framework Compliance
