@@ -15,8 +15,14 @@ pub mod adaptive_params;
 #[cfg(feature = "batch-lsh")]
 pub mod batch_lookup;
 
+#[cfg(feature = "persistent-dedup")]
+pub mod mmap_bucketer;
+
 // Export adaptive params (used by parallel_pipeline)
 pub use adaptive_params::{compute_docs_per_bucket, compute_lsh_params, compute_recall, estimate_unique_buckets};
 
 #[cfg(feature = "batch-lsh")]
 pub use batch_lookup::{BatchLSHLookup, BucketKey, DocId, DEFAULT_BATCH_SIZE, NUM_BANDS, ROWS_PER_BAND};
+
+#[cfg(feature = "persistent-dedup")]
+pub use mmap_bucketer::MmapLshBucketer;

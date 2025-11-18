@@ -1,5 +1,8 @@
 //! T28 Comprehensive Test Suite for 11-Layer Binary Protection
 //!
+//! **NOTE**: This test suite requires `meta-capsule-p0` feature and tests deprecated protection APIs.
+//! Tests are skipped unless feature is enabled.
+//!
 //! ## Protection Layers (11 Total)
 //! 1. **P0: Build Verification** - Customer ID, build signature (T1 Atomic)
 //! 2. **P1: Hardware ID** - CPU serial + RAM + MAC (T0 Foundation)
@@ -42,7 +45,9 @@ use std::time::{Duration, Instant};
 // ============================================================================
 // TIER 1: UNIT TESTS (Q1-Q7) - Each Layer Independently
 // ============================================================================
+// NOTE: Tests require meta-capsule-p0 feature. Skip if not enabled.
 
+#[cfg(feature = "meta-capsule-p0")]
 /// T28 Q1: Core behaviors - P0 Build Verification initialization
 #[test]
 fn test_p0_build_verification_initialization() {
@@ -57,6 +62,7 @@ fn test_p0_build_verification_initialization() {
 }
 
 /// T28 Q1: Core behaviors - P1 Hardware ID extraction
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p1_hardware_id_extraction() {
     let hw_id = HardwareId::derive();
@@ -70,6 +76,7 @@ fn test_p1_hardware_id_extraction() {
 }
 
 /// T28 Q1: Core behaviors - P1.5 PUF entropy extraction
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p1_5_puf_extraction_graceful_fallback() {
     let puf_result = PufEntropy::extract();
@@ -87,6 +94,7 @@ fn test_p1_5_puf_extraction_graceful_fallback() {
 }
 
 /// T28 Q1: Core behaviors - P2 AES-256-GCM encryption/decryption
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p2_encryption_decryption() {
     let config = AlgorithmConfig {
@@ -112,6 +120,7 @@ fn test_p2_encryption_decryption() {
 }
 
 /// T28 Q1: Core behaviors - P2.5 META_CAPSULE orchestration
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p2_5_meta_capsule_orchestration() {
     let config = AlgorithmConfig::default();
@@ -135,6 +144,7 @@ fn test_p2_5_meta_capsule_orchestration() {
 }
 
 /// T28 Q1: Core behaviors - P3 Tamper detection
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p3_tamper_detection_methods() {
     init_protection();
@@ -153,6 +163,7 @@ fn test_p3_tamper_detection_methods() {
 }
 
 /// T28 Q1: Core behaviors - P4 License validation
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p4_license_validation_state_machine() {
     let validator = LicenseValidator::new();
@@ -173,6 +184,7 @@ fn test_p4_license_validation_state_machine() {
 }
 
 /// T28 Q1: Core behaviors - P5 Security audit trail
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p5_security_audit_trail() {
     let build_info = BuildVerification::get();
@@ -198,6 +210,7 @@ fn test_p5_security_audit_trail() {
 // Additional Unit Tests (Q1-Q7)
 
 /// T28 Q2: Edge cases - Empty customer ID handling
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p0_empty_customer_id_handling() {
     let build_info = BuildVerification::get();
@@ -206,6 +219,7 @@ fn test_p0_empty_customer_id_handling() {
 }
 
 /// T28 Q2: Edge cases - Hardware ID caching
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p1_hardware_id_caching() {
     let hw1 = HardwareId::derive().unwrap();
@@ -214,6 +228,7 @@ fn test_p1_hardware_id_caching() {
 }
 
 /// T28 Q2: Edge cases - PUF extraction multiple times
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p1_5_puf_multiple_extractions() {
     for i in 0..5 {
@@ -223,6 +238,7 @@ fn test_p1_5_puf_multiple_extractions() {
 }
 
 /// T28 Q2: Edge cases - Encryption with different keys
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p2_encryption_different_keys() {
     let config = AlgorithmConfig::default();
@@ -241,6 +257,7 @@ fn test_p2_encryption_different_keys() {
 }
 
 /// T28 Q2: Edge cases - META_CAPSULE config retrieval
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p2_5_meta_capsule_config_retrieval() {
     let config = AlgorithmConfig {
@@ -257,6 +274,7 @@ fn test_p2_5_meta_capsule_config_retrieval() {
 }
 
 /// T28 Q2: Edge cases - Tamper detection multiple checks
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p3_tamper_detection_multiple_checks() {
     init_protection();
@@ -269,6 +287,7 @@ fn test_p3_tamper_detection_multiple_checks() {
 }
 
 /// T28 Q2: Edge cases - License expiry boundary
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p4_license_expiry_boundary() {
     let validator = LicenseValidator::new();
@@ -296,6 +315,7 @@ fn test_p4_license_expiry_boundary() {
 }
 
 /// T28 Q3: Error handling - Invalid hardware ID
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p1_invalid_hardware_id() {
     let fake_hw = HardwareId::new_test([0u8; 32]);
@@ -304,6 +324,7 @@ fn test_p1_invalid_hardware_id() {
 }
 
 /// T28 Q3: Error handling - Decryption with wrong key
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p2_decryption_wrong_key() {
     let config = AlgorithmConfig::default();
@@ -317,6 +338,7 @@ fn test_p2_decryption_wrong_key() {
 }
 
 /// T28 Q3: Error handling - License hardware mismatch
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p4_license_hardware_mismatch() {
     let validator = LicenseValidator::new();
@@ -334,6 +356,7 @@ fn test_p4_license_hardware_mismatch() {
 }
 
 /// T28 Q4: Performance - Build verification latency
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p0_build_verification_latency() {
     let start = Instant::now();
@@ -347,6 +370,7 @@ fn test_p0_build_verification_latency() {
 }
 
 /// T28 Q4: Performance - Hardware ID derivation
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p1_hardware_id_performance() {
     let start = Instant::now();
@@ -359,6 +383,7 @@ fn test_p1_hardware_id_performance() {
 }
 
 /// T28 Q4: Performance - Encryption throughput
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p2_encryption_throughput() {
     let config = AlgorithmConfig::default();
@@ -374,6 +399,7 @@ fn test_p2_encryption_throughput() {
 }
 
 /// T28 Q4: Performance - License validation throughput
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p4_license_validation_throughput() {
     let validator = LicenseValidator::new();
@@ -394,6 +420,7 @@ fn test_p4_license_validation_throughput() {
 }
 
 /// T28 Q5: Boundaries - Maximum config values
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p2_max_config_values() {
     let config = AlgorithmConfig {
@@ -415,6 +442,7 @@ fn test_p2_max_config_values() {
 }
 
 /// T28 Q6: Concurrency - Hardware ID thread safety
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p1_hardware_id_concurrent() {
     let handles: Vec<_> = (0..10)
@@ -433,6 +461,7 @@ fn test_p1_hardware_id_concurrent() {
 }
 
 /// T28 Q6: Concurrency - License validator thread safety
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p4_license_validator_concurrent() {
     let validator = Arc::new(LicenseValidator::new());
@@ -461,6 +490,7 @@ fn test_p4_license_validator_concurrent() {
 }
 
 /// T28 Q7: State transitions - License lifecycle
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn test_p4_license_state_transitions() {
     let validator = LicenseValidator::new();
@@ -487,6 +517,7 @@ fn test_p4_license_state_transitions() {
 // ============================================================================
 
 /// T28 Q8: Property - Initialization order independence
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn prop_initialization_order_independence() {
     // Order 1: Build → Hardware → PUF → Encryption
@@ -509,6 +540,7 @@ fn prop_initialization_order_independence() {
 }
 
 /// T28 Q9: Property - Graceful degradation
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn prop_graceful_degradation_under_failures() {
     let _puf = PufEntropy::extract();
@@ -531,6 +563,7 @@ fn prop_graceful_degradation_under_failures() {
 }
 
 /// T28 Q10: Property - Hardware ID stability
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn prop_hardware_id_stability() {
     let mut ids = Vec::with_capacity(10);
@@ -546,6 +579,7 @@ fn prop_hardware_id_stability() {
 }
 
 /// T28 Q11: Property - PUF stability within tolerance
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn prop_puf_stability_within_tolerance() {
     let mut entropies = Vec::new();
@@ -568,6 +602,7 @@ fn prop_puf_stability_within_tolerance() {
 }
 
 /// T28 Q12: Property - Encryption deterministic
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn prop_encryption_deterministic_with_same_key() {
     let config = AlgorithmConfig::default();
@@ -595,6 +630,7 @@ fn prop_encryption_deterministic_with_same_key() {
 }
 
 /// T28 Q13: Property - License validation monotonic
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn prop_license_validation_monotonic() {
     let validator = LicenseValidator::new();
@@ -616,6 +652,7 @@ fn prop_license_validation_monotonic() {
 }
 
 /// T28 Q14: Property - Tamper detection coverage
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn prop_tamper_detection_no_false_negatives() {
     init_protection();
@@ -632,6 +669,7 @@ fn prop_tamper_detection_no_false_negatives() {
 // Additional Property Tests (Q8-Q14)
 
 /// T28 Q8: Property - Build info immutability
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn prop_build_info_immutable() {
     let build1 = BuildVerification::get();
@@ -643,6 +681,7 @@ fn prop_build_info_immutable() {
 }
 
 /// T28 Q9: Property - Encryption nonce uniqueness
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn prop_encryption_nonce_uniqueness() {
     let config = AlgorithmConfig::default();
@@ -657,6 +696,7 @@ fn prop_encryption_nonce_uniqueness() {
 }
 
 /// T28 Q10: Property - Hardware ID determinism
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn prop_hardware_id_deterministic() {
     let hw1 = HardwareId::derive().unwrap();
@@ -670,6 +710,7 @@ fn prop_hardware_id_deterministic() {
 }
 
 /// T28 Q11: Property - PUF entropy non-zero
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn prop_puf_entropy_non_zero() {
     for _ in 0..5 {
@@ -680,6 +721,7 @@ fn prop_puf_entropy_non_zero() {
 }
 
 /// T28 Q12: Property - License cache coherence
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn prop_license_cache_coherence() {
     let validator = LicenseValidator::new();
@@ -700,6 +742,7 @@ fn prop_license_cache_coherence() {
 }
 
 /// T28 Q13: Property - Audit event ordering
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn prop_audit_event_ordering() {
     let build_info = BuildVerification::get();
@@ -716,6 +759,7 @@ fn prop_audit_event_ordering() {
 }
 
 /// T28 Q14: Property - Protection check idempotency
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn prop_protection_check_idempotent() {
     init_protection();
@@ -732,6 +776,7 @@ fn prop_protection_check_idempotent() {
 // ============================================================================
 
 /// T28 Q15: Integration - All 8 layers coordinate
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn integration_all_layers_coordinate() {
     let build_info = BuildVerification::get();
@@ -770,6 +815,7 @@ fn integration_all_layers_coordinate() {
 }
 
 /// T28 Q16: Integration - Error propagation
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn integration_error_propagation_through_layers() {
     let real_hw_id = HardwareId::derive().expect("HW ID must extract");
@@ -790,6 +836,7 @@ fn integration_error_propagation_through_layers() {
 }
 
 /// T28 Q17: Integration - Performance budget
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn integration_performance_budget_enforcement() {
     let iterations = 1000;
@@ -828,6 +875,7 @@ fn integration_performance_budget_enforcement() {
 }
 
 /// T28 Q18: Integration - Concurrent load
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn integration_full_stack_handles_concurrent_load() {
     let build_info = BuildVerification::get();
@@ -858,6 +906,7 @@ fn integration_full_stack_handles_concurrent_load() {
 }
 
 /// T28 Q19: Integration - Layer rollback scenarios
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn integration_layer_rollback_scenarios() {
     let build_info = BuildVerification::get();
@@ -875,6 +924,7 @@ fn integration_layer_rollback_scenarios() {
 }
 
 /// T28 Q20: Integration - I20 assumptions validated
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn integration_i20_assumptions_validated() {
     let build_info = BuildVerification::get();
@@ -899,6 +949,7 @@ fn integration_i20_assumptions_validated() {
 }
 
 /// T28 Q21: Integration - Monitoring instrumentation
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn integration_monitoring_instrumentation() {
     let build_info = BuildVerification::get();
@@ -914,6 +965,7 @@ fn integration_monitoring_instrumentation() {
 // Additional Integration Tests (Q15-Q21)
 
 /// T28 Q15: Integration - Full protection pipeline
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn integration_full_protection_pipeline() {
     // Initialize all layers
@@ -948,6 +1000,7 @@ fn integration_full_protection_pipeline() {
 }
 
 /// T28 Q16: Integration - Cascading failures
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn integration_cascading_failure_handling() {
     let hw_id = HardwareId::derive().unwrap();
@@ -974,6 +1027,7 @@ fn integration_cascading_failure_handling() {
 }
 
 /// T28 Q17: Integration - Resource cleanup
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn integration_resource_cleanup() {
     for _ in 0..10 {
@@ -988,6 +1042,7 @@ fn integration_resource_cleanup() {
 }
 
 /// T28 Q18: Integration - Stress test coordination
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn integration_stress_coordination() {
     let validator = Arc::new(LicenseValidator::new());
@@ -1016,6 +1071,7 @@ fn integration_stress_coordination() {
 }
 
 /// T28 Q19: Integration - State recovery
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn integration_state_recovery() {
     let validator = LicenseValidator::new();
@@ -1038,6 +1094,7 @@ fn integration_state_recovery() {
 }
 
 /// T28 Q20: Integration - Cross-layer dependencies
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn integration_cross_layer_dependencies() {
     // Layer 1 (Build) doesn't depend on others
@@ -1058,6 +1115,7 @@ fn integration_cross_layer_dependencies() {
 }
 
 /// T28 Q21: Integration - Audit trail completeness
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn integration_audit_trail_completeness() {
     let build = BuildVerification::get();
@@ -1085,6 +1143,7 @@ fn integration_audit_trail_completeness() {
 // ============================================================================
 
 /// T28 Q22: Production - Stress test
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 #[ignore] // Run with: cargo test production_stress_test --release -- --ignored
 fn production_stress_test() {
@@ -1122,6 +1181,7 @@ fn production_stress_test() {
 }
 
 /// T28 Q23-Q28: Production tests
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn production_comprehensive_validation() {
     // Q23: Security - Hardware mismatch detection
@@ -1154,6 +1214,7 @@ fn production_comprehensive_validation() {
 // Additional Production Tests (Q22-Q28)
 
 /// T28 Q22: Production - Sustained load
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 #[ignore]
 fn production_sustained_load() {
@@ -1193,6 +1254,7 @@ fn production_sustained_load() {
 }
 
 /// T28 Q23: Production - Security hardening
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn production_security_hardening() {
     // Test all security layers active
@@ -1215,6 +1277,7 @@ fn production_security_hardening() {
 }
 
 /// T28 Q24: Production - Benchmark compliance
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn production_benchmark_compliance() {
     let iterations = 100_000;
@@ -1248,6 +1311,7 @@ fn production_benchmark_compliance() {
 }
 
 /// T28 Q25: Production - Memory alignment
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn production_memory_alignment() {
     let validator = LicenseValidator::new();
@@ -1258,6 +1322,7 @@ fn production_memory_alignment() {
 }
 
 /// T28 Q26: Production - Error recovery
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn production_error_recovery() {
     let validator = LicenseValidator::new();
@@ -1280,6 +1345,7 @@ fn production_error_recovery() {
 }
 
 /// T28 Q27: Production - Audit completeness
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 fn production_audit_completeness() {
     let build = BuildVerification::get();
@@ -1300,6 +1366,7 @@ fn production_audit_completeness() {
 }
 
 /// T28 Q28: Production - Long-running stability
+#[cfg(feature = "meta-capsule-p0")]
 #[test]
 #[ignore]
 fn production_long_running_stability() {

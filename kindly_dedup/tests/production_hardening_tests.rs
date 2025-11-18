@@ -281,7 +281,7 @@ fn test_pipeline_with_validation_integration() {
     }
 
     // Find duplicates
-    let clusters = pipeline.find_duplicates(0.85);
+    let clusters = pipeline.find_duplicates(0.85).expect("find_duplicates should succeed");
     assert!(!clusters.is_empty(), "Should have at least one cluster");
 }
 

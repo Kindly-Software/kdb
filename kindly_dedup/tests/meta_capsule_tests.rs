@@ -18,6 +18,7 @@
 #![cfg(test)]
 #![allow(unused_imports)]
 
+#[cfg(feature = "persistent-dedup")]
 use kindly_dedup::persistent_pipeline::{PersistentDedupPipeline, PersistentError};
 use std::fs;
 use std::path::Path;
@@ -154,6 +155,7 @@ fn test_t1_q6_nonce_uniqueness() {
 /// **Validation**: Persistent pipeline serialization is deterministic
 /// **ASSUM**: FileHeader is #[repr(C)] with stable layout
 /// **Edge Case**: Multiple serialize/deserialize cycles
+#[cfg(feature = "persistent-dedup")]
 #[test]
 fn test_t1_q7_config_serialization() {
     let path = "/tmp/test_meta_serialization.bin";
@@ -236,6 +238,7 @@ fn test_t2_q10_puf_stability() {
 /// **Property**: Generation counter always increases
 /// **ASSUM**: AtomicU64::fetch_add is atomic and monotonic
 /// **Edge Case**: Concurrent updates (100 threads × 100 ops)
+#[cfg(feature = "persistent-dedup")]
 #[test]
 fn test_t2_q11_generation_monotonicity() {
     let path = "/tmp/test_generation.bin";
@@ -328,6 +331,7 @@ fn test_t2_q13_cache_expiry() {
 /// **Integration**: Persistent pipeline works end-to-end
 /// **Validation**: Create → Add → Flush → Recover cycle
 /// **Edge Case**: Multiple flush cycles, crash simulation
+#[cfg(feature = "persistent-dedup")]
 #[test]
 fn test_t3_q15_pipeline_integration() {
     let path = "/tmp/test_integration.bin";
@@ -397,6 +401,7 @@ fn test_t3_q18_vm_detection() {
 /// **Integration**: Meta-capsule overhead measurement
 /// **Validation**: <0.3% overhead for typical workload
 /// **Edge Case**: Various document sizes (100B, 1KB, 10KB)
+#[cfg(feature = "persistent-dedup")]
 #[test]
 fn test_t3_q19_performance_overhead() {
     let path = "/tmp/test_perf.bin";
@@ -435,6 +440,7 @@ fn test_t3_q19_performance_overhead() {
 /// **Production**: High-volume stress test
 /// **Validation**: 1M documents without failure
 /// **Edge Case**: Memory pressure, disk I/O saturation
+#[cfg(feature = "persistent-dedup")]
 #[test]
 #[ignore] // Run manually: cargo test --ignored test_t4_q22_stress
 fn test_t4_q22_stress_1m_operations() {
@@ -478,6 +484,7 @@ fn test_t4_q22_stress_1m_operations() {
 /// **Production**: Multi-threaded stress test
 /// **Validation**: 16 threads × 1000 operations (no data races)
 /// **Edge Case**: Concurrent reads/writes, lock contention
+#[cfg(feature = "persistent-dedup")]
 #[test]
 fn test_t4_q23_concurrent_access() {
     let path = "/tmp/test_concurrent.bin";

@@ -236,6 +236,9 @@ compound-ground-truth = ["simd-jaccard", "parallel-ground-truth"]
 # Note: atomic_capsule::parallel is available with "std" feature
 batch-lsh = ["std"]
 
+# Bounded DocumentId pattern (Type-safe bounded document IDs)
+bounded-docid = []
+
 # Binary protection (Layer 2: Weaponized Circuit Breaker)
 # Feature-gated for testing flexibility (disabled by default)
 # NOTE: Production builds SHOULD enable this feature

@@ -23,6 +23,8 @@
 use kindly_dedup::custom_data::{
     detect_format, load_custom_corpus, load_json, load_jsonl, load_plaintext, CustomDataError, Document, FileFormat,
 };
+use kindly_dedup::DedupPipeline;
+use atomic_capsule::CpuCapabilityCapsule;
 use std::path::PathBuf;
 
 // ============================================================================
@@ -317,7 +319,8 @@ fn test_integration_with_dedup_pipeline() {
     let path = test_corpus_path("test_corpus.jsonl");
     let docs = load_custom_corpus(&path, None).unwrap();
 
-    let mut pipeline = DedupPipeline::new(docs.len());
+    let cpu_caps = CpuCapabilityCapsule::detect();
+    let mut pipeline = DedupPipeline::new(docs.len(), &cpu_caps);
     for doc in &docs {
         pipeline.add_document(doc.id, &doc.text).unwrap();
     }
