@@ -684,3 +684,33 @@ pub use json_writer::{JsonWriterCapsule, JsonWriterError, JsonWriterResult};
 /// Streaming JSON parser capsule (T5)
 pub mod json_parser;
 pub use json_parser::{JsonParserCapsule, JsonValue, JsonParserError, JsonParserResult};
+
+/// Collection serializer capsule (T5 Streaming)
+///
+/// **Tier**: T5 Streaming - Provides O(1) incremental serialization per element
+/// **Performance**: <5ns per element for Vec, <10ns per entry for BTreeMap
+/// **Purpose**: Streaming serialization for Vec, HashMap, BTreeMap, arrays, and Option
+///
+/// **API**:
+/// - `serialize_vec<T>` - Serialize Vec<T> (O(N) total)
+/// - `deserialize_vec<T>` - Deserialize Vec<T> (O(N) total)
+/// - `serialize_btreemap<K, V>` - Serialize BTreeMap (ordered, O(N))
+/// - `deserialize_btreemap<K, V>` - Deserialize BTreeMap (O(N))
+/// - `serialize_option<T>` - Serialize Option<T> (O(1), null branch)
+/// - `deserialize_option<T>` - Deserialize Option<T> (O(1))
+/// - `serialize_array<T, N>` - Serialize array [T; N] (O(N))
+/// - `deserialize_array<T, N>` - Deserialize array [T; N] (O(N))
+///
+/// **Example**:
+/// ```rust,ignore
+/// use atomic_capsule::serialize::CollectionSerializerCapsule;
+///
+/// let vec = vec![1u64, 2, 3, 4, 5];
+/// let bytes = CollectionSerializerCapsule::serialize_vec(&vec)?;
+/// let restored = CollectionSerializerCapsule::deserialize_vec::<u64>(&bytes)?;
+/// assert_eq!(vec, restored);
+/// ```
+pub mod collection_serializer;
+pub use collection_serializer::{
+    CollectionSerializerCapsule, SerializeBinary, DeserializeBinary,
+};
