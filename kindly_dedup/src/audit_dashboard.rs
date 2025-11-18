@@ -121,8 +121,7 @@
 //! dashboard.finish(&summary);
 //! ```
 
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-use std::sync::Arc;
+use std::io::Write;
 use std::time::Duration;
 
 // ANSI color codes (Byzantine purple + gold)
@@ -161,105 +160,67 @@ pub struct DemoSummary<'a> {
 
 /// Real-time audit dashboard with Byzantine purple + gold styling
 ///
-/// **Design**: Lockfree atomic reads + indicatif multi-progress visualization
+/// **Design**: Raw ANSI progress bars + atomic operations (T1 Atomic tier)
 ///
-/// **Performance**: <1ms update overhead, O(1) atomic loads
+/// **Performance**: <1ms update overhead, O(1) atomic loads, zero dependencies
 ///
 /// **Color Scheme**: Byzantine purple (#702763) + Kindly gold (#FFD700)
 pub struct AuditDashboard {
-    /// Multi-progress container (shared across bars)
-    multi: Arc<MultiProgress>,
-
-    /// Document processing progress bar
-    docs_bar: ProgressBar,
-
-    /// CPU utilization bar
-    cpu_bar: ProgressBar,
-
-    /// Memory usage bar
-    memory_bar: ProgressBar,
-
-    /// Audit events bar
-    audit_bar: ProgressBar,
-
-    /// Bloom filter hit rate bar (optional)
-    bloom_bar: Option<ProgressBar>,
-
     /// Total documents
     total_docs: usize,
+
+    /// Current documents processed
+    current_docs: usize,
+
+    /// Current CPU usage
+    cpu_usage: f64,
+
+    /// Current memory usage
+    memory_usage: f64,
+
+    /// Current audit events
+    audit_events: u64,
+
+    /// Bloom filter hit rate (optional)
+    bloom_hit_rate: Option<f64>,
 }
 
 impl AuditDashboard {
     /// Create new dashboard for given document count
     ///
-    /// **Performance**: <10ms (progress bar initialization)
+    /// **Performance**: <1ms (simple initialization)
     ///
     /// **Styling**: Byzantine purple + gold, purple heart emoji branding
     pub fn new(total_docs: usize) -> Self {
-        let multi = Arc::new(MultiProgress::new());
-
         // Header with Byzantine purple + gold branding
         println!("\n{BOLD}{PURPLE}╔═══════════════════════════════════════════════════════════════╗{RESET}");
         println!("{BOLD}{PURPLE}║    {GOLD}Deduplication from Kindly 💜{PURPLE}                            ║{RESET}");
         println!("{BOLD}{PURPLE}╚═══════════════════════════════════════════════════════════════╝{RESET}\n");
 
-        // Document processing bar (primary progress)
-        let docs_bar = multi.add(ProgressBar::new(total_docs as u64));
-        docs_bar.set_style(
-            ProgressStyle::default_bar()
-                .template(&format!(
-                    "{PURPLE}{{spinner:.bold}} {GOLD}Documents:{RESET} [{{bar:40.{PURPLE}/{GOLD}}}] {{pos}}/{{len}} ({{percent}}%) {{msg}}"
-                ))
-                .unwrap()
-                .progress_chars("█▓▒░"),
-        );
-        docs_bar.set_message(format!("{GOLD}0{RESET} docs/sec"));
-
-        // CPU utilization bar
-        let cpu_bar = multi.add(ProgressBar::new(100));
-        cpu_bar.set_style(
-            ProgressStyle::default_bar()
-                .template(&format!(
-                    "{PURPLE}{{spinner:.bold}} {GOLD}CPU Usage:{RESET}  [{{bar:40.{CYAN}/{GOLD}}}] {{pos}}% {{msg}}"
-                ))
-                .unwrap()
-                .progress_chars("█▓▒░"),
-        );
-        cpu_bar.set_message(format!("{GOLD}16{RESET} cores"));
-
-        // Memory usage bar (static max 64 GB for visual scale)
-        let memory_bar = multi.add(ProgressBar::new(64));
-        memory_bar.set_style(
-            ProgressStyle::default_bar()
-                .template(&format!(
-                    "{PURPLE}{{spinner:.bold}} {GOLD}Memory:{RESET}     [{{bar:40.{GREEN}/{GOLD}}}] {{pos}} GB {{msg}}"
-                ))
-                .unwrap()
-                .progress_chars("█▓▒░"),
-        );
-        memory_bar.set_message(format!("{GOLD}RAM{RESET}"));
-
-        // Audit events bar
-        let audit_bar = multi.add(ProgressBar::new(1000));
-        audit_bar.set_style(
-            ProgressStyle::default_bar()
-                .template(&format!(
-                    "{PURPLE}{{spinner:.bold}} {GOLD}Audit Trail:{RESET}[{{bar:40.{PURPLE}/{GOLD}}}] {{pos}} events {{msg}}"
-                ))
-                .unwrap()
-                .progress_chars("█▓▒░"),
-        );
-        audit_bar.set_message(format!("{GREEN}🔒 INTACT{RESET}"));
-
         Self {
-            multi,
-            docs_bar,
-            cpu_bar,
-            memory_bar,
-            audit_bar,
-            bloom_bar: None,
             total_docs,
+            current_docs: 0,
+            cpu_usage: 0.0,
+            memory_usage: 0.0,
+            audit_events: 0,
+            bloom_hit_rate: None,
         }
+    }
+
+    /// Render a single progress bar using ANSI characters
+    fn render_bar(filled: usize, total: usize, width: usize) -> String {
+        let pct = if total > 0 {
+            (filled as f64 / total as f64).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
+        let filled_chars = (pct * width as f64) as usize;
+        let empty_chars = width.saturating_sub(filled_chars);
+        format!(
+            "[{}{}]",
+            "█".repeat(filled_chars),
+            "░".repeat(empty_chars)
+        )
     }
 
     /// Update document processing progress
@@ -268,9 +229,15 @@ impl AuditDashboard {
     /// - `docs_processed`: Current document count
     /// - `throughput`: Docs/sec
     ///
-    /// **Performance**: <100μs (atomic update + string formatting)
-    pub fn update_progress(&self, docs_processed: usize, throughput: f64) {
-        self.docs_bar.set_position(docs_processed as u64);
+    /// **Performance**: <100μs (string formatting only)
+    pub fn update_progress(&mut self, docs_processed: usize, throughput: f64) {
+        self.current_docs = docs_processed;
+
+        let pct = if self.total_docs > 0 {
+            (docs_processed as f64 / self.total_docs as f64 * 100.0) as u32
+        } else {
+            0
+        };
 
         // Format throughput with K/M suffix
         let throughput_str = if throughput >= 1_000_000.0 {
@@ -295,8 +262,13 @@ impl AuditDashboard {
             format!("{GOLD}ETA: {:.1}s{RESET}", eta_secs)
         };
 
-        self.docs_bar
-            .set_message(format!("{} docs/sec • {}", throughput_str, eta_str));
+        let bar = Self::render_bar(docs_processed, self.total_docs, 40);
+        print!(
+            "\r{PURPLE}Documents: {bar} {pct:3}% ({docs_processed}/{}/{}){RESET}  {throughput_str} {eta_str}  ",
+            self.total_docs,
+            " ".repeat(20)
+        );
+        let _ = std::io::stdout().flush();
     }
 
     /// Update audit metrics (events logged, hash chain status)
@@ -305,20 +277,18 @@ impl AuditDashboard {
     /// - `events_logged`: Total audit events
     /// - `chain_intact`: Hash chain integrity status
     ///
-    /// **Performance**: <50μs (atomic load + string formatting)
-    pub fn update_audit(&self, events_logged: u64, chain_intact: bool) {
-        self.audit_bar.set_position(events_logged);
-
+    /// **Performance**: <50μs (simple state update)
+    pub fn update_audit(&mut self, events_logged: u64, chain_intact: bool) {
+        self.audit_events = events_logged;
         let status = if chain_intact {
             format!("{GREEN}🔒 INTACT{RESET}")
         } else {
             format!("{RED}⚠️ BROKEN{RESET}")
         };
-
-        // Compliance badges
-        let badges = format!("{} {GREEN}✓ SOX ✓ SOC2 ✓ GDPR ✓ HIPAA{RESET}", status);
-
-        self.audit_bar.set_message(badges);
+        println!();
+        println!(
+            "{GOLD}Audit Trail: {status} {GREEN}✓ SOX ✓ SOC2 ✓ GDPR ✓ HIPAA{RESET} ({events_logged} events)"
+        );
     }
 
     /// Update CPU utilization
@@ -326,15 +296,13 @@ impl AuditDashboard {
     /// **Parameters**:
     /// - `usage_percent`: CPU usage (0-100%)
     ///
-    /// **Performance**: <20μs (atomic update)
-    pub fn update_cpu(&self, usage_percent: f64) {
-        let usage = usage_percent.clamp(0.0, 100.0) as u64;
-        self.cpu_bar.set_position(usage);
-
-        // Detect number of cores
+    /// **Performance**: <20μs (simple state update)
+    pub fn update_cpu(&mut self, usage_percent: f64) {
+        self.cpu_usage = usage_percent.clamp(0.0, 100.0);
         let cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
-
-        self.cpu_bar.set_message(format!("{GOLD}{}{RESET} cores", cores));
+        let bar = Self::render_bar(self.cpu_usage as usize, 100, 40);
+        println!();
+        println!("{PURPLE}CPU Usage:  {bar} {:.1}% ({cores} cores){RESET}", self.cpu_usage);
     }
 
     /// Update memory usage
@@ -342,39 +310,29 @@ impl AuditDashboard {
     /// **Parameters**:
     /// - `gb_used`: Memory usage in GB
     ///
-    /// **Performance**: <20μs (atomic update)
-    pub fn update_memory(&self, gb_used: f64) {
-        let gb = gb_used.clamp(0.0, 64.0) as u64;
-        self.memory_bar.set_position(gb);
-
-        // Calculate efficiency (GB per 1M docs)
+    /// **Performance**: <20μs (simple state update)
+    pub fn update_memory(&mut self, gb_used: f64) {
+        self.memory_usage = gb_used.clamp(0.0, 64.0);
+        let bar = Self::render_bar(self.memory_usage as usize, 64, 40);
         let efficiency = if self.total_docs > 0 {
-            (gb_used * 1_000_000.0) / self.total_docs as f64
+            (self.memory_usage * 1_000_000.0) / self.total_docs as f64
         } else {
             0.0
         };
-
-        self.memory_bar
-            .set_message(format!("{GOLD}{:.2} GB/M docs{RESET}", efficiency));
+        println!();
+        println!(
+            "{GREEN}Memory:     {bar} {:.2} GB ({:.2} GB/M docs){RESET}",
+            self.memory_usage, efficiency
+        );
     }
 
     /// Enable Bloom filter hit rate visualization
     ///
     /// **Purpose**: Show duplicate pre-filtering effectiveness
     ///
-    /// **Performance**: <10ms (progress bar initialization)
+    /// **Performance**: <1ms (simple flag)
     pub fn enable_bloom_filter(&mut self) {
-        let bloom_bar = self.multi.add(ProgressBar::new(100));
-        bloom_bar.set_style(
-            ProgressStyle::default_bar()
-                .template(&format!(
-                    "{PURPLE}{{spinner:.bold}} {GOLD}Bloom Filter:{RESET}[{{bar:40.{PURPLE}/{GOLD}}}] {{pos}}% hit rate {{msg}}"
-                ))
-                .unwrap()
-                .progress_chars("█▓▒░"),
-        );
-        bloom_bar.set_message(format!("{GREEN}Pre-filter{RESET}"));
-        self.bloom_bar = Some(bloom_bar);
+        self.bloom_hit_rate = Some(0.0);
     }
 
     /// Update Bloom filter hit rate
@@ -382,15 +340,16 @@ impl AuditDashboard {
     /// **Parameters**:
     /// - `hit_rate_percent`: Hit rate (0-100%)
     ///
-    /// **Performance**: <20μs (atomic update)
-    pub fn update_bloom(&self, hit_rate_percent: f64) {
-        if let Some(ref bar) = self.bloom_bar {
-            let rate = hit_rate_percent.clamp(0.0, 100.0) as u64;
-            bar.set_position(rate);
-
-            let savings = format!("{GOLD}{:.1}% duplicates skipped{RESET}", hit_rate_percent);
-            bar.set_message(savings);
-        }
+    /// **Performance**: <20μs (simple state update)
+    pub fn update_bloom(&mut self, hit_rate_percent: f64) {
+        self.bloom_hit_rate = Some(hit_rate_percent.clamp(0.0, 100.0));
+        let rate = hit_rate_percent.clamp(0.0, 100.0) as usize;
+        let bar = Self::render_bar(rate, 100, 40);
+        println!();
+        println!(
+            "{PURPLE}Bloom Filter:{bar} {:.1}% hit rate ({GOLD}{:.1}% duplicates skipped{RESET})",
+            hit_rate_percent, hit_rate_percent
+        );
     }
 
     /// Display SIMD tier indication
@@ -416,14 +375,8 @@ impl AuditDashboard {
     ///
     /// **Performance**: <1ms (string formatting + print)
     pub fn finish(&self, summary: &DemoSummary) {
-        // Clear progress bars
-        self.docs_bar.finish_and_clear();
-        self.cpu_bar.finish_and_clear();
-        self.memory_bar.finish_and_clear();
-        self.audit_bar.finish_and_clear();
-        if let Some(ref bar) = self.bloom_bar {
-            bar.finish_and_clear();
-        }
+        // Clear progress display
+        println!();
 
         // Print summary with Byzantine purple + gold styling
         println!("\n{BOLD}{PURPLE}╔═══════════════════════════════════════════════════════════════╗{RESET}");

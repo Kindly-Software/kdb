@@ -114,7 +114,7 @@
 //! ```
 
 use atomic_capsule_derive::ComputationalCapsule;
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use std::io::Write;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -312,7 +312,7 @@ impl PythonBaselineSimulator {
 
 /// Enhanced dashboard with dual progress bars (Python vs Kindly race)
 ///
-/// **Design**: Lockfree atomic reads + indicatif multi-progress visualization + background thread
+/// **Design**: Lockfree atomic reads + raw ANSI progress bars + background thread
 ///
 /// **Performance**: <100μs update overhead, O(1) atomic loads
 ///
@@ -320,21 +320,6 @@ impl PythonBaselineSimulator {
 pub struct EnhancedDashboard {
     /// Atomic capsule for lockfree state tracking
     capsule: Arc<EnhancedDashboardCapsule>,
-
-    /// Multi-progress container (shared across bars)
-    multi: Arc<MultiProgress>,
-
-    /// Python datasketch progress bar (simulated)
-    python_bar: ProgressBar,
-
-    /// Kindly dedup progress bar (actual)
-    kindly_bar: ProgressBar,
-
-    /// Speedup metrics bar
-    metrics_bar: ProgressBar,
-
-    /// Audit/protection status bar
-    audit_bar: ProgressBar,
 
     /// Total documents
     total_docs: usize,
@@ -349,65 +334,16 @@ pub struct EnhancedDashboard {
 impl EnhancedDashboard {
     /// Create new enhanced dashboard for Python vs Kindly race
     ///
-    /// **Performance**: <20ms (progress bar initialization + thread spawn)
+    /// **Performance**: <20ms (thread spawn only)
     ///
-    /// **Styling**: Byzantine purple + gold, dual progress bars
+    /// **Styling**: Byzantine purple + gold, dual progress display
     pub fn new(total_docs: usize) -> Self {
         let capsule = Arc::new(EnhancedDashboardCapsule::new());
-        let multi = Arc::new(MultiProgress::new());
 
         // Header with Byzantine purple + gold branding
         println!("\n{BOLD}{PURPLE}╔═══════════════════════════════════════════════════════════════╗{RESET}");
         println!("{BOLD}{PURPLE}║    {GOLD}Python vs Kindly Deduplication Race 💜{PURPLE}              ║{RESET}");
         println!("{BOLD}{PURPLE}╚═══════════════════════════════════════════════════════════════╝{RESET}\n");
-
-        // Python datasketch bar (simulated baseline)
-        let python_bar = multi.add(ProgressBar::new(total_docs as u64));
-        python_bar.set_style(
-            ProgressStyle::default_bar()
-                .template(&format!(
-                    "{GREEN}{{spinner:.bold}} Python datasketch:{RESET} [{{bar:40.{GREEN}/{GOLD}}}] {{pos}}/{{len}} ({{percent}}%) {{msg}}"
-                ))
-                .unwrap()
-                .progress_chars("█▓▒░"),
-        );
-        python_bar.set_message(format!("{GOLD}1,572{RESET} docs/sec"));
-
-        // Kindly dedup bar (actual progress)
-        let kindly_bar = multi.add(ProgressBar::new(total_docs as u64));
-        kindly_bar.set_style(
-            ProgressStyle::default_bar()
-                .template(&format!(
-                    "{PURPLE}{{spinner:.bold}} Kindly Dedup 💜:{RESET}    [{{bar:40.{PURPLE}/{GOLD}}}] {{pos}}/{{len}} ({{percent}}%) {{msg}}"
-                ))
-                .unwrap()
-                .progress_chars("█▓▒░"),
-        );
-        kindly_bar.set_message(format!("{GOLD}0{RESET} docs/sec"));
-
-        // Speedup metrics bar
-        let metrics_bar = multi.add(ProgressBar::new(1000));
-        metrics_bar.set_style(
-            ProgressStyle::default_bar()
-                .template(&format!(
-                    "{GOLD}{{spinner:.bold}} ⚡ Speedup:{RESET}        [{{bar:40.{CYAN}/{GOLD}}}] {{pos}}× {{msg}}"
-                ))
-                .unwrap()
-                .progress_chars("█▓▒░"),
-        );
-        metrics_bar.set_message(format!("{GOLD}Real-time race metrics{RESET}"));
-
-        // Audit/protection status bar
-        let audit_bar = multi.add(ProgressBar::new(100));
-        audit_bar.set_style(
-            ProgressStyle::default_bar()
-                .template(&format!(
-                    "{PURPLE}{{spinner:.bold}} 🔒 Protection:{RESET}   [{{bar:40.{PURPLE}/{GOLD}}}] {{msg}}"
-                ))
-                .unwrap()
-                .progress_chars("█▓▒░"),
-        );
-        audit_bar.set_message(format!("{GREEN}All layers active{RESET}"));
 
         // Spawn background thread for Python baseline simulation
         let simulator = PythonBaselineSimulator::new(Arc::clone(&capsule), total_docs);
@@ -420,11 +356,6 @@ impl EnhancedDashboard {
 
         Self {
             capsule,
-            multi,
-            python_bar,
-            kindly_bar,
-            metrics_bar,
-            audit_bar,
             total_docs,
             simulator_handle,
             start_time,
@@ -437,11 +368,10 @@ impl EnhancedDashboard {
     /// - `docs_processed`: Current Kindly document count
     /// - `throughput`: Kindly docs/sec
     ///
-    /// **Performance**: <100μs (2 atomic loads + 2 progress bar updates + speedup calculation)
+    /// **Performance**: <100μs (2 atomic loads + string formatting)
     pub fn update_progress(&self, docs_processed: usize, throughput: f64) {
         // Update Kindly progress
         self.capsule.update_kindly(docs_processed as u64);
-        self.kindly_bar.set_position(docs_processed as u64);
 
         // Format Kindly throughput
         let throughput_str = Self::format_throughput(throughput);
@@ -453,19 +383,37 @@ impl EnhancedDashboard {
         };
         let eta_str = Self::format_eta(eta_secs);
 
-        self.kindly_bar.set_message(format!("{} • {}", throughput_str, eta_str));
-
         // Read Python simulation progress (lockfree atomic load)
         let python_docs = self.capsule.get_python();
-        self.python_bar.set_position(python_docs);
 
         // Calculate Python ETA
         let python_remaining = self.total_docs.saturating_sub(python_docs as usize);
         let python_eta_secs = python_remaining as f64 / PYTHON_BASELINE_THROUGHPUT;
         let python_eta_str = Self::format_eta(python_eta_secs);
 
-        self.python_bar
-            .set_message(format!("{GOLD}1,572{RESET} docs/sec • {}", python_eta_str));
+        // Calculate speedup
+        let kindly_pct = if self.total_docs > 0 {
+            (docs_processed as f64 / self.total_docs as f64) * 100.0
+        } else {
+            0.0
+        };
+        let python_pct = if self.total_docs > 0 {
+            (python_docs as f64 / self.total_docs as f64) * 100.0
+        } else {
+            0.0
+        };
+
+        // Simple carriage return update with both progress lines
+        print!(
+            "\r{PURPLE}Python:   {:>3}% ({}/{}) {GOLD}1,572{RESET} docs/sec • {}",
+            python_pct as u32, python_docs, self.total_docs, python_eta_str
+        );
+        let _ = std::io::stdout().flush();
+        print!(
+            "\r{PURPLE}Kindly 💜:  {:>3}% ({}/{}) {} • {}",
+            kindly_pct as u32, docs_processed, self.total_docs, throughput_str, eta_str
+        );
+        let _ = std::io::stdout().flush();
 
         // Calculate real-time speedup
         let speedup = if PYTHON_BASELINE_THROUGHPUT > 0.0 {
@@ -474,23 +422,15 @@ impl EnhancedDashboard {
             1.0
         };
 
-        // Update metrics bar
-        let speedup_clamped = speedup.clamp(0.0, 1000.0) as u64;
-        self.metrics_bar.set_position(speedup_clamped);
-
         // Calculate "ahead by" metric
         let ahead_by = docs_processed.saturating_sub(python_docs as usize);
         let ahead_str = Self::format_number(ahead_by);
 
-        let metrics_msg = format!(
-            "{GREEN}Ahead by: {}{RESET} docs • {GOLD}Speedup: {:.1}×{RESET}",
-            ahead_str, speedup
+        println!();
+        println!(
+            "{GOLD}⚡ Speedup: {:.1}× • Ahead by: {}{RESET} docs • {GREEN}✓ BUILD ✓ CIRCUIT ✓ PUF ✓ LICENSE{RESET}",
+            speedup, ahead_str
         );
-        self.metrics_bar.set_message(metrics_msg);
-
-        // Update audit bar with protection status
-        let protection_msg = format!("{GREEN}✓ BUILD ✓ CIRCUIT ✓ PUF ✓ LICENSE{RESET}");
-        self.audit_bar.set_message(protection_msg);
     }
 
     /// Finish dashboard and display race results
@@ -508,16 +448,11 @@ impl EnhancedDashboard {
             let _ = handle.join();
         }
 
-        // Final progress updates
-        self.kindly_bar.set_position(summary.doc_count as u64);
-        let python_final = self.capsule.get_python();
-        self.python_bar.set_position(python_final);
+        // Clear progress display
+        println!();
 
-        // Clear progress bars
-        self.python_bar.finish_and_clear();
-        self.kindly_bar.finish_and_clear();
-        self.metrics_bar.finish_and_clear();
-        self.audit_bar.finish_and_clear();
+        // Get final Python progress
+        let python_final = self.capsule.get_python();
 
         // Calculate race metrics
         let speedup = summary.kindly_throughput / summary.python_throughput;
