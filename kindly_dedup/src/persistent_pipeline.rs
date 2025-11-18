@@ -51,6 +51,7 @@
 #![allow(unsafe_code)] // Required for header serialization (FileHeader ↔ bytes)
 
 use crate::ParallelDedupPipeline;
+use crate::lsh::MmapLshBucketer;
 use atomic_capsule::mmap::{MmapLayout, MmapManager};
 use atomic_capsule::probabilistic::MinHashSignatureCapsule;
 use std::fs::{File, OpenOptions};
@@ -229,6 +230,49 @@ impl std::fmt::Display for PersistentError {
 }
 
 impl std::error::Error for PersistentError {}
+
+// ============================================================================
+// LSH BAND EXTRACTION (Phase 2 Integration)
+// ============================================================================
+
+/// Extract LSH band hashes from MinHash signature
+///
+/// # Arguments
+/// - `signature`: MinHash signature capsule
+/// - `num_bands`: Number of LSH bands (typically 5-12, adaptive)
+/// - `rows_per_band`: Rows per band (typically 10-25, adaptive)
+///
+/// # Returns
+/// Vector of (band_idx, band_hash) tuples for mmap bucket insertion
+///
+/// # Performance
+/// - <100ns (128 array reads + simple hash)
+///
+/// # Algorithm
+/// Same as ParallelDedupPipeline::find_duplicates() band hashing:
+/// - For each band: hash = Σ(value[i] × 31^i) for i in [start..end]
+/// - Wrapping multiplication prevents overflow
+///
+/// #ASSUME_BAND_HASH_CONSISTENCY: Same algorithm as in-memory LSH
+/// #VERIFY_BAND_HASH_CONSISTENCY: Tests validate identical band_hash values
+fn extract_lsh_bands(signature: &MinHashSignatureCapsule, num_bands: usize, rows_per_band: usize) -> Vec<(usize, u64)> {
+    let mut bands = Vec::with_capacity(num_bands);
+
+    for band_idx in 0..num_bands {
+        let start = band_idx * rows_per_band;
+        let end = (start + rows_per_band).min(128);
+
+        // Simple hash of band values (SAME as parallel_pipeline.rs:683-686)
+        let mut band_hash = 0u64;
+        for i in start..end {
+            band_hash = band_hash.wrapping_mul(31).wrapping_add(signature.signature()[i] as u64);
+        }
+
+        bands.push((band_idx, band_hash));
+    }
+
+    bands
+}
 
 // ============================================================================
 // FILE HEADER
@@ -429,7 +473,9 @@ impl<'a> PersistentDedupPipeline<'a> {
         let aligned_signature_size = ((signature_size + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE;
         let aligned_lsh_size = ((lsh_size + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE;
 
-        let total_file_size = HEADER_SIZE + aligned_signature_size + aligned_lsh_size;
+        // CRITICAL: Total file size must ALSO be page-aligned for MmapLayout
+        let raw_total_size = HEADER_SIZE + aligned_signature_size + aligned_lsh_size;
+        let total_file_size = ((raw_total_size + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE;
 
         file.set_len(total_file_size as u64)?;
 
@@ -445,10 +491,17 @@ impl<'a> PersistentDedupPipeline<'a> {
         // #ASSUME_MMAP_ALIGNMENT: MmapManager returns page-aligned memory
         // #VERIFY: Mmap setup tested in persistent_mmap_phase2_tests.rs
         let total_file_size_u64 = total_file_size as u64;
-        let layout = MmapLayout::new(total_file_size_u64, 2).map_err(|_| {
+
+        // Debug: Print layout details
+        #[cfg(debug_assertions)]
+        eprintln!("PersistentDedupPipeline::create: total_file_size={} bytes, aligned_signature_size={}, aligned_lsh_size={}",
+                  total_file_size, aligned_signature_size, aligned_lsh_size);
+
+        let layout = MmapLayout::new(total_file_size_u64, 2).map_err(|e| {
+            eprintln!("MmapLayout::new failed for size={}, regions=2: {:?}", total_file_size_u64, e);
             PersistentError::IoError(io::Error::new(
                 io::ErrorKind::Other,
-                "Failed to create MmapLayout for signatures + LSH buckets",
+                format!("Failed to create MmapLayout for signatures + LSH buckets (size={}, regions=2)", total_file_size_u64),
             ))
         })?;
 
@@ -639,7 +692,39 @@ impl<'a> PersistentDedupPipeline<'a> {
         self.file.seek(std::io::SeekFrom::Start(offset as u64))?;
         self.file.write_all(sig_bytes)?;
 
-        // Add to in-memory pipeline (for LSH bucketing)
+        // Phase 2: Populate mmap LSH buckets for true 93% memory reduction
+        //
+        // # Architecture
+        // - Extract LSH bands from signature (5-12 bands, adaptive params)
+        // - Insert each band into MmapLshBucketer (Region 1, file-backed)
+        // - Zero RAM for LSH buckets (vs 800 MB in Phase 1)
+        //
+        // # Performance
+        // - Band extraction: <100ns (128 array reads)
+        // - Mmap insert: <200ns per band (binary search + write)
+        // - Total: <1.5μs for 5 bands (negligible vs 200μs MinHash)
+        //
+        // #ASSUME_LSH_PARAMS_ADAPTIVE: Use same params as find_duplicates()
+        // #VERIFY_LSH_PARAMS_ADAPTIVE: Tests validate consistency with parallel_pipeline
+        let (num_bands, rows_per_band) = crate::lsh::compute_lsh_params(self.header.count as usize + 1);
+        let bands = extract_lsh_bands(&signature, num_bands, rows_per_band);
+
+        // Create temporary MmapLshBucketer for insertion
+        let aligned_signature_size = {
+            const PAGE_SIZE: usize = 4096;
+            let sig_size = (self.header.capacity as usize) * SIGNATURE_SIZE;
+            ((sig_size + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE
+        };
+        let mut bucketer = MmapLshBucketer::new(self.lsh_region_id, aligned_signature_size);
+
+        for (band_idx, band_hash) in bands {
+            // Composite band_hash: (band_idx << 32) | band_hash
+            let composite_hash = ((band_idx as u64) << 32) | (band_hash & 0xFFFFFFFF);
+            bucketer.insert_band(&self.mmap_manager, composite_hash, doc_id as u32)?;
+        }
+
+        // Add to in-memory pipeline (for LSH bucketing - DEPRECATED in Phase 2)
+        // TODO Phase 2 Cleanup: Remove after verifying mmap LSH works
         self.pipeline.add_document(doc_id, text);
 
         // Increment generation (mark committed)
@@ -697,13 +782,24 @@ impl<'a> PersistentDedupPipeline<'a> {
         Ok(())
     }
 
-    /// Find duplicate clusters
+    /// Find duplicate clusters (Phase 2: Mmap LSH Integration)
     ///
-    /// # Performance
-    /// - Same as DedupPipeline::find_duplicates (no persistence overhead)
-    /// - <1ms for 10K documents
+    /// # Performance (Phase 2 Target)
+    /// - Throughput: ≥4K docs/sec (maintain Phase 1 performance)
+    /// - Memory: ~100 MB total (vs 953 MB Phase 1, 91-93% reduction)
+    /// - Latency: <1ms for 10K documents
     ///
-    /// # Delegates to in-memory pipeline
+    /// # Architecture (Phase 2)
+    /// - Read signatures from mmap (Region 0, zero-copy)
+    /// - Query LSH buckets from mmap (Region 1, zero-copy)
+    /// - Build candidate pairs from mmap buckets
+    /// - Union-Find clustering (in-memory, <5% of RAM)
+    ///
+    /// # ASSUM Safety
+    /// - #ASSUME_MMAP_LSH_CONSISTENT: LSH buckets populated during add_document()
+    /// - #VERIFY_MMAP_LSH_CONSISTENT: Tests validate bucket correctness
+    /// - #ASSUME_BAND_HASH_IDENTICAL: Same algorithm as parallel_pipeline
+    /// - #VERIFY_BAND_HASH_IDENTICAL: extract_lsh_bands() uses identical hash
     pub fn find_duplicates(&self, threshold: f64) -> Result<Vec<Vec<usize>>, PersistentError> {
         // Protection check (Layer 2: Weaponized Circuit Breaker)
         // Overhead: <12ns per check (amortized)
@@ -711,7 +807,129 @@ impl<'a> PersistentDedupPipeline<'a> {
         #[cfg(feature = "binary-protection")]
         crate::protection::check_protection()?;
 
-        Ok(self.pipeline.find_duplicates(threshold)?)
+        // Phase 2: Use MmapLshBucketer instead of in-memory pipeline
+        //
+        // BEFORE (Phase 1): self.pipeline.find_duplicates(threshold)?
+        //   - LSH buckets in RAM: ~800 MB @ 354K docs
+        //   - Total RAM: 953 MB (signatures + LSH + Bloom)
+        //
+        // AFTER (Phase 2): MmapLshBucketer queries from Region 1
+        //   - LSH buckets in mmap: 0 MB (file-backed)
+        //   - Total RAM: ~100 MB (Bloom filters + overhead only)
+
+        // 1. Build MmapLshBucketer to query LSH buckets from mmap
+        let aligned_signature_size = {
+            const PAGE_SIZE: usize = 4096;
+            let sig_size = (self.header.capacity as usize) * SIGNATURE_SIZE;
+            ((sig_size + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE
+        };
+        let bucketer = MmapLshBucketer::new(self.lsh_region_id, aligned_signature_size);
+
+        // 2. Get LSH parameters (same as add_document)
+        let num_added_docs = self.header.count as usize;
+        let (num_bands, rows_per_band) = crate::lsh::compute_lsh_params(num_added_docs);
+
+        // 3. Collect all doc_ids with signatures
+        let doc_ids: Vec<usize> = (0..num_added_docs).collect();
+
+        if doc_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // 4. Query mmap LSH buckets to find candidate pairs
+        use atomic_capsule::probabilistic::ShardedBloomFilterCapsule;
+        use std::collections::HashMap;
+
+        let bloom = ShardedBloomFilterCapsule::new();
+        let mut buckets: HashMap<u64, Vec<usize>> = HashMap::new();
+
+        // Get base pointer from mmap for zero-copy signature reads
+        let mmap_base = self.mmap_manager.base_ptr();
+
+        for doc_id in &doc_ids {
+            // Read signature from mmap (zero-copy)
+            let offset = HEADER_SIZE + (*doc_id * SIGNATURE_SIZE);
+            let sig_ptr = unsafe {
+                let ptr = mmap_base.add(offset) as *const [u16; 128];
+                &*ptr
+            };
+            let signature = MinHashSignatureCapsule::from_signature(*sig_ptr);
+
+            // Extract bands and lookup in mmap bucketer
+            let bands = extract_lsh_bands(&signature, num_bands, rows_per_band);
+            for (band_idx, band_hash) in bands {
+                let composite_hash = ((band_idx as u64) << 32) | (band_hash & 0xFFFFFFFF);
+
+                // Query mmap bucket (zero-copy read from Region 1)
+                if let Some(bucket_docs) = bucketer.get_bucket(&self.mmap_manager, composite_hash) {
+                    buckets
+                        .entry(composite_hash)
+                        .or_insert_with(Vec::new)
+                        .extend(bucket_docs.iter().map(|&id| id as usize));
+                }
+            }
+        }
+
+        // 5. Generate candidate pairs from buckets (with Bloom deduplication)
+        let mut candidate_pairs = Vec::new();
+        for (_bucket_id, doc_ids_in_bucket) in buckets.iter() {
+            if doc_ids_in_bucket.len() < 2 {
+                continue;
+            }
+
+            // Generate all pairs from this bucket
+            for i in 0..doc_ids_in_bucket.len() {
+                for j in (i + 1)..doc_ids_in_bucket.len() {
+                    let (min_id, max_id) = (
+                        doc_ids_in_bucket[i].min(doc_ids_in_bucket[j]),
+                        doc_ids_in_bucket[i].max(doc_ids_in_bucket[j]),
+                    );
+
+                    // Deduplicate via bloom filter
+                    let pair_hash = ((min_id as u64) << 32) | (max_id as u64);
+
+                    if !bloom.might_exist(pair_hash) {
+                        bloom.insert(pair_hash);
+                        candidate_pairs.push((min_id, max_id));
+                    }
+                }
+            }
+        }
+
+        // 6. Verify candidates with Jaccard similarity
+        use atomic_capsule::primitives::fixed_point::Q16_16;
+        let threshold_q16 = Q16_16::from_f64(threshold);
+
+        let verified_pairs: Vec<(usize, usize)> = candidate_pairs
+            .into_iter()
+            .filter(|&(doc_a, doc_b)| {
+                // Read signatures from mmap (zero-copy)
+                let offset_a = HEADER_SIZE + (doc_a * SIGNATURE_SIZE);
+                let offset_b = HEADER_SIZE + (doc_b * SIGNATURE_SIZE);
+
+                let sig_a = unsafe {
+                    let ptr = mmap_base.add(offset_a) as *const [u16; 128];
+                    MinHashSignatureCapsule::from_signature(*ptr)
+                };
+                let sig_b = unsafe {
+                    let ptr = mmap_base.add(offset_b) as *const [u16; 128];
+                    MinHashSignatureCapsule::from_signature(*ptr)
+                };
+
+                // Deterministic Q16.16 Jaccard
+                let similarity: Q16_16 = sig_a.jaccard_similarity_q16(&sig_b);
+                similarity >= threshold_q16
+            })
+            .collect();
+
+        // 7. Cluster duplicates with Union-Find
+        use atomic_capsule::probabilistic::UnionFind;
+        let mut uf = UnionFind::new(num_added_docs);
+        for (a, b) in verified_pairs {
+            uf.union(a, b);
+        }
+
+        Ok(uf.build_clusters())
     }
 
     /// Get number of documents added

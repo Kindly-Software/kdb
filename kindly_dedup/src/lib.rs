@@ -203,6 +203,9 @@ pub use pipeline::{DedupPipeline, DocId};
 #[cfg(feature = "persistent-dedup")]
 pub use persistent_pipeline::{PersistentDedupPipeline, PersistentError};
 
+#[cfg(feature = "persistent-dedup")]
+pub use lsh::MmapLshBucketer;
+
 #[cfg(feature = "parallel-dedup")]
 pub use parallel_pipeline::ParallelDedupPipeline;
 
