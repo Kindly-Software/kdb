@@ -25,9 +25,8 @@ atomic_capsule_derive = { path = "../atomic_capsule_derive" }
 ed25519-dalek = { version = "2.1", optional = true }
 rsa = { version = "0.9", optional = true }
 hkdf = "0.12"  # Required for trial_state encryption (Docker trials)
-# TEMPORARY (2025-11-17): Re-add rayon for legacy code compatibility
-# TODO: Complete P1 migration to atomic_capsule::parallel in all files
-rayon = { version = "1.10", optional = true }
+# REMOVED (2025-11-17): rayon → atomic_capsule::parallel (100% lockfree, ThreadPool::scope)
+# Migration complete: All par_iter patterns replaced with ThreadPool::scope
 # REMOVED (2025-11-10): parking_lot → Only used in comments, not in production code
 # parking_lot = "0.12"  # TEMPORARY: Phase 1 cache (to be replaced with ConcurrentMapCapsule in Phase 2)
 # REMOVED: num_cpus = "1.16"  # Replaced with std::thread::available_parallelism()
@@ -87,8 +86,7 @@ aes-gcm = "0.10"
 # NUMA allocation support
 libc = "0.2"
 
-# CPU detection (used for thread pool sizing)
-num_cpus = "1.16"
+# CPU detection (replaced with std::thread::available_parallelism() - Rust 1.59+)
 
 # Crossbeam utilities (for atomic operations in streaming pipeline)
 crossbeam-utils = "0.8"
@@ -162,10 +160,9 @@ cache-optimized-minhash = ["simd-minhash", "nightly"]
 # Phase 1: AVX-512 runtime dispatch (16-lane SIMD, 2× AVX2 speedup, nightly required)
 avx512-minhash = ["simd-minhash", "nightly", "atomic_capsule/cpu-capabilities"]
 
-# Parallel deduplication (atomic_capsule::parallel + rayon temporarily)
-# Parallel deduplication using atomic_capsule::parallel (100% lockfree, zero rayon)
-# Migration complete: 2025-11-08 - All rayon usage replaced with atomic_capsule primitives
-parallel-dedup = ["std", "dep:rayon"]
+# Parallel deduplication (atomic_capsule::parallel - 100% lockfree, zero dependencies)
+# Migration complete: 2025-11-17 - All rayon usage replaced with atomic_capsule::parallel::ThreadPool
+parallel-dedup = ["std"]
 
 # Persistent deduplication (T9+T10: mmap-backed streaming, 93% memory reduction)
 # v1.3: Migrated from mmap-persistence to capsule-mmap for zero-copy atomic storage
@@ -279,8 +276,8 @@ kernel-protection = []  # Stub wrapper (no atomic_capsule feature yet)
 meta-capsule-full = ["meta-capsule-p1", "orchestrator", "anomaly-detector", "memory-encryption", "kernel-protection"]
 
 # Interactive TUI (v0.2.0: 6 commands, E2E workflows, META_CAPSULE protected)
-# Note: indicatif removed (2025-11-08) - using atomic_capsule::parallel::BatchProgressRenderer
-# UPDATED (2025-11-17): Migrated to atomic_capsule::cli::CliCapsule (zero direct dependencies)
+# Note: indicatif removed (2025-11-17) - using ProgressTrackerCapsule (T1 Atomic, <10ns)
+# UPDATED (2025-11-17): Removed indicatif dependency, now uses built-in ANSI progress display
 interactive = [
     "dep:inquire",
     "dep:ratatui",
@@ -288,7 +285,6 @@ interactive = [
     "dep:glob",
     "dep:fs_extra",
     "dep:directories",
-    "dep:indicatif",
     "meta-capsule",
     "benchmarking",
     "compound-ground-truth",

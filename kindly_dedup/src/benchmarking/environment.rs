@@ -170,7 +170,9 @@ impl EnvironmentCapture {
 
     /// Get CPU core count (physical + logical)
     fn get_cpu_cores() -> usize {
-        num_cpus::get()
+        std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(1)
     }
 
     /// Get OS version (via uname -a)

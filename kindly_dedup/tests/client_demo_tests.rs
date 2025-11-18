@@ -299,7 +299,9 @@ fn unit_q5_hardware_detection_cpu() {
 #[test]
 fn unit_q5_hardware_detection_cores() {
     // Act
-    let num_cores = num_cpus::get();
+    let num_cores = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(1);
 
     // Assert
     assert!(num_cores > 0, "Must detect at least 1 CPU core");

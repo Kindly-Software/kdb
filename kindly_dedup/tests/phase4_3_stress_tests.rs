@@ -207,7 +207,9 @@ fn test_stress_1m_documents_phase4_3() {
 fn test_stress_64_cores_scaling() {
     println!("\n=== Phase 4.3: 64-Core Scaling Test ===\n");
 
-    let max_cores = num_cpus::get();
+    let max_cores = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(1);
     println!("System cores: {}", max_cores);
 
     if max_cores < 64 {

@@ -338,7 +338,9 @@ pub fn validate_resources(config: &DemoConfig) -> Result<(), Box<dyn std::error:
     }
 
     // Core count
-    let cores = num_cpus::get();
+    let cores = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(1);
     println!(
         "{} Cores: {}",
         "✓".bright_gold(),

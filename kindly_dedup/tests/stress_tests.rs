@@ -349,7 +349,9 @@ fn test_stress_10m_documents() {
 fn test_stress_max_cores() {
     // Stress: Scale to maximum available cores
 
-    let max_cores = num_cpus::get();
+    let max_cores = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(1);
     println!("System cores: {}", max_cores);
 
     let test_cores = [max_cores / 4, max_cores / 2, (max_cores * 3) / 4, max_cores];

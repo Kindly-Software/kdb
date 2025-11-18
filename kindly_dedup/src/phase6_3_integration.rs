@@ -100,7 +100,7 @@ pub struct Phase63Config {
     /// Minimum threads for adaptive pool (default: 1)
     pub min_threads: usize,
 
-    /// Maximum threads for adaptive pool (default: num_cpus)
+    /// Maximum threads for adaptive pool (default: std::thread::available_parallelism())
     pub max_threads: usize,
 }
 
@@ -112,7 +112,9 @@ impl Default for Phase63Config {
             enable_numa: true,
             enable_adaptive_pool: true,
             min_threads: 1,
-            max_threads: num_cpus::get(),
+            max_threads: std::thread::available_parallelism()
+                .map(|n| n.get())
+                .unwrap_or(1),
         }
     }
 }

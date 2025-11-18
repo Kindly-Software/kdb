@@ -394,7 +394,9 @@ fn log_to_audit_trail() {
         environment: environment.clone(),
         config: BenchmarkConfig {
             dataset: "synthetic_parallel_generation".to_string(),
-            threads: num_cpus::get(),
+            threads: std::thread::available_parallelism()
+                .map(|n| n.get())
+                .unwrap_or(1),
             features: vec![
                 "std".to_string(),
                 "benchmarking".to_string(),
