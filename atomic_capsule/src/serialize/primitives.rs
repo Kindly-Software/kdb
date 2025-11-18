@@ -182,17 +182,17 @@ macro_rules! impl_integer_primitives {
                     offset: usize,
                 ) -> SerializeResult<usize> {
                     // #ASSUME_BUFFER_SIZE: buf.len() >= offset + SERIALIZED_SIZE
-                    if offset + Self::SERIALIZED_SIZE > buf.len() {
+                    if offset + <$ty as SerializePrimitive>::SERIALIZED_SIZE > buf.len() {
                         return Err(SerializeError::BufferTooSmall {
-                            required: offset + Self::SERIALIZED_SIZE,
+                            required: offset + <$ty as SerializePrimitive>::SERIALIZED_SIZE,
                             actual: buf.len(),
                         });
                     }
 
                     // Little-endian encoding
                     let bytes = self.to_le_bytes();
-                    buf[offset..offset + Self::SERIALIZED_SIZE].copy_from_slice(&bytes);
-                    Ok(Self::SERIALIZED_SIZE)
+                    buf[offset..offset + <$ty as SerializePrimitive>::SERIALIZED_SIZE].copy_from_slice(&bytes);
+                    Ok(<$ty as SerializePrimitive>::SERIALIZED_SIZE)
                 }
 
                 const SERIALIZED_SIZE: usize = $size;
@@ -202,16 +202,16 @@ macro_rules! impl_integer_primitives {
                 #[inline]
                 fn deserialize_primitive(buf: &[u8], offset: usize) -> SerializeResult<Self> {
                     // #ASSUME_BUFFER_SIZE: buf.len() >= offset + SERIALIZED_SIZE
-                    if offset + Self::SERIALIZED_SIZE > buf.len() {
+                    if offset + <$ty as DeserializePrimitive>::SERIALIZED_SIZE > buf.len() {
                         return Err(SerializeError::BufferTooSmall {
-                            required: offset + Self::SERIALIZED_SIZE,
+                            required: offset + <$ty as DeserializePrimitive>::SERIALIZED_SIZE,
                             actual: buf.len(),
                         });
                     }
 
                     // Little-endian decoding
                     let mut bytes = [0u8; $size];
-                    bytes.copy_from_slice(&buf[offset..offset + Self::SERIALIZED_SIZE]);
+                    bytes.copy_from_slice(&buf[offset..offset + <$ty as DeserializePrimitive>::SERIALIZED_SIZE]);
                     Ok(<$ty>::from_le_bytes(bytes))
                 }
 

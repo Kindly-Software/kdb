@@ -38,7 +38,7 @@
 
 use crate::serialize::SerializeError;
 use core::mem::size_of;
-use std::alloc::Vec;
+use std::vec::Vec;
 
 /// Bincode writer capsule (T1, 64B cache-aligned).
 ///
