@@ -148,6 +148,10 @@ pub mod tui;
 #[cfg(feature = "interactive")]
 pub mod audit_dashboard;
 
+// GUI module (iced-based, Mac-level UX, Byzantine purple + gold branding)
+#[cfg(feature = "gui")]
+pub mod gui;
+
 // Batch MinHash (Phase 3: T4 Batch tier - 1.5-2× speedup)
 pub mod batch_minhash;
 
