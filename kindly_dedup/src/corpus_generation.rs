@@ -255,7 +255,9 @@ pub fn generate_synthetic_corpus(num_docs: usize) -> Vec<Document> {
     #[cfg(feature = "parallel-dedup")]
     let exact_docs: Vec<Document> = (0..exact_dup_count)
         .map(|doc_id| {
-            let cluster_id = doc_id / (exact_dup_count / 10);
+            // Ensure at least 1 doc per cluster; use max(1, exact_dup_count / 10) to prevent divide-by-zero
+            let cluster_size = std::cmp::max(1, exact_dup_count / 10);
+            let cluster_id = doc_id / cluster_size;
             let template = generate_exact_template(cluster_id);
 
             #[cfg(feature = "audit-trail")]
@@ -274,7 +276,9 @@ pub fn generate_synthetic_corpus(num_docs: usize) -> Vec<Document> {
     #[cfg(not(feature = "parallel-dedup"))]
     let exact_docs: Vec<Document> = (0..exact_dup_count)
         .map(|doc_id| {
-            let cluster_id = doc_id / (exact_dup_count / 10);
+            // Ensure at least 1 doc per cluster; use max(1, exact_dup_count / 10) to prevent divide-by-zero
+            let cluster_size = std::cmp::max(1, exact_dup_count / 10);
+            let cluster_id = doc_id / cluster_size;
             let template = generate_exact_template(cluster_id);
 
             #[cfg(feature = "audit-trail")]
@@ -294,7 +298,8 @@ pub fn generate_synthetic_corpus(num_docs: usize) -> Vec<Document> {
     // ============================================================================
     // PARALLEL NEAR-DUPLICATES (20%)
     // ============================================================================
-    let near_cluster_size = near_dup_count / 30;
+    // Ensure at least 1 doc per cluster; use max(1, near_dup_count / 30) to prevent divide-by-zero
+    let near_cluster_size = std::cmp::max(1, near_dup_count / 30);
     #[cfg(feature = "parallel-dedup")]
     let near_docs: Vec<Document> = (0..near_dup_count)
         .map(|i| {

@@ -575,11 +575,23 @@ fn run_tier1_accuracy(args: &DemoArgs, global: &GlobalArgs) -> Result<()> {
     let cpu_caps = atomic_capsule::CpuCapabilityCapsule::detect();
     let mut pipeline = DedupPipeline::new(args.docs as usize, &cpu_caps);
 
-    for doc in &corpus {
+    if !global.quiet {
+        println!("  Adding documents...");
+    }
+    for (idx, doc) in corpus.iter().enumerate() {
+        if !global.quiet && idx % 1 == 0 {
+            eprintln!("    Adding doc {} (id: {}, text len: {})", idx, doc.id, doc.text.len());
+        }
         pipeline.add_document(doc.id, &doc.text)?;
+    }
+    if !global.quiet {
+        println!("  Documents added, finding duplicates...");
     }
 
     let clusters = pipeline.find_duplicates(args.threshold)?;
+    if !global.quiet {
+        println!("  Clusters found!");
+    }
     let dedup_time = start.elapsed();
     let throughput = args.docs as f64 / dedup_time.as_secs_f64();
 
