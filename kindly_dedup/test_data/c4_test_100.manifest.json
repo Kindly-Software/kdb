@@ -1,0 +1,12 @@
+{
+  "source": "HuggingFace",
+  "dataset": "allenai/c4",
+  "subset": "en",
+  "revision": "main",
+  "downloaded": "2025-11-17T18:15:16.738276197+00:00",
+  "document_count": 100,
+  "size_bytes": 213729,
+  "sha256": "94c53f1231ba8c6d0163b3bbe7bd8292023bfc24ec5bb5409e5d76baa1824a25",
+  "api_key_masked": "hf_uoAmjms***MASKED***",
+  "provenance": "allenai/c4 dataset, 100 documents, downloaded from HuggingFace Hub"
+}

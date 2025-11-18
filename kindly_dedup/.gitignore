@@ -1,0 +1,280 @@
+# kindly_dedup .gitignore
+# Comprehensive ignore patterns for LLM deduplication pipeline
+
+# ============================================================================
+# Rust / Cargo
+# ============================================================================
+
+# Build artifacts
+/target/
+**/*.rs.bk
+*.pdb
+
+# Cargo.lock (keep for binaries, ignore for libraries)
+# Uncommenting this would ignore Cargo.lock:
+# Cargo.lock
+
+# ============================================================================
+# kindly_dedup Specific
+# ============================================================================
+
+# Audit Trails (Q34 compliance logs - sensitive, large files)
+*.jsonl
+audit_trail*.json
+audit*.log
+/tmp/demo_audit_*.jsonl
+~/.config/kindly_dedup/security_audit.log
+
+# Demo Outputs
+/tmp/demo_*.json
+/tmp/client_demo_*.txt
+demo_results_*.json
+
+# Benchmark Results (Criterion.rs outputs)
+/benches/target/
+criterion_output/
+
+# Custom Data Files (user-provided corpora)
+*.txt.gz
+*.txt.bz2
+custom_corpus_*.txt
+pile_*.txt
+wikipedia_*.txt
+
+# Persistent Deduplication State (mmap files)
+*.mmap
+dedup_index.mmap
+persistent_state_*.mmap
+
+# Protection Module Files (TRADE SECRET - Never Commit)
+license.key
+license.lic
+customer_*.key
+.permanent_disable
+.tier2_flag
+.tier3_flag
+~/.config/kindly_dedup/
+
+# Encrypted State Files (AES-256-GCM encrypted)
+*.enc
+state.enc
+demo_usage.enc
+
+# Hardware Fingerprints (PUF entropy - SENSITIVE)
+puf_entropy_*.bin
+hardware_id_*.bin
+
+# ============================================================================
+# Generated Documentation (Auto-Generated Reports)
+# ============================================================================
+
+# CLI Verification Reports
+CLI_VERIFICATION_REPORT.md
+COCA_AUDIT_REPORT.md
+I20_*_VALIDATION.md
+
+# Benchmark Reports
+*_BENCHMARK_RESULTS.md
+*_PERFORMANCE_REPORT.md
+AUDIT_OVERHEAD_*.md
+
+# Technical Debt Reports
+*_DEBT_*.md
+REFACTORING_*.md
+CODE_REVIEW_*.md
+
+# Security Analysis Reports (may contain sensitive info)
+SECURITY_VALIDATION_*.md
+PROTECTION_*.md
+VULNERABILITY_*.md
+
+# ============================================================================
+# Editor / IDE
+# ============================================================================
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# IntelliJ Rust
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Vim
+*.swp
+*.swo
+*~
+.*.sw?
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ============================================================================
+# OS Specific
+# ============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ============================================================================
+# Build Tools
+# ============================================================================
+
+# Flamegraph outputs
+flamegraph.svg
+perf.data
+perf.data.old
+
+# Coverage reports
+*.profraw
+*.profdata
+lcov.info
+coverage/
+tarpaulin-report.html
+
+# Valgrind
+vgcore.*
+*.valgrind
+
+# GDB
+.gdb_history
+
+# ============================================================================
+# Testing
+# ============================================================================
+
+# Test outputs
+test_output_*.txt
+test_results_*.json
+
+# Temporary test files
+/tmp/test_*
+*.test
+
+# Proptest regression files (keep these for CI consistency)
+# proptest-regressions/
+
+# ============================================================================
+# Profiling / Debugging
+# ============================================================================
+
+# perf outputs
+*.perf
+*.svg
+
+# Callgrind
+callgrind.out.*
+
+# Heaptrack
+heaptrack.*.gz
+
+# ============================================================================
+# Documentation Build Artifacts
+# ============================================================================
+
+# mdBook
+book/
+docs/book/
+
+# rustdoc
+/doc/
+
+# ============================================================================
+# Miscellaneous
+# ============================================================================
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Patch files
+*.patch
+*.diff
+
+# Compressed archives
+*.zip
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+
+# Logs
+*.log
+
+# Environment files (may contain secrets)
+.env
+.env.local
+.env.*.local
+
+# ============================================================================
+# CI/CD Artifacts
+# ============================================================================
+
+# GitHub Actions cache
+.github/cache/
+
+# Docker build cache
+.dockerignore
+docker-compose.override.yml
+
+# ============================================================================
+# Project-Specific Large Files (CRITICAL: GitHub limit is 100MB)
+# ============================================================================
+
+# Training data (large datasets)
+training_data/
+datasets/
+corpora/
+test_data/synthetic_*.json
+test_data/custom_format/*.jsonl
+test_data/realistic/*.json
+
+# MinHash signatures cache (can be regenerated)
+signatures_cache/
+*.sig
+
+# LSH buckets cache
+lsh_buckets/
+*.bucket
+
+# Ground truth cache (can be expensive to regenerate, consider keeping)
+ground_truth_*.json
+
+# ============================================================================
+# Notes
+# ============================================================================
+
+# Personal Notes (developer scratch files)
+NOTES.md
+TODO_PERSONAL.md
+SCRATCH.md
+
+# Session-specific planning docs (generated by Claude)
+*_IMPLEMENTATION.md
+*_DELIVERABLE.md
+*_SUMMARY.md
+# Large test data (commit manifests only)
+test_data/*.jsonl
+test_data/*.txt
+test_data/*.csv
