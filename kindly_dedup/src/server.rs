@@ -444,7 +444,15 @@ impl DedupServer {
             }
         };
 
-        let dedup_request: DedupRequest = match serde_json::from_slice(body) {
+        let body_str = match std::str::from_utf8(body) {
+            Ok(s) => s,
+            Err(e) => {
+                capsule.increment_errors();
+                return self.make_error_response(400, &format!("Invalid UTF-8: {}", e));
+            }
+        };
+
+        let dedup_request = match DedupRequest::from_json(body_str) {
             Ok(r) => r,
             Err(e) => {
                 capsule.increment_errors();
@@ -510,7 +518,7 @@ impl DedupServer {
         };
 
         // Serialize to JSON
-        let json = match serde_json::to_string_pretty(&response) {
+        let json = match response.to_json() {
             Ok(j) => j,
             Err(e) => {
                 capsule.increment_errors();
@@ -530,7 +538,7 @@ impl DedupServer {
             uptime_seconds: capsule.uptime_seconds(),
         };
 
-        let json = serde_json::to_string_pretty(&response).unwrap_or_else(|_| r#"{"status":"error"}"#.to_string());
+        let json = response.to_json().unwrap_or_else(|_| r#"{"status":"error"}"#.to_string());
 
         self.make_json_response(200, &json)
     }
@@ -548,11 +556,13 @@ impl DedupServer {
 
     /// Make error response
     fn make_error_response(&self, status: u16, message: &str) -> String {
-        let json = serde_json::json!({
-            "error": message,
-            "status": status
-        });
-        let json_str = json.to_string();
+        #[derive(CapsuleSerialize)]
+        struct ErrorResponse<'a> {
+            error: &'a str,
+            status: u16,
+        }
+        let error = ErrorResponse { error: message, status };
+        let json_str = error.to_json().unwrap_or_else(|_| r#"{"error":"serialization_failed"}"#.to_string());
         self.make_json_response(status, &json_str)
     }
 
@@ -585,7 +595,7 @@ fn status_text(status: u16) -> &'static str {
 // ======================
 // #ASSUME_ATOMIC_MONOTONIC: Request/error counters only increment (Relaxed ordering safe)
 // #ASSUME_TCP_BLOCKING: TcpStream read/write may block (handled by Result)
-// #ASSUME_JSON_VALID: Client sends valid JSON (handled by serde_json::from_slice error)
+// #ASSUME_JSON_VALID: Client sends valid JSON (handled by DedupRequest::from_json error)
 // #ASSUME_UTF8_VALID: Request body is UTF-8 (validated by std::str::from_utf8)
 // #VERIFY_LOCKFREE: All atomic operations are lockfree (no mutex/RwLock)
 // #VERIFY_ZERO_UNSAFE: Zero unsafe code in server implementation
@@ -655,7 +665,7 @@ mod tests {
             "threshold": 0.85
         }"#;
 
-        let req: DedupRequest = serde_json::from_str(json).unwrap();
+        let req = DedupRequest::from_json(json).unwrap();
         assert_eq!(req.documents.len(), 2);
         assert_eq!(req.threshold, 0.85);
     }
@@ -668,7 +678,7 @@ mod tests {
             ]
         }"#;
 
-        let req: DedupRequest = serde_json::from_str(json).unwrap();
+        let req = DedupRequest::from_json(json).unwrap();
         assert_eq!(req.threshold, 0.85); // Default
     }
 }
