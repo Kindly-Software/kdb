@@ -583,7 +583,7 @@ impl<'a> TomlParserCapsule<'a> {
                 Some('\n') | Some('\r') => break,
                 Some('#') => {
                     // Comment rest of line
-                    while temp_pos < self.input.len() && &self.input[temp_pos..].chars().next() != Some(&'\n') {
+                    while temp_pos < self.input.len() && self.input[temp_pos..].chars().next() != Some('\n') {
                         temp_pos += 1;
                     }
                     break;

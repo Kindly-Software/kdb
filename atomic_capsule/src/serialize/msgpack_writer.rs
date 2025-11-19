@@ -174,7 +174,7 @@ impl MsgPackWriterCapsule {
     /// **Format**: 0xc0 (1 byte)
     /// **Performance**: <5ns
     pub fn write_nil(&self) -> Result<(), MsgPackError> {
-        self.buffer.write_bytes(&[0xc0]).map_err(Into::into)
+        self.buffer.write_bytes(&[0xc0]).map_err(MsgPackError::from)
     }
 
     /// Write boolean value.
@@ -183,7 +183,7 @@ impl MsgPackWriterCapsule {
     /// **Performance**: <5ns
     pub fn write_bool(&self, value: bool) -> Result<(), MsgPackError> {
         let byte = if value { 0xc3 } else { 0xc2 };
-        self.buffer.write_bytes(&[byte]).map_err(Into::into)
+        self.buffer.write_bytes(&[byte]).map_err(MsgPackError::from)
     }
 
     /// Write signed 64-bit integer with optimal encoding.
@@ -204,11 +204,11 @@ impl MsgPackWriterCapsule {
             } else {
                 (value as u8) & 0x7f
             };
-            self.buffer.write_bytes(&[byte]).map_err(Into::into)
+            self.buffer.write_bytes(&[byte]).map_err(MsgPackError::from)
         } else if value >= -128 && value < 128 {
             // int8
             let bytes = [0xd0, (value as u8)];
-            self.buffer.write_bytes(&bytes).map_err(Into::into)
+            self.buffer.write_bytes(&bytes).map_err(MsgPackError::from)
         } else if value >= -32768 && value < 32768 {
             // int16
             let bytes = [
@@ -216,7 +216,7 @@ impl MsgPackWriterCapsule {
                 ((value >> 8) as u8),
                 (value as u8),
             ];
-            self.buffer.write_bytes(&bytes).map_err(Into::into)
+            self.buffer.write_bytes(&bytes).map_err(MsgPackError::from)
         } else if value >= -2147483648 && value < 2147483648 {
             // int32
             let bytes = [
@@ -226,7 +226,7 @@ impl MsgPackWriterCapsule {
                 ((value >> 8) as u8),
                 (value as u8),
             ];
-            self.buffer.write_bytes(&bytes).map_err(Into::into)
+            self.buffer.write_bytes(&bytes).map_err(MsgPackError::from)
         } else {
             // int64
             let bytes = [
@@ -240,7 +240,7 @@ impl MsgPackWriterCapsule {
                 ((value >> 8) as u8),
                 (value as u8),
             ];
-            self.buffer.write_bytes(&bytes).map_err(Into::into)
+            self.buffer.write_bytes(&bytes).map_err(MsgPackError::from)
         }
     }
 
@@ -251,15 +251,15 @@ impl MsgPackWriterCapsule {
     pub fn write_uint(&self, value: u64) -> Result<(), MsgPackError> {
         if value < 128 {
             // Positive fixint
-            self.buffer.write_bytes(&[value as u8]).map_err(Into::into)
+            self.buffer.write_bytes(&[value as u8]).map_err(MsgPackError::from)
         } else if value < 256 {
             // uint8
             let bytes = [0xcc, value as u8];
-            self.buffer.write_bytes(&bytes).map_err(Into::into)
+            self.buffer.write_bytes(&bytes).map_err(MsgPackError::from)
         } else if value < 65536 {
             // uint16
             let bytes = [0xcd, (value >> 8) as u8, value as u8];
-            self.buffer.write_bytes(&bytes).map_err(Into::into)
+            self.buffer.write_bytes(&bytes).map_err(MsgPackError::from)
         } else if value < 4294967296 {
             // uint32
             let bytes = [
@@ -269,7 +269,7 @@ impl MsgPackWriterCapsule {
                 (value >> 8) as u8,
                 value as u8,
             ];
-            self.buffer.write_bytes(&bytes).map_err(Into::into)
+            self.buffer.write_bytes(&bytes).map_err(MsgPackError::from)
         } else {
             // uint64
             let bytes = [
@@ -283,7 +283,7 @@ impl MsgPackWriterCapsule {
                 (value >> 8) as u8,
                 value as u8,
             ];
-            self.buffer.write_bytes(&bytes).map_err(Into::into)
+            self.buffer.write_bytes(&bytes).map_err(MsgPackError::from)
         }
     }
 
@@ -304,7 +304,7 @@ impl MsgPackWriterCapsule {
             (bits >> 8) as u8,
             bits as u8,
         ];
-        self.buffer.write_bytes(&bytes).map_err(Into::into)
+        self.buffer.write_bytes(&bytes).map_err(MsgPackError::from)
     }
 
     /// Write UTF-8 string with optimal encoding.
@@ -322,18 +322,18 @@ impl MsgPackWriterCapsule {
         if len < 32 {
             // fixstr
             let header = [0xa0 | (len as u8)];
-            self.buffer.write_bytes(&header).map_err(Into::into)?;
-            self.buffer.write_bytes(s.as_bytes()).map_err(Into::into)
+            self.buffer.write_bytes(&header).map_err(|e| MsgPackError::from(e))?;
+            self.buffer.write_bytes(s.as_bytes()).map_err(|e| MsgPackError::from(e))
         } else if len < 256 {
             // str8
             let header = [0xd9, len as u8];
-            self.buffer.write_bytes(&header).map_err(Into::into)?;
-            self.buffer.write_bytes(s.as_bytes()).map_err(Into::into)
+            self.buffer.write_bytes(&header).map_err(|e| MsgPackError::from(e))?;
+            self.buffer.write_bytes(s.as_bytes()).map_err(|e| MsgPackError::from(e))
         } else if len < 65536 {
             // str16
             let header = [0xda, (len >> 8) as u8, len as u8];
-            self.buffer.write_bytes(&header).map_err(Into::into)?;
-            self.buffer.write_bytes(s.as_bytes()).map_err(Into::into)
+            self.buffer.write_bytes(&header).map_err(MsgPackError::from)?;
+            self.buffer.write_bytes(s.as_bytes()).map_err(MsgPackError::from)
         } else {
             // str32
             let header = [
@@ -343,8 +343,8 @@ impl MsgPackWriterCapsule {
                 (len >> 8) as u8,
                 len as u8,
             ];
-            self.buffer.write_bytes(&header).map_err(Into::into)?;
-            self.buffer.write_bytes(s.as_bytes()).map_err(Into::into)
+            self.buffer.write_bytes(&header).map_err(MsgPackError::from)?;
+            self.buffer.write_bytes(s.as_bytes()).map_err(MsgPackError::from)
         }
     }
 
@@ -362,13 +362,13 @@ impl MsgPackWriterCapsule {
         if len < 256 {
             // bin8
             let header = [0xc4, len as u8];
-            self.buffer.write_bytes(&header).map_err(Into::into)?;
-            self.buffer.write_bytes(data).map_err(Into::into)
+            self.buffer.write_bytes(&header).map_err(MsgPackError::from)?;
+            self.buffer.write_bytes(data).map_err(MsgPackError::from)
         } else if len < 65536 {
             // bin16
             let header = [0xc5, (len >> 8) as u8, len as u8];
-            self.buffer.write_bytes(&header).map_err(Into::into)?;
-            self.buffer.write_bytes(data).map_err(Into::into)
+            self.buffer.write_bytes(&header).map_err(MsgPackError::from)?;
+            self.buffer.write_bytes(data).map_err(MsgPackError::from)
         } else {
             // bin32
             let header = [
@@ -378,8 +378,8 @@ impl MsgPackWriterCapsule {
                 (len >> 8) as u8,
                 len as u8,
             ];
-            self.buffer.write_bytes(&header).map_err(Into::into)?;
-            self.buffer.write_bytes(data).map_err(Into::into)
+            self.buffer.write_bytes(&header).map_err(MsgPackError::from)?;
+            self.buffer.write_bytes(data).map_err(MsgPackError::from)
         }
     }
 
@@ -394,11 +394,11 @@ impl MsgPackWriterCapsule {
     pub fn write_array_header(&self, len: usize) -> Result<(), MsgPackError> {
         if len < 16 {
             // fixarray
-            self.buffer.write_bytes(&[0x90 | (len as u8)]).map_err(Into::into)
+            self.buffer.write_bytes(&[0x90 | (len as u8)]).map_err(MsgPackError::from)
         } else if len < 65536 {
             // array16
             let header = [0xdc, (len >> 8) as u8, len as u8];
-            self.buffer.write_bytes(&header).map_err(Into::into)
+            self.buffer.write_bytes(&header).map_err(MsgPackError::from)
         } else {
             // array32
             let header = [
@@ -408,7 +408,7 @@ impl MsgPackWriterCapsule {
                 (len >> 8) as u8,
                 len as u8,
             ];
-            self.buffer.write_bytes(&header).map_err(Into::into)
+            self.buffer.write_bytes(&header).map_err(MsgPackError::from)
         }
     }
 
@@ -423,11 +423,11 @@ impl MsgPackWriterCapsule {
     pub fn write_map_header(&self, len: usize) -> Result<(), MsgPackError> {
         if len < 16 {
             // fixmap
-            self.buffer.write_bytes(&[0x80 | (len as u8)]).map_err(Into::into)
+            self.buffer.write_bytes(&[0x80 | (len as u8)]).map_err(MsgPackError::from)
         } else if len < 65536 {
             // map16
             let header = [0xde, (len >> 8) as u8, len as u8];
-            self.buffer.write_bytes(&header).map_err(Into::into)
+            self.buffer.write_bytes(&header).map_err(MsgPackError::from)
         } else {
             // map32
             let header = [
@@ -437,7 +437,7 @@ impl MsgPackWriterCapsule {
                 (len >> 8) as u8,
                 len as u8,
             ];
-            self.buffer.write_bytes(&header).map_err(Into::into)
+            self.buffer.write_bytes(&header).map_err(MsgPackError::from)
         }
     }
 
@@ -445,7 +445,7 @@ impl MsgPackWriterCapsule {
     ///
     /// **Performance**: O(n) copy, <1µs for 64KB
     pub fn finalize(&self) -> Result<Vec<u8>, MsgPackError> {
-        self.buffer.to_vec().map_err(Into::into)
+        self.buffer.to_vec().map_err(MsgPackError::from)
     }
 
     /// Get current buffer position (for partial reads).
