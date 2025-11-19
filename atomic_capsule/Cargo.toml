@@ -1,6 +1,6 @@
 [package]
 name = "atomic_capsule"
-version = "0.6.1"  # CRITICAL FIX: MinHash SIMD alignment (exit 139 segfault resolved)
+version = "0.7.0"  # New serialization formats + AtomicBufferCapsule enhancements
 edition = "2021"
 resolver = "2"  # CRITICAL: Prevents feature unification across targets
 rust-version = "1.76"  # Stable unless nightly feature enabled
