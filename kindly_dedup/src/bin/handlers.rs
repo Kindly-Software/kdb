@@ -26,6 +26,7 @@ use kindly_dedup::cli::{
     StatsArgs, VerifyArgs,
 };
 use kindly_dedup::{generate_synthetic_corpus_with_stats, DedupPipeline, StreamingDedupPipeline};
+use atomic_capsule::serialize::{JsonParserCapsule, JsonValue};
 
 // ============================================================================
 // Demo Command Handler
@@ -151,13 +152,6 @@ pub fn handle_dedup(args: &DedupArgs, global: &GlobalArgs) -> Result<()> {
     let file = std::fs::File::open(&args.input)?;
     let reader = BufReader::new(file);
 
-    #[derive(serde::Deserialize)]
-    struct Document {
-        #[serde(default)]
-        id: Option<usize>,
-        text: String,
-    }
-
     let mut docs_processed = 0;
     for (line_num, line) in reader.lines().enumerate() {
         let line = line?;
@@ -165,10 +159,43 @@ pub fn handle_dedup(args: &DedupArgs, global: &GlobalArgs) -> Result<()> {
             continue;
         }
 
-        let doc: Document = serde_json::from_str(&line)
+        // Parse JSON using JsonParserCapsule (T0 Auditable, zero-serde migration)
+        let mut parser = JsonParserCapsule::new(&line);
+        let json_value = parser.parse()
             .with_context(|| format!("Invalid JSON at line {}", line_num + 1))?;
 
-        let doc_id = doc.id.unwrap_or(line_num);
+        // Extract document fields from JSON
+        let doc_id: usize;
+        let text: String;
+
+        match json_value {
+            JsonValue::Object(fields) => {
+                // Extract optional 'id' field and required 'text' field
+                let mut id_value = None;
+                let mut text_value = None;
+
+                for (key, value) in fields.iter() {
+                    match key.as_str() {
+                        "id" => {
+                            if let Some(n) = value.as_f64() {
+                                id_value = Some(n as usize);
+                            }
+                        }
+                        "text" => {
+                            if let Some(s) = value.as_str() {
+                                text_value = Some(s.to_string());
+                            }
+                        }
+                        _ => {} // Ignore other fields
+                    }
+                }
+
+                doc_id = id_value.unwrap_or(line_num);
+                text = text_value
+                    .with_context(|| format!("Missing 'text' field at line {}", line_num + 1))?;
+            }
+            _ => anyhow::bail!("Expected JSON object at line {}, got non-object", line_num + 1),
+        }
 
         // CRITICAL: Bounds check (prevent segfault)
         if doc_id >= num_docs {
@@ -178,7 +205,7 @@ pub fn handle_dedup(args: &DedupArgs, global: &GlobalArgs) -> Result<()> {
             );
         }
 
-        pipeline.add_document(doc_id, &doc.text)
+        pipeline.add_document(doc_id, &text)
             .with_context(|| format!("Failed to add document {}", doc_id))?;
 
         docs_processed += 1;
@@ -934,12 +961,27 @@ fn load_clusters(path: &std::path::Path) -> Result<Vec<Vec<usize>>> {
         if line.is_empty() {
             continue;
         }
-        // Parse simple JSON format: {"cluster": [id1, id2, ...]}
-        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&line) {
-            if let Some(arr) = json["cluster"].as_array() {
-                let cluster: Vec<usize> = arr.iter().filter_map(|v| v.as_u64().map(|x| x as usize)).collect();
-                if !cluster.is_empty() {
-                    clusters.push(cluster);
+        // Parse simple JSON format: {"cluster": [id1, id2, ...]} using JsonParserCapsule
+        let mut parser = JsonParserCapsule::new(&line);
+        if let Ok(json_value) = parser.parse() {
+            // Extract "cluster" field from JSON object
+            if let JsonValue::Object(fields) = json_value {
+                for (key, value) in fields.iter() {
+                    if key == "cluster" {
+                        if let JsonValue::Array(arr) = value {
+                            let cluster: Vec<usize> = arr.iter().filter_map(|v| {
+                                if let JsonValue::Number(n) = v {
+                                    Some(*n as usize)
+                                } else {
+                                    None
+                                }
+                            }).collect();
+                            if !cluster.is_empty() {
+                                clusters.push(cluster);
+                            }
+                        }
+                        break;
+                    }
                 }
             }
         }
