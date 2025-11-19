@@ -522,8 +522,8 @@ mod tests {
     #[test]
     fn test_serialize_btreemap() {
         let mut map = BTreeMap::new();
-        map.insert("a", 1u64);
-        map.insert("b", 2u64);
+        map.insert(1u64, 10u64);
+        map.insert(2u64, 20u64);
 
         let bytes = CollectionSerializerCapsule::serialize_btreemap(&map).unwrap();
 
@@ -534,8 +534,8 @@ mod tests {
     #[test]
     fn test_deserialize_btreemap() {
         let mut map = BTreeMap::new();
-        map.insert("a", 1u64);
-        map.insert("b", 2u64);
+        map.insert(1u64, 10u64);
+        map.insert(2u64, 20u64);
 
         // Note: string serialization would need StringSerializeBinary trait
         // For now, just test with simple types

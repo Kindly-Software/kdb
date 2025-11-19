@@ -424,7 +424,7 @@ mod tests {
     fn test_hex_decode_empty() {
         // Edge case: Empty string (valid, produces empty vec)
         let result = HexDecoderCapsule::decode("");
-        assert_eq!(result.unwrap(), vec![]);
+        assert_eq!(result.unwrap(), vec![] as Vec<u8>);
     }
 
     #[test]
