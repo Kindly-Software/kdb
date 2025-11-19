@@ -49,7 +49,7 @@ proptest! {
             // Read back last entry
             let content = std::fs::read_to_string(&log_path).unwrap();
             let last_line = content.lines().last().unwrap();
-            let logged_entry: BenchmarkAuditEntry = serde_json::from_str(last_line).unwrap();
+            let logged_entry = BenchmarkAuditEntry::from_json(last_line).unwrap();
 
             // Property: prev_audit_hash must match previous entry's audit_hash
             prop_assert_eq!(logged_entry.prev_audit_hash, prev_hash);
@@ -68,8 +68,8 @@ proptest! {
         let entry1 = create_entry_with_params(&benchmark_id, throughput, threads);
         let entry2 = create_entry_with_params(&benchmark_id, throughput, threads);
 
-        let json1 = serde_json::to_string(&entry1).unwrap();
-        let json2 = serde_json::to_string(&entry2).unwrap();
+        let json1 = entry1.to_json().unwrap();
+        let json2 = entry2.to_json().unwrap();
 
         // Property: Deterministic serialization
         prop_assert_eq!(json1, json2);
@@ -229,8 +229,8 @@ proptest! {
         let entry = create_entry_with_throughput(throughput);
 
         // Should not panic
-        let json = serde_json::to_string(&entry).unwrap();
-        let deserialized: BenchmarkResult = serde_json::from_str(&json).unwrap();
+        let json = entry.to_json().unwrap();
+        let deserialized = BenchmarkResult::from_json(&json).unwrap();
 
         // Property: Value preserved (within floating point precision)
         prop_assert!((deserialized.throughput_docs_per_sec - throughput).abs() < 1e-6);
@@ -247,8 +247,8 @@ proptest! {
             measurement_iterations: 100,
         };
 
-        let json = serde_json::to_string(&config).unwrap();
-        let deserialized: BenchmarkConfig = serde_json::from_str(&json).unwrap();
+        let json = config.to_json().unwrap();
+        let deserialized = BenchmarkConfig::from_json(&json).unwrap();
 
         // Property: Thread count preserved
         prop_assert_eq!(deserialized.threads, threads);
@@ -267,8 +267,8 @@ proptest! {
             measurement_iterations: 100,
         };
 
-        let json = serde_json::to_string(&config).unwrap();
-        let deserialized: BenchmarkConfig = serde_json::from_str(&json).unwrap();
+        let json = config.to_json().unwrap();
+        let deserialized = BenchmarkConfig::from_json(&json).unwrap();
 
         // Property: All features preserved
         prop_assert_eq!(deserialized.features, features);
@@ -304,9 +304,9 @@ fn verify_assum_hash_chain_tamper_detection() {
     let mut tampered_lines = lines.clone();
     if tampered_lines.len() > 5 {
         // Parse, modify, re-serialize entry 5
-        let mut entry: BenchmarkAuditEntry = serde_json::from_str(&tampered_lines[5]).unwrap();
+        let mut entry = BenchmarkAuditEntry::from_json(&tampered_lines[5]).unwrap();
         entry.result.throughput_docs_per_sec *= 2.0; // Tamper
-        tampered_lines[5] = serde_json::to_string(&entry).unwrap();
+        tampered_lines[5] = entry.to_json().unwrap();
 
         let tampered_content = tampered_lines.join("\n") + "\n";
         std::fs::write(&log_path, tampered_content).unwrap();
@@ -347,7 +347,7 @@ fn verify_assum_append_only_atomic() {
     // #VERIFY: File is valid JSON Lines (no corruption)
     let content = std::fs::read_to_string(&log_path).unwrap();
     for (i, line) in content.lines().enumerate() {
-        let result: Result<BenchmarkAuditEntry, _> = serde_json::from_str(line);
+        let result = BenchmarkAuditEntry::from_json(line);
         assert!(result.is_ok(), "Line {} is not valid JSON: {}", i, line);
     }
 }
