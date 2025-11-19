@@ -18,7 +18,7 @@ license = "Proprietary"
 publish = false  # TRADE SECRET - DO NOT PUBLISH
 
 [dependencies]
-atomic_capsule = { path = "../atomic_capsule", version = "0.6.0", features = ["std", "native", "derive", "probabilistic", "cpu-capabilities", "capsule-mmap", "capsule-serialize", "encrypted-state", "const-hashing", "crypto-license", "tokenization-batch", "cli", "queue-bounded", "queue-unbounded"] }
+atomic_capsule = { path = "../atomic_capsule", version = "0.7.0", features = ["std", "native", "derive", "probabilistic", "cpu-capabilities", "capsule-mmap", "capsule-serialize", "encrypted-state", "const-hashing", "crypto-license", "tokenization-batch", "cli", "queue-bounded", "queue-unbounded"] }
 atomic_capsule_derive = { path = "../atomic_capsule_derive" }
 # P0 Protection Capsules (Phase P0 Integration)
 # NOTE (2025-11-10): Cannot remove ed25519-dalek, rsa - transitive deps not directly importable
