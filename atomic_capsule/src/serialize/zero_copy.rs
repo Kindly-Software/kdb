@@ -557,9 +557,13 @@ mod tests {
         // Copy deserialization (from fixed_point_trait)
         let copy_result = FPQ16_16::deserialize_binary(&bytes).unwrap();
 
-        // Zero-copy deserialization (skip header, just get raw i32)
-        let raw_bytes = &bytes[10..14]; // Skip magic(4) + version(2) + frac_bits(4)
-        let zero_copy_result = super::Q16_16::from_bytes(raw_bytes).unwrap();
+        // Zero-copy deserialization requires proper alignment
+        // Create a 4-byte aligned buffer for Q16_16 (i32)
+        #[repr(C, align(4))]
+        struct AlignedBuffer([u8; 4]);
+
+        let aligned = AlignedBuffer([bytes[10], bytes[11], bytes[12], bytes[13]]);
+        let zero_copy_result = super::Q16_16::from_bytes(&aligned.0).unwrap();
 
         assert_eq!(copy_result.to_raw(), zero_copy_result.to_raw());
     }
