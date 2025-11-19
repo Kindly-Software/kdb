@@ -930,7 +930,7 @@ fn write_output(clusters: &[Vec<usize>], format: &str, path: &std::path::Path) -
 // Verification Helper Functions
 // ============================================================================
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, CapsuleSerialize)]
 struct ClusterStats {
     num_clusters: usize,
     avg_cluster_size: f64,
@@ -1045,13 +1045,7 @@ fn display_stats_text(stats: &ClusterStats, _clusters: &[Vec<usize>]) -> Result<
 }
 
 fn display_stats_json(stats: &ClusterStats) -> Result<()> {
-    let json = serde_json::json!({
-        "num_clusters": stats.num_clusters,
-        "avg_cluster_size": stats.avg_cluster_size,
-        "max_cluster_size": stats.max_cluster_size,
-        "min_cluster_size": stats.min_cluster_size,
-    });
-    println!("{}", serde_json::to_string_pretty(&json)?);
+    println!("{}", stats.to_json()?);
     Ok(())
 }
 
@@ -1065,13 +1059,7 @@ fn display_stats_csv(stats: &ClusterStats) -> Result<()> {
 }
 
 fn display_stats_jsonl(stats: &ClusterStats) -> Result<()> {
-    let line = serde_json::json!({
-        "num_clusters": stats.num_clusters,
-        "avg_cluster_size": stats.avg_cluster_size,
-        "max_cluster_size": stats.max_cluster_size,
-        "min_cluster_size": stats.min_cluster_size,
-    });
-    println!("{}", serde_json::to_string(&line)?);
+    println!("{}", stats.to_json()?);
     Ok(())
 }
 
@@ -1120,6 +1108,31 @@ struct AuditStats {
     min_latency_ns: Option<u64>,
     max_latency_ns: Option<u64>,
     avg_latency_ns: Option<f64>,
+}
+
+// JSONL helper structs for serialization
+#[derive(Debug, Clone, CapsuleSerialize)]
+struct AuditSummaryJsonl {
+    r#type: String,
+    total_events: usize,
+    documents_processed: usize,
+    duplicates_detected: usize,
+    dedup_runs: usize,
+}
+
+#[derive(Debug, Clone, CapsuleSerialize)]
+struct AvgMetricsJsonl {
+    r#type: String,
+    docs_per_run: f64,
+    throughput_docs_per_sec: f64,
+}
+
+#[derive(Debug, Clone, CapsuleSerialize)]
+struct LatencyMetricsJsonl {
+    r#type: String,
+    avg_latency_ns: f64,
+    min_latency_ns: Option<u64>,
+    max_latency_ns: Option<u64>,
 }
 
 /// Analyze audit trail file (stream-based, O(1) memory per line)
@@ -1402,7 +1415,7 @@ fn display_audit_stats_text(
 
 /// Display statistics in JSON format
 fn display_audit_stats_json(stats: &AuditStats) -> Result<()> {
-    #[derive(serde::Serialize)]
+    #[derive(CapsuleSerialize)]
     struct JsonStats {
         total_events: usize,
         documents_processed: usize,
@@ -1429,8 +1442,7 @@ fn display_audit_stats_json(stats: &AuditStats) -> Result<()> {
         event_types: stats.event_types.clone(),
     };
 
-    let json = serde_json::to_string_pretty(&json_stats)?;
-    println!("{}", json);
+    println!("{}", json_stats.to_json()?);
     Ok(())
 }
 
@@ -1468,40 +1480,32 @@ fn display_audit_stats_csv(stats: &AuditStats) -> Result<()> {
 
 /// Display statistics in JSONL format (one object per line)
 fn display_audit_stats_jsonl(stats: &AuditStats) -> Result<()> {
-    use serde_json::json;
-
-    println!(
-        "{}",
-        serde_json::to_string(&json!({
-            "type": "audit_summary",
-            "total_events": stats.total_events,
-            "documents_processed": stats.documents_processed,
-            "duplicates_detected": stats.duplicates_detected,
-            "dedup_runs": stats.dedup_runs,
-        }))?
-    );
+    let summary = AuditSummaryJsonl {
+        r#type: "audit_summary".to_string(),
+        total_events: stats.total_events,
+        documents_processed: stats.documents_processed,
+        duplicates_detected: stats.duplicates_detected,
+        dedup_runs: stats.dedup_runs,
+    };
+    println!("{}", summary.to_json()?);
 
     if stats.avg_docs_per_run > 0.0 {
-        println!(
-            "{}",
-            serde_json::to_string(&json!({
-                "type": "avg_metrics",
-                "docs_per_run": stats.avg_docs_per_run,
-                "throughput_docs_per_sec": stats.avg_throughput,
-            }))?
-        );
+        let avg_metrics = AvgMetricsJsonl {
+            r#type: "avg_metrics".to_string(),
+            docs_per_run: stats.avg_docs_per_run,
+            throughput_docs_per_sec: stats.avg_throughput,
+        };
+        println!("{}", avg_metrics.to_json()?);
     }
 
     if let Some(latency) = stats.avg_latency_ns {
-        println!(
-            "{}",
-            serde_json::to_string(&json!({
-                "type": "latency_metrics",
-                "avg_latency_ns": latency,
-                "min_latency_ns": stats.min_latency_ns,
-                "max_latency_ns": stats.max_latency_ns,
-            }))?
-        );
+        let latency_metrics = LatencyMetricsJsonl {
+            r#type: "latency_metrics".to_string(),
+            avg_latency_ns: latency,
+            min_latency_ns: stats.min_latency_ns,
+            max_latency_ns: stats.max_latency_ns,
+        };
+        println!("{}", latency_metrics.to_json()?);
     }
 
     Ok(())
