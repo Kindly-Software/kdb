@@ -618,6 +618,7 @@ mod tests {
 
     /// Performance test: Measure SeqLock overhead
     #[test]
+    #[cfg(feature = "std")]
     fn test_atomic_hash256_performance() {
         use std::time::Instant;
 
