@@ -502,7 +502,7 @@ mod tests {
     }
 
     // T28 Q2-Q7: Property Tests (concurrent correctness)
-    #[cfg(all(test, not(miri)))]
+    #[cfg(all(test, not(miri), feature = "std"))]
     mod property_tests {
         use super::*;
         use std::sync::Arc;

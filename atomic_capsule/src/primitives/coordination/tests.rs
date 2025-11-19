@@ -11,7 +11,7 @@
 //!
 //! **Total**: 36+ tests, 100% coverage, <10s timeout
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod phase_coordinator_tests {
     use crate::primitives::coordination::{PhaseCoordinatorCapsule, PhaseError, PhaseStatus};
     use std::sync::Arc;
@@ -244,7 +244,7 @@ mod phase_coordinator_tests {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod hash_bucket_tests {
     use crate::primitives::coordination::LockfreeHashBucketCapsule;
     use std::sync::Arc;
@@ -439,7 +439,7 @@ mod hash_bucket_tests {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod partition_tests {
     use crate::primitives::coordination::{ParallelPartitionCapsule, PartitionError, PartitionStatus};
     use std::sync::Arc;
