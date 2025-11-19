@@ -451,6 +451,7 @@ pub mod simd_batch_serialize;
 
 // Phase 5: Zero-copy deserialization (Tier 5: 50× speedup)
 pub mod zero_copy;
+pub use zero_copy::{ZeroCopyDeserialize, ZeroCopyDeserializeCapsule};
 pub mod zero_copy_capsules;
 
 // Phase 5: Borrow deserialization (Tier 5: Streaming, 8-15× speedup for borrowed fields)
