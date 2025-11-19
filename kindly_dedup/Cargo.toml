@@ -18,7 +18,7 @@ license = "Proprietary"
 publish = false  # TRADE SECRET - DO NOT PUBLISH
 
 [dependencies]
-atomic_capsule = { path = "../atomic_capsule", version = "0.7.0", features = [
+atomic_capsule = { path = "../atomic_capsule", version = "0.8.0", features = [
     "std",
     "native",
     "derive",
@@ -70,8 +70,11 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"], optio
 # KindlyDB + kindly_dash Integration (Our Own Primitives)
 kindly-db = { path = "../kindly-db", optional = true, features = ["std"] }
 kindly_dash = { path = "../kindly_dash", optional = true }
-# REMOVED (2025-11-18): serde, serde_json, bincode → atomic_capsule::serialize (100% capsule serialization)
-# Migration: v2.0.0 → v2.1.0 - Zero serde dependencies, all serialization via CapsuleSerialize/CapsuleDeserialize
+# HYBRID (2025-11-18): serde + CapsuleSerialize
+# Status: v2.0.0 → v2.1.0 - Gradual migration, benchmarking infrastructure uses both
+# Migration strategy: Keep serde for JSON output (benchmarking stability), add CapsuleSerialize for deterministic hashing
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 # NOTE (2025-11-08): indicatif kept for async download_corpus binary only (requires tokio async runtime)
 # Main library and non-async tools replaced with atomic_capsule::parallel::BatchProgressRenderer
 # Future: Migrate download_corpus to std::thread + atomic_capsule (remove tokio dependency)

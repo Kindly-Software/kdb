@@ -200,7 +200,7 @@ impl Default for JsonWriterCapsule {
 }
 
 /// Placeholder for JsonValue (to be imported from atomic_capsule)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum JsonValue {
     /// Null value
     Null,
