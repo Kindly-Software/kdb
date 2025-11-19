@@ -72,6 +72,7 @@ const-hashing = []  # Compile-time FNV-1a hash (0ns runtime, 100× vs dynamic)
 simd-hashing = ["nightly", "portable_simd"]  # SIMD field hashing (2-8× for 4+ fields)
 nightly-atomic = ["nightly"]  # AtomicFromMut (zero-copy atomic views, requires #76314)
 capsule-serialize = ["std", "dep:crc32fast", "dep:crc"]  # FixedPointSerialize trait (audit trails)
+cbor = ["std"]  # T1 Atomic CBOR writer/reader (RFC 8949, <20ns per value, 8KB buffer)
 audit-q34 = ["std", "dep:sha2", "dep:serde_json", "dep:hex"]  # Q34 compliance audit trail (SOX/SOC2/GDPR/HIPAA)
 fuzzy-extractor = ["std", "dep:reed-solomon-erasure", "dep:sha2", "fixed-point"]  # T10+T3: Reed-Solomon error correction for PUF (96% → 99.9% stability)
 
@@ -105,6 +106,9 @@ financial-calcs = ["fixed-point"]  # Convenience preset for financial systems
 complex-fixed = ["fixed-point"]  # Complex fixed-point arithmetic
 const-serialize = ["capsule-serialize", "nightly"]  # Const trait (0ns runtime)
 const-float = ["const-serialize"]  # Const fn floating-point
+avro = ["std"]  # T1 Atomic Avro binary serialization (<30ns per value, Apache Avro 1.11 compatible)
+msgpack = ["std"]  # T1 Atomic MessagePack binary serialization (<20ns per value, MessagePack spec compatible)
+toml = ["std"]  # T5 Streaming TOML writer + T1 Atomic TOML parser (<100ns per field, TOML 1.0 spec)
 
 # T4: Batch Processing (10-100× speedup)
 batch-native = ["native", "dep:rayon"]  # Rayon-based parallel batching
@@ -153,6 +157,8 @@ streaming-sync = ["streaming"]  # Synchronous streaming primitives
 streaming-async = ["tokio-compat", "streaming"]  # Async streaming with tokio (requires tokio-compat)
 streaming-strategy-labeler = ["streaming"]  # T5 Strategy labeling capsule (moved from kindly_hft)
 ring-trace = ["std"]  # T5 Ring Buffer Capsule (generic, <10ns append, 100% lockfree) - migrated from atomic_debugger
+json5 = ["std"]  # T5 JSON5 Parser Capsule (extends JsonParserCapsule with comments, trailing commas, unquoted keys, <100ns/token)
+yaml = ["std"]  # T5 YAML Writer/Parser Capsule (<100ns per field, simplified YAML 1.2 subset, no anchors/aliases)
 async-log = ["tokio-compat"]  # T5 async log (10-100× vs Mutex<File>, requires tokio-compat)
 logging = ["std", "dep:once_cell"]  # T0+T1+T5 Logging Capsules (zero deps, 2× faster than log+env_logger, eliminates format string buffer overflow)
 

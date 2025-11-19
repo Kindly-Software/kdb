@@ -460,7 +460,7 @@ mod tests {
             handles.push(handle);
         }
 
-        for handle: std::thread::JoinHandle<()> in handles {
+        for handle in handles {
             handle.join().unwrap();
         }
 
@@ -490,7 +490,7 @@ mod tests {
             handles.push(handle);
         }
 
-        for handle: std::thread::JoinHandle<()> in handles {
+        for handle in handles {
             handle.join().unwrap();
         }
 
@@ -545,7 +545,6 @@ mod tests {
                     }
                     count += 1;
                 }
-                count
             }));
         }
 
@@ -570,7 +569,6 @@ mod tests {
 
                     count += 1;
                 }
-                count
             }));
         }
 
@@ -579,22 +577,13 @@ mod tests {
         stop_flag.store(true, Ordering::Relaxed);
 
         // Wait for all threads
-        let mut total_reads = 0u64;
-        let mut total_writes = 0u64;
-        for (i, handle): (usize, std::thread::JoinHandle<u64>) in handles.into_iter().enumerate() {
-            let count = handle.join().unwrap();
-            if i == 0 {
-                total_writes = count;
-            } else {
-                total_reads += count;
-            }
+        for handle in handles.into_iter() {
+            let _ = handle.join();
         }
 
         let torn_count = torn_reads.load(Ordering::Relaxed);
 
         println!("SeqLock Test Results:");
-        println!("  Total writes: {}", total_writes);
-        println!("  Total reads: {}", total_reads);
         println!("  Torn reads detected: {}", torn_count);
 
         // #VERIFY_NO_TORN_READS: Zero torn reads expected
