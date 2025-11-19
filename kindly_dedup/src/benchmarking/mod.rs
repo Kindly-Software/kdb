@@ -44,6 +44,7 @@ pub mod environment;
 pub mod ground_truth;
 pub mod ground_truth_config;
 pub mod reality_check;
+pub mod serialize_impl;
 pub mod token_dictionary;
 
 pub use audit_logger::{AccuracyMetrics, AuditLogger, BenchmarkAuditEntry, BenchmarkConfig, BenchmarkResult, Hash256};

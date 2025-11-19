@@ -880,12 +880,12 @@ fn write_output(clusters: &[Vec<usize>], format: &str, path: &std::path::Path) -
             "jsonl" => {
                 for cluster in clusters {
                     if cluster.len() > 1 {
-                        writeln!(writer, "{}", serde_json::to_string(cluster)?)?;
+                        writeln!(writer, "{}", cluster.to_json()?)?;
                     }
                 }
             },
             "json" => {
-                write!(writer, "{}", serde_json::to_string_pretty(clusters)?)?;
+                write!(writer, "{}", clusters.to_json()?)?;
             },
             "csv" => {
                 writeln!(writer, "cluster_id,doc_ids")?;

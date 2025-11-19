@@ -17,8 +17,8 @@
 use anyhow::{Context, Result};
 use atomic_capsule::parallel::BatchProgressRenderer;
 use atomic_capsule::primitives::ProgressTrackerCapsule;
+use crate::serialize_helpers::*;
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs::File;
 use std::io::{Read, Write};
@@ -30,7 +30,7 @@ use std::time::Duration;
 ///
 /// Tracks source, URL, download timestamp, integrity hash, and metadata
 /// for transparent benchmarking
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct DatasetManifest {
     /// Dataset source name (e.g., "The Pile", "Common Crawl")
     pub source: String,
@@ -46,6 +46,80 @@ pub struct DatasetManifest {
     pub sha256: String,
     /// Provenance notes (version, subset, modifications)
     pub provenance: String,
+}
+
+impl DatasetManifest {
+    pub fn to_json(&self) -> Result<String, JsonError> {
+        let mut writer = JsonWriterCapsule::new();
+        writer.start_object()?;
+
+        let mut first = true;
+        write_field(&mut writer, "source", &self.source, &mut first)?;
+        write_field(&mut writer, "url", &self.url, &mut first)?;
+        write_field(&mut writer, "downloaded", &self.downloaded, &mut first)?;
+        write_field(&mut writer, "document_count", &self.document_count, &mut first)?;
+        write_field(&mut writer, "size_bytes", &self.size_bytes, &mut first)?;
+        write_field(&mut writer, "sha256", &self.sha256, &mut first)?;
+        write_field(&mut writer, "provenance", &self.provenance, &mut first)?;
+
+        writer.end_object()?;
+        writer.finalize()
+    }
+
+    pub fn from_json(s: &str) -> Result<Self, JsonError> {
+        let mut parser = JsonParserCapsule::new(s);
+        let value = parser.parse()?;
+
+        match value {
+            JsonValue::Object(fields) => {
+                let source = match get_field_required(&fields, "source")? {
+                    JsonValue::String(s) => s.clone(),
+                    _ => return Err(JsonError::TypeMismatch("Expected string for source".into())),
+                };
+
+                let url = match get_field_required(&fields, "url")? {
+                    JsonValue::String(s) => s.clone(),
+                    _ => return Err(JsonError::TypeMismatch("Expected string for url".into())),
+                };
+
+                let downloaded = match get_field_required(&fields, "downloaded")? {
+                    JsonValue::String(s) => s.clone(),
+                    _ => return Err(JsonError::TypeMismatch("Expected string for downloaded".into())),
+                };
+
+                let document_count = match get_field_required(&fields, "document_count")? {
+                    JsonValue::Number(n) if n.fract() == 0.0 => *n as usize,
+                    _ => return Err(JsonError::TypeMismatch("Expected integer for document_count".into())),
+                };
+
+                let size_bytes = match get_field_required(&fields, "size_bytes")? {
+                    JsonValue::Number(n) if n.fract() == 0.0 => *n as u64,
+                    _ => return Err(JsonError::TypeMismatch("Expected integer for size_bytes".into())),
+                };
+
+                let sha256 = match get_field_required(&fields, "sha256")? {
+                    JsonValue::String(s) => s.clone(),
+                    _ => return Err(JsonError::TypeMismatch("Expected string for sha256".into())),
+                };
+
+                let provenance = match get_field_required(&fields, "provenance")? {
+                    JsonValue::String(s) => s.clone(),
+                    _ => return Err(JsonError::TypeMismatch("Expected string for provenance".into())),
+                };
+
+                Ok(DatasetManifest {
+                    source,
+                    url,
+                    downloaded,
+                    document_count,
+                    size_bytes,
+                    sha256,
+                    provenance,
+                })
+            }
+            _ => Err(JsonError::TypeMismatch("Expected object".into())),
+        }
+    }
 }
 
 /// Dataset source types

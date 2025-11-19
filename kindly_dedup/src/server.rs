@@ -33,9 +33,9 @@
 // HTTP server feature requires http-simd from atomic_capsule
 #![cfg(feature = "http-simd")]
 
+use crate::serialize_helpers::*;
 use crate::DedupPipeline;
 use atomic_capsule::http::{parse_request, HttpRequest, HttpStateCapsule, Method};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -44,21 +44,47 @@ use std::sync::Arc;
 use std::time::Instant;
 
 /// Deduplication request
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct DedupRequest {
     /// Documents to deduplicate
     pub documents: Vec<Document>,
     /// Jaccard similarity threshold (0.0 to 1.0, default 0.85)
-    #[serde(default = "default_threshold")]
     pub threshold: f64,
 }
 
-fn default_threshold() -> f64 {
-    0.85
+impl DedupRequest {
+    pub fn from_json(s: &str) -> Result<Self, JsonError> {
+        let mut parser = JsonParserCapsule::new(s);
+        let value = parser.parse()?;
+
+        match value {
+            JsonValue::Object(fields) => {
+                let documents = match get_field_required(&fields, "documents")? {
+                    JsonValue::Array(arr) => {
+                        let mut docs = Vec::new();
+                        for doc_val in arr {
+                            docs.push(Document::from_json_value(doc_val)?);
+                        }
+                        docs
+                    }
+                    _ => return Err(JsonError::TypeMismatch("Expected array for documents".into())),
+                };
+
+                let threshold = match get_field(&fields, "threshold") {
+                    Some(JsonValue::Number(n)) => *n,
+                    None => 0.85,
+                    _ => return Err(JsonError::TypeMismatch("Expected number for threshold".into())),
+                };
+
+                Ok(DedupRequest { documents, threshold })
+            }
+            _ => Err(JsonError::TypeMismatch("Expected object".into())),
+        }
+    }
 }
 
 /// Document input
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Document {
     /// Document ID (string)
     pub id: String,
@@ -66,8 +92,29 @@ pub struct Document {
     pub text: String,
 }
 
+impl Document {
+    fn from_json_value(value: &JsonValue) -> Result<Self, JsonError> {
+        match value {
+            JsonValue::Object(fields) => {
+                let id = match get_field_required(&fields, "id")? {
+                    JsonValue::String(s) => s.clone(),
+                    _ => return Err(JsonError::TypeMismatch("Expected string for id".into())),
+                };
+
+                let text = match get_field_required(&fields, "text")? {
+                    JsonValue::String(s) => s.clone(),
+                    _ => return Err(JsonError::TypeMismatch("Expected string for text".into())),
+                };
+
+                Ok(Document { id, text })
+            }
+            _ => Err(JsonError::TypeMismatch("Expected object for document".into())),
+        }
+    }
+}
+
 /// Deduplication response
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone)]
 pub struct DedupResponse {
     /// Duplicate clusters (each cluster is Vec<doc_id>)
     pub clusters: Vec<Vec<String>>,
@@ -75,8 +122,43 @@ pub struct DedupResponse {
     pub stats: DedupStats,
 }
 
+impl DedupResponse {
+    pub fn to_json(&self) -> Result<String, JsonError> {
+        let mut writer = JsonWriterCapsule::new();
+        writer.start_object()?;
+
+        let mut first = true;
+
+        // Write clusters field
+        if !first {
+            writer.write_comma()?;
+        }
+        first = false;
+        writer.write_string("clusters")?;
+        writer.write_colon()?;
+        writer.start_array()?;
+        for (i, cluster) in self.clusters.iter().enumerate() {
+            if i > 0 {
+                writer.write_comma()?;
+            }
+            cluster.write_json(&mut writer)?;
+        }
+        writer.end_array()?;
+
+        // Write stats field
+        writer.write_comma()?;
+        writer.write_string("stats")?;
+        writer.write_colon()?;
+        let stats_json = self.stats.to_json()?;
+        writer.write_literal(&stats_json)?;
+
+        writer.end_object()?;
+        writer.finalize()
+    }
+}
+
 /// Deduplication statistics
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone)]
 pub struct DedupStats {
     /// Total documents processed
     pub total_documents: usize,
@@ -88,8 +170,24 @@ pub struct DedupStats {
     pub processing_time_ms: u64,
 }
 
+impl DedupStats {
+    pub fn to_json(&self) -> Result<String, JsonError> {
+        let mut writer = JsonWriterCapsule::new();
+        writer.start_object()?;
+
+        let mut first = true;
+        write_field(&mut writer, "total_documents", &self.total_documents, &mut first)?;
+        write_field(&mut writer, "duplicate_clusters", &self.duplicate_clusters, &mut first)?;
+        write_field(&mut writer, "deduplication_ratio", &self.deduplication_ratio, &mut first)?;
+        write_field(&mut writer, "processing_time_ms", &self.processing_time_ms, &mut first)?;
+
+        writer.end_object()?;
+        writer.finalize()
+    }
+}
+
 /// Health check response
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone)]
 pub struct HealthResponse {
     /// Server status
     pub status: String,
@@ -99,6 +197,22 @@ pub struct HealthResponse {
     pub total_errors: u64,
     /// Uptime in seconds
     pub uptime_seconds: u64,
+}
+
+impl HealthResponse {
+    pub fn to_json(&self) -> Result<String, JsonError> {
+        let mut writer = JsonWriterCapsule::new();
+        writer.start_object()?;
+
+        let mut first = true;
+        write_field(&mut writer, "status", &self.status, &mut first)?;
+        write_field(&mut writer, "total_requests", &self.total_requests, &mut first)?;
+        write_field(&mut writer, "total_errors", &self.total_errors, &mut first)?;
+        write_field(&mut writer, "uptime_seconds", &self.uptime_seconds, &mut first)?;
+
+        writer.end_object()?;
+        writer.finalize()
+    }
 }
 
 /// Deduplication Server State

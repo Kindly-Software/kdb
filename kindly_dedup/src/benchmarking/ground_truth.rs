@@ -66,7 +66,7 @@
 //! **Safety Rating**: 99.99% (pure computation, zero unsafe code)
 
 use atomic_capsule::probabilistic::UnionFind;
-use serde::{Deserialize, Serialize};
+use crate::serialize_helpers::*;
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -78,7 +78,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use std::simd::prelude::*;
 
 /// Ground truth strategy (automatic selection based on corpus size)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GroundTruthStrategy {
     /// Exhaustive O(n²) for <5K documents (<60 seconds)
     Exhaustive,
@@ -96,8 +96,38 @@ pub enum GroundTruthStrategy {
     ExhaustiveCompound,
 }
 
+impl GroundTruthStrategy {
+    pub fn to_json(&self) -> Result<String, JsonError> {
+        let s = match self {
+            GroundTruthStrategy::Exhaustive => "Exhaustive",
+            GroundTruthStrategy::ParallelBatch => "ParallelBatch",
+            GroundTruthStrategy::LshSampling => "LshSampling",
+            GroundTruthStrategy::LshAccelerated => "LshAccelerated",
+            GroundTruthStrategy::ExhaustiveCompound => "ExhaustiveCompound",
+        };
+        Ok(format!("\"{}\"", s))
+    }
+
+    pub fn from_json(s: &str) -> Result<Self, JsonError> {
+        let mut parser = JsonParserCapsule::new(s);
+        let value = parser.parse()?;
+
+        match value {
+            JsonValue::String(ref variant) => match variant.as_str() {
+                "Exhaustive" => Ok(GroundTruthStrategy::Exhaustive),
+                "ParallelBatch" => Ok(GroundTruthStrategy::ParallelBatch),
+                "LshSampling" => Ok(GroundTruthStrategy::LshSampling),
+                "LshAccelerated" => Ok(GroundTruthStrategy::LshAccelerated),
+                "ExhaustiveCompound" => Ok(GroundTruthStrategy::ExhaustiveCompound),
+                _ => Err(JsonError::TypeMismatch(format!("Unknown strategy: {}", variant))),
+            },
+            _ => Err(JsonError::TypeMismatch("Expected string for strategy".into())),
+        }
+    }
+}
+
 /// Ground truth duplicate pairs (computed from exact Jaccard)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct GroundTruth {
     /// Duplicate pairs (doc_id1, doc_id2) where Jaccard ≥ threshold
     pub pairs: HashSet<(usize, usize)>,
@@ -113,6 +143,120 @@ pub struct GroundTruth {
 
     /// Threshold used
     pub threshold: f64,
+}
+
+impl GroundTruth {
+    pub fn to_json(&self) -> Result<String, JsonError> {
+        let mut writer = JsonWriterCapsule::new();
+        writer.start_object()?;
+
+        let mut first = true;
+
+        // Write pairs as array of [id1, id2]
+        if !first { writer.write_comma()?; }
+        first = false;
+        writer.write_string("pairs")?;
+        writer.write_colon()?;
+        writer.start_array()?;
+        let pairs_vec: Vec<_> = self.pairs.iter().collect();
+        for (i, (id1, id2)) in pairs_vec.iter().enumerate() {
+            if i > 0 { writer.write_comma()?; }
+            writer.start_array()?;
+            writer.write_u64(**id1 as u64)?;
+            writer.write_comma()?;
+            writer.write_u64(**id2 as u64)?;
+            writer.end_array()?;
+        }
+        writer.end_array()?;
+
+        // Write strategy
+        writer.write_comma()?;
+        writer.write_string("strategy")?;
+        writer.write_colon()?;
+        writer.write_string(match self.strategy {
+            GroundTruthStrategy::Exhaustive => "Exhaustive",
+            GroundTruthStrategy::ParallelBatch => "ParallelBatch",
+            GroundTruthStrategy::LshSampling => "LshSampling",
+            GroundTruthStrategy::LshAccelerated => "LshAccelerated",
+            GroundTruthStrategy::ExhaustiveCompound => "ExhaustiveCompound",
+        })?;
+
+        write_field(&mut writer, "total_pairs_checked", &self.total_pairs_checked, &mut first)?;
+        write_field(&mut writer, "timestamp_ns", &self.timestamp_ns, &mut first)?;
+        write_field(&mut writer, "threshold", &self.threshold, &mut first)?;
+
+        writer.end_object()?;
+        writer.finalize()
+    }
+
+    pub fn from_json(s: &str) -> Result<Self, JsonError> {
+        let mut parser = JsonParserCapsule::new(s);
+        let value = parser.parse()?;
+
+        match value {
+            JsonValue::Object(fields) => {
+                let pairs = match get_field_required(&fields, "pairs")? {
+                    JsonValue::Array(arr) => {
+                        let mut set = HashSet::new();
+                        for pair_val in arr {
+                            match pair_val {
+                                JsonValue::Array(ref pair_arr) if pair_arr.len() == 2 => {
+                                    let id1 = match &pair_arr[0] {
+                                        JsonValue::Number(n) if n.fract() == 0.0 => *n as usize,
+                                        _ => return Err(JsonError::TypeMismatch("Expected integer in pair".into())),
+                                    };
+                                    let id2 = match &pair_arr[1] {
+                                        JsonValue::Number(n) if n.fract() == 0.0 => *n as usize,
+                                        _ => return Err(JsonError::TypeMismatch("Expected integer in pair".into())),
+                                    };
+                                    set.insert((id1, id2));
+                                }
+                                _ => return Err(JsonError::TypeMismatch("Expected [id1, id2] pair array".into())),
+                            }
+                        }
+                        set
+                    }
+                    _ => return Err(JsonError::TypeMismatch("Expected array for pairs".into())),
+                };
+
+                let strategy = match get_field_required(&fields, "strategy")? {
+                    JsonValue::String(s) => match s.as_str() {
+                        "Exhaustive" => GroundTruthStrategy::Exhaustive,
+                        "ParallelBatch" => GroundTruthStrategy::ParallelBatch,
+                        "LshSampling" => GroundTruthStrategy::LshSampling,
+                        "LshAccelerated" => GroundTruthStrategy::LshAccelerated,
+                        "ExhaustiveCompound" => GroundTruthStrategy::ExhaustiveCompound,
+                        _ => return Err(JsonError::TypeMismatch(format!("Unknown strategy: {}", s))),
+                    },
+                    _ => return Err(JsonError::TypeMismatch("Expected string for strategy".into())),
+                };
+
+                let total_pairs_checked = match get_field_required(&fields, "total_pairs_checked")? {
+                    JsonValue::Number(n) if n.fract() == 0.0 => *n as usize,
+                    _ => return Err(JsonError::TypeMismatch("Expected integer for total_pairs_checked".into())),
+                };
+
+                let timestamp_ns = match get_field_required(&fields, "timestamp_ns")? {
+                    JsonValue::Number(n) if n.fract() == 0.0 => *n as u64,
+                    _ => return Err(JsonError::TypeMismatch("Expected integer for timestamp_ns".into())),
+                };
+
+                let threshold = match get_field_required(&fields, "threshold")? {
+                    JsonValue::Number(n) => *n,
+                    _ => return Err(JsonError::TypeMismatch("Expected number for threshold".into())),
+                };
+
+                Ok(GroundTruth {
+                    pairs,
+                    strategy,
+                    total_pairs_checked,
+                    timestamp_ns,
+                    threshold,
+                })
+            }
+            _ => Err(JsonError::TypeMismatch("Expected object".into())),
+        }
+    }
 }
 
 impl GroundTruth {
@@ -1375,7 +1519,7 @@ impl UniversalGroundTruthGenerator {
 }
 
 /// Document structure (from corpus)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Document {
     /// Document ID (unique identifier)
     pub id: usize,
@@ -1383,6 +1527,48 @@ pub struct Document {
     pub url: String,
     /// Document text content
     pub text: String,
+}
+
+impl Document {
+    pub fn to_json(&self) -> Result<String, JsonError> {
+        let mut writer = JsonWriterCapsule::new();
+        writer.start_object()?;
+
+        let mut first = true;
+        write_field(&mut writer, "id", &self.id, &mut first)?;
+        write_field(&mut writer, "url", &self.url, &mut first)?;
+        write_field(&mut writer, "text", &self.text, &mut first)?;
+
+        writer.end_object()?;
+        writer.finalize()
+    }
+
+    pub fn from_json(s: &str) -> Result<Self, JsonError> {
+        let mut parser = JsonParserCapsule::new(s);
+        let value = parser.parse()?;
+
+        match value {
+            JsonValue::Object(fields) => {
+                let id = match get_field_required(&fields, "id")? {
+                    JsonValue::Number(n) if n.fract() == 0.0 => *n as usize,
+                    _ => return Err(JsonError::TypeMismatch("Expected integer for id".into())),
+                };
+
+                let url = match get_field_required(&fields, "url")? {
+                    JsonValue::String(s) => s.clone(),
+                    _ => return Err(JsonError::TypeMismatch("Expected string for url".into())),
+                };
+
+                let text = match get_field_required(&fields, "text")? {
+                    JsonValue::String(s) => s.clone(),
+                    _ => return Err(JsonError::TypeMismatch("Expected string for text".into())),
+                };
+
+                Ok(Document { id, url, text })
+            }
+            _ => Err(JsonError::TypeMismatch("Expected object".into())),
+        }
+    }
 }
 
 /// Accuracy error types

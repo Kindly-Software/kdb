@@ -71,7 +71,7 @@
 // Parallel processing (rayon removed 2025-11-17)
 // Note: Current implementation uses sequential iteration
 
-use serde::{Deserialize, Serialize};
+use crate::serialize_helpers::*;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
@@ -81,7 +81,7 @@ use std::time::Instant;
 // ============================================================================
 
 /// Document structure for benchmarking and testing
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Document {
     /// Document ID (unique identifier)
     pub id: usize,
@@ -89,6 +89,48 @@ pub struct Document {
     pub url: String,
     /// Document text content
     pub text: String,
+}
+
+impl Document {
+    pub fn to_json(&self) -> Result<String, JsonError> {
+        let mut writer = JsonWriterCapsule::new();
+        writer.start_object()?;
+
+        let mut first = true;
+        write_field(&mut writer, "id", &self.id, &mut first)?;
+        write_field(&mut writer, "url", &self.url, &mut first)?;
+        write_field(&mut writer, "text", &self.text, &mut first)?;
+
+        writer.end_object()?;
+        writer.finalize()
+    }
+
+    pub fn from_json(s: &str) -> Result<Self, JsonError> {
+        let mut parser = JsonParserCapsule::new(s);
+        let value = parser.parse()?;
+
+        match value {
+            JsonValue::Object(fields) => {
+                let id = match get_field_required(&fields, "id")? {
+                    JsonValue::Number(n) if n.fract() == 0.0 => *n as usize,
+                    _ => return Err(JsonError::TypeMismatch("Expected integer for id".into())),
+                };
+
+                let url = match get_field_required(&fields, "url")? {
+                    JsonValue::String(s) => s.clone(),
+                    _ => return Err(JsonError::TypeMismatch("Expected string for url".into())),
+                };
+
+                let text = match get_field_required(&fields, "text")? {
+                    JsonValue::String(s) => s.clone(),
+                    _ => return Err(JsonError::TypeMismatch("Expected string for text".into())),
+                };
+
+                Ok(Document { id, url, text })
+            }
+            _ => Err(JsonError::TypeMismatch("Expected object".into())),
+        }
+    }
 }
 
 // ============================================================================

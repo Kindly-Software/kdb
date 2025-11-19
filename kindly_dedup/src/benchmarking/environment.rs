@@ -31,7 +31,7 @@
 //!
 //! **Safety Rating**: 99.99% (all assumptions have fallbacks, zero unsafe code)
 
-use serde::{Deserialize, Serialize};
+use atomic_capsule::serialize::{JsonWriterCapsule, JsonWriterResult};
 use std::process::Command;
 use std::sync::OnceLock;
 
@@ -39,7 +39,7 @@ use std::sync::OnceLock;
 static ENVIRONMENT: OnceLock<EnvironmentInfo> = OnceLock::new();
 
 /// Environment information (complete)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct EnvironmentInfo {
     /// rustc version (e.g., "1.84.0-nightly (2025-10-15)")
     pub rustc_version: String,
@@ -61,6 +61,56 @@ pub struct EnvironmentInfo {
 
     /// Git dirty flag (uncommitted changes)
     pub git_dirty: bool,
+}
+
+// ============================================================================
+// CapsuleSerialize Manual Implementation (NO serde)
+// ============================================================================
+
+impl EnvironmentInfo {
+    /// Serialize to JSON using JsonWriterCapsule
+    pub fn to_json(&self) -> JsonWriterResult<String> {
+        let mut writer = JsonWriterCapsule::new();
+
+        writer.start_object()?;
+
+        writer.write_key("rustc_version")?;
+        writer.write_string(&self.rustc_version)?;
+        writer.write_comma()?;
+
+        writer.write_key("cpu_model")?;
+        writer.write_string(&self.cpu_model)?;
+        writer.write_comma()?;
+
+        writer.write_key("cpu_cores")?;
+        writer.write_u64(self.cpu_cores as u64)?;
+        writer.write_comma()?;
+
+        writer.write_key("os_version")?;
+        writer.write_string(&self.os_version)?;
+        writer.write_comma()?;
+
+        writer.write_key("feature_flags")?;
+        writer.start_array()?;
+        for (i, flag) in self.feature_flags.iter().enumerate() {
+            writer.write_string(flag)?;
+            if i < self.feature_flags.len() - 1 {
+                writer.write_comma()?;
+            }
+        }
+        writer.end_array()?;
+        writer.write_comma()?;
+
+        writer.write_key("git_commit")?;
+        writer.write_string(&self.git_commit)?;
+        writer.write_comma()?;
+
+        writer.write_key("git_dirty")?;
+        writer.write_bool(self.git_dirty)?;
+
+        writer.end_object()?;
+        writer.finalize()
+    }
 }
 
 /// Environment capture (singleton pattern for caching)
@@ -407,14 +457,11 @@ mod tests {
     }
 
     #[test]
-    fn test_environment_serializable() {
+    fn test_environment_to_json() {
         let env = EnvironmentCapture::capture().unwrap();
 
-        // Environment already in correct format
-        let audit_env = env;
-
         // Serialize to JSON
-        let json = serde_json::to_string(&audit_env).unwrap();
+        let json = env.to_json().unwrap();
         assert!(!json.is_empty());
 
         println!("Serialized environment: {}", json);
