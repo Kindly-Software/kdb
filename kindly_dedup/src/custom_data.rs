@@ -256,6 +256,7 @@ pub fn print_progress(progress: &Arc<AtomicU64>, total: usize, label: &str) {
 /// - #VERIFY: BufReader handles encoding errors gracefully
 /// - #ASSUME: Each line is valid JSON
 /// - #VERIFY: serde_json returns detailed parse errors
+#[cfg(feature = "format-json")]
 pub fn load_jsonl<P: AsRef<Path>>(path: P, progress: Option<Arc<AtomicU64>>) -> Result<Vec<Document>, CustomDataError> {
     let path = path.as_ref();
 
@@ -337,6 +338,7 @@ pub fn load_jsonl<P: AsRef<Path>>(path: P, progress: Option<Arc<AtomicU64>>) -> 
 /// # ASSUM Safety
 /// - #ASSUME: Entire file fits in memory
 /// - #VERIFY: Returns MemoryLimitExceeded if file > 1GB
+#[cfg(feature = "format-json")]
 pub fn load_json<P: AsRef<Path>>(path: P, progress: Option<Arc<AtomicU64>>) -> Result<Vec<Document>, CustomDataError> {
     let path = path.as_ref();
 
@@ -538,9 +540,15 @@ pub fn load_custom_corpus<P: AsRef<Path>>(
 
     // Load using appropriate loader
     match format {
+        #[cfg(feature = "format-json")]
         FileFormat::Jsonl => load_jsonl(path, progress),
+        #[cfg(feature = "format-json")]
         FileFormat::Json => load_json(path, progress),
         FileFormat::PlainText => load_plaintext(path, progress),
+        #[cfg(not(feature = "format-json"))]
+        FileFormat::Jsonl | FileFormat::Json => Err(CustomDataError::UnknownFormat(
+            format!("{} (JSON/JSONL support requires format-json feature)", path.display())
+        )),
     }
 }
 

@@ -589,40 +589,27 @@ fn log_hardware_mismatch(stored: u64, current: u64) {
 }
 
 #[cfg(feature = "audit-trail")]
-fn log_validation_cache_hit(now: u64, last: u64) {
-    if log::log_enabled!(log::Level::Debug) {
-        log::debug!(
-            "[AUDIT] Validation cache hit: now={}, last={}, delta={}s",
-            now,
-            last,
-            now - last
-        );
-    }
+fn log_validation_cache_hit(_now: u64, _last: u64) {
+    // Debug logging disabled - log crate not in dependencies
+    // Use audit trail for compliance logging instead
 }
 
 #[cfg(feature = "audit-trail")]
-fn log_online_validation_success(now: u64) {
-    log::info!("[AUDIT] Online validation success: timestamp={}", now);
+fn log_online_validation_success(_now: u64) {
+    // Info logging disabled - log crate not in dependencies
+    // Use audit trail for compliance logging instead
 }
 
 #[cfg(feature = "audit-trail")]
-fn log_grace_period_expired(now: u64, grace_expiry: u64) {
-    log::error!(
-        "[AUDIT] Grace period expired: now={}, grace_expiry={}, overdue={}s",
-        now,
-        grace_expiry,
-        now - grace_expiry
-    );
+fn log_grace_period_expired(_now: u64, _grace_expiry: u64) {
+    // Error logging disabled - log crate not in dependencies
+    // Use audit trail for compliance logging instead
 }
 
 #[cfg(feature = "audit-trail")]
-fn log_grace_period_active(now: u64, grace_expiry: u64) {
-    log::warn!(
-        "[AUDIT] Grace period active: now={}, grace_expiry={}, remaining={}s",
-        now,
-        grace_expiry,
-        grace_expiry - now
-    );
+fn log_grace_period_active(_now: u64, _grace_expiry: u64) {
+    // Warning logging disabled - log crate not in dependencies
+    // Use audit trail for compliance logging instead
 }
 
 // ============================================================================

@@ -201,6 +201,13 @@ impl From<crate::pipeline::PipelineError> for PersistentError {
                     format!("Resource limit exceeded: {}", reason),
                 ))
             }
+            #[cfg(feature = "audit-trail")]
+            crate::pipeline::PipelineError::AuditError { reason } => {
+                PersistentError::IoError(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!("Audit error: {}", reason),
+                ))
+            }
         }
     }
 }

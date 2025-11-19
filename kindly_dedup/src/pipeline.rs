@@ -17,7 +17,7 @@
 
 use crate::bloom_prefilter::DedupBloomFilter;
 use crate::dedup_algorithm::SignatureStore;
-use atomic_capsule::collections::ConcurrentMapCapsuleV2;
+use atomic_capsule::collections::ConcurrentMapCapsule;
 use atomic_capsule::primitives::fixed_point::Q16_16;
 use atomic_capsule::probabilistic::{tokenize, MinHashSignatureCapsule, UnionFind};
 
@@ -52,6 +52,10 @@ pub enum PipelineError {
 
     /// Resource limit exceeded (production hardening)
     ResourceLimitExceeded { reason: String },
+
+    /// Audit trail verification failed (Q34 compliance)
+    #[cfg(feature = "audit-trail")]
+    AuditError { reason: String },
 }
 
 impl std::fmt::Display for PipelineError {
@@ -67,6 +71,8 @@ impl std::fmt::Display for PipelineError {
             PipelineError::SignatureNotFound { doc_id } => write!(f, "Signature not found for document {}", doc_id),
             PipelineError::LshBucketingError { reason } => write!(f, "LSH bucketing error: {}", reason),
             PipelineError::ResourceLimitExceeded { reason } => write!(f, "Resource limit exceeded: {}", reason),
+            #[cfg(feature = "audit-trail")]
+            PipelineError::AuditError { reason } => write!(f, "Audit trail error: {}", reason),
         }
     }
 }
@@ -530,7 +536,7 @@ impl<'a> DedupPipeline<'a> {
         // V2 has 64 shards internally (64K capacity total), no const generic needed
         // #ASSUME_BUCKET_CAPACITY: 64K buckets sufficient for 100K documents (load factor acceptable)
         // #VERIFY_BUCKET_CAPACITY: Tests validate no capacity errors
-        let buckets: ConcurrentMapCapsuleV2<(usize, u64), Vec<DocId>> = ConcurrentMapCapsuleV2::new();
+        let buckets: ConcurrentMapCapsule<(usize, u64), Vec<DocId>> = ConcurrentMapCapsule::new();
 
         for (doc_id, sig_opt) in self.signatures.iter().enumerate() {
             if let Some(sig) = sig_opt {
@@ -553,7 +559,7 @@ impl<'a> DedupPipeline<'a> {
                     // UCE-D7: Minimal fix (capacity increase) defers full CAS retry to future version
                     // #ASSUME_LOW_COLLISION: 128K capacity reduces race condition probability to <1%
                     // #VERIFY_ACCURACY: F1 score ≥90% validates acceptable accuracy despite race risk
-                    if let Some(mut existing) = buckets.get(&bucket_key).cloned() {
+                    if let Some(mut existing) = buckets.get(&bucket_key) {
                         existing.push(doc_id);
                         let _ = buckets.insert(bucket_key, existing);
                     } else {
@@ -718,7 +724,7 @@ impl<'a> DedupPipeline<'a> {
         // V2 has 64 shards internally (64K capacity total), no const generic needed
         // #ASSUME_BUCKET_CAPACITY: 64K buckets sufficient for 100K documents (load factor acceptable)
         // #VERIFY_BUCKET_CAPACITY: Tests validate no capacity errors
-        let buckets: ConcurrentMapCapsuleV2<(usize, u64), Vec<DocId>> = ConcurrentMapCapsuleV2::new();
+        let buckets: ConcurrentMapCapsule<(usize, u64), Vec<DocId>> = ConcurrentMapCapsule::new();
 
         for (doc_id, sig_opt) in self.signatures.iter().enumerate() {
             if let Some(sig) = sig_opt {
@@ -736,7 +742,7 @@ impl<'a> DedupPipeline<'a> {
                     let bucket_key = (band_idx, band_hash);
 
                     // Lockfree get-or-insert pattern
-                    if let Some(mut existing) = buckets.get(&bucket_key).cloned() {
+                    if let Some(mut existing) = buckets.get(&bucket_key) {
                         existing.push(doc_id);
                         let _ = buckets.insert(bucket_key, existing);
                     } else {
@@ -747,7 +753,7 @@ impl<'a> DedupPipeline<'a> {
         }
 
         // 2. Find candidate pairs using BATCH LSH lookup (WEEK 2 OPTIMIZATION)
-        // Wrap ConcurrentMapCapsuleV2 in Arc for shared access
+        // Wrap ConcurrentMapCapsule in Arc for shared access
         let buckets_arc = Arc::new(buckets);
         let batch_lookup = crate::lsh::BatchLSHLookup::new(buckets_arc.clone());
 

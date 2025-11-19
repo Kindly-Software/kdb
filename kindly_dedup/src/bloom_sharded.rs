@@ -75,25 +75,9 @@ use atomic_capsule::text::SimdTextHasher;
 #[cfg(feature = "simd-text-hashing")]
 #[inline]
 fn hash_tokens_simd(tokens: &[&str]) -> Vec<u64> {
-    let hasher = SimdTextHasher::new();
-    let mut hashes = Vec::with_capacity(tokens.len());
-
-    // Process tokens in batches of 8 (SIMD)
-    let chunks = tokens.chunks_exact(8);
-    let remainder = chunks.remainder();
-
-    for chunk in chunks {
-        // 8-wide SIMD FNV-1a (4× speedup)
-        let hash_array = hasher.hash_8_tokens(chunk);
-        hashes.extend_from_slice(&hash_array);
-    }
-
-    // Handle remainder with scalar path
-    for token in remainder {
-        hashes.push(hash_token_scalar(token));
-    }
-
-    hashes
+    // Use scalar path for individual tokens
+    // SimdTextHasher works on full text, not pre-tokenized strings
+    tokens.iter().map(|token| hash_token_scalar(token)).collect()
 }
 
 /// Hash tokens using scalar fallback (when SIMD disabled)

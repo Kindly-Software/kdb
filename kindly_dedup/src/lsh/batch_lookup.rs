@@ -34,7 +34,7 @@
 //! - **T28**: 42 tests (Unit/Property/Integration/Production)
 //! - **I20**: Zero breaking changes (feature-gated)
 
-use atomic_capsule::collections::concurrent_map_v3::ConcurrentMapCapsule;
+use atomic_capsule::collections::ConcurrentMapCapsule;
 use atomic_capsule::parallel::get_global_pool;
 use atomic_capsule::probabilistic::MinHashSignatureCapsule;
 use atomic_capsule_derive::ComputationalCapsule;
@@ -103,7 +103,7 @@ pub struct BatchLSHLookup {
     ///
     /// ConcurrentMapCapsule v3: 128K capacity, 128B aligned, 100% lockfree
     /// Proven speedup: 2-8× vs DashMap (v3 inline storage)
-    buckets: Arc<ConcurrentMapCapsule<BucketKey, Vec<DocId>, 131_072>>,
+    buckets: Arc<ConcurrentMapCapsule<BucketKey, Vec<DocId>>>,
 
     /// Batch size for optimal cache performance
     ///
@@ -130,14 +130,14 @@ impl BatchLSHLookup {
     /// # Example
     ///
     /// ```rust
-    /// use atomic_capsule::collections::concurrent_map_v3::ConcurrentMapCapsule;
+    /// use atomic_capsule::collections::ConcurrentMapCapsule;
     /// use kindly_dedup::lsh::BatchLSHLookup;
     /// use std::sync::Arc;
     ///
     /// let buckets = Arc::from(ConcurrentMapCapsule::<_, _, 131_072>::new());
     /// let batch_lookup = BatchLSHLookup::new(buckets);
     /// ```
-    pub fn new(buckets: Arc<ConcurrentMapCapsule<BucketKey, Vec<DocId>, 131_072>>) -> Self {
+    pub fn new(buckets: Arc<ConcurrentMapCapsule<BucketKey, Vec<DocId>>>) -> Self {
         Self::with_batch_size(buckets, DEFAULT_BATCH_SIZE)
     }
 
@@ -157,14 +157,14 @@ impl BatchLSHLookup {
     /// # Example
     ///
     /// ```rust
-    /// # use atomic_capsule::collections::concurrent_map_v3::ConcurrentMapCapsule;
+    /// # use atomic_capsule::collections::ConcurrentMapCapsule;
     /// # use kindly_dedup::lsh::BatchLSHLookup;
     /// # use std::sync::Arc;
     /// let buckets = Arc::from(ConcurrentMapCapsule::<_, _, 131_072>::new());
     /// let batch_lookup = BatchLSHLookup::with_batch_size(buckets, 5000); // High throughput
     /// ```
     pub fn with_batch_size(
-        buckets: Arc<ConcurrentMapCapsule<BucketKey, Vec<DocId>, 131_072>>,
+        buckets: Arc<ConcurrentMapCapsule<BucketKey, Vec<DocId>>>,
         batch_size: usize,
     ) -> Self {
         Self {
@@ -200,7 +200,7 @@ impl BatchLSHLookup {
     /// # Example
     ///
     /// ```rust
-    /// # use atomic_capsule::collections::concurrent_map_v3::ConcurrentMapCapsule;
+    /// # use atomic_capsule::collections::ConcurrentMapCapsule;
     /// # use atomic_capsule::probabilistic::MinHashSignatureCapsule;
     /// # use kindly_dedup::lsh::BatchLSHLookup;
     /// # use std::sync::Arc;
@@ -266,7 +266,7 @@ impl BatchLSHLookup {
     /// # Example
     ///
     /// ```rust
-    /// # use atomic_capsule::collections::concurrent_map_v3::ConcurrentMapCapsule;
+    /// # use atomic_capsule::collections::ConcurrentMapCapsule;
     /// # use atomic_capsule::probabilistic::MinHashSignatureCapsule;
     /// # use kindly_dedup::lsh::BatchLSHLookup;
     /// # use std::sync::Arc;
