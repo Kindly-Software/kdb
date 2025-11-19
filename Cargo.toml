@@ -1,0 +1,64 @@
+[workspace]
+members = [
+    "atomic_breaker",
+    "atomic_cost_tracker",
+    "kdb",
+    "atomic_depth_of_market_slice",
+    "atomic_event_lockout_map",
+    "atomic_execution_bundle",
+    "atomic_latency_ticket",
+    "atomic_ledger_entry",
+    "atomic_portfolio_map",
+    "atomic_position_capsule",
+    "atomic_pre_execution_capsule",
+    "atomic_risk_envelope",
+    "atomic_slip_fee_surface",
+    "atomic_venue_snapshot",
+    "atomic_risk_ladder_table",
+    "fractal_arbitrage_scanner",
+    "atomic_epoch_tile",
+    "aid_96",
+    "test_support",
+    "atomic_message_queue",
+    "atomic_multicast_receiver",
+    "atomic_network_gateway",
+    "cross_venue_coordinator", "kiang", "atomic_capsule_map", "atomic_capsule_derive", "atomic_llm_capsule", "kindly-db", "clapi_core", "kindly_compression", "capsule-migrate", "git_coord", "tools/ccpm-installer", "atomic_mcp_server", "tools/tmux_layout_capsule",
+]
+exclude = ["kindly_hft", "kindly_api", "clippy-capsule-verify", "atomic_hedge_capsule", "atomic_capsule", "clapi_core/src/wasm", "system_responsiveness", "kindly-detect", "ai_image_detector", "kindly_inference", "kindly_dash", "planck-universe", "tools", "tools/migrate_to_derive", "kindly_dedup", "kindly_dedup_stripe", "kindly-web"]
+resolver = "2"
+
+[workspace.lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("nightly"))'] }
+
+[workspace.lints.clippy]
+missing_capsule_verification = "warn"
+
+[workspace.dependencies]
+portable-atomic = { version = "1.6", features = ["fallback"], default-features = false }
+serde = { version = "1.0", features = ["derive"], default-features = false }
+criterion = { version = "0.5", features = ["html_reports"], default-features = false }
+rand = "0.9"
+thiserror = "1.0"
+version_check = "0.9"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+debug = false
+strip = true
+panic = "abort"
+
+[profile.bench]
+inherits = "release"
+panic = "unwind"
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"
