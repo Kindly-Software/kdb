@@ -22,6 +22,7 @@
 
 use atomic_capsule::primitives::fixed_point::Q16_16;
 use kindly_dedup::benchmarking::environment::EnvironmentInfo;
+use kindly_dedup::benchmarking::serialize_impl::{from_json_string, to_json_string};
 use kindly_dedup::benchmarking::{AccuracyMetrics, AuditLogger, BenchmarkAuditEntry, BenchmarkConfig, BenchmarkResult};
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -79,7 +80,7 @@ fn test_audit_entry_serialization() {
     let entry = create_test_entry("test_serialize");
 
     // Act: Serialize to JSON
-    let json = serde_json::to_string(&entry).unwrap();
+    let json = entry.to_json().unwrap();
 
     // Assert: Serialization successful and not empty
     assert!(!json.is_empty());
@@ -91,10 +92,10 @@ fn test_audit_entry_serialization() {
 fn test_audit_entry_deserialization() {
     // Arrange: Create and serialize entry
     let original = create_test_entry("test_deserialize");
-    let json = serde_json::to_string(&original).unwrap();
+    let json = original.to_json().unwrap();
 
     // Act: Deserialize from JSON
-    let deserialized: BenchmarkAuditEntry = serde_json::from_str(&json).unwrap();
+    let deserialized = BenchmarkAuditEntry::from_json(&json).unwrap();
 
     // Assert: Deserialization matches original
     assert_eq!(deserialized.benchmark_id, original.benchmark_id);
@@ -148,7 +149,7 @@ fn test_empty_feature_flags() {
     };
 
     // Act: Serialize to JSON
-    let json = serde_json::to_string(&env).unwrap();
+    let json = env.to_json().unwrap();
 
     // Assert: Empty array serialized correctly
     assert!(json.contains("\"feature_flags\":[]"));
@@ -170,8 +171,8 @@ fn test_zero_throughput() {
     };
 
     // Act: Serialize and deserialize
-    let json = serde_json::to_string(&result).unwrap();
-    let deserialized: BenchmarkResult = serde_json::from_str(&json).unwrap();
+    let json = result.to_json().unwrap();
+    let deserialized = BenchmarkResult::from_json(&json).unwrap();
 
     // Assert: Zero values preserved
     assert_eq!(deserialized.throughput_docs_per_sec, 0.0);
@@ -184,8 +185,8 @@ fn test_max_timestamp() {
     entry.timestamp = u64::MAX;
 
     // Act: Serialize and deserialize
-    let json = serde_json::to_string(&entry).unwrap();
-    let deserialized: BenchmarkAuditEntry = serde_json::from_str(&json).unwrap();
+    let json = entry.to_json().unwrap();
+    let deserialized = BenchmarkAuditEntry::from_json(&json).unwrap();
 
     // Assert: Max timestamp preserved
     assert_eq!(deserialized.timestamp, u64::MAX);
@@ -217,8 +218,8 @@ fn test_perfect_accuracy() {
     };
 
     // Act: Serialize and deserialize
-    let json = serde_json::to_string(&result).unwrap();
-    let deserialized: BenchmarkResult = serde_json::from_str(&json).unwrap();
+    let json = result.to_json().unwrap();
+    let deserialized = BenchmarkResult::from_json(&json).unwrap();
 
     // Assert: Perfect accuracy preserved
     let acc = deserialized.accuracy.unwrap();
@@ -234,7 +235,7 @@ fn test_empty_benchmark_id() {
     entry.benchmark_id = String::new();
 
     // Act: Serialize (should not panic)
-    let json = serde_json::to_string(&entry).unwrap();
+    let json = entry.to_json().unwrap();
 
     // Assert: Empty string serialized correctly
     assert!(json.contains("\"benchmark_id\":\"\""));
@@ -335,8 +336,8 @@ fn test_all_benchmark_config_fields() {
     };
 
     // Act: Serialize and deserialize
-    let json = serde_json::to_string(&config).unwrap();
-    let deserialized: BenchmarkConfig = serde_json::from_str(&json).unwrap();
+    let json = config.to_json().unwrap();
+    let deserialized = BenchmarkConfig::from_json(&json).unwrap();
 
     // Assert: All fields preserved
     assert_eq!(deserialized.dataset, "pile_10m");
@@ -362,8 +363,8 @@ fn test_all_result_fields() {
     };
 
     // Act: Serialize and deserialize
-    let json = serde_json::to_string(&result).unwrap();
-    let deserialized: BenchmarkResult = serde_json::from_str(&json).unwrap();
+    let json = result.to_json().unwrap();
+    let deserialized = BenchmarkResult::from_json(&json).unwrap();
 
     // Assert: All fields preserved
     assert_eq!(deserialized.throughput_docs_per_sec, 60000.0);
@@ -412,8 +413,8 @@ fn test_accuracy_some_vs_none() {
     };
 
     // Act: Serialize both
-    let json_some = serde_json::to_string(&result_with_accuracy).unwrap();
-    let json_none = serde_json::to_string(&result_without_accuracy).unwrap();
+    let json_some = result_with_accuracy.to_json().unwrap();
+    let json_none = result_without_accuracy.to_json().unwrap();
 
     // Assert: Some has accuracy field, None does not
     assert!(json_some.contains("\"accuracy\":{"));
@@ -500,7 +501,7 @@ fn test_performance_budget_serialization() {
     // Measure serialization time
     let start = Instant::now();
     for _ in 0..1000 {
-        let _ = serde_json::to_string(&entry).unwrap();
+        let _ = entry.to_json().unwrap();
     }
     let duration = start.elapsed();
 
@@ -578,17 +579,17 @@ fn create_test_entry(id: &str) -> BenchmarkAuditEntry {
 
 fn compute_config_hash(config: &BenchmarkConfig) -> [u8; 32] {
     use sha2::{Digest, Sha256};
-    let config_bytes = serde_json::to_vec(config).unwrap();
+    let config_json = config.to_json().unwrap();
     let mut hasher = Sha256::new();
-    hasher.update(&config_bytes);
+    hasher.update(config_json.as_bytes());
     hasher.finalize().into()
 }
 
 fn compute_result_hash(result: &BenchmarkResult) -> [u8; 32] {
     use sha2::{Digest, Sha256};
-    let result_bytes = serde_json::to_vec(result).unwrap();
+    let result_json = result.to_json().unwrap();
     let mut hasher = Sha256::new();
-    hasher.update(&result_bytes);
+    hasher.update(result_json.as_bytes());
     hasher.finalize().into()
 }
 
