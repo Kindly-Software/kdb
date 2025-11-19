@@ -113,6 +113,7 @@ mod internally_tagged;
 mod rename_all;
 mod skip_if;
 mod type_detector;
+mod untagged;
 mod validator;
 
 use codegen::generate_serialize_impl;
