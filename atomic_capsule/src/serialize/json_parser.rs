@@ -534,7 +534,7 @@ impl<'a> JsonParserCapsule<'a> {
                 });
             }
         } else {
-            while self.is_digit(self.current_char()?) {
+            while self.pos < self.input.len() && self.is_digit(self.current_char()?) {
                 self.consume_char();
             }
         }
@@ -545,7 +545,7 @@ impl<'a> JsonParserCapsule<'a> {
             if !self.is_digit(self.current_char()?) {
                 return Err(JsonParserError::InvalidNumber { pos: self.pos });
             }
-            while self.is_digit(self.current_char()?) {
+            while self.pos < self.input.len() && self.is_digit(self.current_char()?) {
                 self.consume_char();
             }
         }
@@ -562,7 +562,7 @@ impl<'a> JsonParserCapsule<'a> {
                 return Err(JsonParserError::InvalidNumber { pos: self.pos });
             }
 
-            while self.is_digit(self.current_char()?) {
+            while self.pos < self.input.len() && self.is_digit(self.current_char()?) {
                 self.consume_char();
             }
         }
