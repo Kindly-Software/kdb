@@ -102,9 +102,16 @@ use proc_macro::TokenStream;
 use syn::{parse_macro_input, DeriveInput};
 
 mod codegen;
+mod default_value;
 mod deserialize_codegen;
+mod deserialize_with;
 mod error_handler;
 mod field_parser;
+mod generic_constraint;
+mod serialize_with;
+mod internally_tagged;
+mod rename_all;
+mod skip_if;
 mod type_detector;
 mod validator;
 
@@ -230,6 +237,9 @@ pub fn derive_capsule_serialize(input: TokenStream) -> TokenStream {
 /// # Attributes
 ///
 /// - `#[capsule_deserialize(skip)]`: Skip field during deserialization (sets to default)
+/// - `#[capsule_deserialize(default)]`: Use Default::default() for missing fields (T0 DefaultValueCapsule)
+/// - `#[capsule_deserialize(default = "function_name")]`: Call custom function for missing fields
+/// - `#[capsule_deserialize(default = "42")]`: Use literal value for missing fields
 ///
 /// # Example
 ///
@@ -238,10 +248,11 @@ pub fn derive_capsule_serialize(input: TokenStream) -> TokenStream {
 /// use atomic_capsule::fixed_point::Q16_16;
 /// use atomic_capsule::serialize::CapsuleDeserialize;
 ///
-/// #[derive(CapsuleDeserialize)]
+/// #[derive(CapsuleDeserialize, Default)]
 /// #[repr(C, align(128))]
 /// struct PaymentCapsule {
 ///     amount: Q16_16,
+///     #[capsule_deserialize(default)]
 ///     fee: Q16_16,
 ///
 ///     #[capsule_deserialize(skip)]
