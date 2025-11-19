@@ -162,9 +162,9 @@ impl GroundTruth {
         for (i, (id1, id2)) in pairs_vec.iter().enumerate() {
             if i > 0 { writer.write_comma()?; }
             writer.start_array()?;
-            writer.write_u64(**id1 as u64)?;
+            writer.write_u64(*id1 as u64)?;
             writer.write_comma()?;
-            writer.write_u64(**id2 as u64)?;
+            writer.write_u64(*id2 as u64)?;
             writer.end_array()?;
         }
         writer.end_array()?;

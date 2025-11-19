@@ -81,6 +81,12 @@ pub enum JsonParserError {
     DuplicateKey { key: String, pos: usize },
     /// Trailing comma in array/object
     TrailingComma { pos: usize },
+    /// Type mismatch (expected one type, found another)
+    TypeMismatch(String),
+    /// Missing required field
+    MissingField(String),
+    /// Invalid format
+    InvalidFormat(String),
 }
 
 impl fmt::Display for JsonParserError {
@@ -128,6 +134,15 @@ impl fmt::Display for JsonParserError {
             }
             JsonParserError::TrailingComma { pos } => {
                 write!(f, "Trailing comma at position {}", pos)
+            }
+            JsonParserError::TypeMismatch(msg) => {
+                write!(f, "Type mismatch: {}", msg)
+            }
+            JsonParserError::MissingField(field) => {
+                write!(f, "Missing required field: {}", field)
+            }
+            JsonParserError::InvalidFormat(msg) => {
+                write!(f, "Invalid format: {}", msg)
             }
         }
     }

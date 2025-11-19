@@ -41,14 +41,13 @@
 // Parallel processing via atomic_capsule::parallel (100% lockfree)
 // Removed: rayon (v1.10) → Using std::iter + atomic_capsule::parallel
 
-use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
 #[cfg(feature = "audit-trail")]
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// Document structure for benchmarking and testing
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Document {
     /// Document ID (unique identifier)
     pub id: usize,

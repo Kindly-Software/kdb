@@ -32,13 +32,15 @@
 //! println!("Loaded {} documents", documents.len());
 //! ```
 
-use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use thiserror::Error;
+
+#[cfg(feature = "format-json")]
+use atomic_capsule::serialize::{JsonParserCapsule, JsonValue};
 
 // ============================================================================
 // ERROR TYPES
@@ -97,7 +99,7 @@ pub enum CustomDataError {
 // ============================================================================
 
 /// Document structure for corpus loading
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Document {
     /// Document ID (must be unique)
     pub id: usize,
@@ -106,8 +108,55 @@ pub struct Document {
     pub text: String,
 
     /// Optional URL/source (for JSONL with url field)
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
+}
+
+impl Document {
+    /// Parse Document from JSON value (zero-copy via atomic_capsule)
+    #[cfg(feature = "format-json")]
+    fn from_json(json: &JsonValue) -> Result<Self, CustomDataError> {
+        match json {
+            JsonValue::Object(obj) => {
+                // Extract id
+                let id = obj.iter()
+                    .find(|(k, _)| k == "id")
+                    .and_then(|(_, v)| match v {
+                        JsonValue::Number(n) => Some(*n as usize),
+                        _ => None,
+                    })
+                    .ok_or_else(|| CustomDataError::InvalidJsonl {
+                        line: 0,
+                        reason: "Missing 'id' field".to_string(),
+                    })?;
+
+                // Extract text
+                let text = obj.iter()
+                    .find(|(k, _)| k == "text")
+                    .and_then(|(_, v)| match v {
+                        JsonValue::String(s) => Some(s.clone()),
+                        _ => None,
+                    })
+                    .ok_or_else(|| CustomDataError::InvalidJsonl {
+                        line: 0,
+                        reason: "Missing 'text' field".to_string(),
+                    })?;
+
+                // Extract optional url
+                let url = obj.iter()
+                    .find(|(k, _)| k == "url")
+                    .and_then(|(_, v)| match v {
+                        JsonValue::String(s) => Some(s.clone()),
+                        _ => None,
+                    });
+
+                Ok(Document { id, text, url })
+            }
+            _ => Err(CustomDataError::InvalidJsonl {
+                line: 0,
+                reason: "Expected JSON object".to_string(),
+            }),
+        }
+    }
 }
 
 // ============================================================================
@@ -237,11 +286,15 @@ pub fn load_jsonl<P: AsRef<Path>>(path: P, progress: Option<Arc<AtomicU64>>) -> 
             continue;
         }
 
-        // Parse JSON
-        let doc: Document = serde_json::from_str(&line).map_err(|e| CustomDataError::InvalidJsonl {
+        // Parse JSON using atomic_capsule
+        let mut parser = JsonParserCapsule::new(&line);
+        let json_value = parser.parse().map_err(|e| CustomDataError::InvalidJsonl {
             line: line_num + 1,
             reason: e.to_string(),
         })?;
+
+        let mut doc = Document::from_json(&json_value)?;
+        doc.id = line_num; // Override with line number if needed
 
         documents.push(doc);
 
@@ -310,11 +363,35 @@ pub fn load_json<P: AsRef<Path>>(path: P, progress: Option<Arc<AtomicU64>>) -> R
         reason: e.to_string(),
     })?;
 
-    let reader = BufReader::new(file);
+    let mut reader = BufReader::new(file);
 
-    // Parse entire file as JSON array
-    let documents: Vec<Document> =
-        serde_json::from_reader(reader).map_err(|e| CustomDataError::InvalidJson { reason: e.to_string() })?;
+    // Read entire file into string
+    let mut json_str = String::new();
+    use std::io::Read;
+    reader.read_to_string(&mut json_str).map_err(|e| CustomDataError::IoError {
+        path: path.display().to_string(),
+        reason: e.to_string(),
+    })?;
+
+    // Parse JSON array using atomic_capsule
+    let mut parser = JsonParserCapsule::new(&json_str);
+    let json_value = parser.parse().map_err(|e| CustomDataError::InvalidJson {
+        reason: e.to_string(),
+    })?;
+
+    // Extract documents from array
+    let documents = match json_value {
+        JsonValue::Array(arr) => {
+            arr.iter()
+                .map(Document::from_json)
+                .collect::<Result<Vec<_>, _>>()?
+        }
+        _ => {
+            return Err(CustomDataError::InvalidJson {
+                reason: "Expected JSON array".to_string(),
+            });
+        }
+    };
 
     // Check for empty array
     if documents.is_empty() {

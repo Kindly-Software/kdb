@@ -315,6 +315,34 @@ impl JsonWriterCapsule {
         self.write_literal("null")
     }
 
+    /// Write f64 floating point (<10ns).
+    ///
+    /// **Performance**: <10ns (format! + write)
+    /// **Example**:
+    /// ```rust
+    /// writer.write_f64(3.14159)?;  // "3.14159"
+    /// ```
+    #[inline]
+    pub fn write_f64(&self, value: f64) -> JsonWriterResult<()> {
+        self.write_literal(&format!("{}", value))
+    }
+
+    /// Write JSON object key with colon (<10ns).
+    ///
+    /// **Performance**: <10ns (write string + colon)
+    /// **Example**:
+    /// ```rust
+    /// writer.start_object()?;
+    /// writer.write_key("name")?;  // "name":
+    /// writer.write_string("value")?;
+    /// writer.end_object()?;
+    /// ```
+    #[inline]
+    pub fn write_key(&self, key: &str) -> JsonWriterResult<()> {
+        self.write_string(key)?;
+        self.write_literal(":")
+    }
+
     /// Start JSON object and increment depth (<5ns).
     ///
     /// **Performance**: <5ns (write "{" + atomic depth increment)

@@ -123,7 +123,6 @@ use super::atomic_buffer::{AtomicBufferCapsule, AtomicBufferError};
 /// 136+   │ indent_width       │ usize             │  8   │ Spaces per level
 /// 144+   │ last_was_key       │ AtomicBool        │  1   │ After key, before value
 /// ```
-#[derive(Clone)]
 pub struct YamlWriterCapsule {
     buffer: AtomicBufferCapsule,
     indent_level: AtomicU64,

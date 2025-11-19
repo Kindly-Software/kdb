@@ -55,12 +55,11 @@
 //!
 //! **Safety Rating**: 99.99% (deterministic serialization, cryptographic hashing, lockfree)
 
-use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Event type discriminator (1 byte, deterministic encoding)
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventType {
     /// System initialization (hardware binding, tier selection)
     SystemInit = 1,
@@ -78,7 +77,7 @@ pub enum EventType {
 
 /// Event severity level (1 byte, deterministic encoding)
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventSeverity {
     /// Informational (normal operation)
     Info = 1,
@@ -102,7 +101,7 @@ pub enum EventSeverity {
 /// └─────────┴─────────┴─────────┴─────────┘
 /// ```
 #[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ConfusionMatrix {
     /// True positives (raw count)
     pub true_positives: u64,
@@ -176,7 +175,7 @@ impl ConfusionMatrix {
 /// - `#ASSUME_F64_DETERMINISTIC`: f64 serialization is platform-independent
 /// - `#VERIFY_ROUNDTRIP`: deserialize(serialize(x)) == x (property tested)
 #[repr(C, align(1024))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct DemoAuditEvent {
     /// Unix timestamp (microseconds since epoch)
     pub timestamp_us: i64,
@@ -194,7 +193,6 @@ pub struct DemoAuditEvent {
     pub data: EventData,
 
     /// Padding to 1024 bytes (calculated: 1024 - (8 + 1 + 1 + 32 + 982) = 0 bytes)
-    #[serde(skip)]
     _padding: [u8; 0],
 }
 
@@ -202,7 +200,7 @@ pub struct DemoAuditEvent {
 ///
 /// Different event types populate different fields. Unused fields are zeroed.
 #[repr(C)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct EventData {
     // SystemInit fields (48 bytes)
     /// CPU model (32 bytes, UTF-8 encoded)
