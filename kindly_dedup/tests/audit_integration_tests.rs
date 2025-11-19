@@ -100,7 +100,7 @@ fn test_hash_chain_continuity() {
         // Read back and verify prev_hash matches
         let content = fs::read_to_string(&log_path).unwrap();
         let last_line = content.lines().last().unwrap();
-        let logged_entry: BenchmarkAuditEntry = serde_json::from_str(last_line).unwrap();
+        let logged_entry = BenchmarkAuditEntry::from_json(last_line).unwrap();
 
         assert_eq!(logged_entry.prev_audit_hash, prev_hash);
         prev_hash = logged_entry.audit_hash;
@@ -119,7 +119,7 @@ fn test_input_and_result_hash_computation() {
 
     // Read back
     let content = fs::read_to_string(&log_path).unwrap();
-    let logged_entry: BenchmarkAuditEntry = serde_json::from_str(content.trim()).unwrap();
+    let logged_entry = BenchmarkAuditEntry::from_json(content.trim()).unwrap();
 
     // Verify hashes are non-zero (actually computed)
     assert_ne!(logged_entry.input_hash, [0u8; 32]);
@@ -170,9 +170,9 @@ fn test_broken_hash_chain_detection() {
     tampered.push('\n');
 
     // Parse and modify second entry
-    let mut entry: BenchmarkAuditEntry = serde_json::from_str(lines[1]).unwrap();
+    let mut entry = BenchmarkAuditEntry::from_json(lines[1]).unwrap();
     entry.result.throughput_docs_per_sec += 1000.0; // Tamper with result
-    tampered.push_str(&serde_json::to_string(&entry).unwrap());
+    tampered.push_str(&entry.to_json().unwrap());
     tampered.push('\n');
 
     tampered.push_str(lines[2]);
@@ -206,7 +206,7 @@ fn test_prev_hash_state_consistency() {
         // Read back last entry
         let content = fs::read_to_string(&log_path).unwrap();
         let last_line = content.lines().last().unwrap();
-        let logged: BenchmarkAuditEntry = serde_json::from_str(last_line).unwrap();
+        let logged = BenchmarkAuditEntry::from_json(last_line).unwrap();
 
         // Verify prev_hash consistency
         assert_eq!(logged.prev_audit_hash, expected_prev);
@@ -347,7 +347,7 @@ fn test_multi_version_benchmark_comparison() {
     let content = fs::read_to_string(&log_path).unwrap();
     let entries: Vec<BenchmarkAuditEntry> = content
         .lines()
-        .map(|line| serde_json::from_str(line).unwrap())
+        .map(|line| BenchmarkAuditEntry::from_json(line).unwrap())
         .collect();
 
     assert_eq!(entries.len(), 3);

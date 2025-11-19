@@ -76,8 +76,8 @@ fn load_test_corpus(path: &PathBuf) -> std::io::Result<Corpus> {
 
     for line in reader.lines() {
         let line = line?;
-        let doc: serde_json::Value =
-            serde_json::from_str(&line).map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+        let doc = serde_json::Value::from_json(&line)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
 
         let id = doc["id"].as_u64().unwrap_or(0) as usize;
         let text = doc["text"].as_str().unwrap_or("").to_string();
@@ -185,7 +185,7 @@ fn test_corpus_json_format() {
 
     // Verify each line is valid JSON
     for line in lines {
-        let doc: serde_json::Value = serde_json::from_str(line).unwrap();
+        let doc = serde_json::Value::from_json(line).unwrap();
         assert!(doc["id"].is_u64());
         assert!(doc["text"].is_string());
     }
@@ -294,7 +294,7 @@ fn test_v1_0_vs_python_speedup() {
         if let Ok(output) = output {
             if output.status.success() {
                 let output_str = String::from_utf8_lossy(&output.stdout);
-                let result: serde_json::Value = serde_json::from_str(&output_str).unwrap();
+                let result = serde_json::Value::from_json(&output_str).unwrap();
 
                 let python_throughput = result["throughput_docs_per_sec"].as_f64().unwrap();
 

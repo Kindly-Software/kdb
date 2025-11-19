@@ -226,8 +226,8 @@ mod dataset_manager_module {
             sha256: "abc123".to_string(),
         };
 
-        let json = serde_json::to_string(&manifest).unwrap();
-        let parsed: TestManifest = serde_json::from_str(&json).unwrap();
+        let json = manifest.to_json().unwrap();
+        let parsed = TestManifest::from_json(&json).unwrap();
 
         assert_eq!(parsed.source, manifest.source);
         assert_eq!(parsed.document_count, manifest.document_count);

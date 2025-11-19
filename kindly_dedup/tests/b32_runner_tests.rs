@@ -308,11 +308,11 @@ fn test_environment_serialization() {
     };
 
     // Serialize to JSON
-    let json = serde_json::to_string(&audit_env).unwrap();
+    let json = audit_env.to_json().unwrap();
     assert!(!json.is_empty());
 
     // Deserialize back
-    let deserialized: EnvironmentInfo = serde_json::from_str(&json).unwrap();
+    let deserialized = EnvironmentInfo::from_json(&json).unwrap();
     assert_eq!(deserialized.rustc_version, audit_env.rustc_version);
     assert_eq!(deserialized.cpu_model, audit_env.cpu_model);
 }

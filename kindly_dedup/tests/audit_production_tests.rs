@@ -187,9 +187,9 @@ fn test_security_tamper_resistance() {
     let mut tampered_lines = lines.clone();
 
     for i in 0..tampered_lines.len() {
-        let mut entry: BenchmarkAuditEntry = serde_json::from_str(&tampered_lines[i]).unwrap();
+        let mut entry = BenchmarkAuditEntry::from_json(&tampered_lines[i]).unwrap();
         entry.result.throughput_docs_per_sec *= 10.0; // Tamper
-        tampered_lines[i] = serde_json::to_string(&entry).unwrap();
+        tampered_lines[i] = entry.to_json().unwrap();
     }
 
     let tampered_content = tampered_lines.join("\n") + "\n";
@@ -255,7 +255,7 @@ fn test_security_injection_resistance() {
     // Verify no injection succeeded
     let content = fs::read_to_string(&log_path).unwrap();
     for line in content.lines() {
-        let entry: Result<BenchmarkAuditEntry, _> = serde_json::from_str(line);
+        let entry = BenchmarkAuditEntry::from_json(line);
         assert!(entry.is_ok(), "Injection caused JSON corruption");
     }
 }
@@ -397,7 +397,7 @@ fn test_assum_append_only_guarantee() {
     // Verify no corruption
     let content = fs::read_to_string(&log_path).unwrap();
     for (i, line) in content.lines().enumerate() {
-        let result: Result<BenchmarkAuditEntry, _> = serde_json::from_str(line);
+        let result = BenchmarkAuditEntry::from_json(line);
         assert!(result.is_ok(), "Line {} corrupted: {}", i, line);
     }
 

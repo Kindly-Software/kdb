@@ -35,15 +35,15 @@ use flate2::read::GzDecoder;
 use hex;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+use kindly_dedup::serialize_helpers::*;
 
 /// Document structure compatible with kindly_dedup pipeline
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Document {
     /// Unique document ID (sequential)
     pub id: usize,
@@ -51,6 +51,81 @@ pub struct Document {
     pub url: String,
     /// Extracted plain text content
     pub text: String,
+}
+
+impl Document {
+    pub fn to_json(&self) -> Result<String, JsonError> {
+        let mut writer = JsonWriterCapsule::new();
+        writer.start_object()?;
+        let mut first = true;
+        write_field(&mut writer, "id", &self.id, &mut first)?;
+        write_field(&mut writer, "url", &self.url, &mut first)?;
+        write_field(&mut writer, "text", &self.text, &mut first)?;
+        writer.end_object()?;
+        writer.finalize()
+    }
+
+    pub fn from_json(s: &str) -> Result<Self, JsonError> {
+        let mut parser = JsonParserCapsule::new(s);
+        let value = parser.parse()?;
+
+        match value {
+            JsonValue::Object(fields) => {
+                Ok(Self {
+                    id: get_field_required(&fields, "id").and_then(|v| usize::parse_json(v))?,
+                    url: get_field_required(&fields, "url").and_then(|v| String::parse_json(v))?,
+                    text: get_field_required(&fields, "text").and_then(|v| String::parse_json(v))?,
+                })
+            }
+            _ => Err(JsonError::InvalidJson("Expected object".into()))
+        }
+    }
+}
+
+impl WriteJson for Document {
+    fn write_json(&self, writer: &mut JsonWriterCapsule) -> Result<(), JsonError> {
+        writer.start_object()?;
+        let mut first = true;
+        write_field(writer, "id", &self.id, &mut first)?;
+        write_field(writer, "url", &self.url, &mut first)?;
+        write_field(writer, "text", &self.text, &mut first)?;
+        writer.end_object()
+    }
+}
+
+/// Helper to serialize Vec<Document> to pretty JSON
+fn serialize_documents_pretty(docs: &[Document]) -> Result<String, JsonError> {
+    let mut writer = JsonWriterCapsule::new();
+    writer.start_array()?;
+    for (i, doc) in docs.iter().enumerate() {
+        if i > 0 {
+            writer.write_comma()?;
+        }
+        doc.write_json(&mut writer)?;
+    }
+    writer.end_array()?;
+    writer.finalize()
+}
+
+impl WriteJson for usize {
+    fn write_json(&self, writer: &mut JsonWriterCapsule) -> Result<(), JsonError> {
+        writer.write_u64(*self as u64)
+    }
+}
+
+impl ParseJson for usize {
+    fn parse_json(value: &JsonValue) -> Result<Self, JsonError> {
+        match value {
+            JsonValue::Number(n) => {
+                if *n >= 0.0 && n.fract() == 0.0 {
+                    Ok(*n as usize)
+                } else {
+                    Err(JsonError::TypeMismatch("Expected non-negative integer".into()))
+                }
+            }
+            _ => Err(JsonError::TypeMismatch("Expected number".into())),
+        }
+    }
 }
 
 /// Common Crawl WET paths base URL
@@ -349,7 +424,8 @@ async fn download_corpus(limit: usize, output_path: &Path) -> Result<()> {
 
     let mut file = File::create(output_path).context("Failed to create output file")?;
 
-    let json = serde_json::to_string_pretty(&all_docs).context("Failed to serialize documents to JSON")?;
+    let json = serialize_documents_pretty(&all_docs)
+        .map_err(|e| anyhow::anyhow!("Failed to serialize documents to JSON: {}", e))?;
 
     file.write_all(json.as_bytes())
         .context("Failed to write JSON to file")?;
@@ -376,7 +452,7 @@ async fn download_corpus(limit: usize, output_path: &Path) -> Result<()> {
 }
 
 /// Dataset manifest for B32 provenance tracking
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct DatasetManifest {
     pub source: String,
     pub url: String,
@@ -385,6 +461,43 @@ pub struct DatasetManifest {
     pub size_bytes: u64,
     pub sha256: String,
     pub provenance: String,
+}
+
+impl DatasetManifest {
+    pub fn to_json(&self) -> Result<String, JsonError> {
+        let mut writer = JsonWriterCapsule::new();
+        writer.start_object()?;
+        let mut first = true;
+        write_field(&mut writer, "source", &self.source, &mut first)?;
+        write_field(&mut writer, "url", &self.url, &mut first)?;
+        write_field(&mut writer, "downloaded", &self.downloaded, &mut first)?;
+        write_field(&mut writer, "document_count", &self.document_count, &mut first)?;
+        write_field(&mut writer, "size_bytes", &self.size_bytes, &mut first)?;
+        write_field(&mut writer, "sha256", &self.sha256, &mut first)?;
+        write_field(&mut writer, "provenance", &self.provenance, &mut first)?;
+        writer.end_object()?;
+        writer.finalize()
+    }
+
+    pub fn from_json(s: &str) -> Result<Self, JsonError> {
+        let mut parser = JsonParserCapsule::new(s);
+        let value = parser.parse()?;
+
+        match value {
+            JsonValue::Object(fields) => {
+                Ok(Self {
+                    source: get_field_required(&fields, "source").and_then(|v| String::parse_json(v))?,
+                    url: get_field_required(&fields, "url").and_then(|v| String::parse_json(v))?,
+                    downloaded: get_field_required(&fields, "downloaded").and_then(|v| String::parse_json(v))?,
+                    document_count: get_field_required(&fields, "document_count").and_then(|v| usize::parse_json(v))?,
+                    size_bytes: get_field_required(&fields, "size_bytes").and_then(|v| u64::parse_json(v))?,
+                    sha256: get_field_required(&fields, "sha256").and_then(|v| String::parse_json(v))?,
+                    provenance: get_field_required(&fields, "provenance").and_then(|v| String::parse_json(v))?,
+                })
+            }
+            _ => Err(JsonError::InvalidJson("Expected object".into()))
+        }
+    }
 }
 
 /// Compute SHA-256 hash of file
@@ -423,7 +536,8 @@ fn generate_manifest(output_path: &Path, source: &str, url: &str, document_count
     };
 
     let manifest_path = output_path.with_extension("manifest.json");
-    let json = serde_json::to_string_pretty(&manifest)?;
+    let json = manifest.to_json()
+        .map_err(|e| anyhow::anyhow!("Failed to serialize manifest: {}", e))?;
 
     let mut file = File::create(&manifest_path)?;
     file.write_all(json.as_bytes())?;
@@ -575,8 +689,8 @@ mod tests {
             text: "Test content".to_string(),
         };
 
-        let json = serde_json::to_string(&doc).unwrap();
-        let parsed: Document = serde_json::from_str(&json).unwrap();
+        let json = doc.to_json().unwrap();
+        let parsed = Document::from_json(&json).unwrap();
 
         assert_eq!(parsed.id, doc.id);
         assert_eq!(parsed.url, doc.url);

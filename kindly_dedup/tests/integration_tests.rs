@@ -646,7 +646,8 @@ fn test_load_synthetic_corpus() {
     let corpus_path = "test_data/synthetic_100k.json";
     let file = File::open(corpus_path).expect("Failed to open corpus file");
     let reader = BufReader::new(file);
-    let documents: Vec<Document> = serde_json::from_reader(reader).expect("Failed to parse JSON");
+    let json_str = std::io::read_to_string(reader).expect("Failed to read JSON");
+    let documents: Vec<Document> = Vec::<Document>::from_json(&json_str).expect("Failed to parse JSON");
 
     println!("Loaded {} documents from {}", documents.len(), corpus_path);
 

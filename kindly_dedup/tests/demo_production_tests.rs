@@ -461,7 +461,7 @@ fn test_audit_export_jsonl_integrity() {
     assert_eq!(lines.len(), 1, "Expected 1 JSONL line");
 
     // Parse JSON
-    let parsed: serde_json::Value = serde_json::from_str(lines[0]).expect("Failed to parse JSONL");
+    let parsed = serde_json::Value::from_json(lines[0]).expect("Failed to parse JSONL");
 
     assert_eq!(parsed["benchmark_name"].as_str().unwrap(), "test_export");
 

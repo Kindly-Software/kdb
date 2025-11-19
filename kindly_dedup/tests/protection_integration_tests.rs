@@ -198,7 +198,7 @@ fn test_p5_security_audit_trail() {
         "Test validation",
     );
 
-    let event_json = serde_json::to_string(&event);
+    let event_json = event.to_json();
     assert!(event_json.is_ok(), "Event serialization must succeed");
 
     let event_json = event_json.unwrap();
@@ -956,10 +956,10 @@ fn integration_monitoring_instrumentation() {
     let customer_id = build_info.customer_id();
 
     let (event1, _) = SecurityAuditEvent::new(SecurityEventType::BuildVerification, customer_id, None, 0, "Test");
-    assert!(serde_json::to_string(&event1).is_ok());
+    assert!(event1.to_json().is_ok());
 
     let (event2, _) = SecurityAuditEvent::new(SecurityEventType::LicenseValidation, customer_id, None, 0, "Test");
-    assert!(serde_json::to_string(&event2).is_ok());
+    assert!(event2.to_json().is_ok());
 }
 
 // Additional Integration Tests (Q15-Q21)
@@ -1133,7 +1133,7 @@ fn integration_audit_trail_completeness() {
 
     for event_type in event_types {
         let (event, details) = SecurityAuditEvent::new(event_type, customer_id, None, 0, "Test event");
-        assert!(serde_json::to_string(&event).is_ok());
+        assert!(event.to_json().is_ok());
         assert!(!details.is_empty());
     }
 }
@@ -1360,7 +1360,7 @@ fn production_audit_completeness() {
             0,
             &format!("Test event {}", i),
         );
-        assert!(serde_json::to_string(&event).is_ok());
+        assert!(event.to_json().is_ok());
         assert!(!details.is_empty());
     }
 }

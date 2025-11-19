@@ -22,7 +22,7 @@
 
 use atomic_capsule::primitives::fixed_point::Q16_16;
 use kindly_dedup::benchmarking::environment::EnvironmentInfo;
-use kindly_dedup::benchmarking::serialize_impl::{from_json_string, to_json_string};
+use kindly_dedup::benchmarking::serialize_impl::{from_json_string, to_json_string, to_json_vec};
 use kindly_dedup::benchmarking::{AccuracyMetrics, AuditLogger, BenchmarkAuditEntry, BenchmarkConfig, BenchmarkResult};
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
