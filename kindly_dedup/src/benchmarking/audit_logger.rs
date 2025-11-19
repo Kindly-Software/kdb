@@ -46,6 +46,7 @@
 
 use crate::benchmarking::environment::EnvironmentInfo;
 use atomic_capsule::hash::AtomicHash256;
+use atomic_capsule::serialize::CapsuleSerialize;
 use serde::{Deserialize, Serialize};
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write as IoWrite};
@@ -63,6 +64,9 @@ pub type Hash256 = [u8; 32];
 /// Benchmark audit entry (Q34 compliance)
 ///
 /// Captures complete benchmark run context for reproducibility and compliance.
+///
+/// **Tier 0: Auditable Foundation** - Deterministic serialization for hash chains (Q34 compliance).
+#[repr(C)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BenchmarkAuditEntry {
     /// Unique benchmark identifier (e.g., "v1_1_simd_20251029_001")

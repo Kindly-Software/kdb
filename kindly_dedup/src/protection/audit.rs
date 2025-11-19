@@ -83,6 +83,7 @@
 //! - Memory: 256B capsule (aligned, cache-efficient)
 
 use atomic_capsule::hash::AtomicHash256;
+use atomic_capsule::serialize::CapsuleSerialize;
 use core::sync::atomic::{AtomicU64, Ordering};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
@@ -205,6 +206,8 @@ pub struct VerificationResult {
 /// - Uses #[repr(C)] for fixed field ordering
 /// - Little-endian encoding for cross-platform compatibility
 /// - Fixed-size fields (60 bytes) + variable details
+///
+/// **Tier 0: Auditable Foundation** - CapsuleSerialize for hash chain integrity
 #[derive(Debug, Clone)]
 #[repr(C)]
 pub struct SecurityAuditEvent {
