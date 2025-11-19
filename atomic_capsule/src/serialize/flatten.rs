@@ -701,12 +701,13 @@ mod tests {
         flattener
             .add_field(
                 "message".to_string(),
-                JsonValue::String("hello\"world\\ntest".into()),
+                JsonValue::String("hello\"world\\ntest".into()),  // Input: hello"world\ntest (literal \n, not newline)
             )
             .unwrap();
 
         let json = flattener.to_json().unwrap();
-        assert!(json.contains(r#"hello\"world\ntest"#));
+        // After JSON escaping: quote → \" and backslash → \\, so \n becomes \\n
+        assert!(json.contains(r#"hello\"world\\ntest"#));
     }
 
     // Test 12: JSON object with arrays

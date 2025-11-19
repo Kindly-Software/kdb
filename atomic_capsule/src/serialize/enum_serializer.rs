@@ -283,12 +283,12 @@ impl TupleVariantSerializer {
             return Err(SerializeError::Custom("Serialization had errors"));
         }
 
-        // Update field_count in header (at position 6, right after tag)
-        if self.bytes.len() < 7 {
+        // Update field_count in header (at position 7, right after tag at position 6)
+        if self.bytes.len() < 8 {
             return Err(SerializeError::Custom("Internal serialization error: invalid header"));
         }
 
-        self.bytes[6] = self.field_count;
+        self.bytes[7] = self.field_count;
         Ok(self.bytes)
     }
 }
@@ -361,12 +361,12 @@ impl StructVariantSerializer {
             return Err(SerializeError::Custom("Serialization had errors"));
         }
 
-        // Update field_count in header (at position 6, right after tag)
-        if self.bytes.len() < 7 {
+        // Update field_count in header (at position 7, right after tag at position 6)
+        if self.bytes.len() < 8 {
             return Err(SerializeError::Custom("Internal serialization error: invalid header"));
         }
 
-        self.bytes[6] = self.field_count;
+        self.bytes[7] = self.field_count;
         Ok(self.bytes)
     }
 }
@@ -460,8 +460,8 @@ mod tests {
         assert!(result.is_ok());
         let serializer = result.unwrap();
         let bytes = serializer.end().unwrap();
-        assert_eq!(bytes.len(), 7);
-        assert_eq!(bytes[6], 0);  // field_count = 0
+        assert_eq!(bytes.len(), 8);  // magic(4) + version(2) + tag(1) + field_count(1)
+        assert_eq!(bytes[7], 0);  // field_count = 0
     }
 
     #[test]
@@ -472,7 +472,7 @@ mod tests {
         let field = vec![42];
         serializer.serialize_field_bytes(&field).unwrap();
         let bytes = serializer.end().unwrap();
-        assert_eq!(bytes[6], 1);  // field_count = 1
+        assert_eq!(bytes[7], 1);  // field_count = 1
     }
 
     #[test]
@@ -487,7 +487,7 @@ mod tests {
         }
 
         let bytes = serializer.end().unwrap();
-        assert_eq!(bytes[6], 5);  // field_count = 5
+        assert_eq!(bytes[7], 5);  // field_count = 5
     }
 
     #[test]
@@ -518,8 +518,8 @@ mod tests {
         assert!(result.is_ok());
         let serializer = result.unwrap();
         let bytes = serializer.end().unwrap();
-        assert_eq!(bytes.len(), 7);
-        assert_eq!(bytes[6], 0);  // field_count = 0
+        assert_eq!(bytes.len(), 8);  // magic(4) + version(2) + tag(1) + field_count(1)
+        assert_eq!(bytes[7], 0);  // field_count = 0
     }
 
     #[test]
@@ -530,7 +530,7 @@ mod tests {
         let field_value = vec![42];
         serializer.serialize_field("x", &field_value).unwrap();
         let bytes = serializer.end().unwrap();
-        assert_eq!(bytes[6], 1);  // field_count = 1
+        assert_eq!(bytes[7], 1);  // field_count = 1
     }
 
     #[test]
@@ -544,7 +544,7 @@ mod tests {
         serializer.serialize_field("active", &[1]).unwrap();
 
         let bytes = serializer.end().unwrap();
-        assert_eq!(bytes[6], 3);  // field_count = 3
+        assert_eq!(bytes[7], 3);  // field_count = 3
     }
 
     #[test]

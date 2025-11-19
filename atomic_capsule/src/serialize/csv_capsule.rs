@@ -733,7 +733,9 @@ mod tests {
         let mut reader = CsvReaderCapsule::new(csv);
         reader.parse_row().unwrap(); // skip headers
         let all = reader.parse_all().unwrap();
-        assert_eq!(all.len(), 1); // Only Bob,25 remains
+        assert_eq!(all.len(), 2); // Alice,30 and Bob,25 remain
+        assert_eq!(all[0], vec!["Alice", "30"]);
+        assert_eq!(all[1], vec!["Bob", "25"]);
     }
 
     #[test]
