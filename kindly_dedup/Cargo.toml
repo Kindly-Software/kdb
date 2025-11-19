@@ -54,6 +54,8 @@ hkdf = "0.12"  # Required for trial_state encryption (Docker trials)
 # REMOVED (2025-11-08): sysinfo = "0.30" → std::thread::available_parallelism() + /proc/meminfo (Linux)
 reqwest = { version = "0.12", features = ["stream", "gzip"], optional = true }
 # Tokio removed - using std::thread + lockfree queue (SyncFlushTask)
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", optional = true }
 hyper = { version = "1.0", features = ["server", "http1"], optional = true }
 hyper-util = { version = "0.1", features = ["tokio"], optional = true }
 http-body-util = { version = "0.1", optional = true }
@@ -87,6 +89,7 @@ indicatif = { version = "0.17", optional = true }
 anyhow = "1.0"
 thiserror = "1.0"
 dirs = "5.0"  # For config directory (Layer 2 flag files)
+crossbeam-channel = { version = "0.5", optional = true }  # T5 Streaming: Lockfree channel for HF downloader
 
 # Q34 Audit trail dependencies (Phase 1)
 # NOTE (2025-11-10): sha2, hmac, blake3 are required - atomic_capsule doesn't re-export these
@@ -135,6 +138,7 @@ tokio = { version = "1", features = ["full"], optional = true }
 rfd = { version = "0.15", optional = true }  # Native file dialogs (cross-platform)
 rand = { version = "0.8", optional = true }  # Noise texture generation (GUI glassmorphism)
 rand_chacha = { version = "0.3", optional = true }  # Deterministic RNG for noise
+rand_xoshiro = { version = "0.6", optional = true }  # Xoshiro256++ for testing corpus generation
 
 [build-dependencies]
 # Layer 1: Build-time binary protection
@@ -228,13 +232,18 @@ production-api = [
 # Download tools (existing binaries)
 # Note: Tokio required for async download_corpus (async HTTP streaming)
 # Note: indicatif kept for download_corpus only (async context), atomic_capsule used elsewhere
-download-tools = ["reqwest", "flate2", "dep:indicatif", "chrono", "futures-util"]
+download-tools = ["reqwest", "flate2", "dep:indicatif", "chrono", "futures-util", "dep:serde", "dep:serde_json"]
 
 # HuggingFace dataset downloader (T8 Network + T5 Streaming + T1 Atomic)
-hf-datasets = ["download-tools", "dep:tokio"]
+# T5 Streaming: crossbeam-channel bounded queue prevents OOM (O(10K) vs O(1B))
+hf-datasets = ["download-tools", "dep:tokio", "dep:crossbeam-channel"]
 
 # Benchmarking infrastructure (Phase 1-5: includes export methods)
 benchmarking = ["std", "chrono", "atomic_capsule/queue-bounded"]
+
+# Testing infrastructure (T1 MemoryMonitorCapsule + T2+T10 SyntheticCorpusGeneratorCapsule)
+# Requires: rand (Bernoulli trials), rand_xoshiro (Xoshiro256++ deterministic RNG)
+testing = ["std", "benchmarking", "dep:rand", "dep:rand_xoshiro"]
 
 # Q34 Audit trail (hash-chained tamper-evident logging)
 audit-trail = ["std"]
@@ -297,6 +306,7 @@ meta-capsule-full = ["meta-capsule-p1", "orchestrator", "anomaly-detector", "mem
 # Interactive TUI (v0.2.0: 6 commands, E2E workflows, META_CAPSULE protected)
 # Note: indicatif removed (2025-11-17) - using ProgressTrackerCapsule (T1 Atomic, <10ns)
 # UPDATED (2025-11-17): Removed indicatif dependency, now uses built-in ANSI progress display
+# UPDATED (2025-11-19): Added serde/serde_json for recent_files.rs and protection_integration.rs
 interactive = [
     "dep:inquire",
     "dep:ratatui",
@@ -304,6 +314,8 @@ interactive = [
     "dep:glob",
     "dep:fs_extra",
     "dep:directories",
+    "dep:serde",           # For TUI recent_files.rs serialization
+    "dep:serde_json",      # For TUI components and protection metrics
     "meta-capsule",
     "benchmarking",
     "compound-ground-truth",
@@ -399,6 +411,11 @@ required-features = ["benchmarking", "persistent-dedup"]
 name = "deploy_validate_6900hx"
 path = "src/bin/deploy_validate_6900hx.rs"
 required-features = ["benchmarking"]
+
+[[bin]]
+name = "validate_persistent"
+path = "src/bin/validate_persistent.rs"
+required-features = ["std"]
 
 [[bench]]
 name = "dedup_bench"
