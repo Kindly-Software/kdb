@@ -681,38 +681,6 @@ pub use fixed_point_serialize_trait::FixedPointSerialize as FixedPointSerializeV
 pub mod json_writer;
 pub use json_writer::{JsonWriterCapsule, JsonWriterError, JsonWriterResult};
 
-/// CBOR (Concise Binary Object Representation) writer and reader capsules (RFC 8949)
-///
-/// **Tier**: T1 (Atomic) - Binary format with lockfree coordination
-/// **Performance**: <20ns per value write, <50ns for strings/bytes
-/// **Format**: RFC 8949 CBOR
-///
-/// Provides high-performance CBOR serialization using computational capsule patterns.
-/// Writer: Lockfree fixed-size buffer (8192 bytes), <20ns per value.
-/// Reader: Streaming decoder with major type dispatch, <50ns per value.
-///
-/// **Feature**: `cbor` (added in v0.6.2)
-///
-/// **Example**:
-/// ```rust,ignore
-/// use atomic_capsule::serialize::cbor_writer::{CborWriterCapsule, CborReaderCapsule};
-///
-/// let writer = CborWriterCapsule::new();
-/// writer.write_array_header(3)?;
-/// writer.write_uint(1)?;
-/// writer.write_uint(2)?;
-/// writer.write_uint(3)?;
-/// let bytes = writer.finalize()?;
-///
-/// let mut reader = CborReaderCapsule::new(&bytes);
-/// let value = reader.read_value()?;
-/// // value = CborValue::Array(vec![...])
-/// ```
-pub mod cbor_writer;
-pub use cbor_writer::{
-    CborWriterCapsule, CborReaderCapsule, CborValue, CborError,
-};
-
 /// Streaming JSON parser capsule (T5)
 pub mod json_parser;
 pub use json_parser::{JsonParserCapsule, JsonValue, JsonParserError, JsonParserResult};
