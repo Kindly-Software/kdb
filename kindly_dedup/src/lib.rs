@@ -242,9 +242,12 @@ pub use license_capsule::{LicenseCapsule, LicenseError, LicenseResult, LicenseSt
 
 // Custom data loading exports
 pub use custom_data::{
-    detect_format, load_custom_corpus, load_json, load_jsonl, load_plaintext, print_progress, CustomDataError,
+    detect_format, load_custom_corpus, load_plaintext, print_progress, CustomDataError,
     Document as CustomDocument, FileFormat,
 };
+
+#[cfg(feature = "format-json")]
+pub use custom_data::{load_json, load_jsonl};
 
 // Corpus generation exports (T4 Batch tier - parallel generation)
 pub use corpus_generation::{

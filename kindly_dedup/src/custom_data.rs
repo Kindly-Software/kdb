@@ -588,6 +588,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "format-json")]
     fn test_load_jsonl_valid() {
         let mut file = NamedTempFile::new().unwrap();
         writeln!(file, r#"{{"id": 1, "text": "doc 1"}}"#).unwrap();
@@ -608,6 +609,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "format-json")]
     fn test_load_json_valid() {
         let mut file = NamedTempFile::new().unwrap();
         writeln!(file, r#"[{{"id": 1, "text": "doc 1"}}, {{"id": 2, "text": "doc 2"}}]"#).unwrap();
@@ -647,6 +649,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "format-json")]
     fn test_load_custom_corpus_auto_detect() {
         let mut file = NamedTempFile::new().unwrap();
         writeln!(file, r#"{{"id": 1, "text": "doc 1"}}"#).unwrap();
@@ -663,6 +666,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "format-json")]
     fn test_file_not_found() {
         let result = load_jsonl("nonexistent.jsonl", None);
         assert!(result.is_err());
@@ -670,6 +674,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "format-json")]
     fn test_empty_file() {
         let file = NamedTempFile::new().unwrap();
         let path = file.path().with_extension("jsonl");
@@ -683,6 +688,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "format-json")]
     fn test_progress_tracking() {
         let progress = Arc::new(AtomicU64::new(0));
 

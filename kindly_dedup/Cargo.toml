@@ -9,7 +9,7 @@
 
 [package]
 name = "kindly_dedup"
-version = "2.0.0"  # CliCapsule migration - zero dependencies, 95% clap parity, 40% faster builds
+version = "2.1.0"  # 100% serde elimination - all serialization powered by atomic_capsule v0.8.0
 edition = "2021"
 rust-version = "1.76.0"
 authors = ["Samuel <samuel@kindly.software>"]
