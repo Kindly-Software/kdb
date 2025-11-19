@@ -708,9 +708,7 @@ pub use json_writer::{JsonWriterCapsule, JsonWriterError, JsonWriterResult};
 /// let value = reader.read_value()?;
 /// // value = CborValue::Array(vec![...])
 /// ```
-#[cfg(feature = "cbor")]
 pub mod cbor_writer;
-#[cfg(feature = "cbor")]
 pub use cbor_writer::{
     CborWriterCapsule, CborReaderCapsule, CborValue, CborError,
 };
@@ -984,7 +982,9 @@ pub use toml_writer::{
 /// // name: Alice
 /// //   age: 30
 /// ```
+#[cfg(feature = "yaml")]
 pub mod yaml_writer;
+#[cfg(feature = "yaml")]
 pub use yaml_writer::{
     YamlWriterCapsule, YamlParserCapsule, YamlValue, YamlError, YamlResult,
 };
