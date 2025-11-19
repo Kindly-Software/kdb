@@ -179,7 +179,7 @@ mod phase_coordinator_tests {
             }
         }));
 
-        for handle: std::thread::JoinHandle<()> in handles {
+        for handle in handles {
             handle.join().unwrap();
         }
 
@@ -204,7 +204,7 @@ mod phase_coordinator_tests {
             }));
         }
 
-        for handle: std::thread::JoinHandle<()> in handles {
+        for handle in handles {
             handle.join().unwrap();
         }
     }
@@ -219,7 +219,7 @@ mod phase_coordinator_tests {
         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
 
         // 16 threads waiting for phases
-        for thread_id in 0..16 {
+        for _thread_id in 0..16 {
             let coord_clone = Arc::clone(&coord);
             handles.push(thread::spawn(move || {
                 for phase in 1..=10 {
@@ -227,7 +227,6 @@ mod phase_coordinator_tests {
                     // Verify phase reached
                     assert!(coord_clone.get_phase() >= phase);
                 }
-                thread_id // Return thread ID
             }));
         }
 
@@ -239,7 +238,7 @@ mod phase_coordinator_tests {
         }
 
         // All threads complete
-        for handle: std::thread::JoinHandle<()> in handles {
+        for handle in handles {
             handle.join().unwrap();
         }
     }
@@ -376,7 +375,7 @@ mod hash_bucket_tests {
             }));
         }
 
-        for handle: std::thread::JoinHandle<()> in handles {
+        for handle in handles {
             handle.join().unwrap();
         }
 
@@ -406,7 +405,7 @@ mod hash_bucket_tests {
             }));
         }
 
-        for handle: std::thread::JoinHandle<()> in handles {
+        for handle in handles {
             handle.join().unwrap();
         }
     }
@@ -431,7 +430,7 @@ mod hash_bucket_tests {
             }));
         }
 
-        for handle: std::thread::JoinHandle<()> in handles {
+        for handle in handles {
             handle.join().unwrap();
         }
 
@@ -573,7 +572,7 @@ mod partition_tests {
             }));
         }
 
-        for handle: std::thread::JoinHandle<()> in handles {
+        for handle in handles {
             handle.join().unwrap();
         }
 
@@ -607,7 +606,7 @@ mod partition_tests {
             }));
         }
 
-        for handle: std::thread::JoinHandle<()> in handles {
+        for handle in handles {
             handle.join().unwrap();
         }
     }
