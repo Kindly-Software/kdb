@@ -341,7 +341,7 @@ impl DatasetManager {
     pub fn save_manifest(&self, manifest: &DatasetManifest, dataset_path: &Path) -> Result<()> {
         let manifest_path = dataset_path.with_extension("manifest.json");
 
-        let json = serde_json::to_string_pretty(manifest).context("Failed to serialize manifest")?;
+        let json = manifest.to_json().map_err(|e| anyhow::anyhow!("Failed to serialize manifest: {}", e))?;
 
         let mut file = File::create(&manifest_path).context("Failed to create manifest file")?;
 
@@ -362,9 +362,13 @@ impl DatasetManager {
     pub fn load_manifest(&self, dataset_path: &Path) -> Result<DatasetManifest> {
         let manifest_path = dataset_path.with_extension("manifest.json");
 
-        let file = File::open(&manifest_path).context("Failed to open manifest file")?;
+        let mut file = File::open(&manifest_path).context("Failed to open manifest file")?;
 
-        let manifest: DatasetManifest = serde_json::from_reader(file).context("Failed to parse manifest")?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).context("Failed to read manifest file")?;
+
+        let manifest = DatasetManifest::from_json(&contents)
+            .map_err(|e| anyhow::anyhow!("Failed to parse manifest: {}", e))?;
 
         Ok(manifest)
     }
@@ -513,8 +517,8 @@ mod tests {
             provenance: "Test dataset, v1.0".to_string(),
         };
 
-        let json = serde_json::to_string(&manifest).unwrap();
-        let parsed: DatasetManifest = serde_json::from_str(&json).unwrap();
+        let json = manifest.to_json().unwrap();
+        let parsed = DatasetManifest::from_json(&json).unwrap();
 
         assert_eq!(parsed.source, manifest.source);
         assert_eq!(parsed.document_count, manifest.document_count);

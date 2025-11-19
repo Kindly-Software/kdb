@@ -37,7 +37,6 @@
 //! - Innovation-stacking (compound T1+T2+T4 optimizations)
 
 use super::GroundTruthStrategy;
-use serde::{Deserialize, Serialize};
 
 /// Production-grade configuration for ground truth generation
 ///
@@ -127,7 +126,7 @@ use serde::{Deserialize, Serialize};
 /// - `#VERIFY_100_PERCENT_RECALL`: Tests validate exhaustive/compound respect flag
 ///
 /// Safety Rating: 100% (pure configuration, no computation)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct GroundTruthConfig {
     /// Strategy to use (None = auto-select based on corpus size)
     ///
