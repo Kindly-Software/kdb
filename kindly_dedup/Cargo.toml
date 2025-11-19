@@ -25,7 +25,13 @@ atomic_capsule = { path = "../atomic_capsule", version = "0.8.0", features = [
     "probabilistic",
     "cpu-capabilities",
     "capsule-mmap",
-    "capsule-serialize",  # All serialization: JSON, Bincode, CSV, etc. (replaces serde/serde_json/bincode)
+    "capsule-serialize",  # Core serialization trait
+    "json5",              # JSON/JSONL parsing (replaces serde_json)
+    "yaml",               # YAML support
+    "msgpack",            # MessagePack binary
+    "cbor",               # CBOR binary
+    "toml",               # TOML config files
+    "avro",               # Apache Avro
     "encrypted-state",
     "const-hashing",
     "crypto-license",
@@ -70,11 +76,10 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"], optio
 # KindlyDB + kindly_dash Integration (Our Own Primitives)
 kindly-db = { path = "../kindly-db", optional = true, features = ["std"] }
 kindly_dash = { path = "../kindly_dash", optional = true }
-# HYBRID (2025-11-18): serde + CapsuleSerialize
-# Status: v2.0.0 → v2.1.0 - Gradual migration, benchmarking infrastructure uses both
-# Migration strategy: Keep serde for JSON output (benchmarking stability), add CapsuleSerialize for deterministic hashing
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+# NUCLEAR OPTION (2025-11-18): ZERO serde, 100% atomic_capsule
+# Removed: serde, serde_json, bincode (all → atomic_capsule::serialize)
+# Replacement: 35 capsule serialization primitives (JSON, Bincode, CSV, YAML, TOML, MessagePack, CBOR, JSON5, Protobuf, Avro)
+# Status: v2.1.0 - Breaking changes expected, complete independence from serde ecosystem
 # NOTE (2025-11-08): indicatif kept for async download_corpus binary only (requires tokio async runtime)
 # Main library and non-async tools replaced with atomic_capsule::parallel::BatchProgressRenderer
 # Future: Migrate download_corpus to std::thread + atomic_capsule (remove tokio dependency)
