@@ -77,6 +77,9 @@ pub mod resource_limits;
 // Utility modules (zero external dependencies)
 pub mod utils;
 
+// Serialization helpers for atomic_capsule migration
+pub mod serialize_helpers;
+
 // Panic boundaries (production-api feature only)
 #[cfg(feature = "production-api")]
 pub mod panic_boundary;
