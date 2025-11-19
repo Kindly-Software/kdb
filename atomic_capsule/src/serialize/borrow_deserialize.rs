@@ -581,7 +581,6 @@ impl<'de> BorrowDeserializeCapsule<'de> {
         }
 
         // Parse first field name
-        self.expect_char('"')?;
         Ok(Some(self.deserialize_borrowed_str()?))
     }
 
@@ -607,7 +606,6 @@ impl<'de> BorrowDeserializeCapsule<'de> {
                     ));
                 }
 
-                self.expect_char('"')?;
                 Ok(Some(self.deserialize_borrowed_str()?))
             }
             '}' => {
@@ -1220,7 +1218,7 @@ mod tests {
         assert_eq!(de.position(), 0);
 
         de.deserialize_borrowed_str().unwrap();
-        assert_eq!(de.position(), 8); // After closing quote
+        assert_eq!(de.position(), 7); // After closing quote (len of "hello" is 7)
     }
 
     // ========================================================================
