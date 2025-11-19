@@ -461,11 +461,11 @@ LICENSE VALIDATION ISSUES
 
 Warning: "License validation warning"
   - Cause: Evaluation license compatibility issue
-  - Action: Contact support@kindly.ai
+  - Action: Contact support@kindly.software
 
 Error: "License validation error"
   - Cause: License cannot be validated
-  - Action: Provide Customer ID to support@kindly.ai
+  - Action: Provide Customer ID to support@kindly.software
 
 Error: "License expired"
   - Cause: Evaluation period ended
@@ -482,12 +482,12 @@ GETTING HELP
    $ kindly_dedup /verify
 
 3. Contact support:
-   Email: support@kindly.ai
+   Email: support@kindly.software
    Include: Customer ID, error message, system info
 
 4. Report bugs:
    GitHub: github.com/kindly-ai/kindly_dedup (if public)
-   Email: support@kindly.ai with [BUG] prefix
+   Email: support@kindly.software with [BUG] prefix
 "#;
 
 const HELP_API_REFERENCE: &str = r#"
@@ -762,7 +762,7 @@ MORE EXAMPLES
 For more examples, see:
 - GitHub repository (if public)
 - Documentation: docs.kindly.ai/dedup
-- Contact: support@kindly.ai
+- Contact: support@kindly.software
 "#;
 
 // ============================================================================

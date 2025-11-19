@@ -144,7 +144,7 @@ fn main() -> eframe::Result<()> {
             Err(e) => {
                 eprintln!("\n❌ License validation failed: {}", e);
                 eprintln!("   Reason: Invalid or expired license");
-                eprintln!("   Contact: support@kindly.ai");
+                eprintln!("   Contact: support@kindly.software");
                 eprintln!("   Customer ID: {}", BuildVerification::get().customer_id());
                 std::process::exit(1);
             }
@@ -157,7 +157,7 @@ fn main() -> eframe::Result<()> {
             Err(e) => {
                 eprintln!("\n❌ Hardware validation failed: {}", e);
                 eprintln!("   Reason: License bound to different hardware");
-                eprintln!("   Contact: support@kindly.ai to transfer license");
+                eprintln!("   Contact: support@kindly.software to transfer license");
                 std::process::exit(1);
             }
         }

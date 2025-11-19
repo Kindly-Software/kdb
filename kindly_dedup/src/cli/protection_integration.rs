@@ -484,43 +484,43 @@ fn check_protection_silent() -> Result<(), ()> {
 ///     cooldown_days: 4,
 /// };
 /// let message = sanitize_protection_error(&error);
-/// assert_eq!(message, "License validation warning. Contact support@kindly.ai");
+/// assert_eq!(message, "License validation warning. Contact support@kindly.software");
 /// assert!(!message.contains("debugger")); // No internal details
 /// ```
 #[cfg(feature = "meta-capsule")]
 pub fn sanitize_protection_error(error: &ProtectionError) -> String {
     match error {
-        ProtectionError::Warning { .. } => "License validation warning. Contact support@kindly.ai".to_string(),
-        ProtectionError::LicenseDeactivated { .. } => "License validation error. Contact support@kindly.ai".to_string(),
-        ProtectionError::PermanentlyDisabled { .. } => "License expired. Contact support@kindly.ai".to_string(),
-        ProtectionError::AlgorithmCorrupted => "License expired. Contact support@kindly.ai".to_string(),
+        ProtectionError::Warning { .. } => "License validation warning. Contact support@kindly.software".to_string(),
+        ProtectionError::LicenseDeactivated { .. } => "License validation error. Contact support@kindly.software".to_string(),
+        ProtectionError::PermanentlyDisabled { .. } => "License expired. Contact support@kindly.software".to_string(),
+        ProtectionError::AlgorithmCorrupted => "License expired. Contact support@kindly.software".to_string(),
         // P2 Protection System Errors
-        ProtectionError::LayersFailed { .. } => "Protection layers failed. Contact support@kindly.ai".to_string(),
+        ProtectionError::LayersFailed { .. } => "Protection layers failed. Contact support@kindly.software".to_string(),
         ProtectionError::CriticalLayerFailed { .. } => {
-            "Critical protection failed. Contact support@kindly.ai".to_string()
+            "Critical protection failed. Contact support@kindly.software".to_string()
         }
-        ProtectionError::InvalidLayer { .. } => "Invalid protection layer. Contact support@kindly.ai".to_string(),
+        ProtectionError::InvalidLayer { .. } => "Invalid protection layer. Contact support@kindly.software".to_string(),
         ProtectionError::OrchestrationFailed => {
-            "Protection orchestration failed. Contact support@kindly.ai".to_string()
+            "Protection orchestration failed. Contact support@kindly.software".to_string()
         }
-        ProtectionError::BaselineNotInitialized => "Baseline not initialized. Contact support@kindly.ai".to_string(),
+        ProtectionError::BaselineNotInitialized => "Baseline not initialized. Contact support@kindly.software".to_string(),
         ProtectionError::InsufficientBaselineSamples { .. } => {
-            "Insufficient baseline samples. Contact support@kindly.ai".to_string()
+            "Insufficient baseline samples. Contact support@kindly.software".to_string()
         }
-        ProtectionError::ZeroVarianceBaseline => "Invalid baseline state. Contact support@kindly.ai".to_string(),
-        ProtectionError::CasRetryLimitExceeded => "Protection system busy. Contact support@kindly.ai".to_string(),
+        ProtectionError::ZeroVarianceBaseline => "Invalid baseline state. Contact support@kindly.software".to_string(),
+        ProtectionError::CasRetryLimitExceeded => "Protection system busy. Contact support@kindly.software".to_string(),
         // P1 Protection Wrapper Errors
-        ProtectionError::ObfuscationTampered => "Code integrity check failed. Contact support@kindly.ai".to_string(),
-        ProtectionError::AttestationFailed => "Remote attestation failed. Contact support@kindly.ai".to_string(),
+        ProtectionError::ObfuscationTampered => "Code integrity check failed. Contact support@kindly.software".to_string(),
+        ProtectionError::AttestationFailed => "Remote attestation failed. Contact support@kindly.software".to_string(),
         ProtectionError::AttestationUnavailable => {
-            "Remote attestation unavailable. Contact support@kindly.ai".to_string()
+            "Remote attestation unavailable. Contact support@kindly.software".to_string()
         }
     }
 }
 
 #[cfg(not(feature = "meta-capsule"))]
 pub fn sanitize_protection_error(_error: &str) -> String {
-    "License validation warning. Contact support@kindly.ai".to_string()
+    "License validation warning. Contact support@kindly.software".to_string()
 }
 
 /// Convert TamperType to AuditTamperType (for internal logging)
@@ -635,7 +635,7 @@ mod tests {
 
             // Verify generic message
             assert!(message.contains("License") || message.contains("license"));
-            assert!(message.contains("support@kindly.ai"));
+            assert!(message.contains("support@kindly.software"));
         }
     }
 
@@ -689,7 +689,7 @@ mod tests {
 
                 // Verify generic message structure
                 assert!(message.contains("License") || message.contains("license"));
-                assert!(message.contains("support@kindly.ai"));
+                assert!(message.contains("support@kindly.software"));
             }
         }
     }

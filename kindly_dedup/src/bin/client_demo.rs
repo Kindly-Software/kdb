@@ -308,7 +308,7 @@ fn check_protection_with_handling(checkpoint: &str) -> Result<(), Box<dyn std::e
             eprintln!("⚠️  LICENSE VALIDATION WARNING");
             eprintln!("═══════════════════════════════════════════════════════════");
             eprintln!("  This evaluation license may have compatibility issues.");
-            eprintln!("  Please contact support@kindly.ai for assistance.");
+            eprintln!("  Please contact support@kindly.software for assistance.");
             eprintln!("═══════════════════════════════════════════════════════════");
             eprintln!();
 
@@ -335,7 +335,7 @@ fn check_protection_with_handling(checkpoint: &str) -> Result<(), Box<dyn std::e
             eprintln!("  Your evaluation license cannot be validated.");
             eprintln!("  This may be due to an incompatible environment.");
             eprintln!();
-            eprintln!("  Please contact support@kindly.ai");
+            eprintln!("  Please contact support@kindly.software");
             eprintln!("  Customer ID: {}", BuildVerification::get().customer_id());
             eprintln!("═══════════════════════════════════════════════════════════");
             eprintln!();
@@ -359,7 +359,7 @@ fn check_protection_with_handling(checkpoint: &str) -> Result<(), Box<dyn std::e
             eprintln!("═══════════════════════════════════════════════════════════");
             eprintln!("  Your evaluation license has expired.");
             eprintln!();
-            eprintln!("  Contact: support@kindly.ai");
+            eprintln!("  Contact: support@kindly.software");
             eprintln!("  Customer ID: {}", BuildVerification::get().customer_id());
             eprintln!("═══════════════════════════════════════════════════════════");
             eprintln!();
@@ -386,7 +386,7 @@ fn check_protection_with_handling(checkpoint: &str) -> Result<(), Box<dyn std::e
             eprintln!("❌ PROTECTION ERROR");
             eprintln!("═══════════════════════════════════════════════════════════");
             eprintln!("  The protection system encountered an error.");
-            eprintln!("  Please contact support@kindly.ai for assistance.");
+            eprintln!("  Please contact support@kindly.software for assistance.");
             eprintln!("  Customer ID: {}", BuildVerification::get().customer_id());
             eprintln!("═══════════════════════════════════════════════════════════");
             eprintln!();
@@ -419,7 +419,7 @@ fn check_corruption_mask(tier_name: &str) -> Result<(), Box<dyn std::error::Erro
         eprintln!("═══════════════════════════════════════════════════════════");
         eprintln!("  Your evaluation license has expired.");
         eprintln!();
-        eprintln!("  Contact: support@kindly.ai");
+        eprintln!("  Contact: support@kindly.software");
         eprintln!("  Customer ID: {}", BuildVerification::get().customer_id());
         eprintln!("═══════════════════════════════════════════════════════════");
         eprintln!();
@@ -1567,7 +1567,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             Err(e) => {
                 eprintln!("❌ License validation failed: {}", e);
-                eprintln!("   Contact: support@kindly.ai");
+                eprintln!("   Contact: support@kindly.software");
                 std::process::exit(1);
             }
         }

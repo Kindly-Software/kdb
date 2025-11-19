@@ -581,7 +581,7 @@ mod tests {
         }
 
         let mut total = 0;
-        for handle: std::thread::JoinHandle<u32> in handles {
+        for handle in handles {
             total += handle.join().unwrap();
         }
 

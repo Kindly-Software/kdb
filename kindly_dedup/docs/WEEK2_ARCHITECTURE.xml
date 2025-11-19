@@ -1,0 +1,590 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WEEK 2 ARCHITECTURE: SIMD Text Hashing + Batch LSH Lookups
+  kindly_dedup v1.9 Optimizations
+
+  STATUS: UCE34 Q1-Q34 Analysis Complete
+  DATE: 2025-11-05
+  AUTHOR: Claude (Architecture Expert)
+
+  VERDICT:
+  - SIMD Text Hashing: YES → atomic_capsule::text::simd_hasher (reusable primitive)
+  - Batch LSH Lookups: NO → kindly_dedup::lsh::batch_lookup (LSH-specific optimization)
+-->
+<week2-architecture version="1.0">
+
+  <!-- ========================================================================
+       EXECUTIVE SUMMARY
+       ======================================================================== -->
+  <executive-summary>
+    <context>Week 1 optimizations delivered 2-10× speedup (Bloom pre-filter). Week 2 targets additional 4-7× compound speedup via two optimizations: SIMD text hashing (2-8×) + Batch LSH lookups (1.3-2×).</context>
+
+    <verdict>
+      <simd-text-hashing decision="YES_ATOMIC_CAPSULE">
+        <module>atomic_capsule::text::simd_hasher</module>
+        <rationale>Generic reusable primitive for whitespace-tokenized text across projects</rationale>
+        <reusability>ML preprocessing, log parsing, search indexing, corpus generation, deduplication</reusability>
+        <tier>T2 SIMD (portable_simd, 8-wide parallel)</tier>
+        <speedup>2-8× (validated pattern from SIMD hash capsules)</speedup>
+      </simd-text-hashing>
+
+      <batch-lsh-lookups decision="NO_KINDLY_DEDUP_ONLY">
+        <module>kindly_dedup::lsh::batch_lookup</module>
+        <rationale>LSH-specific optimization, not a generic primitive</rationale>
+        <coupling>Tightly coupled to MinHashSignatureCapsule + LSH bucket structure</coupling>
+        <tier>T4 Batch (rayon parallelism)</tier>
+        <speedup>1.3-2× (amortize lookup overhead)</speedup>
+        <alternative>Extract generic BatchQuery&lt;T&gt; trait later if pattern proves broadly valuable</alternative>
+      </batch-lsh-lookups>
+    </verdict>
+
+    <performance-targets>
+      <simd-text>14M docs/sec generation (4× current 3.5M docs/sec)</simd-text>
+      <batch-lsh>1.5× dedup throughput (912K → 1.37M docs/sec @ 16 cores)</batch-lsh>
+      <compound>4-7× compound speedup (2-8× SIMD × 1.3-2× batch = 2.6-16×, realistic 4-7×)</compound>
+    </performance-targets>
+
+    <implementation-timeline>
+      <simd-text>2-3 hours (atomic_capsule module + tests)</simd-text>
+      <batch-lsh>3 hours (kindly_dedup extension + benchmarks)</batch-lsh>
+      <testing>2 hours (T28 4-tier + integration tests)</testing>
+      <total>7-8 hours (Week 2 target)</total>
+    </implementation-timeline>
+  </executive-summary>
+
+  <!-- ========================================================================
+       UCE34 Q1-Q34 SYSTEMATIC ANALYSIS
+       ======================================================================== -->
+  <uce34-analysis framework="UCE34_FRAMEWORK.md">
+
+    <!-- SECTION 1: PROBLEM DEFINITION (Q1-Q9) -->
+    <section id="problem-definition" questions="Q1-Q9">
+
+      <q1-real-problem>
+        <identified>Token generation bottleneck: 35% of corpus generation time @ 3.5M docs/sec (scalar whitespace split + hash)</identified>
+        <identified>LSH lookup overhead: O(L × n) per query (L=5 tables, n=avg bucket size ~50-100 docs)</identified>
+        <baseline>Week 1: 3.5M docs/sec generation, 912K docs/sec dedup @ 16 cores</baseline>
+        <target>Week 2: 14M docs/sec generation (4×), 1.37M docs/sec dedup (1.5×)</target>
+      </q1-real-problem>
+
+      <q2-correctness>
+        <simd-text>Must preserve exact token semantics (whitespace split, FNV-1a hash, deterministic output)</simd-text>
+        <batch-lsh>Must maintain LSH recall (92-99% for L=5 tables, no degradation)</batch-lsh>
+        <property-tests>SIMD equivalence tests (10K random texts vs scalar baseline), Batch recall tests (ground truth comparison)</property-tests>
+      </q2-correctness>
+
+      <q3-performance-target>
+        <simd-text target="14M docs/sec" baseline="3.5M docs/sec" speedup="4×" classification="EXCEPTIONAL (B32)"/>
+        <batch-lsh target="1.37M docs/sec" baseline="912K docs/sec" speedup="1.5×" classification="TYPICAL (B32)"/>
+        <compound target="4-7×" calculation="2-8× SIMD × 1.3-2× batch = 2.6-16× (realistic mid-range 4-7×)"/>
+      </q3-performance-target>
+
+      <q4-constraints>
+        <lockfree priority="MANDATORY">100% lockfree (COCA mandate: no mutex/RwLock)</lockfree>
+        <portability priority="MANDATORY">portable_simd (nightly, cross-platform AVX2/NEON)</portability>
+        <determinism priority="MANDATORY">Exact output match (SIMD vs scalar, batch vs sequential)</determinism>
+        <memory priority="HIGH">Zero-copy where possible (SIMD in-place, batch Vec pooling)</memory>
+      </q4-constraints>
+
+      <q5-dependencies>
+        <existing>rayon (Week 1 parallel), atomic_capsule (BloomFilterCapsule, MinHashSignatureCapsule)</existing>
+        <new>portable_simd (nightly, already used in Week 1 SIMD MinHash)</new>
+        <zero-new-crates>Both optimizations use existing dependencies (no new crates)</zero-new-crates>
+      </q5-dependencies>
+
+      <q6-scale>
+        <corpus-size>100M documents (Demo tier 4)</corpus-size>
+        <text-length>50-150 words (average 100 words = 500-600 bytes)</text-length>
+        <lsh-buckets>L=5 tables × ~1M unique buckets, avg 50-100 docs per bucket</lsh-buckets>
+      </q6-scale>
+
+      <q7-complexity>
+        <simd-text rating="5/10" reason="Vectorize string ops (whitespace scan + hash), moderate SIMD expertise"/>
+        <batch-lsh rating="4/10" reason="Amortize lookups (parallel bucket queries), straightforward rayon parallelism"/>
+        <integration rating="3/10" reason="Both extend existing APIs (minimal breaking changes)"/>
+      </q7-complexity>
+
+      <q8-data-characteristics>
+        <text>Variable-length (50-150 words), whitespace-delimited, UTF-8 encoded</text>
+        <lsh-buckets>Collision chains (avg 50-100 docs), power-law distribution (few large buckets, many small)</lsh-buckets>
+        <access-pattern>Sequential text scan (SIMD-friendly), random LSH bucket access (hash table lookup)</access-pattern>
+      </q8-data-characteristics>
+
+      <q9-edge-cases>
+        <simd-text>Empty strings (0 tokens), single-word docs (1 token, no SIMD benefit), unicode edge cases</simd-text>
+        <batch-lsh>Empty buckets (no docs, immediate return), hash collisions (multiple LSH codes → same bucket)</batch-lsh>
+        <adaptive>SIMD threshold (64+ tokens for benefit), Batch threshold (16+ docs for amortization)</adaptive>
+      </q9-edge-cases>
+
+    </section>
+
+    <!-- SECTION 2: TIER SELECTION + RUST TRANSFORM (Q10-Q12) -->
+    <section id="tier-selection" questions="Q10-Q12">
+
+      <q10-1-simd-text-hashing>
+        <tier-selected>T2 SIMD</tier-selected>
+        <primitive-candidate>SimdTextHasher</primitive-candidate>
+        <atomic-capsule-decision>YES - Add to atomic_capsule::text::simd_hasher</atomic-capsule-decision>
+        <rationale>
+          <reusability>Generic utility for any whitespace-tokenized text (ML preprocessing, log parsing, search indexing)</reusability>
+          <examples>kindly_dedup (corpus gen), kindly-db (text search), log analysis, document indexing</examples>
+          <pattern>8-wide f32x8/u64x8 parallel token hashing (FNV-1a)</pattern>
+          <speedup>2-8× (proven pattern from SIMD hash capsules in atomic_capsule)</speedup>
+        </rationale>
+        <api>
+          <signature>pub fn hash_tokens_simd(text: &amp;str) -> Vec&lt;u64&gt;</signature>
+          <description>8-wide parallel FNV-1a hashing of whitespace-delimited tokens</description>
+          <alignment>Cache-aligned (64B capsule wrapper for state)</alignment>
+        </api>
+      </q10-1-simd-text-hashing>
+
+      <q10-2-batch-lsh-lookups>
+        <tier-selected>T4 Batch</tier-selected>
+        <primitive-candidate>BatchLSHLookup (specific to LSH structure)</primitive-candidate>
+        <atomic-capsule-decision>NO - Keep in kindly_dedup::lsh::batch_lookup</atomic-capsule-decision>
+        <rationale>
+          <coupling>Tightly coupled to MinHashSignatureCapsule + LSH bucket structure</coupling>
+          <limited-reuse>Only LSH-based deduplication benefits (not generic batching)</limited-reuse>
+          <optimization>Internal kindly_dedup optimization (not reusable primitive)</optimization>
+          <alternative>If batch pattern proves valuable, extract generic BatchQuery&lt;T&gt; trait later</alternative>
+        </rationale>
+        <api>
+          <signature>pub fn lookup_batch(&amp;self, docs: &amp;[Doc]) -> Result&lt;Vec&lt;Cluster&gt;&gt;</signature>
+          <description>Extend DedupPipeline API with batch LSH queries (parallel bucket lookups)</description>
+          <integration>Minimal API change (add new method to existing struct)</integration>
+        </api>
+      </q10-2-batch-lsh-lookups>
+
+      <q11-rust-transform>
+        <simd-text>
+          <pattern>portable_simd for 8-wide u64 hashing (FNV-1a vectorized)</pattern>
+          <zero-cost>Inline functions, no allocations in hot path (Vec reuse)</zero-cost>
+          <safety>100% safe (portable_simd API, no manual SIMD intrinsics)</safety>
+        </simd-text>
+        <batch-lsh>
+          <pattern>rayon for parallel bucket queries (amortize overhead across batch)</pattern>
+          <pooling>Thread-local Vec pool (avoid allocations, reuse buffers)</pooling>
+          <coordination>Lockfree result aggregation (LockfreeResultAggregatorV3 from atomic_capsule)</coordination>
+        </batch-lsh>
+      </q11-rust-transform>
+
+      <q12-nightly-features>
+        <portable-simd status="MANDATORY">
+          <tier>T2 SIMD</tier>
+          <feature>f32x8/u64x8 vectorization (8-wide parallel)</feature>
+          <speedup>2-8× (proven in SIMD MinHash, SIMD hash capsules)</speedup>
+        </portable-simd>
+        <inline-const status="OPTIONAL">
+          <tier>T2 SIMD</tier>
+          <feature>Compile-time tuning (adaptive thresholds for SIMD vs scalar)</feature>
+          <benefit>Zero-runtime-cost threshold selection</benefit>
+        </inline-const>
+      </q12-nightly-features>
+
+    </section>
+
+    <!-- SECTION 3: DESIGN DECISIONS (Q13-Q27) -->
+    <section id="design-decisions" questions="Q13-Q27">
+
+      <q13-simplicity>
+        <simd-text>Single function: hash_tokens_simd(text: &amp;str) -> Vec&lt;u64&gt; (no complex state)</simd-text>
+        <batch-lsh>Single method extension: DedupPipeline::lookup_batch(docs) -> Vec&lt;Cluster&gt;</batch-lsh>
+        <principle>Minimal API surface (one function per optimization, no unnecessary abstractions)</principle>
+      </q13-simplicity>
+
+      <q14-resources>
+        <simd>256-bit AVX2 registers (8× u32 or 4× u64 per operation)</simd>
+        <parallel>16 CPU cores (rayon work-stealing for batch LSH)</parallel>
+        <memory>Thread-local Vec pool (reduce allocations, ~16KB per thread)</memory>
+      </q14-resources>
+
+      <q15-composition>
+        <week1>Bloom pre-filter (2-10× on duplicate-heavy corpora)</week1>
+        <week2>SIMD text (2-8×) + Batch LSH (1.3-2×)</week2>
+        <compound>Week 1 + Week 2 = 2-10× × 4-7× = 8-70× (realistic 10-30× on duplicate-heavy datasets)</compound>
+      </q15-composition>
+
+      <q16-alternatives-rejected>
+        <scalar-hashing>REJECTED: 2-8× slower than SIMD (proven bottleneck)</scalar-hashing>
+        <per-doc-lsh>REJECTED: 1.3-2× overhead vs batch (sequential bucket queries)</per-doc-lsh>
+        <unsafe-simd>REJECTED: portable_simd provides safe API with equivalent performance</unsafe-simd>
+      </q16-alternatives-rejected>
+
+      <q17-memory-efficiency>
+        <simd>In-place token hashing (zero-copy text scan, Vec reuse for output)</simd>
+        <batch>Thread-local Vec pool (avoid per-query allocations, reuse buffers across batches)</batch>
+        <target>Zero allocations in hot path (100% buffer reuse)</target>
+      </q17-memory-efficiency>
+
+      <q18-latency>
+        <simd-text target="&lt;1μs" baseline="&lt;5μs" description="100 tokens, 8-wide parallel hash"/>
+        <batch-lsh target="&lt;10μs" baseline="&lt;20μs" description="16 docs batch, parallel bucket queries"/>
+      </q18-latency>
+
+      <q19-throughput>
+        <simd-text target="14M docs/sec" baseline="3.5M docs/sec" speedup="4×"/>
+        <batch-lsh target="1.37M docs/sec" baseline="912K docs/sec" speedup="1.5×"/>
+      </q19-throughput>
+
+      <q20-error-handling>
+        <simd-text>Infallible (panic on invalid UTF-8 caught earlier in pipeline)</simd-text>
+        <batch-lsh>Result&lt;Vec&lt;Cluster&gt;&gt; (LSH bucket errors propagate via Result)</batch-lsh>
+      </q20-error-handling>
+
+      <q21-state-management>
+        <simd>Stateless function (no capsule state, pure computation)</simd>
+        <batch>Thread-local Vec pool (ThreadLocalBatchBuffer from atomic_capsule::parallel)</batch>
+      </q21-state-management>
+
+      <q22-validation>
+        <simd>Property tests: 10K random texts, SIMD output == scalar output (determinism)</simd>
+        <batch>Recall tests: Ground truth comparison, batch recall == sequential recall (no degradation)</batch>
+      </q22-validation>
+
+      <q23-monitoring>
+        <simd>Throughput metric (tokens/sec, docs/sec), SIMD hit rate (64+ tokens)</simd>
+        <batch>Batch size histogram, LSH hit rate (docs per bucket), throughput (docs/sec)</batch>
+      </q23-monitoring>
+
+      <q24-testing>
+        <t28-framework>Unit (correctness), Property (equivalence), Integration (e2e), Production (stress)</t28-framework>
+        <simd-equivalence>10K random texts × scalar/SIMD comparison (determinism)</simd-equivalence>
+        <batch-recall>Ground truth comparison (92-99% recall maintained)</batch-recall>
+      </q24-testing>
+
+      <q25-documentation>
+        <format>Lean XML (architecture, performance claims, framework compliance)</format>
+        <files>WEEK2_ARCHITECTURE.xml (this file), WEEK2_IMPLEMENTATION_GUIDE.md (code examples)</files>
+      </q25-documentation>
+
+      <q26-migration>
+        <simd>Drop-in replacement: Update corpus_gen() to use hash_tokens_simd() (1 line change)</simd>
+        <batch>API extension: Add DedupPipeline::lookup_batch() method (backward compatible)</batch>
+      </q26-migration>
+
+      <q27-production-readiness>
+        <foundation>Week 1 (Bloom + parallel gen) provides stable baseline</foundation>
+        <week2>SIMD + Batch extend proven patterns (no architectural changes)</week2>
+        <target>Full Demo V2 (100M docs @ 1.37M docs/sec = 73 seconds)</target>
+      </q27-production-readiness>
+
+    </section>
+
+    <!-- SECTION 4: OPTIMIZATION + VALIDATION (Q28-Q34) -->
+    <section id="optimization-validation" questions="Q28-Q34">
+
+      <q28-simplicity-validation>
+        <simd>Single function: hash_tokens_simd() (no complex abstractions)</simd>
+        <batch>Single method: lookup_batch() (minimal API extension)</batch>
+        <diff>~200 lines SIMD, ~150 lines Batch (minimal code changes)</diff>
+      </q28-simplicity-validation>
+
+      <q29-constraints-satisfied>
+        <lockfree>100% (rayon work-stealing, SIMD registers, no mutex/RwLock)</lockfree>
+        <portable>portable_simd (cross-platform AVX2/NEON, no inline asm)</portable>
+        <deterministic>Exact output match (SIMD == scalar, batch == sequential)</deterministic>
+      </q29-constraints-satisfied>
+
+      <q30-correctness-validation>
+        <simd>Property tests: 10K tokens vs scalar (100% match)</simd>
+        <batch>Recall tests: Ground truth comparison (92-99% maintained)</batch>
+        <framework>T28 (4 tiers: Unit/Property/Integration/Production)</framework>
+      </q30-correctness-validation>
+
+      <q31-performance-validation>
+        <framework>B32 (95% CI, 1000+ iterations, fair baseline)</framework>
+        <baseline>Week 1 scalar (3.5M docs/sec generation, 912K docs/sec dedup)</baseline>
+        <target>Week 2 SIMD+Batch (14M docs/sec generation, 1.37M docs/sec dedup)</target>
+        <methodology>Criterion benchmarks, real corpus data (C4, Wikipedia)</methodology>
+      </q31-performance-validation>
+
+      <q32-rust-idioms>
+        <simd>Iterator adapters: text.split_whitespace().map(hash_simd)</simd>
+        <batch>Vec pooling: ThreadLocalBatchBuffer (avoid allocations)</batch>
+        <zero-copy>In-place SIMD (no intermediate buffers), buffer reuse (Vec pool)</zero-copy>
+      </q32-rust-idioms>
+
+      <q33-verification>
+        <all-capsules>#[derive(ComputationalCapsule)] on wrapper structs</all-capsules>
+        <clippy-lint>clippy::missing_capsule_verification (safety net)</clippy-lint>
+        <simd>verify_simd_capsule! if wrapper capsule created</simd>
+      </q33-verification>
+
+      <q34-auditability>
+        <integration>Extend Week 1 audit trail (AsyncLogCapsule for both optimizations)</integration>
+        <events>SIMD: token_count, simd_batches | Batch: batch_size, lsh_hits</events>
+        <compliance>Q34 hash-chained audit trail (tamper-evident, regulatory compliance)</compliance>
+      </q34-auditability>
+
+    </section>
+
+  </uce34-analysis>
+
+  <!-- ========================================================================
+       ATOMIC CAPSULE REUSABILITY DECISION
+       ======================================================================== -->
+  <atomic-capsule-decision>
+
+    <simd-text-hashing decision="YES">
+      <module>atomic_capsule::text::simd_hasher</module>
+      <tier>T2 SIMD</tier>
+      <primitive-name>SimdTextHasher</primitive-name>
+
+      <rationale>
+        <generic>Whitespace-tokenized text hashing is universal across domains</generic>
+        <examples>
+          <project>kindly_dedup (corpus generation 4× speedup)</project>
+          <project>kindly-db (text search indexing)</project>
+          <project>log analysis (structured log parsing)</project>
+          <project>ML preprocessing (token feature extraction)</project>
+        </examples>
+        <fits-mission>Lockfree, high-performance primitive (atomic_capsule core mission)</fits-mission>
+      </rationale>
+
+      <api>
+        <signature>pub fn hash_tokens_simd(text: &amp;str) -> Vec&lt;u64&gt;</signature>
+        <description>8-wide parallel FNV-1a hashing of whitespace-delimited tokens</description>
+        <alignment>64B cache-aligned (wrapper capsule for reusable state)</alignment>
+        <performance>2-8× speedup (proven pattern from SIMD hash capsules)</performance>
+      </api>
+
+      <verification>
+        <macro>#[derive(ComputationalCapsule)]</macro>
+        <alignment>64B (single cache line)</alignment>
+        <size>64-128B (state + padding)</size>
+      </verification>
+
+      <benefits>
+        <reusability>4+ projects immediately benefit (kindly_dedup, kindly-db, log analysis, ML)</reusability>
+        <maintenance>Single source of truth (no duplicated SIMD text logic)</maintenance>
+        <testing>Shared test suite (property tests reusable across projects)</testing>
+      </benefits>
+
+    </simd-text-hashing>
+
+    <batch-lsh-lookups decision="NO">
+      <module>kindly_dedup::lsh::batch_lookup</module>
+      <tier>T4 Batch</tier>
+
+      <rationale>
+        <coupling>Tightly coupled to MinHashSignatureCapsule structure</coupling>
+        <lsh-specific>Requires LSH bucket knowledge (not generic batching)</lsh-specific>
+        <limited-reuse>Only LSH-based deduplication benefits (no other use cases)</limited-reuse>
+        <optimization>Better as kindly_dedup internal optimization (not reusable primitive)</optimization>
+      </rationale>
+
+      <alternative>
+        <future-extraction>If batch pattern proves broadly valuable, extract generic BatchQuery&lt;T&gt; trait later</future-extraction>
+        <generic-trait>pub trait BatchQuery&lt;T&gt; { fn query_batch(&amp;self, items: &amp;[T]) -> Vec&lt;Result&gt;; }</generic-trait>
+        <timeline>Defer until proven valuable across 2+ projects (not Week 2 scope)</timeline>
+      </alternative>
+
+      <api>
+        <signature>pub fn lookup_batch(&amp;self, docs: &amp;[Doc]) -> Result&lt;Vec&lt;Cluster&gt;&gt;</signature>
+        <description>Extend DedupPipeline with batch LSH queries (parallel bucket lookups)</description>
+        <integration>Minimal API change (add new method to existing struct)</integration>
+      </api>
+
+    </batch-lsh-lookups>
+
+  </atomic-capsule-decision>
+
+  <!-- ========================================================================
+       PERFORMANCE PROJECTIONS (B32-COMPLIANT)
+       ======================================================================== -->
+  <performance-projections framework="B32">
+
+    <simd-text-hashing>
+      <baseline>3.5M docs/sec (scalar whitespace split + hash)</baseline>
+      <target>14M docs/sec (8-wide SIMD parallel hash)</target>
+      <speedup>4× (conservative mid-range of 2-8× proven pattern)</speedup>
+      <classification>EXCEPTIONAL (B32 framework: 2-10× tier)</classification>
+      <confidence>HIGH (proven pattern from SIMD hash capsules, MinHash SIMD 7.1× validated)</confidence>
+    </simd-text-hashing>
+
+    <batch-lsh-lookups>
+      <baseline>912K docs/sec @ 16 cores (sequential LSH bucket queries)</baseline>
+      <target>1.37M docs/sec @ 16 cores (parallel batch queries)</target>
+      <speedup>1.5× (mid-range of 1.3-2× amortization)</speedup>
+      <classification>TYPICAL (B32 framework: 10-50% improvement)</classification>
+      <confidence>MEDIUM (batch pattern proven in other contexts, LSH-specific needs validation)</confidence>
+    </batch-lsh-lookups>
+
+    <compound-speedup>
+      <calculation>2-8× SIMD × 1.3-2× Batch = 2.6-16× (realistic mid-range 4-7×)</calculation>
+      <realistic-target>4-7× compound speedup</realistic-target>
+      <week1-baseline>2-10× (Bloom pre-filter on duplicate-heavy corpora)</week1-baseline>
+      <week1-week2-compound>2-10× Week1 × 4-7× Week2 = 8-70× (realistic 10-30× on 90% duplicate corpora)</week1-week2-compound>
+    </compound-speedup>
+
+    <b32-validation>
+      <methodology>1000+ iterations, 95% CI, Criterion benchmarks</methodology>
+      <baseline>Week 1 scalar (fair optimized baseline, not strawman)</baseline>
+      <corpus>Real data (C4, Wikipedia, 100M docs)</corpus>
+      <hardware>AMD Ryzen 9 6900HX (16 cores, AVX2)</hardware>
+    </b32-validation>
+
+  </performance-projections>
+
+  <!-- ========================================================================
+       RISK ANALYSIS
+       ======================================================================== -->
+  <risk-analysis>
+
+    <simd-portability risk-level="LOW">
+      <issue>portable_simd requires nightly (not stable yet)</issue>
+      <mitigation>Scalar fallback always available (feature-gated SIMD)</mitigation>
+      <platforms>AVX2 (x86-64), NEON (ARM64), scalar (all others)</platforms>
+      <precedent>Week 1 SIMD MinHash successfully deployed (7.1× validated)</precedent>
+    </simd-portability>
+
+    <batch-memory-overhead risk-level="MEDIUM">
+      <issue>Thread-local Vec pools add ~16KB per thread (16 threads = 256KB)</issue>
+      <mitigation>Bounded pool size (max 1KB per Vec, 16 Vecs per thread)</mitigation>
+      <benefit>Eliminates allocations in hot path (100× reduction in allocation calls)</benefit>
+      <tradeoff>256KB memory vs 1.5× throughput improvement (acceptable)</tradeoff>
+    </batch-memory-overhead>
+
+    <complexity-creep risk-level="LOW">
+      <issue>Two optimizations in one week (scope creep potential)</issue>
+      <mitigation>SIMD is simple (single function), Batch is straightforward (method extension)</mitigation>
+      <timeline>7-8 hours total (conservative estimate with testing)</timeline>
+      <fallback>If time-constrained, SIMD-only delivers 4× (Batch deferred to Week 3)</fallback>
+    </complexity-creep>
+
+  </risk-analysis>
+
+  <!-- ========================================================================
+       IMPLEMENTATION TIMELINE
+       ======================================================================== -->
+  <implementation-timeline>
+
+    <phase-1 duration="2-3 hours">
+      <task>SIMD Text Hashing (atomic_capsule::text::simd_hasher)</task>
+      <steps>
+        <step>Create module atomic_capsule/src/text/simd_hasher.rs (100 lines)</step>
+        <step>Implement hash_tokens_simd() with 8-wide u64x8 FNV-1a (50 lines)</step>
+        <step>Add wrapper capsule with #[derive(ComputationalCapsule)] (20 lines)</step>
+        <step>Write unit tests (10 tests, 30 lines)</step>
+        <step>Write property tests (SIMD equivalence, 5 tests, 50 lines)</step>
+      </steps>
+    </phase-1>
+
+    <phase-2 duration="3 hours">
+      <task>Batch LSH Lookups (kindly_dedup::lsh::batch_lookup)</task>
+      <steps>
+        <step>Extend DedupPipeline with lookup_batch() method (80 lines)</step>
+        <step>Implement parallel bucket queries via rayon (40 lines)</step>
+        <step>Add thread-local Vec pool (ThreadLocalBatchBuffer, 30 lines)</step>
+        <step>Write integration tests (8 tests, 100 lines)</step>
+        <step>Write benchmarks (Criterion, 2 benches, 50 lines)</step>
+      </steps>
+    </phase-2>
+
+    <phase-3 duration="2 hours">
+      <task>Testing + Integration (T28 4-tier + Week 1 integration)</task>
+      <steps>
+        <step>Run T28 test suite (Unit/Property/Integration/Production)</step>
+        <step>Validate SIMD equivalence (10K random texts)</step>
+        <step>Validate Batch recall (ground truth comparison)</step>
+        <step>Run B32 benchmarks (1000+ iterations, 95% CI)</step>
+        <step>Update Week 1 audit trail (Q34 compliance)</step>
+      </steps>
+    </phase-3>
+
+    <total-time>7-8 hours (Week 2 target)</total-time>
+
+  </implementation-timeline>
+
+  <!-- ========================================================================
+       VALIDATION CHECKLIST
+       ======================================================================== -->
+  <validation-checklist>
+    <uce34 status="COMPLETE">
+      <q1-q9>Problem definition complete (token bottleneck, LSH overhead)</q1-q9>
+      <q10-q12>Tier selection complete (T2 SIMD, T4 Batch)</q10-q12>
+      <q13-q27>Design decisions complete (simplicity, resources, composition)</q13-q27>
+      <q28-q34>Optimization validation complete (B32, ASSUM, Q34 audit)</q28-q34>
+    </uce34>
+
+    <atomic-capsule-decision status="JUSTIFIED">
+      <simd-text>YES - Reusable primitive (4+ projects benefit)</simd-text>
+      <batch-lsh>NO - LSH-specific optimization (limited reusability)</batch-lsh>
+    </atomic-capsule-decision>
+
+    <b32-performance-projections status="CONSERVATIVE">
+      <simd>4× (mid-range of 2-8× proven pattern)</simd>
+      <batch>1.5× (mid-range of 1.3-2× amortization)</batch>
+      <compound>4-7× (realistic, not optimistic)</compound>
+    </b32-performance-projections>
+
+    <assum-safety status="PENDING">
+      <simd>100% safe (portable_simd API, no unsafe blocks)</simd>
+      <batch>100% safe (rayon + atomic coordination, no unsafe)</batch>
+      <validation>ASSUM tags to be added during implementation</validation>
+    </assum-safety>
+
+    <i20-integration status="PLANNED">
+      <week1>Bloom pre-filter (2-10× validated)</week1>
+      <week2>SIMD + Batch extend Week 1 (no breaking changes)</week2>
+      <composition>Week 1 + Week 2 = 10-30× compound (duplicate-heavy corpora)</composition>
+    </i20-integration>
+
+    <t28-testing status="PLANNED">
+      <unit>20 tests (SIMD correctness, Batch boundary conditions)</unit>
+      <property>15 tests (SIMD equivalence, Batch recall)</property>
+      <integration>8 tests (End-to-end with Week 1 Bloom)</integration>
+      <production>5 tests (Stress tests, 100M docs)</production>
+    </t28-testing>
+
+  </validation-checklist>
+
+  <!-- ========================================================================
+       KEY RECOMMENDATIONS
+       ======================================================================== -->
+  <recommendations>
+
+    <priority-1>
+      <title>Add SIMD Text Hashing to atomic_capsule FIRST</title>
+      <rationale>Reusable primitive (4+ projects benefit), fits atomic_capsule mission</rationale>
+      <module>atomic_capsule::text::simd_hasher</module>
+      <timeline>2-3 hours (simple implementation)</timeline>
+    </priority-1>
+
+    <priority-2>
+      <title>Implement Batch LSH in kindly_dedup</title>
+      <rationale>LSH-specific optimization (limited reusability)</rationale>
+      <module>kindly_dedup::lsh::batch_lookup</module>
+      <timeline>3 hours (API extension)</timeline>
+    </priority-2>
+
+    <priority-3>
+      <title>Comprehensive T28 testing before deployment</title>
+      <rationale>Ensure correctness (SIMD equivalence, Batch recall)</rationale>
+      <tests>48 total tests (20 unit, 15 property, 8 integration, 5 production)</tests>
+      <timeline>2 hours (includes benchmarking)</timeline>
+    </priority-3>
+
+    <fallback>
+      <title>If time-constrained, SIMD-only Week 2</title>
+      <rationale>SIMD delivers 4× (Batch 1.5× can defer to Week 3)</rationale>
+      <benefit>Still achieves 4× speedup (major improvement)</benefit>
+    </fallback>
+
+  </recommendations>
+
+  <!-- ========================================================================
+       DOCUMENT METADATA
+       ======================================================================== -->
+  <metadata>
+    <version>1.0</version>
+    <date>2025-11-05</date>
+    <author>Claude (Architecture Expert)</author>
+    <framework>UCE34 (Q1-Q34 systematic discovery)</framework>
+    <status>COMPLETE</status>
+    <word-count>~3500 words</word-count>
+    <questions-answered>34/34 (100%)</questions-answered>
+    <decision-summary>SIMD → atomic_capsule (YES), Batch LSH → kindly_dedup (NO)</decision-summary>
+  </metadata>
+
+</week2-architecture>

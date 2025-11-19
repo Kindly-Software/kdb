@@ -526,7 +526,7 @@ mod tests {
                 }));
             }
 
-            for handle: std::thread::JoinHandle<()> in handles {
+            for handle in handles {
                 handle.join().unwrap();
             }
 
@@ -550,7 +550,7 @@ mod tests {
                 }));
             }
 
-            for handle: std::thread::JoinHandle<()> in handles {
+            for handle in handles {
                 handle.join().unwrap();
             }
 

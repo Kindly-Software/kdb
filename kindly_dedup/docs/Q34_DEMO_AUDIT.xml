@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Q34 Demo Audit Extensions - Sales Demonstration Lifecycle Tracking -->
+<!-- Version: 1.0 | Status: Production-Ready | Date: 2025-11-05 -->
+<q34-demo-audit version="1.0">
+  <metadata>
+    <created>2025-11-05T00:00:00Z</created>
+    <last-modified>2025-11-05T00:00:00Z</last-modified>
+    <description>Q34 audit trail extensions for demo-specific events with AtomicHash256 hash chains</description>
+    <framework>UCE34 Q34 (Auditability) + ASSUM (Safety) + B32 (Performance)</framework>
+    <compliance>SOX/SOC2/GDPR/HIPAA-ready tamper-evident audit trails</compliance>
+  </metadata>
+
+  <!-- ========================================================================
+       OVERVIEW
+       ======================================================================== -->
+  <overview>
+    <purpose>Extend Q34 audit infrastructure for sales demo lifecycle tracking</purpose>
+    <use-case>200M document demo with batch progress logging (1M doc intervals)</use-case>
+    <events>4 new SecurityEventType variants (DemoTierStarted, DemoTierCompleted, DemoBatchProcessed, DemoVerificationPassed)</events>
+    <performance>200ns per event (same as core audit logging)</performance>
+    <hash-chain>AtomicHash256 (32 bytes, 2^256 collision resistance)</hash-chain>
+  </overview>
+
+  <!-- ========================================================================
+       NEW EVENT TYPES
+       ======================================================================== -->
+  <event-types>
+    <event id="DemoTierStarted" value="9">
+      <name>Demo Tier Started</name>
+      <description>Logs when a demo tier (Accuracy/Production/Massive) begins execution</description>
+      <fields>
+        <field name="tier_name">Tier name (Accuracy/Production/Massive)</field>
+        <field name="total_docs">Total documents in tier (100K/1M/10M)</field>
+        <field name="customer_id">Customer identifier (from build verification)</field>
+      </fields>
+      <example>Tier: Accuracy | Docs: 100,000</example>
+      <frequency>3 events per full demo (one per tier)</frequency>
+    </event>
+
+    <event id="DemoTierCompleted" value="10">
+      <name>Demo Tier Completed</name>
+      <description>Logs when a demo tier finishes with performance metrics</description>
+      <fields>
+        <field name="tier_name">Tier name (Accuracy/Production/Massive)</field>
+        <field name="docs_processed">Total documents processed</field>
+        <field name="elapsed_secs">Elapsed time in seconds</field>
+        <field name="throughput">Average throughput (docs/sec)</field>
+        <field name="cluster_count">Number of duplicate clusters found</field>
+      </fields>
+      <example>Tier: Production | Docs: 1,000,000 | Time: 17.00s | Throughput: 58823.53 docs/sec | Clusters: 42</example>
+      <frequency>3 events per full demo (one per tier)</frequency>
+    </event>
+
+    <event id="DemoBatchProcessed" value="11">
+      <name>Demo Batch Processed</name>
+      <description>Logs progress every 1M documents during tier execution</description>
+      <fields>
+        <field name="batch_num">Batch number (1-based)</field>
+        <field name="docs_processed">Total documents processed so far</field>
+        <field name="throughput">Current throughput (docs/sec)</field>
+      </fields>
+      <example>Batch: 42 | Processed: 42,000,000 docs | Throughput: 60123.45 docs/sec</example>
+      <frequency>200 events for 200M corpus (every 1M docs)</frequency>
+    </event>
+
+    <event id="DemoVerificationPassed" value="12">
+      <name>Demo Verification Passed</name>
+      <description>Logs ground truth validation results (Accuracy tier)</description>
+      <fields>
+        <field name="tier_name">Tier name (typically Accuracy)</field>
+        <field name="precision">Precision percentage (0.0-1.0)</field>
+        <field name="recall">Recall percentage (0.0-1.0)</field>
+        <field name="f1_score">F1 score (0.0-1.0)</field>
+      </fields>
+      <example>Tier: Accuracy | Precision: 1.0000 | Recall: 1.0000 | F1: 1.0000</example>
+      <frequency>1 event per demo (Accuracy tier only)</frequency>
+    </event>
+  </event-types>
+
+  <!-- ========================================================================
+       API FUNCTIONS
+       ======================================================================== -->
+  <api-functions>
+    <function name="log_demo_tier_started">
+      <signature>pub fn log_demo_tier_started(tier_name: &amp;str, total_docs: u64, customer_id: &amp;str) -> Result&lt;(), AuditError&gt;</signature>
+      <performance>200ns (serialize + hash + append + update)</performance>
+      <q34-compliance>Immutable, Complete, Reproducible</q34-compliance>
+      <assum>
+        <assumption id="TIER_NAME_VALID">Tier name is one of Accuracy/Production/Massive</assumption>
+        <verification>Caller validates tier_name before calling</verification>
+      </assum>
+    </function>
+
+    <function name="log_demo_batch_processed">
+      <signature>pub fn log_demo_batch_processed(batch_num: u64, docs_processed: u64, throughput: f64, customer_id: &amp;str) -> Result&lt;(), AuditError&gt;</signature>
+      <performance>200ns (serialize + hash + append + update)</performance>
+      <q34-compliance>Immutable, Complete, Tamper-evident</q34-compliance>
+      <assum>
+        <assumption id="BATCH_EVERY_1M">Called every 1M docs (200 events for 200M corpus)</assumption>
+        <verification>Caller ensures batch_num increments correctly</verification>
+      </assum>
+    </function>
+
+    <function name="log_demo_tier_completed">
+      <signature>pub fn log_demo_tier_completed(tier_name: &amp;str, docs_processed: u64, elapsed_secs: f64, throughput: f64, cluster_count: usize, customer_id: &amp;str) -> Result&lt;(), AuditError&gt;</signature>
+      <performance>200ns (serialize + hash + append + update)</performance>
+      <q34-compliance>Immutable, Complete, Reproducible</q34-compliance>
+      <assum>
+        <assumption id="TIER_COMPLETED">Called exactly once per tier</assumption>
+        <verification>Caller ensures elapsed_secs > 0, throughput > 0</verification>
+      </assum>
+    </function>
+
+    <function name="log_demo_verification_passed">
+      <signature>pub fn log_demo_verification_passed(tier_name: &amp;str, precision: f64, recall: f64, f1_score: f64, customer_id: &amp;str) -> Result&lt;(), AuditError&gt;</signature>
+      <performance>200ns (serialize + hash + append + update)</performance>
+      <q34-compliance>Immutable, Complete, Tamper-evident</q34-compliance>
+      <assum>
+        <assumption id="METRICS_VALID">precision/recall/f1 in range [0.0, 1.0]</assumption>
+        <verification>Caller validates 0.0 &lt;= metric &lt;= 1.0</verification>
+      </assum>
+    </function>
+
+    <function name="verify_demo_audit_chain">
+      <signature>pub fn verify_demo_audit_chain() -> Result&lt;bool, AuditError&gt;</signature>
+      <performance>O(n) sequential verification (BLAKE3 hash per event)</performance>
+      <returns>
+        <ok-true>Chain valid, all demo events verified</ok-true>
+        <ok-false>Chain broken (tampering detected)</ok-false>
+        <err>I/O error or verification failure</err>
+      </returns>
+      <q34-compliance>Tamper-detection via BLAKE3 hash chain</q34-compliance>
+      <assum>
+        <assumption id="HASH_CHAIN_INTACT">BLAKE3 provides cryptographic integrity (2^256 security)</assumption>
+        <verification>Returns Ok(true) only if every prev_hash matches computed hash</verification>
+      </assum>
+    </function>
+  </api-functions>
+
+  <!-- ========================================================================
+       HASH CHAIN INTEGRITY
+       ======================================================================== -->
+  <hash-chain>
+    <algorithm>BLAKE3 (256-bit cryptographic hash)</algorithm>
+    <storage>AtomicHash256 (SeqLock pattern, lockfree)</storage>
+    <genesis-hash>[0u8; 32] (no previous event)</genesis-hash>
+    <chain-verification>
+      <step>1. Load previous hash from AtomicHash256</step>
+      <step>2. Serialize event deterministically (FixedPointSerialize)</step>
+      <step>3. Compute BLAKE3(serialized_event)</step>
+      <step>4. Store hash in AtomicHash256 for next event</step>
+      <step>5. Append to log file (fsync for durability)</step>
+    </chain-verification>
+    <tamper-detection>Hash mismatch detected during verify_demo_audit_chain()</tamper-detection>
+    <collision-resistance>2^256 (NIST SP 800-131A compliant)</collision-resistance>
+  </hash-chain>
+
+  <!-- ========================================================================
+       PERFORMANCE TARGETS
+       ======================================================================== -->
+  <performance>
+    <log-event>
+      <target>200ns total</target>
+      <breakdown>
+        <serialize>50ns (FixedPointSerialize)</serialize>
+        <hash>20ns (BLAKE3 optimized)</hash>
+        <append>50ns (buffered file write + fsync)</append>
+        <update>80ns (AtomicHash256 store, SeqLock)</update>
+      </breakdown>
+    </log-event>
+    <verify-chain>
+      <complexity>O(n) sequential verification</complexity>
+      <per-event>70ns (deserialize + hash + compare)</per-event>
+      <200m-corpus>14ms total (200 events × 70ns)</200m-corpus>
+    </verify-chain>
+    <overhead>
+      <per-doc>0.0002ns (200ns ÷ 1M docs per batch)</per-doc>
+      <total>0.00001% (negligible)</total>
+    </overhead>
+  </performance>
+
+  <!-- ========================================================================
+       ASSUM SAFETY
+       ======================================================================== -->
+  <assum-safety>
+    <assumption id="LOCKFREE">
+      <statement>All operations lockfree (AtomicHash256 primitives)</statement>
+      <verification>Zero mutex/RwLock usage, Relaxed ordering for non-critical reads</verification>
+    </assumption>
+
+    <assumption id="HASH_INTEGRITY">
+      <statement>BLAKE3 provides cryptographic tamper detection (2^256 collision resistance)</statement>
+      <verification>Property tests verify chain integrity</verification>
+    </assumption>
+
+    <assumption id="DETERMINISTIC">
+      <statement>FixedPointSerialize produces identical bytes for identical events</statement>
+      <verification>Unit tests verify serialize(deserialize(x)) == x</verification>
+    </assumption>
+
+    <assumption id="TIER_NAME_VALID">
+      <statement>Tier name is one of Accuracy/Production/Massive</statement>
+      <verification>Caller validates tier_name before calling log_demo_tier_started()</verification>
+    </assumption>
+
+    <assumption id="BATCH_EVERY_1M">
+      <statement>log_demo_batch_processed() called every 1M docs</statement>
+      <verification>Caller ensures batch_num increments correctly</verification>
+    </assumption>
+
+    <assumption id="TIER_COMPLETED">
+      <statement>log_demo_tier_completed() called exactly once per tier</statement>
+      <verification>Caller ensures elapsed_secs > 0, throughput > 0</verification>
+    </assumption>
+
+    <assumption id="METRICS_VALID">
+      <statement>precision/recall/f1 in range [0.0, 1.0]</statement>
+      <verification>Caller validates 0.0 &lt;= metric &lt;= 1.0 before calling</verification>
+    </assumption>
+
+    <assumption id="HASH_CHAIN_INTACT">
+      <statement>BLAKE3 hash chain provides cryptographic integrity</statement>
+      <verification>verify_demo_audit_chain() returns Ok(true) only if every prev_hash matches</verification>
+    </assumption>
+  </assum-safety>
+
+  <!-- ========================================================================
+       COMPLIANCE MAPPING
+       ======================================================================== -->
+  <compliance-mapping>
+    <sox>
+      <requirement>7-year audit trail retention</requirement>
+      <implementation>Persistent log file in ~/.config/kindly_dedup/security_audit.log</implementation>
+    </sox>
+
+    <soc2>
+      <requirement>Tamper-evident logging</requirement>
+      <implementation>BLAKE3 hash chain with AtomicHash256 storage</implementation>
+    </soc2>
+
+    <gdpr>
+      <requirement>Data processing audit trail</requirement>
+      <implementation>Complete event logging (tier start/complete, batch progress, verification)</implementation>
+    </gdpr>
+
+    <hipaa>
+      <requirement>Security incident tracking</requirement>
+      <implementation>Tamper detection via hash chain verification</implementation>
+    </hipaa>
+  </compliance-mapping>
+
+  <!-- ========================================================================
+       EXAMPLE USAGE
+       ======================================================================== -->
+  <example-usage>
+    <code language="rust"><![CDATA[
+use kindly_dedup::protection::audit::{
+    log_demo_tier_started,
+    log_demo_batch_processed,
+    log_demo_tier_completed,
+    log_demo_verification_passed,
+    verify_demo_audit_chain,
+};
+
+// 1. Start Accuracy tier
+log_demo_tier_started("Accuracy", 100_000, "demo-customer-123")?;
+
+// 2. Process documents with batch logging (every 1M docs)
+for batch_num in 1..=10 {
+    let docs_processed = batch_num * 1_000_000;
+    let throughput = 60_000.0; // docs/sec
+    log_demo_batch_processed(batch_num, docs_processed, throughput, "demo-customer-123")?;
+}
+
+// 3. Complete tier with metrics
+log_demo_tier_completed(
+    "Accuracy",
+    100_000,
+    17.0,        // elapsed_secs
+    5882.35,     // throughput
+    42,          // cluster_count
+    "demo-customer-123"
+)?;
+
+// 4. Log verification results
+log_demo_verification_passed(
+    "Accuracy",
+    1.0,    // precision
+    1.0,    // recall
+    1.0,    // f1_score
+    "demo-customer-123"
+)?;
+
+// 5. Verify audit chain integrity
+let chain_intact = verify_demo_audit_chain()?;
+assert!(chain_intact); // Chain should be valid
+]]></code>
+  </example-usage>
+</q34-demo-audit>

@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Test Execution Plan: Phase 7 Demo Enhancements
+
+  Purpose: Production validation for 200M document demo with T28/B32 compliance
+  Status: Ready for execution
+  Timeline: ~45 minutes total (30 min tests + 15 min benchmarks)
+
+  Framework Compliance:
+  - T28: 10 production tests (Q22-Q28)
+  - B32: 5 fair benchmarks with 95% CI
+  - ASSUM: Thread safety, lockfree validation
+  - UCE34: Q33/Q34 audit trail verification
+-->
+
+<test-execution-plan xmlns="http://kindly.software/schemas/testing"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    version="1.0">
+
+  <metadata>
+    <created>2025-11-05T00:00:00Z</created>
+    <phase>Phase 7: Testing &amp; Benchmarking</phase>
+    <author>Validation Expert (Claude Code)</author>
+    <total-runtime>45 minutes</total-runtime>
+  </metadata>
+
+  <!-- ================================================================== -->
+  <!-- PHASE 1: T28 PRODUCTION TESTS (30 minutes)                         -->
+  <!-- ================================================================== -->
+
+  <test-phase id="phase1-production-tests" duration="30min">
+    <name>T28 Production Tests</name>
+    <file>tests/demo_production_tests.rs</file>
+    <test-count>10</test-count>
+    <framework>T28 (Q22-Q28)</framework>
+
+    <!-- Q22: Stress Tests -->
+    <test-group id="q22-stress" priority="CRITICAL">
+      <name>Q22: Stress Tests</name>
+      <duration>25 minutes</duration>
+
+      <test id="q22.1">
+        <name>test_200m_demo_full_run</name>
+        <purpose>Validate sustained throughput at massive scale</purpose>
+        <target>3M docs/sec, &lt;2 min runtime, &lt;8GB memory</target>
+        <timeout>300s</timeout>
+        <expensive>true</expensive>
+        <runtime>~120s</runtime>
+      </test>
+
+      <test id="q22.2">
+        <name>test_dual_progress_bars_accuracy</name>
+        <purpose>Validate progress bar synchronization</purpose>
+        <target>&lt;0.1% delta between bars</target>
+        <timeout>30s</timeout>
+        <runtime>~2s</runtime>
+      </test>
+
+      <test id="q22.3">
+        <name>test_audit_chain_integrity_200_events</name>
+        <purpose>Validate hash chain under heavy logging</purpose>
+        <target>100% integrity after 200 events</target>
+        <timeout>30s</timeout>
+        <runtime>~5s</runtime>
+        <requires>meta-capsule feature</requires>
+      </test>
+    </test-group>
+
+    <!-- Q23: Security Tests -->
+    <test-group id="q23-security" priority="HIGH">
+      <name>Q23: Security/Adversarial Tests</name>
+      <duration>1 minute</duration>
+
+      <test id="q23.1">
+        <name>test_protection_status_all_layers</name>
+        <purpose>Validate META_CAPSULE layers active</purpose>
+        <target>All 4 layers detected</target>
+        <timeout>10s</timeout>
+        <runtime>~1s</runtime>
+        <requires>meta-capsule feature</requires>
+      </test>
+
+      <test id="q23.2">
+        <name>test_optimization_table_accuracy</name>
+        <purpose>Validate Week 1+2 optimizations</purpose>
+        <target>All optimizations present, 365× compound</target>
+        <timeout>10s</timeout>
+        <runtime>~1s</runtime>
+      </test>
+    </test-group>
+
+    <!-- Q24: B32 Benchmark Validation -->
+    <test-group id="q24-benchmarks" priority="CRITICAL">
+      <name>Q24: B32 Benchmark Validation</name>
+      <duration>3 minutes</duration>
+
+      <test id="q24.1">
+        <name>test_metrics_dashboard_realtime</name>
+        <purpose>Validate dashboard update latency</purpose>
+        <target>&lt;100μs per update</target>
+        <timeout>30s</timeout>
+        <runtime>~10s</runtime>
+      </test>
+
+      <test id="q24.2">
+        <name>test_memory_under_8gb_peak</name>
+        <purpose>Validate memory budget compliance</purpose>
+        <target>&lt;8GB peak for 10M docs</target>
+        <timeout>120s</timeout>
+        <runtime>~60s</runtime>
+        <requires>sysinfo feature</requires>
+      </test>
+
+      <test id="q24.3">
+        <name>test_throughput_exceeds_3m_docs_sec</name>
+        <purpose>Validate compound optimization target</purpose>
+        <target>≥3M docs/sec</target>
+        <timeout>60s</timeout>
+        <runtime>~30s</runtime>
+      </test>
+
+      <test id="q24.4">
+        <name>test_python_baseline_simulation_accuracy</name>
+        <purpose>Validate fair baseline comparison</purpose>
+        <target>365-486× speedup vs Python</target>
+        <timeout>10s</timeout>
+        <runtime>~1s</runtime>
+      </test>
+    </test-group>
+
+    <!-- Q25: ASSUM Validation -->
+    <test-group id="q25-assum" priority="HIGH">
+      <name>Q25: ASSUM Safety Validation</name>
+      <duration>30 seconds</duration>
+
+      <test id="q25.1">
+        <name>test_dashboard_thread_safety</name>
+        <purpose>Validate Send+Sync compliance</purpose>
+        <target>100 threads × 1000 updates, no races</target>
+        <timeout>30s</timeout>
+        <runtime>~15s</runtime>
+      </test>
+    </test-group>
+
+    <!-- Q27: Documentation -->
+    <test-group id="q27-documentation" priority="MEDIUM">
+      <name>Q27: Documentation Validation</name>
+      <duration>10 seconds</duration>
+
+      <test id="q27.1">
+        <name>test_audit_export_jsonl_integrity</name>
+        <purpose>Validate Q34 audit trail export</purpose>
+        <target>Valid JSONL, all events present</target>
+        <timeout>10s</timeout>
+        <runtime>~2s</runtime>
+        <requires>benchmarking feature</requires>
+      </test>
+    </test-group>
+  </test-phase>
+
+  <!-- ================================================================== -->
+  <!-- PHASE 2: B32 BENCHMARKS (15 minutes)                               -->
+  <!-- ================================================================== -->
+
+  <benchmark-phase id="phase2-benchmarks" duration="15min">
+    <name>B32 Fair Benchmarks</name>
+    <file>benches/demo_enhancements_bench.rs</file>
+    <benchmark-count>5</benchmark-count>
+    <framework>B32 (Benchmark32 + K1-K70)</framework>
+
+    <benchmark-group id="b32-streaming">
+      <name>Streaming Corpus Generation</name>
+      <duration>2 minutes</duration>
+
+      <benchmark id="b32.1">
+        <name>bench_streaming_corpus_generation</name>
+        <target>4.2M docs/sec (2.8× vs in-memory)</target>
+        <baseline>In-memory Vec allocation (1.5M docs/sec)</baseline>
+        <classification>EXCEPTIONAL (2.8× per K27)</classification>
+        <iterations>1000+</iterations>
+        <confidence-interval>95%</confidence-interval>
+      </benchmark>
+    </benchmark-group>
+
+    <benchmark-group id="b32-end-to-end">
+      <name>200M Document Demo</name>
+      <duration>10 minutes</duration>
+
+      <benchmark id="b32.2">
+        <name>bench_200m_demo_end_to_end</name>
+        <target>&lt;2 min (≥3M docs/sec)</target>
+        <baseline>Python datasketch (38.5K docs/sec)</baseline>
+        <classification>BREAKTHROUGH (365-486× per K27)</classification>
+        <iterations>10</iterations>
+        <confidence-interval>95%</confidence-interval>
+        <note>Reduced sample size (expensive benchmark)</note>
+      </benchmark>
+    </benchmark-group>
+
+    <benchmark-group id="b32-overhead">
+      <name>Dashboard Overhead</name>
+      <duration>2 minutes</duration>
+
+      <benchmark id="b32.3">
+        <name>bench_dual_progress_bar_overhead</name>
+        <target>&lt;0.1% overhead</target>
+        <baseline>Pipeline only (no progress bars)</baseline>
+        <classification>NEGLIGIBLE (&lt;1μs/1000 docs)</classification>
+        <iterations>1000+</iterations>
+      </benchmark>
+
+      <benchmark id="b32.4">
+        <name>bench_audit_logging_overhead</name>
+        <target>&lt;0.01% overhead</target>
+        <baseline>No audit logging</baseline>
+        <classification>NEGLIGIBLE (&lt;10ns/doc)</classification>
+        <iterations>10000+</iterations>
+        <requires>meta-capsule feature</requires>
+      </benchmark>
+    </benchmark-group>
+
+    <benchmark-group id="b32-metrics">
+      <name>Metrics Dashboard</name>
+      <duration>1 minute</duration>
+
+      <benchmark id="b32.5">
+        <name>bench_metrics_dashboard_update</name>
+        <target>&lt;100μs per update (all 4 metrics)</target>
+        <baseline>N/A (absolute target)</baseline>
+        <p99-target>&lt;500μs (per K43)</p99-target>
+        <iterations>10000+</iterations>
+      </benchmark>
+    </benchmark-group>
+  </benchmark-phase>
+
+  <!-- ================================================================== -->
+  <!-- EXECUTION COMMANDS                                                  -->
+  <!-- ================================================================== -->
+
+  <execution-commands>
+    <command-group name="Production Tests">
+      <description>Run all T28 production tests</description>
+
+      <command id="all-tests">
+        <name>All tests (fast subset)</name>
+        <cmd>cargo test --release --test demo_production_tests --features benchmarking,meta-capsule,sysinfo</cmd>
+        <duration>~5 minutes</duration>
+        <note>Excludes expensive tests by default</note>
+      </command>
+
+      <command id="expensive-tests">
+        <name>All tests (including 200M demo)</name>
+        <cmd>cargo test --release --test demo_production_tests --features benchmarking,meta-capsule,sysinfo -- --ignored --test-threads=1</cmd>
+        <duration>~30 minutes</duration>
+        <note>Includes test_200m_demo_full_run</note>
+      </command>
+
+      <command id="specific-test">
+        <name>Run specific test</name>
+        <cmd>cargo test --release --test demo_production_tests test_throughput_exceeds_3m_docs_sec --features benchmarking</cmd>
+        <duration>~30 seconds</duration>
+      </command>
+    </command-group>
+
+    <command-group name="B32 Benchmarks">
+      <description>Run Criterion benchmarks</description>
+
+      <command id="all-benchmarks">
+        <name>All benchmarks</name>
+        <cmd>cargo +nightly bench --bench demo_enhancements_bench --features benchmarking,meta-capsule</cmd>
+        <duration>~15 minutes</duration>
+        <note>Requires nightly Rust</note>
+      </command>
+
+      <command id="specific-benchmark">
+        <name>Run specific benchmark</name>
+        <cmd>cargo +nightly bench --bench demo_enhancements_bench bench_streaming_corpus_generation --features benchmarking</cmd>
+        <duration>~2 minutes</duration>
+      </command>
+
+      <command id="view-results">
+        <name>View benchmark results</name>
+        <cmd>open target/criterion/report/index.html</cmd>
+        <note>HTML report with charts</note>
+      </command>
+    </command-group>
+  </execution-commands>
+
+  <!-- ================================================================== -->
+  <!-- SUCCESS CRITERIA                                                    -->
+  <!-- ================================================================== -->
+
+  <success-criteria>
+    <criterion id="all-tests-pass">
+      <name>All T28 tests pass</name>
+      <requirement>10/10 tests passing</requirement>
+      <priority>CRITICAL</priority>
+    </criterion>
+
+    <criterion id="200m-throughput">
+      <name>200M demo throughput</name>
+      <requirement>≥3M docs/sec sustained</requirement>
+      <priority>CRITICAL</priority>
+    </criterion>
+
+    <criterion id="200m-runtime">
+      <name>200M demo runtime</name>
+      <requirement>&lt;120 seconds</requirement>
+      <priority>CRITICAL</priority>
+    </criterion>
+
+    <criterion id="memory-budget">
+      <name>Memory budget</name>
+      <requirement>&lt;8GB peak</requirement>
+      <priority>HIGH</priority>
+    </criterion>
+
+    <criterion id="dashboard-overhead">
+      <name>Dashboard overhead</name>
+      <requirement>&lt;0.1% total</requirement>
+      <priority>MEDIUM</priority>
+    </criterion>
+
+    <criterion id="audit-integrity">
+      <name>Audit chain integrity</name>
+      <requirement>100% after 200 events</requirement>
+      <priority>HIGH</priority>
+    </criterion>
+
+    <criterion id="speedup-validation">
+      <name>Compound speedup</name>
+      <requirement>365-486× vs Python (B32 validated)</requirement>
+      <priority>CRITICAL</priority>
+    </criterion>
+  </success-criteria>
+
+  <!-- ================================================================== -->
+  <!-- EXPECTED OUTCOMES                                                   -->
+  <!-- ================================================================== -->
+
+  <expected-outcomes>
+    <outcome id="production-ready">
+      <name>Production-Ready Demo</name>
+      <description>200M document demo runs reliably under 2 minutes with full audit trail</description>
+    </outcome>
+
+    <outcome id="performance-validated">
+      <name>Performance Validated</name>
+      <description>365-486× speedup vs Python baseline (B32 fair comparison)</description>
+    </outcome>
+
+    <outcome id="thread-safety-proven">
+      <name>Thread Safety Proven</name>
+      <description>Dashboard is Send+Sync safe under 100-thread stress test</description>
+    </outcome>
+
+    <outcome id="audit-compliance">
+      <name>Q34 Audit Compliance</name>
+      <description>Hash chain integrity verified, JSONL export valid</description>
+    </outcome>
+
+    <outcome id="memory-efficient">
+      <name>Memory Efficient</name>
+      <description>Stays under 8GB budget even at 200M document scale</description>
+    </outcome>
+  </expected-outcomes>
+
+</test-execution-plan>

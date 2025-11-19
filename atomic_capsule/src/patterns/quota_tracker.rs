@@ -911,7 +911,7 @@ mod tests {
         }
 
         // Wait for all threads
-        for handle: std::thread::JoinHandle<()> in handles {
+        for handle in handles {
             handle.join().unwrap();
         }
 
@@ -1028,7 +1028,7 @@ mod tests {
         }
 
         // Wait for all threads
-        for handle: std::thread::JoinHandle<()> in handles {
+        for handle in handles {
             handle.join().unwrap();
         }
 

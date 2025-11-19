@@ -480,7 +480,7 @@ ARCHITECTURE:
 
 DOCUMENTATION:
   Website:  https://kindly.ai/dedup
-  Support:  support@kindly.ai
+  Support:  support@kindly.software
   Sales:    sales@kindly.ai
 
 COMPLIANCE:

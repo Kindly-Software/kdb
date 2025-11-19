@@ -43,6 +43,7 @@
 //! ```
 
 pub mod audit;
+pub mod background_monitor;
 pub mod build_verification;
 pub mod dedup_audit;
 pub mod demo_limiter;
@@ -51,6 +52,7 @@ pub mod hardware_id;
 pub mod license;
 pub mod meta_capsule;
 pub mod puf;
+pub mod status_capsule;
 pub mod tamper_detection;
 
 // P0 Protection Capsule Wrappers (Phase P0 Integration)
@@ -77,6 +79,7 @@ pub mod memory_encryption_wrapper;
 pub mod protection_system;
 
 pub use audit::{AuditError, SecurityAuditEvent, SecurityEventType};
+pub use background_monitor::{is_running, shutdown_monitor, spawn_monitor};
 pub use build_verification::BuildVerification;
 pub use dedup_audit::{
     log_add_document, log_bloom_skip, log_cluster_formed, log_find_duplicate, DedupAuditEvent, DedupEventType,
@@ -87,6 +90,10 @@ pub use hardware_id::{HardwareId, HardwareIdError};
 pub use license::{LicenseError, LicenseStatus, LicenseValidator};
 pub use meta_capsule::{DedupMetaCapsule, MetaCapsuleError};
 pub use puf::{PufEntropy, PufError};
+pub use status_capsule::{
+    ProtectionStatusCapsule, PROTECTION_BLOCKED, PROTECTION_DEGRADED, PROTECTION_FAILED, PROTECTION_OK,
+    PROTECTION_STATUS, PROTECTION_WARNING,
+};
 pub use tamper_detection::{check_protection, get_corruption_mask, init_protection, ProtectionError, TamperType};
 
 // P0 Protection Capsule Wrapper Exports

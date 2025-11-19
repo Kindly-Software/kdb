@@ -537,6 +537,20 @@ required-features = ["benchmarking", "batch-lsh"]
 # harness = false
 # required-features = ["benchmarking"]  # Works with scalar baseline, simd-lsh enables SIMD comparison
 
+# Phase 4b: Protection Overhead Benchmark (T1 Atomic + T5 Streaming)
+# Purpose: Validate <1% overhead for ProtectionStatusCapsule background monitoring
+# B32 Compliance: Fair baselines (protected vs unprotected), 1000+ iterations, 95% CI
+# Framework: UCE34 Q1-Q34 + COCA compliant, ASSUM 99.99% safe, T28 comprehensive testing
+# Expected:
+#   - check_protection() <10ns (TYPICAL tier)
+#   - add_document() <20ns overhead (0.1% of 16.7μs baseline)
+#   - Throughput: ≥59,400 docs/sec (99% of 60K baseline)
+#   - Total overhead: <1% (EXCEPTIONAL tier for security layers)
+[[bench]]
+name = "phase4b_protection_overhead"
+harness = false
+required-features = ["benchmarking"]
+
 # Week 2: Compound Optimization Benchmark (Full Week 2 Integration)
 # Purpose: Validate 4-7× compound speedup from SIMD text + Batch LSH optimizations
 # B32 Compliance: Fair baselines (Week 1 vs Week 2), 1000+ iterations, 95% CI

@@ -57,7 +57,7 @@ use super::tamper_detection::{ProtectionError, TamperType};
 // ============================================================================
 
 /// Support contact email (build-time constant)
-const SUPPORT_EMAIL: &str = "support@kindly.ai";
+const SUPPORT_EMAIL: &str = "support@kindly.software";
 
 /// Sales contact email (build-time constant)
 const SALES_EMAIL: &str = "sales@kindly.ai";
