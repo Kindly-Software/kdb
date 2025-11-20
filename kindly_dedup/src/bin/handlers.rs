@@ -22,11 +22,11 @@ use std::io::BufRead;
 use std::time::Instant;
 
 use kindly_dedup::cli::{
-    BenchmarkArgs, BenchmarkSuite, CorpusSize, DedupArgs, DemoArgs, DemoMode, GlobalArgs, HelpArgs, OutputFormat,
+    BenchmarkArgs, BenchmarkSuite, DedupArgs, DemoArgs, GlobalArgs, HelpArgs, OutputFormat,
     StatsArgs, VerifyArgs,
 };
 use kindly_dedup::{generate_synthetic_corpus_with_stats, DedupPipeline, StreamingDedupPipeline};
-use atomic_capsule::serialize::{JsonParserCapsule, JsonValue};
+use atomic_capsule::serialize::{JsonParserCapsule, JsonValue, JsonWriterCapsule, JsonWriterError};
 
 // ============================================================================
 // Demo Command Handler
@@ -99,7 +99,7 @@ pub fn handle_demo(args: &DemoArgs, global: &GlobalArgs) -> Result<()> {
 
 pub fn handle_dedup(args: &DedupArgs, global: &GlobalArgs) -> Result<()> {
     use atomic_capsule::CpuCapabilityCapsule;
-    use std::io::{BufRead, BufReader, Write};
+    use std::io::{BufRead, BufReader};
 
     validate_dedup_args(args)?;
 
@@ -824,7 +824,7 @@ fn run_tier3_massive(args: &DemoArgs, global: &GlobalArgs) -> Result<()> {
 
     // Convert corpus to (DocId, String) tuples
     let docs: Vec<(usize, String)> = corpus.iter().map(|d| (d.id, d.text.clone())).collect();
-    pipeline.add_documents(docs)?;
+    pipeline.add_documents_iter(docs.into_iter())?;
 
     let clusters = pipeline.find_duplicates(args.threshold)?;
     let dedup_time = start.elapsed();
@@ -880,12 +880,16 @@ fn write_output(clusters: &[Vec<usize>], format: &str, path: &std::path::Path) -
             "jsonl" => {
                 for cluster in clusters {
                     if cluster.len() > 1 {
-                        writeln!(writer, "{}", cluster.to_json()?)?;
+                        // Serialize cluster as JSON array
+                        let json_cluster = serialize_usize_vec(cluster)?;
+                        writeln!(writer, "{}", json_cluster)?;
                     }
                 }
             },
             "json" => {
-                write!(writer, "{}", clusters.to_json()?)?;
+                // Serialize all clusters as JSON array
+                let json_clusters = serialize_clusters(clusters)?;
+                write!(writer, "{}", json_clusters)?;
             },
             "csv" => {
                 writeln!(writer, "cluster_id,doc_ids")?;
@@ -926,16 +930,71 @@ fn write_output(clusters: &[Vec<usize>], format: &str, path: &std::path::Path) -
     Ok(())
 }
 
+/// Serialize a single cluster (Vec<usize>) as JSON array
+fn serialize_usize_vec(cluster: &[usize]) -> Result<String, JsonWriterError> {
+    let writer = JsonWriterCapsule::new();
+    writer.start_array()?;
+    for (i, &id) in cluster.iter().enumerate() {
+        if i > 0 {
+            writer.write_comma()?;
+        }
+        writer.write_u64(id as u64)?;
+    }
+    writer.end_array()?;
+    writer.finalize()
+}
+
+/// Serialize all clusters as JSON array of arrays
+fn serialize_clusters(clusters: &[Vec<usize>]) -> Result<String, JsonWriterError> {
+    let writer = JsonWriterCapsule::new();
+    writer.start_array()?;
+    for (cluster_idx, cluster) in clusters.iter().enumerate() {
+        if cluster_idx > 0 {
+            writer.write_comma()?;
+        }
+        writer.start_array()?;
+        for (i, &id) in cluster.iter().enumerate() {
+            if i > 0 {
+                writer.write_comma()?;
+            }
+            writer.write_u64(id as u64)?;
+        }
+        writer.end_array()?;
+    }
+    writer.end_array()?;
+    writer.finalize()
+}
+
 // ============================================================================
 // Verification Helper Functions
 // ============================================================================
 
-#[derive(Debug, Clone, CapsuleSerialize)]
+#[derive(Debug, Clone)]
 struct ClusterStats {
     num_clusters: usize,
     avg_cluster_size: f64,
     max_cluster_size: usize,
     min_cluster_size: usize,
+}
+
+impl ClusterStats {
+    fn to_json(&self) -> Result<String, JsonWriterError> {
+        let writer = JsonWriterCapsule::new();
+        writer.start_object()?;
+        writer.write_key("num_clusters")?;
+        writer.write_u64(self.num_clusters as u64)?;
+        writer.write_comma()?;
+        writer.write_key("avg_cluster_size")?;
+        writer.write_literal(&format!("{}", self.avg_cluster_size))?;
+        writer.write_comma()?;
+        writer.write_key("max_cluster_size")?;
+        writer.write_u64(self.max_cluster_size as u64)?;
+        writer.write_comma()?;
+        writer.write_key("min_cluster_size")?;
+        writer.write_u64(self.min_cluster_size as u64)?;
+        writer.end_object()?;
+        writer.finalize()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -1111,7 +1170,7 @@ struct AuditStats {
 }
 
 // JSONL helper structs for serialization
-#[derive(Debug, Clone, CapsuleSerialize)]
+#[derive(Debug, Clone)]
 struct AuditSummaryJsonl {
     r#type: String,
     total_events: usize,
@@ -1120,19 +1179,86 @@ struct AuditSummaryJsonl {
     dedup_runs: usize,
 }
 
-#[derive(Debug, Clone, CapsuleSerialize)]
+impl AuditSummaryJsonl {
+    fn to_json(&self) -> Result<String, JsonWriterError> {
+        let writer = JsonWriterCapsule::new();
+        writer.start_object()?;
+        writer.write_key("type")?;
+        writer.write_string(&self.r#type)?;
+        writer.write_comma()?;
+        writer.write_key("total_events")?;
+        writer.write_u64(self.total_events as u64)?;
+        writer.write_comma()?;
+        writer.write_key("documents_processed")?;
+        writer.write_u64(self.documents_processed as u64)?;
+        writer.write_comma()?;
+        writer.write_key("duplicates_detected")?;
+        writer.write_u64(self.duplicates_detected as u64)?;
+        writer.write_comma()?;
+        writer.write_key("dedup_runs")?;
+        writer.write_u64(self.dedup_runs as u64)?;
+        writer.end_object()?;
+        writer.finalize()
+    }
+}
+
+#[derive(Debug, Clone)]
 struct AvgMetricsJsonl {
     r#type: String,
     docs_per_run: f64,
     throughput_docs_per_sec: f64,
 }
 
-#[derive(Debug, Clone, CapsuleSerialize)]
+impl AvgMetricsJsonl {
+    fn to_json(&self) -> Result<String, JsonWriterError> {
+        let writer = JsonWriterCapsule::new();
+        writer.start_object()?;
+        writer.write_key("type")?;
+        writer.write_string(&self.r#type)?;
+        writer.write_comma()?;
+        writer.write_key("docs_per_run")?;
+        writer.write_literal(&format!("{}", self.docs_per_run))?;
+        writer.write_comma()?;
+        writer.write_key("throughput_docs_per_sec")?;
+        writer.write_literal(&format!("{}", self.throughput_docs_per_sec))?;
+        writer.end_object()?;
+        writer.finalize()
+    }
+}
+
+#[derive(Debug, Clone)]
 struct LatencyMetricsJsonl {
     r#type: String,
     avg_latency_ns: f64,
     min_latency_ns: Option<u64>,
     max_latency_ns: Option<u64>,
+}
+
+impl LatencyMetricsJsonl {
+    fn to_json(&self) -> Result<String, JsonWriterError> {
+        let writer = JsonWriterCapsule::new();
+        writer.start_object()?;
+        writer.write_key("type")?;
+        writer.write_string(&self.r#type)?;
+        writer.write_comma()?;
+        writer.write_key("avg_latency_ns")?;
+        writer.write_literal(&format!("{}", self.avg_latency_ns))?;
+
+        if let Some(min) = self.min_latency_ns {
+            writer.write_comma()?;
+            writer.write_key("min_latency_ns")?;
+            writer.write_u64(min)?;
+        }
+
+        if let Some(max) = self.max_latency_ns {
+            writer.write_comma()?;
+            writer.write_key("max_latency_ns")?;
+            writer.write_u64(max)?;
+        }
+
+        writer.end_object()?;
+        writer.finalize()
+    }
 }
 
 /// Analyze audit trail file (stream-based, O(1) memory per line)
@@ -1415,34 +1541,69 @@ fn display_audit_stats_text(
 
 /// Display statistics in JSON format
 fn display_audit_stats_json(stats: &AuditStats) -> Result<()> {
-    #[derive(CapsuleSerialize)]
-    struct JsonStats {
-        total_events: usize,
-        documents_processed: usize,
-        duplicates_detected: usize,
-        dedup_runs: usize,
-        avg_docs_per_run: f64,
-        avg_throughput: f64,
-        avg_latency_ns: Option<f64>,
-        min_latency_ns: Option<u64>,
-        max_latency_ns: Option<u64>,
-        event_types: std::collections::HashMap<String, usize>,
+    let writer = JsonWriterCapsule::new();
+    writer.start_object()?;
+
+    writer.write_key("total_events")?;
+    writer.write_u64(stats.total_events as u64)?;
+    writer.write_comma()?;
+
+    writer.write_key("documents_processed")?;
+    writer.write_u64(stats.documents_processed as u64)?;
+    writer.write_comma()?;
+
+    writer.write_key("duplicates_detected")?;
+    writer.write_u64(stats.duplicates_detected as u64)?;
+    writer.write_comma()?;
+
+    writer.write_key("dedup_runs")?;
+    writer.write_u64(stats.dedup_runs as u64)?;
+    writer.write_comma()?;
+
+    writer.write_key("avg_docs_per_run")?;
+    writer.write_literal(&format!("{}", stats.avg_docs_per_run))?;
+    writer.write_comma()?;
+
+    writer.write_key("avg_throughput")?;
+    writer.write_literal(&format!("{}", stats.avg_throughput))?;
+
+    if let Some(latency) = stats.avg_latency_ns {
+        writer.write_comma()?;
+        writer.write_key("avg_latency_ns")?;
+        writer.write_literal(&format!("{}", latency))?;
     }
 
-    let json_stats = JsonStats {
-        total_events: stats.total_events,
-        documents_processed: stats.documents_processed,
-        duplicates_detected: stats.duplicates_detected,
-        dedup_runs: stats.dedup_runs,
-        avg_docs_per_run: stats.avg_docs_per_run,
-        avg_throughput: stats.avg_throughput,
-        avg_latency_ns: stats.avg_latency_ns,
-        min_latency_ns: stats.min_latency_ns,
-        max_latency_ns: stats.max_latency_ns,
-        event_types: stats.event_types.clone(),
-    };
+    if let Some(min) = stats.min_latency_ns {
+        writer.write_comma()?;
+        writer.write_key("min_latency_ns")?;
+        writer.write_u64(min)?;
+    }
 
-    println!("{}", json_stats.to_json()?);
+    if let Some(max) = stats.max_latency_ns {
+        writer.write_comma()?;
+        writer.write_key("max_latency_ns")?;
+        writer.write_u64(max)?;
+    }
+
+    if !stats.event_types.is_empty() {
+        writer.write_comma()?;
+        writer.write_key("event_types")?;
+        writer.start_object()?;
+        let mut first = true;
+        for (event_type, count) in &stats.event_types {
+            if !first {
+                writer.write_comma()?;
+            }
+            first = false;
+            writer.write_key(event_type)?;
+            writer.write_u64(*count as u64)?;
+        }
+        writer.end_object()?;
+    }
+
+    writer.end_object()?;
+    let json = writer.finalize()?;
+    println!("{}", json);
     Ok(())
 }
 
