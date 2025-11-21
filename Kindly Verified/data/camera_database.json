@@ -1,0 +1,142 @@
+[
+  {
+    "make": "Samsung",
+    "model": "SM-S908W",
+    "sensor_type": "Smartphone",
+    "max_iso": 3200,
+    "year_introduced": 2022
+  },
+  {
+    "make": "Samsung",
+    "model": "SM-S9080",
+    "sensor_type": "Smartphone",
+    "max_iso": 3200,
+    "year_introduced": 2022
+  },
+  {
+    "make": "Canon",
+    "model": "EOS 5D Mark IV",
+    "sensor_type": "FullFrame",
+    "max_iso": 32000,
+    "year_introduced": 2016
+  },
+  {
+    "make": "Canon",
+    "model": "EOS R5",
+    "sensor_type": "FullFrame",
+    "max_iso": 51200,
+    "year_introduced": 2020
+  },
+  {
+    "make": "Nikon",
+    "model": "D850",
+    "sensor_type": "FullFrame",
+    "max_iso": 25600,
+    "year_introduced": 2017
+  },
+  {
+    "make": "Nikon",
+    "model": "Z6 II",
+    "sensor_type": "FullFrame",
+    "max_iso": 51200,
+    "year_introduced": 2020
+  },
+  {
+    "make": "Sony",
+    "model": "A7R IV",
+    "sensor_type": "FullFrame",
+    "max_iso": 32000,
+    "year_introduced": 2019
+  },
+  {
+    "make": "Sony",
+    "model": "FX30",
+    "sensor_type": "FullFrame",
+    "max_iso": 25600,
+    "year_introduced": 2022
+  },
+  {
+    "make": "Apple",
+    "model": "iPhone 14 Pro",
+    "sensor_type": "Smartphone",
+    "max_iso": 6400,
+    "year_introduced": 2022
+  },
+  {
+    "make": "Apple",
+    "model": "iPhone 13 Pro",
+    "sensor_type": "Smartphone",
+    "max_iso": 6400,
+    "year_introduced": 2021
+  },
+  {
+    "make": "Fujifilm",
+    "model": "X-T5",
+    "sensor_type": "APS-C",
+    "max_iso": 12800,
+    "year_introduced": 2022
+  },
+  {
+    "make": "Fujifilm",
+    "model": "X-H2",
+    "sensor_type": "APS-C",
+    "max_iso": 25600,
+    "year_introduced": 2022
+  },
+  {
+    "make": "Panasonic",
+    "model": "S1R",
+    "sensor_type": "FullFrame",
+    "max_iso": 25600,
+    "year_introduced": 2018
+  },
+  {
+    "make": "Panasonic",
+    "model": "S5II",
+    "sensor_type": "FullFrame",
+    "max_iso": 25600,
+    "year_introduced": 2022
+  },
+  {
+    "make": "Pentax",
+    "model": "K-1 II",
+    "sensor_type": "FullFrame",
+    "max_iso": 204800,
+    "year_introduced": 2018
+  },
+  {
+    "make": "Olympus",
+    "model": "OM-1",
+    "sensor_type": "MFT",
+    "max_iso": 25600,
+    "year_introduced": 2021
+  },
+  {
+    "make": "Olympus",
+    "model": "OM System",
+    "sensor_type": "MFT",
+    "max_iso": 12800,
+    "year_introduced": 2019
+  },
+  {
+    "make": "Leica",
+    "model": "M11",
+    "sensor_type": "FullFrame",
+    "max_iso": 12800,
+    "year_introduced": 2022
+  },
+  {
+    "make": "Leica",
+    "model": "M10-R",
+    "sensor_type": "FullFrame",
+    "max_iso": 6400,
+    "year_introduced": 2020
+  },
+  {
+    "make": "Hasselblad",
+    "model": "907X",
+    "sensor_type": "MFT",
+    "max_iso": 12800,
+    "year_introduced": 2021
+  }
+]
