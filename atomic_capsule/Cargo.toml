@@ -286,10 +286,11 @@ nightly-all = ["nightly", "const-hashing", "simd-hashing", "const-serialize", "c
 # #ASSUME_PRESET_EXCLUSIVE: Choose ONE preset per build
 # #VERIFY_PRESET: Presets are mutually exclusive (documented)
 preset-wasm = ["wasm", "simd-stable-wasm", "fixed-point", "probabilistic"]  # WASM stable
-preset-wasm-nightly = ["wasm", "simd-nightly-wasm", "fixed-point", "probabilistic", "nightly"]  # WASM nightly
-preset-native = ["native", "simd-native", "persistent", "network", "streaming-async", "probabilistic", "histogram"]  # Native full
-preset-embedded = ["embedded", "fixed-point"]  # Embedded minimal
-preset-capsule-os = ["capsule-os", "simd-native", "fixed-point"]  # Capsule OS future
+preset-wasm-nightly = ["wasm", "simd-nightly-wasm", "fixed-point", "probabilistic", "nightly", "nightly-const-generics", "nightly-const-mixed"]  # WASM nightly + const generics (99.996% alloc speedup)
+preset-native = ["native", "simd-native", "persistent", "network", "streaming-async", "probabilistic", "histogram"]  # Native full (stable-only)
+preset-native-nightly = ["preset-native", "nightly", "nightly-const-generics", "nightly-const-simd", "nightly-const-probabilistic", "nightly-const-streaming", "nightly-const-mixed"]  # Native + all const generics (recommended)
+preset-embedded = ["embedded", "fixed-point", "nightly-const-generics", "nightly-const-mixed"]  # Embedded + zero-alloc const generics (CRITICAL for deterministic memory)
+preset-capsule-os = ["capsule-os", "simd-native", "fixed-point", "nightly-const-generics", "nightly-const-simd", "nightly-const-mixed"]  # Capsule OS future + const generics
 
 # TIER 6: Auditable Hash Features (Tier 0 dual-hash architecture)
 # #ASSUME_FEATURE_GATED: All crypto code behind audit-trail feature
