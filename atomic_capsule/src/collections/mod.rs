@@ -73,6 +73,10 @@ pub mod concurrent_map;
 pub mod concurrent_map_v2;
 // pub mod concurrent_map_v3; // REMOVED: V3 reverted to V2 (commit 1e704c0)
 
+// Specialized u64 map (15-30× speedup vs generic)
+#[cfg(feature = "specialized-u64")]
+pub mod concurrent_map_u64;
+
 // mod concurrent_map_v3_tests; // REMOVED: V3 tests reverted with V3 module
 
 pub mod entry;
@@ -133,6 +137,10 @@ pub mod distributed_cache_audit;
 #[cfg(feature = "histogram")]
 pub mod histogram;
 
+// Histogram with const generics (T0+T1: Auditable + Atomic, 99.996% allocation speedup)
+#[cfg(all(feature = "histogram", feature = "nightly-const-generics"))]
+pub mod histogram_const;
+
 // Streaming Stats (T5 Streaming: T-Digest percentiles)
 #[cfg(feature = "streaming-stats")]
 pub mod streaming_stats;
@@ -166,6 +174,11 @@ pub use cache_batch::LockfreeCacheCapsule;
 pub use concurrent_map::ConcurrentMapCapsule;
 pub use concurrent_map_v2::ConcurrentMapCapsuleV2;
 // pub use concurrent_map_v3::ConcurrentMapCapsule as ConcurrentMapCapsuleV3; // REMOVED: V3 reverted
+
+// Specialized u64 map export (15-30× speedup)
+#[cfg(feature = "specialized-u64")]
+pub use concurrent_map_u64::ConcurrentMapU64;
+
 pub use entry::{Entry, OccupiedEntry, VacantEntry};
 pub use error::{CacheError, CacheResult, MapError, MapResult};
 pub use lockfree_table::LockfreeHashTable;
@@ -176,6 +189,13 @@ pub use ring_broadcast::{
 // Ring Trace - T5 Streaming generic ring buffer (migrated from atomic_debugger)
 #[cfg(feature = "ring-trace")]
 pub use ring_trace::{RingBufferCapsule, RingBufferEntry, TraceEntry, TraceFlags};
+
+// Ring Buffer Const Generic - T0+T5 (Nightly const generics optimization)
+#[cfg(all(feature = "ring-trace", feature = "nightly-const-generics"))]
+pub mod ring_buffer_const;
+
+#[cfg(all(feature = "ring-trace", feature = "nightly-const-generics"))]
+pub use ring_buffer_const::RingBufferCapsuleConst;
 
 pub use serializable::BitwiseSerializable;
 pub use stats_capsule::{StatsCapsule64, StatsSnapshot};
@@ -201,6 +221,10 @@ pub use distributed_cache_audit::{AuditableDistributedCache, CacheAuditEntry};
 // Histogram exports (T6 Mixed: T1 Atomic + T4 Batch)
 #[cfg(feature = "histogram")]
 pub use histogram::{HistogramCapsule, PercentileSnapshot};
+
+// Histogram const generics exports (T0+T1: Auditable + Atomic, 99.996% allocation speedup)
+#[cfg(all(feature = "histogram", feature = "nightly-const-generics"))]
+pub use histogram_const::{HistogramConst, PercentileSnapshotConst, is_power_of_two};
 
 // Streaming Stats exports (T5 Streaming: T-Digest percentiles)
 #[cfg(feature = "streaming-stats")]
@@ -251,3 +275,10 @@ pub use lockfree_btree::{
 pub mod scalable_hashmap;
 #[cfg(feature = "std")]
 pub use scalable_hashmap::ScalableHashMapCapsule;
+
+// BulkCollectorCapsule - T4 Batch lockfree bulk collection
+// Phase 1: Append-only collector for parallel signature gathering
+#[cfg(feature = "bulk-collector")]
+pub mod bulk_collector;
+#[cfg(feature = "bulk-collector")]
+pub use bulk_collector::{BulkCollectorCapsule, BulkCollectorError};

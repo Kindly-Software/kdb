@@ -74,6 +74,7 @@ nightly-atomic = ["nightly"]  # AtomicFromMut (zero-copy atomic views, requires 
 capsule-serialize = ["std", "dep:crc32fast", "dep:crc"]  # FixedPointSerialize trait (audit trails)
 cbor = ["std"]  # T1 Atomic CBOR writer/reader (RFC 8949, <20ns per value, 8KB buffer)
 audit-q34 = ["std", "dep:sha2", "dep:serde_json", "dep:hex"]  # Q34 compliance audit trail (SOX/SOC2/GDPR/HIPAA)
+audit-compression = ["std", "nightly", "dep:lz4_flex", "dep:sha3"]  # T0+T5: Compressed audit trails with SHA3-256 Merkle tree (10-50× size reduction, <100ns append)
 fuzzy-extractor = ["std", "dep:reed-solomon-erasure", "dep:sha2", "fixed-point"]  # T10+T3: Reed-Solomon error correction for PUF (96% → 99.9% stability)
 
 # T1: Atomic Coordination (<100ns operations)
@@ -88,6 +89,8 @@ circuit-breaker-adaptive = ["circuit-breaker-standard64", "fixed-point"]  # T1+T
 circuit-breaker-serde = ["circuit-breaker-standard64", "dep:serde"]  # Serialization
 time-travel = ["std"]  # T0+T1: Bidirectional time-travel replay with hash-chain integrity (Q34)
 quota-tracker = ["std"]  # T1: Per-user monthly quota tracking (64 KB capsule, <70ns operations)
+leader-election = ["std"]  # T1: Raft-style epoch-based leader election (<50ns vote, <10ns check, <100ns failover)
+load-balancer = ["std"]  # T1+T4: High-performance load balancing with 7 algorithms (<100ns selection)
 
 # T2: SIMD Vectorization (2-19× speedup)
 # #ASSUME_SIMD_NIGHTLY: All SIMD features require nightly Rust
@@ -95,14 +98,21 @@ simd-stable-wasm = ["wasm"]  # Stable SIMD for WASM (future: wasm-simd128)
 simd-nightly-wasm = ["wasm", "nightly", "portable_simd"]  # Nightly SIMD for WASM
 simd-native = ["native", "nightly", "portable_simd"]  # Nightly SIMD for native
 simd-all = ["simd-stable-wasm", "simd-nightly-wasm", "simd-native"]  # All SIMD variants
-http-simd = ["nightly", "portable_simd"]  # T2 SIMD HTTP parsing (7× speedup)
+http = ["std"]  # T8 Network: HTTP server capsules (HttpServerCapsule, HttpRouterCapsule, etc.)
+http-simd = ["http", "nightly", "portable_simd"]  # T2 SIMD HTTP parsing (7× speedup)
+websocket = ["std", "dep:sha1", "dep:base64"]  # T8+T1 Network: WebSocket upgrade handshake (RFC 6455, <50μs latency)
+tls = ["std", "dep:rustls-pemfile", "dep:webpki-roots"]  # T8+T1+T4 Network: TLS 1.3 encryption (rustls, <5ms handshake, <1ms resumed)
 simd-hex = ["nightly", "portable_simd"]  # T2 SIMD hex string encoding (4× speedup, HexEncoderCapsule)
+simd-hash = ["nightly", "portable_simd"]  # T2 SIMD neighborhood scan for ScalableHashMapCapsule (5.3× scan speedup, 1.7× insert, 1.9× get)
+simd-crypto = ["std", "nightly", "portable_simd", "derive", "dep:aes-gcm", "dep:sha3", "dep:pbkdf2", "dep:sha2"]  # T2 SIMD cryptography (AES-256-GCM, SHA3-256, PBKDF2-HMAC-SHA256, 2-10× speedup)
 
 # T3: Fixed-Point Determinism (2-10× speedup)
 fixed-point = []  # Q8.8, Q16.16, Q32.32, Q48.16
 fixed-point-quantizer = ["fixed-point"]  # T3 Q8.8 quantization (moved from kindly_hft)
+fixed-point-array = ["fixed-point", "nightly-const-generics"]  # T3 Compile-time fixed-point arrays with SIMD operations (requires generic_const_exprs)
 fixed-simd = ["fixed-point", "portable_simd"]  # SIMD-accelerated fixed-point
 financial-calcs = ["fixed-point"]  # Convenience preset for financial systems
+financial-greeks = ["fixed-point"]  # T3 Option Greeks calculator (Black-Scholes, Q16.16, <200ns)
 complex-fixed = ["fixed-point"]  # Complex fixed-point arithmetic
 const-serialize = ["capsule-serialize", "nightly"]  # Const trait (0ns runtime)
 const-float = ["const-serialize"]  # Const fn floating-point
@@ -113,10 +123,12 @@ toml = ["std"]  # T5 Streaming TOML writer + T1 Atomic TOML parser (<100ns per f
 # T4: Batch Processing (10-100× speedup)
 batch-native = ["native", "dep:rayon"]  # Rayon-based parallel batching
 batch-wasm = ["wasm"]  # WASM-compatible batching (no rayon)
+batch-crypto = ["std", "batch-native", "dep:ed25519-dalek", "dep:k256"]  # T4 Batch cryptographic signature verification (Ed25519, ECDSA, 8-16× speedup)
 queue-bounded = ["std"]  # Bounded SPSC/MPMC queues (Phase 1) - requires std for tests
 queue-unbounded = ["std", "queue-bounded"]  # Unbounded SPSC/MPMC queues (Phase 2) - requires bounded queues as segments
 queue-batch = ["std", "queue-unbounded"]  # Batch push/pop operations (Phase 3) - 2× speedup for bulk operations
 queue-all = ["queue-bounded", "queue-unbounded", "queue-batch"]  # All queue features
+bulk-collector = ["std"]  # T4 Batch: Lockfree bulk collector for append-only workloads (<10ns append, <100ns export)
 cache = ["std", "dep:siphasher", "dep:rand", "derive"]  # Lockfree cache with TTL (requires derive for verification)
 cache-hmac = ["cache", "dep:hmac", "dep:sha2"]  # HMAC-SHA256 integrity
 cache-multi-tenant = ["cache"]  # Multi-tenant isolation
@@ -124,7 +136,20 @@ cache-encryption = ["cache", "dep:aes-gcm"]  # AES-256-GCM encryption
 cache-security-full = ["cache-hmac", "cache-multi-tenant", "cache-encryption"]  # All security features
 histogram = ["std", "dep:chrono"]  # Logarithmic buckets, <10ns record
 histogram-simd = ["histogram", "portable_simd"]  # 8-way SIMD percentiles
+streaming-stats = ["std"]  # T5 Streaming: T-Digest percentiles (512B=25 centroids, ±5% error, <50ns insert, <100ns query)
 concurrent-map-v3 = ["std"]  # T1 Atomic inline-storage hash map (2-8× vs DashMap, 4× vs v2)
+
+# ConcurrentMapU64 - Specialized u64 Key Hash Map (T1+T2)
+specialized-u64 = ["std"]  # T1+T2: Direct indexing + SIMD u64x4 scan, 15-30× speedup vs generic ConcurrentMapCapsule<u64, V>
+# Performance: 3-5ns get (vs 50ns generic), 5-10ns insert (vs 100ns), 10-15ns remove (vs 150ns)
+# Memory: 1MB (64B buckets vs 128B generic, 2× density)
+# SIMD: Enable with portable_simd feature (4× speedup for get/remove, nightly required)
+
+# ScalableHashMapCapsule - Unbounded Lockfree Hash Map (T0+T1+T2)
+scalable-hashmap = ["std"]  # T0+T1+T2: Hopscotch hashing, H=32 neighborhood, 64B buckets, generation counters (Q34 audit + ABA-safe)
+# Performance: 200ns insert (scalar), 120ns (SIMD), 2.2× batch speedup (LSH use case)
+# Memory: 2.3M buckets = 268 MB (generation counter MANDATORY for T0+T1 compliance)
+# SIMD: Enable with simd-hash feature (1.7× speedup, nightly + x86_64 required)
 
 # T4: Text Processing (batch tokenization, 13× speedup vs allocator-locked)
 tokenization-batch = ["std", "dep:thread_local", "dep:hashbrown"]  # Thread-local tokenization buffers
@@ -162,6 +187,17 @@ yaml = ["std"]  # T5 YAML Writer/Parser Capsule (<100ns per field, simplified YA
 async-log = ["tokio-compat"]  # T5 async log (10-100× vs Mutex<File>, requires tokio-compat)
 logging = ["std", "dep:once_cell"]  # T0+T1+T5 Logging Capsules (zero deps, 2× faster than log+env_logger, eliminates format string buffer overflow)
 
+# T5: Streaming Operators (NEW - Nov 2025)
+streaming-window = ["std"]  # T5: Sliding/tumbling windows (8K entries, <10ns append, <50ns query)
+streaming-aggregation = ["std"]  # T5: Incremental aggregation (sum/avg/min/max/variance, Welford's algorithm, <20ns update)
+streaming-join = ["std", "streaming-window"]  # T5: Stream-stream windowed joins (inner/left/outer, O(N×M) join)
+streaming-filter = ["std", "streaming-window"]  # T5: Predicate-based filtering (<15ns append)
+streaming-map = ["std", "streaming-window"]  # T5: Type transformation pipeline (<15ns append)
+streaming-reduce = ["std", "streaming-window"]  # T5: Incremental reduction (fold/reduce, O(N) reduction)
+streaming-group-by = ["std", "streaming-window", "streaming-aggregation"]  # T5: Windowed group-by aggregation (256 groups max, <50ns append)
+streaming-dedup = ["std", "streaming-window", "bloom-filter"]  # T5: Duplicate detection (Bloom filter + exact hash, <30ns append)
+preset-streaming-all = ["streaming-window", "streaming-aggregation", "streaming-join", "streaming-filter", "streaming-map", "streaming-reduce", "streaming-group-by", "streaming-dedup", "streaming-strategy-labeler"]  # All T5 streaming features
+
 # Async Channels (lockfree async channels replacing tokio::sync)
 # T1 Atomic coordination + async/await support
 # Performance: <30ns send, <50ns recv, 10M+ msg/sec
@@ -180,6 +216,8 @@ tier1-tier2-tier3 = ["tier1-tier2", "tier2-tier3"]  # Full 3-tier (24× compound
 full-compound = ["tier1-tier2-tier3", "adaptive-parallel"]  # All 4 tiers (T1+T2+T3+T4)
 lockfree-executor = ["std"]  # T6 Mixed: 100% lockfree task execution (T1 Atomic + T4 Batch)
 wiring-capsule = ["std", "circuit-breaker-standard64"]  # T6 Mixed: Lockfree request/response wiring (T1 Atomic + CircuitBreaker)
+observability = ["std", "portable_simd", "ring-trace"]  # T6 Mixed (T1+T2+T5): Unified metrics + traces + logs (10-20× vs Prometheus, <15ns atomic, 8× SIMD, <10ns streaming)
+batch-streaming = ["std"]  # T6 Mixed (T4+T5): Batch accumulator + streaming ring buffer (2-40× vs mutex VecDeque, <20ns push, <500ns flush, <10ns consume)
 
 # Phase 3: Compression Primitives (T2/T3/T4/T6 multi-tier capsules from kindly_hft)
 compression-lz4 = ["std", "dep:lz4_flex", "dep:rayon", "dep:thiserror", "derive"]  # T4 Batch parallel LZ4 decompression (8× speedup)
@@ -235,7 +273,10 @@ anomaly-detection = ["std", "bloom-filter", "hll", "fixed-point"]  # T10+T1 Anom
 nightly = []  # Enable nightly features (portable_simd, const_fn_floating_point)
 portable_simd = ["nightly"]  # SIMD capsule primitives (requires nightly)
 nightly-prefetch = ["nightly"]  # Hardware prefetch optimization (5-10% at 75% load)
-nightly-all = ["nightly", "const-hashing", "simd-hashing", "const-serialize", "const-float", "nightly-prefetch", "queue-bounded"]  # All nightly optimizations
+nightly-const-generics = ["nightly", "ring-trace"]  # T0: Const generic ring buffers (generic_const_exprs, 5-15% speedup, zero alloc)
+nightly-const-fn = ["nightly"]  # T0: Const fn expansion (const_fn_floating_point, 8-30% speedup, 50-100× for known params)
+nightly-inline-const = ["nightly"]  # T0: Inline const blocks (inline_const, 10-15% speedup, eliminate lazy_static)
+nightly-all = ["nightly", "const-hashing", "simd-hashing", "const-serialize", "const-float", "nightly-prefetch", "nightly-const-generics", "nightly-const-fn", "nightly-inline-const", "queue-bounded"]  # All nightly optimizations
 
 # TIER 5: Convenience Presets (simplify common configurations)
 # #ASSUME_PRESET_EXCLUSIVE: Choose ONE preset per build
@@ -272,9 +313,20 @@ inference-all = ["inference-matmul", "inference-attention", "inference-quantizat
 
 # TIER 9: CNLS Quantum Wave Mechanics (T2+T3+T6)
 complex-simd = ["portable_simd"]  # T2 ComplexF32x4 (10-13× speedup)
-cnls = ["complex-simd", "complex-fixed", "capsule-serialize"]  # CNLS solver with audit trails
+cnls = ["complex-simd", "complex-fixed", "capsule-serialize", "std", "fixed-point", "derive"]  # CNLS solver with audit trails
 split-step-fourier = ["cnls", "dep:rustfft"]  # Split-Step Fourier method
+quantum-cnls = ["cnls"]  # Alias for quantum module integration (Phase 4.2 migration)
 quantum-wave = ["cnls", "split-step-fourier"]  # Complete quantum wave mechanics suite
+quantum-pure = ["std", "portable_simd", "dep:rand"]  # Phase Q3.0-Q3.3: Pure-capsule quantum simulator (100% COCA, no qip dependency)
+quantum-multi-qubit = ["quantum-pure"]  # Phase Q3.3: Multi-qubit gates (CNOT, CZ, SWAP, Toffoli)
+quantum-fusion = ["std"]  # Phase Q3.4: Gate fusion optimization (T4 Batch, 3-5× speedup via 60-80% gate reduction)
+quantum-syndrome = ["std", "portable_simd"]  # Phase Q3.5: Syndrome extraction for QEC (T2 SIMD, 3-4× speedup)
+quantum-union-find = ["std"]  # Phase Q3.5: Union-Find QEC decoder (T5 Streaming, <50μs @ d=5, >90% accuracy)
+qec-decoders = ["quantum-syndrome", "quantum-union-find"]  # Phase Q3.5: All QEC decoders (Union-Find + MWPM)
+quantum-stabilizer = ["std", "dep:rand"]  # Phase Q3.6: Gottesman-Knill stabilizer formalism (1,000-20,000× exponential speedup, T1 Atomic)
+avx2-simd = ["portable_simd"]  # Phase Q3.1: AVX2-specific optimizations (requires nightly)
+quantum-stabilizer-simd = ["quantum-stabilizer", "nightly", "portable_simd"]  # Phase Q3.6 Stage 2: SIMD rowsum optimization (80× speedup via u64x8 bitwise XOR, requires nightly + AVX2)
+quantum-simulation = ["quantum-stabilizer"]  # Alias for quantum-stabilizer (backward compatibility)
 
 # TIER 10: Data Protection (T6 Mixed: T0+T1+T9)
 data-protection = ["std", "const-hashing", "audit-trail", "capsule-serialize"]  # T6 data protection
@@ -288,6 +340,13 @@ runtime-net = ["std", "runtime-reactor"]  # T1+T8: Lockfree async UDP networking
 unix-socket = ["std"]  # T1+T5: Lockfree Unix domain sockets (Docker-critical SCM_RIGHTS FD passing)
 runtime-process = ["std"]  # T1+T5: Lockfree async process spawning (posix_spawn + pidfd, 5-20× vs tokio::process)
 kind-tcp = ["std"]  # Kind module: AsyncTcpListener + AsyncTcpStream (lockfree TCP, <100ns accept/connect)
+
+# TIER 10.5: GPU Acceleration (T7 Heterogeneous - Phase 5)
+# #ASSUME_GPU_HARDWARE: CUDA or ROCm GPU available
+# #VERIFY_GRACEFUL_DEGRADATION: CPU fallback when GPU unavailable
+gpu-cuda = ["std", "dep:cudarc"]  # T7: CUDA backend (NVIDIA GPU, Compute Capability 6.0+, 100-1000× speedup)
+gpu-rocm = ["std"]  # T7: ROCm/HIP backend (AMD GPU, GCN 4.0+/RDNA 1+, 100-1000× speedup, FFI bindings pending)
+gpu-all = ["gpu-cuda", "gpu-rocm"]  # T7: All GPU backends (auto-detect at runtime)
 
 # TIER 11: Unified Traits (backward compatible)
 unified-traits = []  # Enable unified capsule trait hierarchy (opt-in)
@@ -316,7 +375,11 @@ atomic_capsule_derive = { path = "../atomic_capsule_derive", optional = true }
 xxhash-rust = { version = "0.8", features = ["xxh64"], optional = true }
 blake3 = { version = "1.8", default-features = false, optional = true }
 sha2 = { version = "0.10", default-features = false, optional = true }
+sha3 = { version = "0.10", default-features = false, optional = true }  # SHA3-256 for AuditCompressionCapsule
+sha1 = { version = "0.10", default-features = false, optional = true }  # SHA-1 for WebSocket Sec-WebSocket-Accept (RFC 6455)
 hmac = { version = "0.12", default-features = false, optional = true }
+rustls-pemfile = { version = "2.0", optional = true }  # PEM certificate/key parsing for TLS
+webpki-roots = { version = "0.26", optional = true }  # Mozilla CA root certificates for TLS
 highway = { version = "1.2", optional = true }
 ed25519-dalek = { version = "2.1", optional = true }  # Ed25519 signatures for CryptoLicenseCapsule
 
@@ -324,6 +387,10 @@ ed25519-dalek = { version = "2.1", optional = true }  # Ed25519 signatures for C
 siphasher = { version = "1.0", optional = true }
 rand = { version = "0.8", optional = true }
 aes-gcm = { version = "0.10", optional = true }
+
+# T2 SIMD Crypto - NIST-approved cryptographic libraries
+# NOTE: These are used for simd-crypto feature only, not for cache module
+pbkdf2 = { version = "0.12", default-features = false, features = ["simple"], optional = true }
 
 # Encrypted State - HKDF key derivation
 hkdf = { version = "0.12", optional = true }
@@ -341,6 +408,7 @@ bincode = { version = "1.3", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0", optional = true }
 hex = { version = "0.4", optional = true }
+base64 = { version = "0.21", optional = true }  # Base64 encoding for WebSocket Sec-WebSocket-Accept
 reqwest = { version = "0.12", features = ["json", "http2"], optional = true }
 futures = { version = "0.3", optional = true }
 
@@ -363,6 +431,11 @@ crc = { version = "3.2", optional = true }
 # Tier 9 Persistent - Memory-mapped files
 memmap2 = { version = "0.9", optional = true }
 bytemuck = { version = "1.14", optional = true, features = ["derive"] }
+
+# T4 Batch Crypto - Ed25519 and ECDSA signature verification
+# Ed25519: Native batch verification via Shamir's trick (8× speedup)
+# ECDSA (secp256k1): Parallel verification via rayon (8-16× speedup)
+k256 = { version = "0.13", optional = true, features = ["ecdsa"] }
 
 # Phase 9: Nightly Adaptive - Topology detection
 num_cpus = { version = "1.16", optional = true }
@@ -399,6 +472,9 @@ chrono = { version = "0.4", optional = true }
 # WASM target - wasm-bindgen for std support
 wasm-bindgen = { version = "0.2", optional = true }
 parking_lot = { version = "0.12", optional = true }
+
+# T7: GPU Acceleration - CUDA backend (Phase 5)
+cudarc = { version = "0.10", optional = true, features = ["driver"] }  # CUDA Rust bindings (NVIDIA GPU)
 
 # TPM 2.0 Hardware Binding - Platform-specific
 # Platform-specific dependencies
@@ -639,6 +715,11 @@ harness = false
 required-features = ["http-simd"]
 
 [[bench]]
+name = "form_parser_simd_bench"
+harness = false
+required-features = ["portable_simd"]
+
+[[bench]]
 name = "cache_security_bench"
 harness = false
 required-features = ["std"]
@@ -709,9 +790,19 @@ harness = false
 required-features = ["queue-batch"]
 
 [[bench]]
+name = "batch_validator_b32"
+harness = false
+required-features = ["batch-crypto"]
+
+[[bench]]
 name = "tokenization_batch_bench"
 harness = false
 required-features = ["tokenization-batch", "probabilistic"]
+
+[[bench]]
+name = "concurrent_map_u64_bench"
+harness = false
+required-features = ["specialized-u64", "portable_simd"]
 
 # ============================================================================
 # BINARIES
@@ -785,6 +876,42 @@ required-features = ["std"]
 name = "json_rpc_b32"
 harness = false
 required-features = ["std"]
+
+[[bench]]
+name = "audit_compression_b32"
+harness = false
+required-features = ["audit-compression"]
+
+[[bench]]
+name = "greeks_b32"
+harness = false
+required-features = ["financial-greeks"]
+
+[[bench]]
+name = "cnot_gate_b32"
+harness = false
+required-features = ["quantum-multi-qubit"]
+
+[[bench]]
+name = "fusion_b32"
+harness = false
+required-features = ["quantum-fusion"]
+
+[[bench]]
+name = "syndrome_b32"
+path = "benches/quantum/syndrome_b32.rs"
+harness = false
+required-features = ["quantum-syndrome"]
+
+[[bench]]
+name = "websocket_frame_parser_b32"
+harness = false
+required-features = ["std"]
+
+[[test]]
+name = "syndrome_t28"
+path = "tests/quantum/syndrome_t28.rs"
+required-features = ["quantum-syndrome"]
 
 # Commented out: Benchmark files do not exist (2025-11-10)
 # [[bench]]
