@@ -200,6 +200,10 @@ pub mod primitives;
 #[cfg(feature = "portable_simd")]
 pub mod composite;
 
+// Tier 7: Heterogeneous GPU Acceleration (Phase 5: GPU Foundation)
+#[cfg(any(feature = "gpu-cuda", feature = "gpu-rocm", feature = "gpu-all"))]
+pub mod gpu;
+
 #[cfg(feature = "portable_simd")]
 pub use primitives::{SimdF32x8Capsule, SimdF64x8Capsule};
 
@@ -312,8 +316,8 @@ pub mod inference;
 #[cfg(feature = "probabilistic")]
 pub mod probabilistic;
 
-// T2 SIMD: HTTP Header Parsing
-#[cfg(feature = "http-simd")]
+// T8 Network: HTTP Server Capsules
+#[cfg(feature = "http")]
 pub mod http;
 
 // T3 Fixed-Point: TUI Configuration Capsules (T3 deterministic thresholds)
@@ -327,6 +331,26 @@ pub use tui::{RenderBufferCapsule, AuditLogCapsule, FileNavigatorCapsule, Screen
 // T8: Network Capsules - Distributed coordination (requires std + tokio)
 #[cfg(all(feature = "std", feature = "network"))]
 pub mod network;
+
+// T1+T8+T10: Load Balancing Capsules - Health checking, session affinity, consistent hashing
+#[cfg(feature = "std")]
+pub mod load_balancing;
+
+// T1+T5 Runtime Module - Lockfree async runtime primitives (requires std)
+#[cfg(feature = "std")]
+pub mod runtime;
+
+// T5 Streaming Module - O(1) incremental computation (window, aggregation, filters)
+#[cfg(feature = "streaming")]
+pub mod streaming;
+
+// WebSocket Module - T5 Frame parsing + T8 Network (RFC 6455)
+#[cfg(feature = "std")]
+pub mod websocket;
+
+// T8+T1+T4 Network: TLS Module (TLS 1.3 encryption, session caching, ALPN)
+#[cfg(feature = "tls")]
+pub mod tls;
 
 // Phase 3: Data Protection Capsules - T6 Mixed (T0+T1+T9) (requires std)
 #[cfg(feature = "std")]
@@ -352,6 +376,20 @@ pub mod shell;
     feature = "compression-streaming"
 ))]
 pub mod compression;
+
+// T11 QuantumHybrid: Quantum State Simulation + CNLS Wave Dynamics
+// - quantum-simulation: Full quantum algorithms (Shor's, Grover's, QAOA)
+// - quantum-cnls: CNLS wave simulation (T6 Mixed: T2 SIMD + T3 Fixed-Point)
+// - quantum-multi-qubit: Multi-qubit gates (CNOT, CZ, SWAP, Toffoli) - Phase Q3.3
+// - quantum-stabilizer: Gottesman-Knill stabilizer formalism - Phase Q3.6
+#[cfg(any(feature = "quantum-simulation", feature = "quantum-stabilizer", feature = "quantum-cnls", feature = "quantum-multi-qubit", feature = "quantum-fusion", feature = "quantum-syndrome", feature = "quantum-union-find", feature = "qec-decoders"))]
+pub mod quantum;
+
+// T11 QuantumHybrid: Pure-Capsule Quantum Simulator (Phase Q3)
+// - quantum-pure: Zero-dependency quantum simulator (SIMD gates, lockfree coordination)
+// - Phase Q3.3: Multi-qubit gates (CNOT, CZ, SWAP, Toffoli)
+#[cfg(feature = "quantum-pure")]
+pub mod quantum_pure;
 
 // Observability Capsules (T1 Atomic + T10 Probabilistic)
 #[cfg(feature = "std")]
@@ -385,6 +423,8 @@ pub mod text;
 ))]
 pub mod platform;
 
+
+
 // Re-export hash types for convenience
 pub use hash::{AtomicHash256, AtomicHash64};
 
@@ -412,6 +452,22 @@ pub use daemon::{DaemonError, DaemonLockCapsule, DaemonResult, LockGuard};
 
 #[cfg(all(feature = "std", feature = "queue-bounded"))]
 pub use daemon::{DaemonQueueCapsule, WaitEntry};
+
+// Re-export load balancing capsules for convenience (requires std)
+#[cfg(feature = "std")]
+pub use load_balancing::{
+    BackendHealthState, HealthCheckCapsule, HealthCheckError, HealthCheckResult, HealthCheckType,
+    HealthStatus, ErrorType, PassiveHealthMonitor, CircuitBreakerIntegration,
+    SessionAffinityCapsule, AffinityMode, SessionEntry, SessionStatistics,
+};
+
+// Re-export TLS capsules for convenience (requires std)
+// Phase 1 (current): Metrics + Certificate only
+// Phase 2+ (planned): Add AlpnMetrics, CacheMetrics, etc.
+#[cfg(feature = "std")]
+pub use runtime::tls::{
+    TlsHandshakeMetricsCapsule, TlsHandshakeError, HandshakeMetrics, ComplianceReport,
+};
 
 // Re-export observability capsules for convenience (requires std)
 #[cfg(feature = "std")]

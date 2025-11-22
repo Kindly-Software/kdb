@@ -83,6 +83,10 @@ pub mod coordination;
 #[cfg(feature = "financial-greeks")]
 pub mod greeks;
 
+// Nightly Phase 2: Digital Signal Processing (T2+T3 SIMD+FixedPoint, requires std)
+#[cfg(all(feature = "nightly-const-simd", feature = "std"))]
+pub mod dsp;
+
 // Re-export capsule types (conditionally based on features)
 pub use fixed_q16_16::FixedQ16_16Capsule;
 
@@ -143,6 +147,10 @@ pub use coordination::{
 // Phase 4.1 Financial Greeks exports
 #[cfg(feature = "financial-greeks")]
 pub use greeks::GreeksCapsule;
+
+// Nightly Phase 2: DSP primitive exports
+#[cfg(all(feature = "nightly-const-simd", feature = "std"))]
+pub use dsp::FIRFilterConst;
 
 /// Common trait for SIMD capsule operations
 ///

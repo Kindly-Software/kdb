@@ -447,6 +447,11 @@ impl WebSocketClientCapsule {
     /// - #ASSUME_DISCONNECTED_STATE: Must be called from Disconnected state
     /// - #ASSUME_VALID_URL: URL must be well-formed WebSocket URL
     pub fn connect(&mut self, url: &str) -> Result<(), ClientError> {
+        self.connect_internal(url)
+    }
+
+    // Internal connect method for shared logic
+    fn connect_internal(&mut self, url: &str) -> Result<(), ClientError> {
         // #ASSUME_DISCONNECTED_STATE: Check current state
         if self.get_state() != ClientState::Disconnected {
             return Err(ClientError::AlreadyConnected);
@@ -765,6 +770,11 @@ impl WebSocketClientCapsule {
     /// Returns: (host, port, path)
     /// Example: "ws://echo.websocket.org:8080/chat" → ("echo.websocket.org", "8080", "/chat")
     fn parse_url<'a>(&self, url: &'a str) -> Result<(&'a str, &'a str, &'a str), ClientError> {
+        Self::parse_url_static(url)
+    }
+
+    /// Static helper to parse WebSocket URL (lifetime-independent)
+    fn parse_url_static<'a>(url: &'a str) -> Result<(&'a str, &'a str, &'a str), ClientError> {
         // Simple parser for ws:// URLs
         if !url.starts_with("ws://") && !url.starts_with("wss://") {
             return Err(ClientError::InvalidUrl);

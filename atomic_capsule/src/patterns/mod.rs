@@ -73,8 +73,15 @@ pub mod position_tracker;
 // Rate Limiter (T1 Atomic + T3 Fixed-Point: Token bucket rate limiting)
 pub mod rate_limiter;
 
+// Rate Limiter Const (T1 Atomic + T3 Fixed-Point: Const generic rate limiter, zero allocation)
+#[cfg(feature = "nightly-const-streaming")]
+pub mod rate_limiter_const;
+
 // Quota Tracker (T1 Atomic: Per-user monthly quota tracking, 64 KB)
 pub mod quota_tracker;
+
+// Load Balancing Algorithms (T1+T4: 7 algorithms, <100ns selection)
+pub mod load_balancing_algorithms;
 
 // Leader Election (T1 Atomic: Raft-style epoch-based leader election)
 #[cfg(feature = "leader-election")]
@@ -91,6 +98,7 @@ pub use dual_atomic::DualAtomicU64;
 pub use position_tracker::PositionTrackerCapsule;
 pub use quota_tracker::{QuotaError, QuotaTrackerCapsule};
 pub use rate_limiter::{RateLimiterCapsule, RateLimitResult};
+pub use load_balancing_algorithms::LoadBalancingAlgorithm;
 
 // Re-export circuit breaker types (feature-gated)
 #[cfg(any(
@@ -114,6 +122,10 @@ pub use lockfree_task_executor::{ExecutionReport, LockfreeTaskExecutor};
 // Re-export time-travel types (feature-gated)
 #[cfg(feature = "time-travel")]
 pub use time_travel::{ReplayEngineCapsule, TimeSnapshot, MAX_SNAPSHOTS};
+
+// Re-export rate-limiter-const types (feature-gated)
+#[cfg(feature = "nightly-const-streaming")]
+pub use rate_limiter_const::RateLimiterConst;
 
 // Re-export leader-election types (feature-gated)
 #[cfg(feature = "leader-election")]

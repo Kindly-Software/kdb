@@ -782,6 +782,14 @@ pub mod array_const;
 #[cfg(feature = "fixed-point-array")]
 pub use array_const::{FixedPointArrayConst, is_nonzero};
 
+// T6 Fixed-Point Matrix Const (Phase Nightly 2 - T2 SIMD + T3 Fixed + T4 Batch)
+#[cfg(feature = "fixed-point-array")]
+pub mod matrix_const;
+
+// Re-export for convenience
+#[cfg(feature = "fixed-point-array")]
+pub use matrix_const::{FixedPointMatrixConst, is_power_of_2, validate_matrix_size, validate_fixed_precision, calculate_quantization_error};
+
 // T3 Q8.8 Quantization (moved from kindly_hft)
 #[cfg(feature = "fixed-point-quantizer")]
 pub mod quantizer;
@@ -789,3 +797,11 @@ pub mod quantizer;
 // Re-export quantizer for convenience
 #[cfg(feature = "fixed-point-quantizer")]
 pub use quantizer::QuantizerCapsule;
+
+// T2+T3 Const Generics Quantizer (Nightly Phase 2 Primitive 2)
+#[cfg(feature = "nightly-const-simd")]
+pub mod quantizer_const;
+
+// Re-export for convenience
+#[cfg(feature = "nightly-const-simd")]
+pub use quantizer_const::QuantizerConstCapsule;

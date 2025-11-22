@@ -1,0 +1,86 @@
+# Performance Regression Baselines - Phase 5.0
+# Generated from actual benchmark runs
+# Source: B32_BENCHMARK_DELIVERY_SUMMARY.md
+#
+# These baselines are used by tests/performance_regression.rs
+# to detect performance regressions in CI/CD pipelines.
+#
+# Update these values when:
+# 1. A verified optimization improves baseline performance
+# 2. Hardware changes (different CI runners)
+# 3. Major algorithm improvements land
+#
+# DO NOT update to hide regressions!
+
+[atomic_operations]
+# Hardware atomic operations (MEASURED: 2025-10-20)
+# Measured with tools/measure_baselines.rs
+load_ns = 1          # AtomicU64::load(Relaxed) - Measured: 0ns (rounded up to 1ns)
+store_ns = 1         # AtomicU64::store(Relaxed) - Measured: 0ns (rounded up to 1ns)
+cas_ns = 10          # Hardware CAS latency - Measured: 8ns (rounded up for headroom)
+
+[concurrent_map]
+# ConcurrentMapCapsule single-threaded performance (CONSERVATIVE for CI/CD)
+# Test environment (cold cache): 317-399ns insert (±20% variance), 58-62ns get
+# Conservative baseline allows 50% variance for CI/CD stability
+insert_ns = 450      # Test: 317-399ns, +13-42% headroom for CI variance
+get_ns = 70          # Test: 58-62ns, +11-21% headroom for CI variance
+remove_ns = 90       # Test: 58-73ns, +23% headroom for CI variance
+
+[lockfree_table]
+# LockfreeHashTable single-threaded performance (CONSERVATIVE for CI/CD)
+# Test environment (cold cache): 248-462ns insert (±46% HIGH variance), 22-49ns get
+# High variance due to hash table probe distance variation
+insert_ns = 500      # Test: 248-462ns, +8-102% headroom for high variance
+get_ns = 60          # Test: 22-49ns, +22-173% headroom for CI variance
+remove_ns = 150      # Conservative estimate (not measured in tests)
+
+[simd_operations]
+# SIMD computational capsule operations (f32x8)
+# Source: B32_BENCHMARK_DELIVERY_SUMMARY.md (warm cache measurements)
+# Conservative headroom for CI/CD environment
+dot_product_ns = 5   # Warm cache: 2.4ns, rounded up conservatively
+add_ns = 4           # Conservative headroom for CI variance
+mul_ns = 4           # Conservative headroom for CI variance
+
+[concurrent_operations_8threads]
+# Multi-threaded performance (8 threads, per-operation average) (CONSERVATIVE for CI/CD)
+# Test environment (cold cache/contention): 477ns insert, 82ns get
+insert_per_op_ns = 550   # Test: 477ns, +15% headroom for CI variance
+get_per_op_ns = 100      # Test: 82ns, +22% headroom for CI variance
+remove_per_op_ns = 250   # Conservative estimate for CI environment
+
+[metadata]
+# Baseline metadata for tracking and auditing
+version = "5.0.0"
+date = "2025-10-20"
+framework = "UCE34 Q34, B32"
+regression_threshold = 1.10  # 10% tolerance (alerts on >10% slower)
+hardware = "Intel Ultra 7 155H (P-cores @ 4.8GHz, E-cores @ 3.8GHz)"
+compiler = "rustc 1.84.0-nightly (2025-10-20)"
+optimization = "opt-level=3, lto=thin"
+
+# Hardware reality checks (K1-K9 from B32 framework)
+# These validate baselines are within expected hardware limits
+[hardware_limits]
+l1_cache_latency_ns = 1        # L1 data cache latency
+l2_cache_latency_ns = 4        # L2 cache latency
+l3_cache_latency_ns = 12       # L3 cache latency
+ram_latency_ns = 100           # RAM access latency
+cache_line_bytes = 64          # L1 cache line size
+simd_width = 8                 # AVX2 f32 vector width
+expected_simd_speedup = 1.5    # Realistic for 8 elements (K9: need 64+ for 3-4×)
+
+[validation]
+# Validation rules for regression detection
+# All timings must satisfy these constraints
+max_atomic_load_ns = 10        # Atomic load should never exceed 10ns
+max_atomic_cas_ns = 50         # CAS should never exceed 50ns (hardware limit)
+max_simd_overhead_ns = 10      # SIMD overhead (generation counter, etc.)
+min_concurrent_speedup = 0.5   # Concurrent ops should be ≥50% of single-threaded
+
+# CI/CD integration
+[ci]
+fail_on_regression = true      # Fail tests if regression detected
+alert_threshold = 1.10         # Alert at 10% regression
+improvement_threshold = 0.90   # Log improvements at 10% faster

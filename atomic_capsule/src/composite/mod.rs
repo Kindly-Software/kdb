@@ -86,6 +86,22 @@ pub mod tier1_tier2_tier3;
 #[cfg(feature = "observability")]
 pub mod observability;
 
+// Phase 12: Batch + Streaming Capsule (T6 Mixed: T4+T5)
+#[cfg(feature = "batch-streaming")]
+pub mod batch_streaming;
+
+// Nightly Phase 2: Vectorized Batch Const (T6 Mixed: T1+T2+T4)
+#[cfg(feature = "nightly-const-mixed")]
+pub mod vectorized_batch_const;
+
+// Nightly Phase 2: FixedPointSIMDConst (T6 Mixed: T2+T3, Primitive 12 of 13)
+#[cfg(all(feature = "nightly-const-mixed", feature = "portable_simd"))]
+pub mod fixed_point_simd_const;
+
+// Nightly Phase 2: ProbabilisticCacheConst (T6 Mixed: T1+T4+T10, Primitive 13 of 13 - FINAL)
+#[cfg(all(feature = "nightly-const-mixed", feature = "probabilistic"))]
+pub mod probabilistic_cache_const;
+
 // Re-export existing composite types (Phase 2.4.1)
 #[cfg(feature = "portable_simd")]
 pub use atomic_simd::{AtomicSimdAccumulator, AtomicSimdCounter, AtomicSimdF32x8};
@@ -111,3 +127,27 @@ pub use tier1_tier2_tier3::FullCompositeCapsule;
 // Re-export observability types (Phase 4)
 #[cfg(feature = "observability")]
 pub use observability::{ObservabilityCapsule, TraceEvent, TraceRingBuffer};
+
+// Re-export batch streaming types (Phase 12)
+#[cfg(feature = "batch-streaming")]
+pub use batch_streaming::{BatchStreamError, BatchStreamingCapsule, RING_CAPACITY};
+
+// Re-export vectorized batch const types (Nightly Phase 2)
+#[cfg(feature = "nightly-const-mixed")]
+pub use vectorized_batch_const::{
+    VectorizedBatchConst, BatchError, validate_batch_size, validate_simd_width,
+    validate_alignment, calculate_iterations,
+};
+
+// Re-export FixedPointSIMDConst types (Nightly Phase 2, Primitive 12)
+#[cfg(all(feature = "nightly-const-mixed", feature = "portable_simd"))]
+pub use fixed_point_simd_const::{
+    FixedPointSIMDConst, validate_fp_precision, validate_simd_lanes,
+    calculate_fp_scale,
+};
+
+// Re-export ProbabilisticCacheConst types (Nightly Phase 2, Primitive 13 - FINAL)
+#[cfg(all(feature = "nightly-const-mixed", feature = "probabilistic"))]
+pub use probabilistic_cache_const::{
+    ProbabilisticCacheConst, validate_cache_size, validate_fpr_permille, validate_eviction_threshold_percent,
+};

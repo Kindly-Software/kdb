@@ -19,11 +19,25 @@ pub mod error;
 pub mod cuda_capsule;
 pub mod rocm_capsule;
 pub mod gpu_coordinator;
+pub mod kernels;
 
 pub use error::{GpuBackend, GpuError, GpuResult, MemoryCopyDirection};
 pub use cuda_capsule::CudaComputeCapsule;
 pub use rocm_capsule::RocmComputeCapsule;
 pub use gpu_coordinator::GpuCoordinator;
+
+// Re-export GPU kernels for convenience
+pub use kernels::{
+    GpuTensorCapsule,
+    GpuMemoryPoolCapsule,
+    GpuStreamCapsule,
+    GpuMatMulCapsule,
+    GpuReductionCapsule,
+    GpuTransposeCapsule,
+    GpuConvolutionCapsule,
+    GpuFftCapsule,
+    GpuSparseMatrixCapsule,
+};
 
 /// GPU acceleration feature detection
 pub fn is_cuda_available() -> bool {

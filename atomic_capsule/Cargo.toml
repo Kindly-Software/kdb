@@ -274,9 +274,13 @@ nightly = []  # Enable nightly features (portable_simd, const_fn_floating_point)
 portable_simd = ["nightly"]  # SIMD capsule primitives (requires nightly)
 nightly-prefetch = ["nightly"]  # Hardware prefetch optimization (5-10% at 75% load)
 nightly-const-generics = ["nightly", "ring-trace"]  # T0: Const generic ring buffers (generic_const_exprs, 5-15% speedup, zero alloc)
+nightly-const-mixed = ["nightly", "nightly-const-generics", "portable_simd", "fixed-point", "probabilistic"]  # T6 Mixed (T1+T2+T4+T10): Vectorized batch const + Probabilistic cache const (50-100× compound speedup, VectorizedBatchConst + ProbabilisticCacheConst, 13 primitives complete)
+nightly-const-streaming = ["nightly", "nightly-const-generics"]  # T5 Streaming: Const packet buffer + rate limiter (PacketBufferConst/RateLimiterConst, 10-50× speedup, zero allocation)
+nightly-const-probabilistic = ["nightly", "nightly-const-generics"]  # T10+T0: Const generic Count-Min Sketch (20-50× alloc speedup)
 nightly-const-fn = ["nightly"]  # T0: Const fn expansion (const_fn_floating_point, 8-30% speedup, 50-100× for known params)
+nightly-const-simd = ["nightly", "portable_simd", "nightly-const-fn"]  # T2+T3: Const SIMD primitives (FIRFilterConst, etc. - generic_const_exprs + const_fn_floating_point, 5-15× speedup)
 nightly-inline-const = ["nightly"]  # T0: Inline const blocks (inline_const, 10-15% speedup, eliminate lazy_static)
-nightly-all = ["nightly", "const-hashing", "simd-hashing", "const-serialize", "const-float", "nightly-prefetch", "nightly-const-generics", "nightly-const-fn", "nightly-inline-const", "queue-bounded"]  # All nightly optimizations
+nightly-all = ["nightly", "const-hashing", "simd-hashing", "const-serialize", "const-float", "nightly-prefetch", "nightly-const-generics", "nightly-const-mixed", "nightly-const-streaming", "nightly-const-probabilistic", "nightly-const-fn", "nightly-const-simd", "nightly-inline-const", "queue-bounded"]  # All nightly optimizations
 
 # TIER 5: Convenience Presets (simplify common configurations)
 # #ASSUME_PRESET_EXCLUSIVE: Choose ONE preset per build
@@ -804,6 +808,11 @@ name = "concurrent_map_u64_bench"
 harness = false
 required-features = ["specialized-u64", "portable_simd"]
 
+[[bench]]
+name = "packet_buffer_const_bench"
+harness = false
+required-features = ["std"]
+
 # ============================================================================
 # BINARIES
 # ============================================================================
@@ -883,6 +892,11 @@ harness = false
 required-features = ["audit-compression"]
 
 [[bench]]
+name = "bloom_filter_const_bench"
+harness = false
+required-features = ["nightly-const-probabilistic"]
+
+[[bench]]
 name = "greeks_b32"
 harness = false
 required-features = ["financial-greeks"]
@@ -907,6 +921,11 @@ required-features = ["quantum-syndrome"]
 name = "websocket_frame_parser_b32"
 harness = false
 required-features = ["std"]
+
+[[bench]]
+name = "probabilistic_cache_const_bench"
+harness = false
+required-features = ["nightly-const-mixed"]
 
 [[test]]
 name = "syndrome_t28"
