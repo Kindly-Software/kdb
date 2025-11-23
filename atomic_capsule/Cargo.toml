@@ -13,7 +13,7 @@ categories = ["concurrency", "data-structures", "embedded", "no-std"]
 readme = "README.md"
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(loom)', 'cfg(feature, values("diagnostics", "rayon", "DISABLED_PENDING_TRAIT_UPDATE"))'] }
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(loom)', 'cfg(feature, values("diagnostics", "rayon", "DISABLED_PENDING_TRAIT_UPDATE", "security-bot-detector-avx2"))'] }
 
 [lints.clippy]
 missing_capsule_verification = "deny"  # Fail compilation if capsule lacks verification (Phase 4.0: Automatic verification enforcement)
@@ -76,6 +76,8 @@ cbor = ["std"]  # T1 Atomic CBOR writer/reader (RFC 8949, <20ns per value, 8KB b
 audit-q34 = ["std", "dep:sha2", "dep:serde_json", "dep:hex"]  # Q34 compliance audit trail (SOX/SOC2/GDPR/HIPAA)
 audit-compression = ["std", "nightly", "dep:lz4_flex", "dep:sha3"]  # T0+T5: Compressed audit trails with SHA3-256 Merkle tree (10-50× size reduction, <100ns append)
 fuzzy-extractor = ["std", "dep:reed-solomon-erasure", "dep:sha2", "fixed-point"]  # T10+T3: Reed-Solomon error correction for PUF (96% → 99.9% stability)
+security-constant-time-ops = ["std"]  # T0: Constant-time cryptographic primitives (timing-attack resistant, <20ns compare, ~2ns select)
+security-constant-time-simd = ["security-constant-time-ops", "std", "nightly", "portable_simd"]  # T0+T2: SIMD-accelerated constant-time ops (u8x32 branchless, 32-byte chunks)
 
 # T1: Atomic Coordination (<100ns operations)
 atomic-core = []  # Base T1 primitives (DualAtomicU64, generation counters)
@@ -91,6 +93,7 @@ time-travel = ["std"]  # T0+T1: Bidirectional time-travel replay with hash-chain
 quota-tracker = ["std"]  # T1: Per-user monthly quota tracking (64 KB capsule, <70ns operations)
 leader-election = ["std"]  # T1: Raft-style epoch-based leader election (<50ns vote, <10ns check, <100ns failover)
 load-balancer = ["std"]  # T1+T4: High-performance load balancing with 7 algorithms (<100ns selection)
+systemd = ["std"]  # T1: Systemd service coordination (<100ns state queries, ~1ms systemctl refresh)
 
 # T2: SIMD Vectorization (2-19× speedup)
 # #ASSUME_SIMD_NIGHTLY: All SIMD features require nightly Rust
@@ -150,6 +153,7 @@ scalable-hashmap = ["std"]  # T0+T1+T2: Hopscotch hashing, H=32 neighborhood, 64
 # Performance: 200ns insert (scalar), 120ns (SIMD), 2.2× batch speedup (LSH use case)
 # Memory: 2.3M buckets = 268 MB (generation counter MANDATORY for T0+T1 compliance)
 # SIMD: Enable with simd-hash feature (1.7× speedup, nightly + x86_64 required)
+universal-hash = ["std", "dep:xxhash-rust", "dep:rand"]  # T1 Atomic: UniversalHashCapsule with xxHash3 (2× load factor improvement, 1.7× faster hashing, <3ns vs ~5ns SipHash, requires std)
 
 # T4: Text Processing (batch tokenization, 13× speedup vs allocator-locked)
 tokenization-batch = ["std", "dep:thread_local", "dep:hashbrown"]  # Thread-local tokenization buffers
@@ -237,6 +241,18 @@ distributed-audit = ["distributed"]  # Hash-chained audit trail
 distributed-histogram = ["distributed", "dep:hdrhistogram"]  # P50/P95/P99/P999 monitoring
 distributed-all = ["distributed-compression", "distributed-audit", "distributed-histogram"]  # All P1 features
 remote-attestation = ["native", "tokio-compat", "dep:rustls", "dep:hyper", "dep:hyper-rustls", "dep:hyper-util", "dep:http-body-util", "dep:bytes", "dep:serde", "dep:serde_json", "dep:hex"]  # T8+T1: Remote license attestation (TLS 1.3 + HTTP/2)
+quic = ["std", "derive"]  # T1 Atomic + T3 Fixed-Point: QUIC foundation (connection state, flow control, loss detection, congestion control)
+quic-simd = ["quic", "nightly", "portable_simd"]  # T2 SIMD: Frame parsing acceleration (5-10× speedup, QPACK header compression)
+quic-http3 = ["quic"]  # T5 Streaming: HTTP/3 control stream (RFC 9114 §6.2 SETTINGS/GOAWAY frames, <500ns frame processing, O(1) per field)
+quic-audit = ["quic"]  # T0 Auditable: QUIC audit trail (hash-chain integrity, Q34 compliance, SOX/SOC2/GDPR/HIPAA)
+
+# T6: Meta-Coordination (orchestrates T1/T2/T5/T8 primitives)
+universal-api = ["std"]  # Week 1: Universal API meta-coordination (protocol detection, middleware, routing)
+nightly-const-middleware = ["universal-api", "nightly"]  # P0-1: Safe middleware dispatch (MiddlewareId enum, 5× speedup, zero unsafe)
+nightly-simd-protocol = ["universal-api", "nightly", "portable_simd"]  # P1-1: SIMD protocol detection (u8x32, 5-10× speedup, <40ns)
+graphql-federation = ["universal-api", "nightly", "portable_simd", "circuit-breaker-standard64"]  # P2-1: GraphQL Federation (T2+T4 SIMD query planning + parallel execution, 10-50× speedup)
+sse-support = ["universal-api", "circuit-breaker-standard64"]  # P1-3: Server-Sent Events (SSE) protocol support (1.4× vs WebSocket, <70ns overhead)
+telemetry-prometheus = ["universal-api", "std"]  # P2-3: Lockfree telemetry aggregation with Prometheus exporter (<50ns overhead, <1ms export)
 
 # T9: Persistent (ACID durability)
 mmap-persistence = ["std", "dep:memmap2"]  # DEPRECATED: Legacy mmap (use capsule-mmap)
@@ -338,6 +354,19 @@ data-protection = ["std", "const-hashing", "audit-trail", "capsule-serialize"]  
 cli = ["data-protection", "dep:clap", "dep:anyhow", "dep:glob"]  # Data protection CLI
 orchestrator = ["std"]  # T6 Mixed: 11-layer protection orchestration (lockfree coordination)
 runtime-integrity = ["std", "dep:sha2"]  # T0+T1: Runtime integrity verification with hash-chained code regions (Phase 12B)
+supply-chain-verifier = ["std", "dep:sha2", "dep:serde_json", "dep:strsim", "dep:ed25519-dalek", "dep:hex", "crypto-license"]  # T0+T1 Mixed: SLSA v1.0 + SBOM (SPDX 3.0, CycloneDX 1.6) + Sigstore verification (Nov 22, 2025) - PRODUCTION CRYPTO
+
+# Security Protection System Capsules (T6 Mixed composite, Phase Nov 22, 2025)
+security-zero-trust = ["std"]  # ZeroTrustSessionCapsule: Continuous session verification with dynamic risk scoring (T0+T1+T3)
+security-behavioral-anomaly = ["std"]  # BehavioralAnomalyCapsule: ML ensemble voting for zero-day detection (T6+T10)
+security-adaptive-rate-limiter = ["std", "fixed-point"]  # AdaptiveRateLimiterCapsule: Statistical token bucket with EWMA+AIMD (T1+T3)
+security-advanced-bot-detector = ["std"]  # AdvancedBotDetectorCapsule: 15-signal ensemble bot detection (T6+T10)
+security-advanced-bot-detector-avx2 = ["security-advanced-bot-detector", "nightly", "portable_simd"]  # Phase 2 SIMD acceleration: u32x8 vectorized weighted sum (~200ns, 2.5× speedup)
+security-jailbreak-defender = ["std", "probabilistic"]  # JailbreakDefenderCapsule: MinHash/LSH jailbreak detection (T6:T1+T10, <100ns, 85-90% accuracy)
+security-prompt-injection = ["std"]  # PromptInjectionDetectorCapsule: 3-layer hybrid detection (embedding+ML+heuristics, T6:T1+T2+T3, <100ns, 90-95% accuracy)
+security-data-exfiltration = ["std"]  # DataExfiltrationGuardCapsule: PII pattern matching and audit trails (T6+T10, <100ns)
+security-false-positive-mitigation = ["std", "security-prompt-injection", "security-jailbreak-defender", "security-data-exfiltration"]  # FalsePositiveMitigationCapsule: 98.6% FPR reduction via 4-layer defense (T6:T1+T3+T10, <40ns overhead, 0.072% FPR)
+security-protection-system = ["security-zero-trust", "security-behavioral-anomaly", "security-adaptive-rate-limiter", "security-constant-time-ops", "security-advanced-bot-detector"]  # Complete 6-layer defense-in-depth
 runtime-reactor = ["std"]  # T1: Lockfree I/O reactor (epoll/kqueue, replaces Tokio reactor)
 runtime-signal = ["std", "runtime-reactor", "async-channels", "tokio-compat"]  # T1: Lockfree async signal handling (signalfd/kqueue/self-pipe, multi-listener support)
 runtime-executor = ["std"]  # T6: Lockfree task executor (WIP)
@@ -377,7 +406,7 @@ training-data = ["fixed-point-quantizer", "streaming-strategy-labeler", "persist
 atomic_capsule_derive = { path = "../atomic_capsule_derive", optional = true }
 
 # Tier 0 Auditable - Optional cryptographic dependencies
-xxhash-rust = { version = "0.8", features = ["xxh64"], optional = true }
+xxhash-rust = { version = "0.8", features = ["xxh64", "xxh3"], optional = true }
 blake3 = { version = "1.8", default-features = false, optional = true }
 sha2 = { version = "0.10", default-features = false, optional = true }
 sha3 = { version = "0.10", default-features = false, optional = true }  # SHA3-256 for AuditCompressionCapsule
@@ -458,6 +487,9 @@ rustfft = { version = "6.2", optional = true }
 # T4: Text Processing - Thread-local tokenization buffers (13× speedup)
 thread_local = { version = "1.1", optional = true }
 hashbrown = { version = "0.14", optional = true }
+
+# Supply Chain Verifier - Typosquatting detection (Levenshtein distance)
+strsim = { version = "0.11", optional = true }  # String similarity for typosquatting detection (<1ms @ 1000 packages)
 
 # CLI Binary Dependencies
 clap = { version = "4.5", features = ["derive"], optional = true }
@@ -851,12 +883,16 @@ rustdoc-args = ["--cfg", "docsrs"]
 # PROFILES
 # ============================================================================
 
-# Dev profile - panic = "unwind" for tests and benchmarks
+# Dev profile - panic = "unwind" for tests
 [profile.dev]
 panic = "unwind"
 
-# Release profile - panic = "unwind" for tests and benchmarks
+# Release profile - panic = "unwind" for tests
 [profile.release]
+panic = "unwind"
+
+# Test profile (override dev)
+[profile.test]
 panic = "unwind"
 
 [profile.wasm-release]
@@ -933,6 +969,21 @@ name = "syndrome_t28"
 path = "tests/quantum/syndrome_t28.rs"
 required-features = ["quantum-syndrome"]
 
+[[bench]]
+name = "constant_time_ops_bench"
+harness = false
+required-features = ["std"]
+
+[[bench]]
+name = "behavioral_anomaly_bench"
+harness = false
+required-features = ["std", "anomaly-detection"]
+
+[[bench]]
+name = "adaptive_rate_limiter_bench"
+harness = false
+required-features = ["std"]
+
 # Commented out: Benchmark files do not exist (2025-11-10)
 # [[bench]]
 # name = "hybrid_btree_bench"
@@ -958,4 +1009,29 @@ required-features = ["quantum-syndrome"]
 # name = "concurrent_map_v3_bench"
 # harness = false
 # required-features = ["std"]
+
+
+[[bench]]
+name = "security_simd_bench"
+harness = false
+required-features = ["std"]
+
+[[bench]]
+name = "supply_chain_verifier_bench"
+harness = false
+required-features = ["std", "supply-chain-verifier"]
+
+[[bench]]
+name = "jailbreak_defender_bench"
+harness = false
+required-features = ["std", "security-jailbreak-defender"]
+
+[[bench]]
+name = "false_positive_mitigation_bench"
+harness = false
+required-features = ["std", "security-prompt-injection", "security-jailbreak-defender", "security-data-exfiltration", "security-false-positive-mitigation"]
+[[bench]]
+name = "telemetry_bench"
+harness = false
+required-features = ["std", "universal-api", "telemetry-prometheus", "circuit-breaker-standard64"]
 
