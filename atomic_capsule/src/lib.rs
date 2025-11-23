@@ -129,11 +129,12 @@
     feature(const_trait_impl)
 )]
 #![cfg_attr(feature = "nightly", feature(generic_const_exprs))]
+#![cfg_attr(feature = "nightly", feature(const_cmp))]
 #![cfg_attr(feature = "nightly-atomic", feature(atomic_from_mut))]
 #![cfg_attr(
     any(feature = "portable_simd", feature = "nightly"),
     allow(incomplete_features)
-)] // generic_const_exprs and const_trait_impl are incomplete
+)] // generic_const_exprs, const_trait_impl, and const_cmp are incomplete
 
 #[cfg(feature = "std")]
 extern crate std;
@@ -282,6 +283,10 @@ pub mod cbor_capsule;
 #[cfg(feature = "cbor")]
 pub use cbor_capsule::{CborWriterCapsule, CborReaderCapsule, CborValue, CborError};
 
+// Security & Infrastructure Capsules (T0-T11) - Requires std feature
+#[cfg(feature = "std")]
+pub mod capsules;
+
 // Tier 9: Persistent Capsules - Memory-mapped file manager (Phase 9, optional feature)
 #[cfg(feature = "mmap-persistence")]
 pub mod persistence;
@@ -320,6 +325,10 @@ pub mod probabilistic;
 #[cfg(feature = "http")]
 pub mod http;
 
+// T6 Mixed: Universal API meta-coordination (Week 1: Core structure + Protocol detection)
+#[cfg(feature = "universal-api")]
+pub mod meta;
+
 // T3 Fixed-Point: TUI Configuration Capsules (T3 deterministic thresholds)
 #[cfg(feature = "std")]
 pub mod tui;
@@ -331,6 +340,10 @@ pub use tui::{RenderBufferCapsule, AuditLogCapsule, FileNavigatorCapsule, Screen
 // T8: Network Capsules - Distributed coordination (requires std + tokio)
 #[cfg(all(feature = "std", feature = "network"))]
 pub mod network;
+
+// T8: QUIC Protocol Support - RFC 9002 loss detection, RTT tracking
+#[cfg(feature = "quic")]
+pub mod quic;
 
 // T1+T8+T10: Load Balancing Capsules - Health checking, session affinity, consistent hashing
 #[cfg(feature = "std")]
@@ -367,6 +380,10 @@ pub mod cli;
 // Shell Module - Universal shell alias management (T6 Mixed: T0+T1+T9)
 #[cfg(all(feature = "std", feature = "queue-bounded"))]
 pub mod shell;
+
+// AV1 Encoder Module - Video encoding capsules (T1 Atomic, T2 SIMD, etc.)
+#[cfg(feature = "std")]
+pub mod encoder;
 
 // Phase 3 Compression Primitives (T2/T3/T4/T6 multi-tier capsules)
 #[cfg(any(
