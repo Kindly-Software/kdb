@@ -94,6 +94,9 @@ quota-tracker = ["std"]  # T1: Per-user monthly quota tracking (64 KB capsule, <
 leader-election = ["std"]  # T1: Raft-style epoch-based leader election (<50ns vote, <10ns check, <100ns failover)
 load-balancer = ["std"]  # T1+T4: High-performance load balancing with 7 algorithms (<100ns selection)
 systemd = ["std"]  # T1: Systemd service coordination (<100ns state queries, ~1ms systemctl refresh)
+encoder-cdef = []  # T2: AV1 CDEF filter (256B, <1μs per 8×8 block, SIMD-ready)
+encoder = ["std"]  # T2: AV1 encoder primitives (SuperresolutionCapsule: 256B, <10μs per 1024×1024, 8-tap Lanczos-3)
+encoder-metacapsule = ["encoder", "std", "nightly", "portable_simd"]  # T6: Av1EncoderMetacapsule (1024B orchestration, 18 capsules, <10μs coordination)
 
 # T2: SIMD Vectorization (2-19× speedup)
 # #ASSUME_SIMD_NIGHTLY: All SIMD features require nightly Rust
@@ -246,13 +249,25 @@ quic-simd = ["quic", "nightly", "portable_simd"]  # T2 SIMD: Frame parsing accel
 quic-http3 = ["quic"]  # T5 Streaming: HTTP/3 control stream (RFC 9114 §6.2 SETTINGS/GOAWAY frames, <500ns frame processing, O(1) per field)
 quic-audit = ["quic"]  # T0 Auditable: QUIC audit trail (hash-chain integrity, Q34 compliance, SOX/SOC2/GDPR/HIPAA)
 
+# HTTP/3 support (requires QUIC capsules)
+http3-support = ["universal-api", "quic", "quic-http3"]  # Base HTTP/3 support (T5 Streaming)
+
+# HTTP/3 with SIMD acceleration
+http3-simd = ["http3-support", "quic-simd", "nightly", "portable_simd"]  # T2 SIMD frame parsing (5-10× speedup)
+
+# HTTP/3 with audit trails (Q34 compliance)
+http3-audit = ["http3-support", "quic-audit"]  # T0 Auditable: Q34 compliance audit trails
+
+# Full HTTP/3 (all features)
+http3-full = ["http3-support", "http3-simd", "http3-audit"]  # Complete HTTP/3 stack with all optimizations
+
 # T6: Meta-Coordination (orchestrates T1/T2/T5/T8 primitives)
-universal-api = ["std"]  # Week 1: Universal API meta-coordination (protocol detection, middleware, routing)
+universal-api = ["std", "circuit-breaker-standard64"]  # Week 1: Universal API meta-coordination (protocol detection, middleware, routing, circuit breaker for 6 protocols)
 nightly-const-middleware = ["universal-api", "nightly"]  # P0-1: Safe middleware dispatch (MiddlewareId enum, 5× speedup, zero unsafe)
 nightly-simd-protocol = ["universal-api", "nightly", "portable_simd"]  # P1-1: SIMD protocol detection (u8x32, 5-10× speedup, <40ns)
 graphql-federation = ["universal-api", "nightly", "portable_simd", "circuit-breaker-standard64"]  # P2-1: GraphQL Federation (T2+T4 SIMD query planning + parallel execution, 10-50× speedup)
 sse-support = ["universal-api", "circuit-breaker-standard64"]  # P1-3: Server-Sent Events (SSE) protocol support (1.4× vs WebSocket, <70ns overhead)
-telemetry-prometheus = ["universal-api", "std"]  # P2-3: Lockfree telemetry aggregation with Prometheus exporter (<50ns overhead, <1ms export)
+telemetry-prometheus = ["universal-api", "std", "circuit-breaker-standard64"]  # P2-3: Lockfree telemetry aggregation with Prometheus exporter (<50ns overhead, <1ms export)
 
 # T9: Persistent (ACID durability)
 mmap-persistence = ["std", "dep:memmap2"]  # DEPRECATED: Legacy mmap (use capsule-mmap)
@@ -380,7 +395,8 @@ kind-tcp = ["std"]  # Kind module: AsyncTcpListener + AsyncTcpStream (lockfree T
 # #VERIFY_GRACEFUL_DEGRADATION: CPU fallback when GPU unavailable
 gpu-cuda = ["std", "dep:cudarc"]  # T7: CUDA backend (NVIDIA GPU, Compute Capability 6.0+, 100-1000× speedup)
 gpu-rocm = ["std"]  # T7: ROCm/HIP backend (AMD GPU, GCN 4.0+/RDNA 1+, 100-1000× speedup, FFI bindings pending)
-gpu-all = ["gpu-cuda", "gpu-rocm"]  # T7: All GPU backends (auto-detect at runtime)
+gpu-intel = ["std"]  # T1 Atomic: Intel GPU driver primitives (i915, Iris Xe, 10-50× speedup, zero external deps)
+gpu-all = ["gpu-cuda", "gpu-rocm", "gpu-intel"]  # T7: All GPU backends (auto-detect at runtime)
 
 # TIER 11: Unified Traits (backward compatible)
 unified-traits = []  # Enable unified capsule trait hierarchy (opt-in)
@@ -887,13 +903,13 @@ rustdoc-args = ["--cfg", "docsrs"]
 [profile.dev]
 panic = "unwind"
 
-# Release profile - panic = "unwind" for tests
+# Release profile - panic = "abort" for no_std compatibility
 [profile.release]
-panic = "unwind"
+panic = "abort"
 
-# Test profile (override dev)
+# Test profile (override dev) - use abort for no_std compatibility
 [profile.test]
-panic = "unwind"
+panic = "abort"  # Required for no_std crate (std feature not guaranteed)
 
 [profile.wasm-release]
 inherits = "release"
@@ -984,6 +1000,11 @@ name = "adaptive_rate_limiter_bench"
 harness = false
 required-features = ["std"]
 
+[[bench]]
+name = "http3_integration_bench"
+harness = false
+required-features = ["std"]
+
 # Commented out: Benchmark files do not exist (2025-11-10)
 # [[bench]]
 # name = "hybrid_btree_bench"
@@ -1034,4 +1055,19 @@ required-features = ["std", "security-prompt-injection", "security-jailbreak-def
 name = "telemetry_bench"
 harness = false
 required-features = ["std", "universal-api", "telemetry-prometheus", "circuit-breaker-standard64"]
+
+[[bench]]
+name = "encoder_state_bench"
+harness = false
+required-features = ["encoder-cdef"]
+
+[[bench]]
+name = "cdef_filter_bench"
+harness = false
+required-features = ["encoder-cdef"]
+
+[[bench]]
+name = "encoder_metacapsule_minimal_bench"
+harness = false
+required-features = ["encoder-metacapsule"]
 
