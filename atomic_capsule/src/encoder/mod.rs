@@ -77,6 +77,11 @@ pub mod lrf;
 pub mod motion_estimation;
 
 pub mod temporal_rdo;
+pub mod lookahead;
+
+// Film Grain Synthesis (T2 SIMD, 256B)
+#[cfg(feature = "encoder")]
+pub mod film_grain;
 
 pub use frame_buffer::FrameBufferCapsule;
 pub use reference_frame::{ReferenceFrameCapsule, ReferenceType};
@@ -101,8 +106,17 @@ pub use motion_estimation::{MotionEstimationCapsule, MotionVector, SearchType, S
 
 pub use temporal_rdo::{TemporalRDOCapsule, Candidate, MotionVector as RdoMotionVector};
 
+pub use lookahead::{
+    LookaheadCapsule, FrameAnalysis, LookaheadError,
+    MAX_LOOKAHEAD_FRAMES, HISTOGRAM_BINS,
+    SCENE_CHANGE_THRESHOLD, HIGH_COMPLEXITY_THRESHOLD,
+};
+
 #[cfg(feature = "encoder")]
 pub use superresolution::SuperresolutionCapsule;
+
+#[cfg(feature = "encoder")]
+pub use film_grain::{FilmGrainCapsule, ScalingPoint};
 
 /// AV1 encoder formats
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
