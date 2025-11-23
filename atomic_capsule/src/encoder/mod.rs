@@ -58,20 +58,51 @@ pub mod tile_coordinator;
 pub mod dct_transform;
 pub mod obu_bitstream;
 pub mod entropy_coder;
+pub mod gop_coordinator;
+pub mod reference_frame;
+
+#[cfg(feature = "encoder")]
+pub mod superresolution;
 
 #[cfg(feature = "portable_simd")]
 pub mod intra_prediction;
 
+#[cfg(feature = "portable_simd")]
+pub mod loop_filter;
+
+// Loop Restoration Filter (T2 SIMD, 256B)
+pub mod lrf;
+
+#[cfg(feature = "nightly-simd")]
+pub mod motion_estimation;
+
+pub mod temporal_rdo;
+
 pub use frame_buffer::FrameBufferCapsule;
+pub use reference_frame::{ReferenceFrameCapsule, ReferenceType};
 pub use state::EncoderStateCapsule;
 pub use quantization::QuantizationCapsule;
 pub use tile_coordinator::{TileCoordinatorCapsule, TileStatus};
 pub use dct_transform::DctTransformCapsule;
 pub use obu_bitstream::{ObuBitstreamWriterCapsule, ObuType, FrameType};
 pub use entropy_coder::EntropyCoderCapsule;
+pub use gop_coordinator::{GopCoordinatorCapsule, FrameType as GopFrameType};
 
 #[cfg(feature = "portable_simd")]
 pub use intra_prediction::{IntraPredictionCapsule, IntraMode};
+
+#[cfg(feature = "portable_simd")]
+pub use loop_filter::{LoopFilterCapsule, FilterType, EdgeType};
+
+pub use lrf::{LrfCapsule, RestorationFilter};
+
+#[cfg(feature = "nightly-simd")]
+pub use motion_estimation::{MotionEstimationCapsule, MotionVector, SearchType, SubPixelMode};
+
+pub use temporal_rdo::{TemporalRDOCapsule, Candidate, MotionVector as RdoMotionVector};
+
+#[cfg(feature = "encoder")]
+pub use superresolution::SuperresolutionCapsule;
 
 /// AV1 encoder formats
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
