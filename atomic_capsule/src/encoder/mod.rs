@@ -56,12 +56,22 @@ pub mod state;
 pub mod quantization;
 pub mod tile_coordinator;
 pub mod dct_transform;
+pub mod obu_bitstream;
+pub mod entropy_coder;
+
+#[cfg(feature = "portable_simd")]
+pub mod intra_prediction;
 
 pub use frame_buffer::FrameBufferCapsule;
 pub use state::EncoderStateCapsule;
 pub use quantization::QuantizationCapsule;
 pub use tile_coordinator::{TileCoordinatorCapsule, TileStatus};
 pub use dct_transform::DctTransformCapsule;
+pub use obu_bitstream::{ObuBitstreamWriterCapsule, ObuType, FrameType};
+pub use entropy_coder::EntropyCoderCapsule;
+
+#[cfg(feature = "portable_simd")]
+pub use intra_prediction::{IntraPredictionCapsule, IntraMode};
 
 /// AV1 encoder formats
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
