@@ -1,0 +1,11 @@
+error: T1 Atomic capsule contains non-atomic field `count` of type `u64`. Use `AtomicU64` instead
+  --> tests/ui/p0_atomic_field_violation/01_u64_in_atomic.rs:10:1
+   |
+10 | struct BadU64Capsule { //~ ERROR: T1 Atomic capsule contains non-atomic field `count` of type `u64`. Use `AtomicU64` instead
+   | ^^^^^^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> tests/ui/p0_atomic_field_violation/01_u64_in_atomic.rs:3:9
+   |
+3  | #![deny(clippy::capsule_non_atomic_field)]
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,0 +1,11 @@
+error: T1 Atomic capsule contains non-atomic field `index` of type `usize`. Use `AtomicUsize` instead
+  --> tests/ui/p0_atomic_field_violation/06_usize_in_atomic.rs:10:1
+   |
+10 | struct BadUsizeCapsule { //~ ERROR: T1 Atomic capsule contains non-atomic field `index` of type `usize`. Use `AtomicUsize` instead
+   | ^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> tests/ui/p0_atomic_field_violation/06_usize_in_atomic.rs:3:9
+   |
+3  | #![deny(clippy::capsule_non_atomic_field)]
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

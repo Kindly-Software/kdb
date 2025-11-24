@@ -1,0 +1,46 @@
+#!/bin/bash
+# Pre-Push Hook: Comprehensive Validation
+# Framework: UCE34 Q30-Q34 (Validation + Auditability)
+# Installation: cp hooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+
+set -e
+
+# Add cargo to PATH
+export PATH="$HOME/.cargo/bin:$PATH"
+
+echo "🔍 [Pre-Push] Running comprehensive validation..."
+
+# Start timer
+START_TIME=$(date +%s)
+
+# Step 1: All clippy lints (P0 + P1)
+echo "📋 Step 1/3: Clippy lints (P0 + P1)..."
+if ! cargo clippy --all-targets --all-features --quiet -- \
+  -D clippy::capsule_mutex_violation \
+  -D clippy::capsule_unaligned_violation \
+  -D clippy::capsule_missing_generation \
+  -D clippy::capsule_non_atomic_field \
+  -W clippy::missing_capsule_verification; then
+    echo "❌ Clippy lints failed!"
+    exit 1
+fi
+
+# Step 2: Run tests
+echo "🧪 Step 2/3: Running tests..."
+if ! cargo test --all-features --quiet; then
+    echo "❌ Tests failed!"
+    exit 1
+fi
+
+# Step 3: Check formatting
+echo "🎨 Step 3/3: Checking code formatting..."
+if ! cargo fmt --all -- --check; then
+    echo "❌ Formatting check failed! Run: cargo fmt"
+    exit 1
+fi
+
+END_TIME=$(date +%s)
+DURATION=$((END_TIME - START_TIME))
+
+echo "✅ [Pre-Push] All checks passed! (${DURATION}s)"
+exit 0

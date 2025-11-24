@@ -1,0 +1,31 @@
+#!/bin/bash
+# Commit-Msg Hook: Enforce commit message format
+# Framework: UCE34 Q34 (Auditability)
+# Installation: cp hooks/commit-msg .git/hooks/commit-msg && chmod +x .git/hooks/commit-msg
+
+COMMIT_MSG_FILE=$1
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Check for required tags
+if echo "$COMMIT_MSG" | grep -qE '^\[(TRADE SECRET|P0 FIX|P1 FIX|P2 FIX|FEAT|FIX|REFACTOR|DOCS|TEST|CI)\]'; then
+    exit 0
+else
+    echo "❌ [Commit-Msg] Invalid commit message format!"
+    echo ""
+    echo "Required format: [TAG] Description"
+    echo ""
+    echo "Valid tags:"
+    echo "  [TRADE SECRET] - Trade secret code (local commits only)"
+    echo "  [P0 FIX]       - P0 critical lint fix"
+    echo "  [P1 FIX]       - P1 high lint fix"
+    echo "  [P2 FIX]       - P2 medium lint fix"
+    echo "  [FEAT]         - New feature"
+    echo "  [FIX]          - Bug fix"
+    echo "  [REFACTOR]     - Code refactoring"
+    echo "  [DOCS]         - Documentation update"
+    echo "  [TEST]         - Test addition/update"
+    echo "  [CI]           - CI/CD configuration"
+    echo ""
+    echo "Example: [P0 FIX] Replace Mutex with AtomicU64 in CircuitBreakerCapsule"
+    exit 1
+fi

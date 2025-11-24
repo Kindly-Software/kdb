@@ -1,0 +1,11 @@
+error: T1 Atomic capsule contains non-atomic field `active` of type `bool`. Use `AtomicBool` instead
+  --> tests/ui/p0_atomic_field_violation/02_bool_in_atomic.rs:10:1
+   |
+10 | struct BadBoolCapsule { //~ ERROR: T1 Atomic capsule contains non-atomic field `active` of type `bool`. Use `AtomicBool` instead
+   | ^^^^^^^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> tests/ui/p0_atomic_field_violation/02_bool_in_atomic.rs:3:9
+   |
+3  | #![deny(clippy::capsule_non_atomic_field)]
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

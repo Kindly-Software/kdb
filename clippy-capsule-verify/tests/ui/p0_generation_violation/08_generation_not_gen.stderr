@@ -1,0 +1,11 @@
+error: T1 Atomic capsule missing generation counter field (generation or gen)
+  --> tests/ui/p0_generation_violation/08_generation_not_gen.rs:10:1
+   |
+10 | struct WrongNameCapsule { //~ ERROR: T1 Atomic capsule missing generation counter field (generation or gen)
+   | ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> tests/ui/p0_generation_violation/08_generation_not_gen.rs:3:9
+   |
+3  | #![deny(clippy::capsule_missing_generation)]
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

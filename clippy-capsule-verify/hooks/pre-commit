@@ -1,0 +1,42 @@
+#!/bin/bash
+# Pre-Commit Hook: Fast P0 Critical Checks
+# Framework: UCE34 Q30 (Validation)
+# Installation: cp hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+set -e
+
+# Add cargo to PATH
+export PATH="$HOME/.cargo/bin:$PATH"
+
+echo "🔍 [Pre-Commit] Running P0 critical lint checks..."
+
+# Start timer
+START_TIME=$(date +%s)
+
+# P0 critical lints only (fast check)
+if cargo clippy --all-targets --quiet -- \
+  -D clippy::capsule_mutex_violation \
+  -D clippy::capsule_unaligned_violation \
+  -D clippy::capsule_missing_generation \
+  -D clippy::capsule_non_atomic_field 2>&1 | grep -q "error:"; then
+
+    END_TIME=$(date +%s)
+    DURATION=$((END_TIME - START_TIME))
+
+    echo "❌ [Pre-Commit] P0 critical violations detected! (${DURATION}s)"
+    echo ""
+    echo "Fix the following before committing:"
+    echo "  - Remove Mutex/RwLock from capsules (use AtomicU64)"
+    echo "  - Add padding to align size to alignment boundary"
+    echo "  - Add generation counters to T1 Atomic capsules"
+    echo "  - Replace non-atomic fields with atomic types"
+    echo ""
+    echo "To bypass (NOT RECOMMENDED):"
+    echo "  git commit --no-verify"
+    exit 1
+else
+    END_TIME=$(date +%s)
+    DURATION=$((END_TIME - START_TIME))
+    echo "✅ [Pre-Commit] P0 critical checks passed! (${DURATION}s)"
+    exit 0
+fi

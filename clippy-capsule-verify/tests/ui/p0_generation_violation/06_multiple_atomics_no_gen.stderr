@@ -1,0 +1,11 @@
+error: T1 Atomic capsule missing generation counter field (generation or gen)
+  --> tests/ui/p0_generation_violation/06_multiple_atomics_no_gen.rs:11:1
+   |
+11 | struct MultiAtomicBad { //~ ERROR: T1 Atomic capsule missing generation counter field (generation or gen)
+   | ^^^^^^^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> tests/ui/p0_generation_violation/06_multiple_atomics_no_gen.rs:3:9
+   |
+3  | #![deny(clippy::capsule_missing_generation)]
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

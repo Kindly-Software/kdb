@@ -1,0 +1,87 @@
+clippy-capsule-verify/
+├── Cargo.toml                          # Crate metadata + clippy dependencies
+├── clippy.toml                         # Configuration template
+├── README.md                           # Installation + overview (400 lines)
+├── USAGE_GUIDE.md                      # Practical examples (600 lines)
+├── IMPLEMENTATION_REPORT.md            # Technical details (500 lines)
+├── QUICK_REFERENCE.md                  # 30-second guide (200 lines)
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml                      # CI/CD integration example
+│
+├── src/
+│   ├── lib.rs                          # Lint registration (50 lines)
+│   ├── capsule_lint.rs                 # Lint implementation (150 lines)
+│   └── utils.rs                        # Detection utilities (150 lines)
+│
+└── tests/
+    ├── integration_test.rs             # Test runner (20 lines)
+    └── ui/
+        ├── missing_verification.rs     # Test: Missing verification (30 lines)
+        ├── missing_verification.stderr # Expected warning output
+        ├── has_verification.rs         # Test: Has verification (35 lines)
+        └── suppressed_verification.rs  # Test: Suppression (40 lines)
+
+SUMMARY:
+--------
+Implementation:  475 lines (src/*.rs + tests/*.rs)
+Documentation:  ~3,000 lines (README + guides + reports)
+Tests:          3 UI test cases (missing, verified, suppressed)
+Configuration:  2 files (Cargo.toml, clippy.toml)
+
+DETECTION LOGIC:
+----------------
+1. src/capsule_lint.rs   - Main lint implementation
+   - check_item()        - Entry point (checks if struct)
+   - emit_warning()      - Warning generation
+
+2. src/utils.rs          - Detection utilities
+   - has_repr_c_align()  - Detects #[repr(C, align(N))]
+   - has_derive_computational_capsule() - Detects #[derive]
+   - has_verification_macro() - Scans for verification macros
+
+3. src/lib.rs            - Lint registration
+   - register_lints()    - Registers with clippy
+
+UI TESTS:
+---------
+tests/ui/missing_verification.rs:
+  - BAD: #[repr(C, align(64))] without verification
+  - Expected: Warning emitted
+
+tests/ui/has_verification.rs:
+  - GOOD: Manual verification macro exists
+  - GOOD: Derive macro provides verification
+  - Expected: No warnings
+
+tests/ui/suppressed_verification.rs:
+  - GOOD: #[allow(clippy::missing_capsule_verification)]
+  - Expected: No warnings (suppressed)
+
+DOCUMENTATION:
+--------------
+README.md:
+  - Overview + installation
+  - Usage examples
+  - CI/CD integration
+  - Suppression guidelines
+
+USAGE_GUIDE.md:
+  - Quick start guide
+  - Real-world examples (4 patterns)
+  - Migration strategy (5-week plan)
+  - Troubleshooting
+
+IMPLEMENTATION_REPORT.md:
+  - Technical architecture
+  - Detection mechanisms
+  - Test coverage
+  - Performance impact
+  - Limitations + roadmap
+
+QUICK_REFERENCE.md:
+  - 30-second developer guide
+  - Common patterns
+  - Quick commands
+  - Error messages

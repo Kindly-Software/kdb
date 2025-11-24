@@ -1,0 +1,11 @@
+error: T1 Atomic capsule contains non-atomic field `delta` of type `i64`. Use `AtomicI64` instead
+  --> tests/ui/p0_atomic_field_violation/05_i64_in_atomic.rs:10:1
+   |
+10 | struct BadI64Capsule { //~ ERROR: T1 Atomic capsule contains non-atomic field `delta` of type `i64`. Use `AtomicI64` instead
+   | ^^^^^^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> tests/ui/p0_atomic_field_violation/05_i64_in_atomic.rs:3:9
+   |
+3  | #![deny(clippy::capsule_non_atomic_field)]
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

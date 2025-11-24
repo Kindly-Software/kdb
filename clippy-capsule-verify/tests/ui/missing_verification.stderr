@@ -1,0 +1,20 @@
+warning: capsule struct `UnverifiedCapsule` is missing compile-time verification
+  --> $DIR/missing_verification.rs:8:1
+   |
+8  | #[repr(C, align(64))]
+   | ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: add verification: `verify_capsule_properties!(UnverifiedCapsule, 64, SIZE)` after struct definition
+   = note: capsules without verification can have alignment/size mismatches
+   = note: this causes false sharing, UB, and cache line violations
+   = note: `#[warn(clippy::missing_capsule_verification)]` on by default
+
+warning: capsule struct `AnotherUnverified` is missing compile-time verification
+  --> $DIR/missing_verification.rs:14:1
+   |
+14 | #[repr(C, align(128))]
+   | ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: add verification: `verify_capsule_properties!(AnotherUnverified, 128, SIZE)` after struct definition
+   = note: capsules without verification can have alignment/size mismatches
+   = note: this causes false sharing, UB, and cache line violations

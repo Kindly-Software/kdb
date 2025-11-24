@@ -1,0 +1,336 @@
+[0;34mBuilding clippy plugin...[0m
+warning: function `format_speedup` is never used
+  --> src/diagnostics.rs:23:8
+   |
+23 | pub fn format_speedup(
+   |        ^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `format_doc_link` is never used
+  --> src/diagnostics.rs:53:8
+   |
+53 | pub fn format_doc_link(path: &str, description: &str) -> String {
+   |        ^^^^^^^^^^^^^^^
+
+warning: function `format_suggestion` is never used
+  --> src/diagnostics.rs:73:8
+   |
+73 | pub fn format_suggestion(before_code: &str, after_code: &str) -> String {
+   |        ^^^^^^^^^^^^^^^^^
+
+warning: function `format_metric` is never used
+  --> src/diagnostics.rs:90:8
+   |
+90 | pub fn format_metric(name: &str, value: &str, unit: &str) -> String {
+   |        ^^^^^^^^^^^^^
+
+warning: function `format_padding_calculation` is never used
+  --> src/diagnostics.rs:97:8
+   |
+97 | pub fn format_padding_calculation(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `format_false_sharing_explanation` is never used
+   --> src/diagnostics.rs:116:8
+    |
+116 | pub fn format_false_sharing_explanation(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `format_dual_atomic_pattern` is never used
+   --> src/diagnostics.rs:131:8
+    |
+131 | pub fn format_dual_atomic_pattern() -> Vec<String> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `format_memory_ordering_guide` is never used
+   --> src/diagnostics.rs:150:8
+    |
+150 | pub fn format_memory_ordering_guide() -> Vec<String> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `format_framework_compliance` is never used
+   --> src/diagnostics.rs:170:8
+    |
+170 | pub fn format_framework_compliance(frameworks: &[(&str, &str)]) -> Vec<String> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `format_toctou_explanation` is never used
+   --> src/diagnostics.rs:183:8
+    |
+183 | pub fn format_toctou_explanation() -> Vec<String> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `format_cache_alignment_benefits` is never used
+   --> src/diagnostics.rs:205:8
+    |
+205 | pub fn format_cache_alignment_benefits() -> Vec<String> {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `get_doc_references` is never used
+   --> src/diagnostics.rs:224:8
+    |
+224 | pub fn get_doc_references() -> Vec<(&'static str, &'static str)> {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: `clippy-capsule-verify` (lib) generated 12 warnings
+    Finished `release` profile [optimized] target(s) in 0.01s
+
+[0;32mPlugin found: /home/samuel/Primitives/clippy-capsule-verify/target/release/libclippy_capsule_verify.so[0m
+
+[0;34m========================================[0m
+[0;34mP0.1 Mutex Violation[0m
+[0;34m========================================[0m
+[0;31m✗[0m 01_simple_mutex.rs (expected fail, got pass)
+[0;31m✗[0m 02_rwlock.rs (expected fail, got pass)
+[0;31m✗[0m 03_arc_mutex.rs (expected fail, got pass)
+[0;31m✗[0m 04_parking_lot_mutex.rs (expected fail, got pass)
+[0;31m✗[0m 05_parking_lot_rwlock.rs (expected fail, got pass)
+[0;31m✗[0m 06_nested_mutex.rs (expected fail, got pass)
+[0;31m✗[0m 07_box_mutex.rs (expected fail, got pass)
+[0;32m✓[0m 08_valid_atomic.rs (expected pass, got pass)
+[0;32m✓[0m 09_valid_dual_atomic.rs (expected pass, got pass)
+[0;32m✓[0m 10_valid_multiple_atomics.rs (expected pass, got pass)
+
+[0;34m========================================[0m
+[0;34mP0.2 Alignment Violation[0m
+[0;34m========================================[0m
+[0;31m✗[0m 01_8b_needs_56b_padding.rs (expected fail, got pass)
+[0;31m✗[0m 02_16b_needs_48b_padding.rs (expected fail, got pass)
+[0;31m✗[0m 03_24b_needs_104b_padding_128.rs (expected fail, got pass)
+[0;31m✗[0m 04_32b_needs_32b_padding.rs (expected fail, got pass)
+[0;31m✗[0m 05_wrong_padding_size.rs (expected fail, got pass)
+[0;31m✗[0m 06_256b_misaligned.rs (expected fail, got pass)
+[0;31m✗[0m 07_correct_64b.rs (expected fail, got pass)
+[0;32m✓[0m 08_correct_128b.rs (expected pass, got pass)
+[0;32m✓[0m 09_correct_256b.rs (expected pass, got pass)
+[0;32m✓[0m 10_correct_dual_atomic.rs (expected pass, got pass)
+
+[0;34m========================================[0m
+[0;34mP0.3 Generation Violation[0m
+[0;34m========================================[0m
+[0;31m✗[0m 01_atomic_without_gen.rs (expected fail, got pass)
+[0;31m✗[0m 02_atomic_with_gen.rs (expected fail, got pass)
+[0;31m✗[0m 03_dual_atomic_pattern.rs (expected fail, got pass)
+[0;31m✗[0m 04_non_atomic_tier_ok.rs (expected fail, got pass)
+[0;31m✗[0m 05_abbreviated_gen.rs (expected fail, got pass)
+[0;31m✗[0m 06_multiple_atomics_no_gen.rs (expected fail, got pass)
+[0;31m✗[0m 07_fixed_point_tier_ok.rs (expected fail, got pass)
+[0;31m✗[0m 08_generation_not_gen.rs (expected fail, got pass)
+[0;32m✓[0m 09_batch_tier_ok.rs (expected pass, got pass)
+[0;32m✓[0m 10_mixed_tier_with_gen.rs (expected pass, got pass)
+
+[0;34m========================================[0m
+[0;34mP0.4 Atomic Field Violation[0m
+[0;34m========================================[0m
+[0;31m✗[0m 01_u64_in_atomic.rs (expected fail, got pass)
+[0;31m✗[0m 02_bool_in_atomic.rs (expected fail, got pass)
+[0;31m✗[0m 03_all_atomic_fields.rs (expected fail, got pass)
+[0;31m✗[0m 04_padding_allowed.rs (expected fail, got pass)
+[0;31m✗[0m 05_i64_in_atomic.rs (expected fail, got pass)
+[0;31m✗[0m 06_usize_in_atomic.rs (expected fail, got pass)
+[0;31m✗[0m 07_non_atomic_tier_allows_u64.rs (expected fail, got pass)
+[0;32m✓[0m 08_atomic_i64_ok.rs (expected pass, got pass)
+[0;31m✗[0m 09_multiple_violations.rs (expected fail, got pass)
+[0;32m✓[0m 10_nested_padding_ok.rs (expected pass, got pass)
+
+[0;34m========================================[0m
+[0;34mSummary by Category[0m
+[0;34m========================================[0m
+P0.4 Atomic Field Violation: [0;32m2[0m/10 passed (20.0%)
+P0.3 Generation Violation: [0;32m2[0m/10 passed (20.0%)
+P0.1 Mutex Violation: [0;32m3[0m/10 passed (30.0%)
+P0.2 Alignment Violation: [0;32m3[0m/10 passed (30.0%)
+
+[0;34m========================================[0m
+[0;34mOverall Summary[0m
+[0;34m========================================[0m
+Total tests: 40
+Passed: [0;32m10[0m (25.0%)
+Failed: [0;31m30[0m
+
+[0;34m========================================[0m
+[0;34mFailed Test Details[0m
+[0;34m========================================[0m
+
+[0;31mP0.1 Mutex Violation / 01_simple_mutex.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error[E0463]: can't find crate for `rustc_span`
+
+[0;31mP0.1 Mutex Violation / 02_rwlock.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error[E0463]: can't find crate for `rustc_span`
+
+[0;31mP0.1 Mutex Violation / 03_arc_mutex.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error[E0463]: can't find crate for `rustc_span`
+
+[0;31mP0.1 Mutex Violation / 04_parking_lot_mutex.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error[E0463]: can't find crate for `rustc_span`
+
+[0;31mP0.1 Mutex Violation / 05_parking_lot_rwlock.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error[E0463]: can't find crate for `rustc_span`
+
+[0;31mP0.1 Mutex Violation / 06_nested_mutex.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error[E0463]: can't find crate for `rustc_span`
+
+[0;31mP0.1 Mutex Violation / 07_box_mutex.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error[E0463]: can't find crate for `rustc_span`
+
+[0;31mP0.2 Alignment Violation / 01_8b_needs_56b_padding.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error[E0463]: can't find crate for `rustc_span`
+
+[0;31mP0.2 Alignment Violation / 02_16b_needs_48b_padding.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error[E0463]: can't find crate for `rustc_span`
+
+[0;31mP0.2 Alignment Violation / 03_24b_needs_104b_padding_128.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error[E0463]: can't find crate for `rustc_span`
+
+[0;31mP0.2 Alignment Violation / 04_32b_needs_32b_padding.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error[E0463]: can't find crate for `rustc_span`
+
+[0;31mP0.2 Alignment Violation / 05_wrong_padding_size.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error[E0463]: can't find crate for `rustc_span`
+
+[0;31mP0.2 Alignment Violation / 06_256b_misaligned.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error[E0463]: can't find crate for `rustc_span`
+
+[0;31mP0.2 Alignment Violation / 07_correct_64b.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error[E0463]: can't find crate for `rustc_span`
+
+[0;31mP0.3 Generation Violation / 01_atomic_without_gen.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error: cannot find derive macro `ComputationalCapsule` in this scope
+
+[0;31mP0.3 Generation Violation / 02_atomic_with_gen.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error: cannot find derive macro `ComputationalCapsule` in this scope
+
+[0;31mP0.3 Generation Violation / 03_dual_atomic_pattern.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error: cannot find derive macro `ComputationalCapsule` in this scope
+
+[0;31mP0.3 Generation Violation / 04_non_atomic_tier_ok.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error: cannot find derive macro `ComputationalCapsule` in this scope
+
+[0;31mP0.3 Generation Violation / 05_abbreviated_gen.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error: cannot find derive macro `ComputationalCapsule` in this scope
+
+[0;31mP0.3 Generation Violation / 06_multiple_atomics_no_gen.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error: cannot find derive macro `ComputationalCapsule` in this scope
+
+[0;31mP0.3 Generation Violation / 07_fixed_point_tier_ok.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error: cannot find derive macro `ComputationalCapsule` in this scope
+
+[0;31mP0.3 Generation Violation / 08_generation_not_gen.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error: cannot find derive macro `ComputationalCapsule` in this scope
+
+[0;31mP0.4 Atomic Field Violation / 01_u64_in_atomic.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error: cannot find derive macro `ComputationalCapsule` in this scope
+
+[0;31mP0.4 Atomic Field Violation / 02_bool_in_atomic.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error: cannot find derive macro `ComputationalCapsule` in this scope
+
+[0;31mP0.4 Atomic Field Violation / 03_all_atomic_fields.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error: cannot find derive macro `ComputationalCapsule` in this scope
+
+[0;31mP0.4 Atomic Field Violation / 04_padding_allowed.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error: cannot find derive macro `ComputationalCapsule` in this scope
+
+[0;31mP0.4 Atomic Field Violation / 05_i64_in_atomic.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error: cannot find derive macro `ComputationalCapsule` in this scope
+
+[0;31mP0.4 Atomic Field Violation / 06_usize_in_atomic.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error: cannot find derive macro `ComputationalCapsule` in this scope
+
+[0;31mP0.4 Atomic Field Violation / 07_non_atomic_tier_allows_u64.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error: cannot find derive macro `ComputationalCapsule` in this scope
+
+[0;31mP0.4 Atomic Field Violation / 09_multiple_violations.rs[0m
+  Expected: fail
+  Actual: pass
+[1;33m  Compiler output:[0m
+    error: cannot find derive macro `ComputationalCapsule` in this scope
+
+[0;31mError: Test pass rate (25.0%) is below 80% threshold[0m

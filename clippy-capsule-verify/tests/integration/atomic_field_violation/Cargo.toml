@@ -1,0 +1,13 @@
+[package]
+name = "test-atomic-field-violation"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.77.0"
+
+[lib]
+crate-type = ["lib"]
+
+[dependencies]
+
+[build]
+# Clippy will be run on this crate
