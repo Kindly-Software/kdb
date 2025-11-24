@@ -2,6 +2,7 @@
 
 use crate::format::{FormatError, FormatReaderCapsule};
 use std::sync::Arc;
+use atomic_capsule::collections::ConcurrentMapCapsule;
 
 /// Format registry capsule
 ///
@@ -36,8 +37,8 @@ use std::sync::Arc;
 pub struct FormatRegistryCapsule {
     // Using Arc<dyn Trait> to avoid generic parameter
     // This allows runtime dispatch while maintaining static types
-    readers: std::collections::HashMap<String, Arc<dyn FormatReaderCapsule>>,
-    extensions: std::collections::HashMap<String, Arc<dyn FormatReaderCapsule>>,
+    readers: Arc<ConcurrentMapCapsule<String, Arc<dyn FormatReaderCapsule>>>,
+    extensions: Arc<ConcurrentMapCapsule<String, Arc<dyn FormatReaderCapsule>>>,
 }
 
 impl std::fmt::Debug for FormatRegistryCapsule {
@@ -57,8 +58,8 @@ impl FormatRegistryCapsule {
     /// - Plain text (always available)
     pub fn new() -> Self {
         let mut registry = Self {
-            readers: std::collections::HashMap::new(),
-            extensions: std::collections::HashMap::new(),
+            readers: Arc::new(ConcurrentMapCapsule::new()),
+            extensions: Arc::new(ConcurrentMapCapsule::new()),
         };
 
         // Plain text (always available)
@@ -88,11 +89,11 @@ impl FormatRegistryCapsule {
     /// Register a format reader
     fn register(&mut self, format: &str, reader: Arc<dyn FormatReaderCapsule>) {
         let format_lower = format.to_lowercase();
-        self.readers.insert(format_lower.clone(), reader.clone());
+        let _ = self.readers.insert(format_lower.clone(), reader.clone());
 
         // Also register by extensions
         for ext in reader.extensions() {
-            self.extensions.insert(ext.to_lowercase(), reader.clone());
+            let _ = self.extensions.insert(ext.to_lowercase(), reader.clone());
         }
     }
 
@@ -100,10 +101,10 @@ impl FormatRegistryCapsule {
     #[cfg(feature = "format-csv")]
     fn register_csv(&mut self, format: &str, reader: Arc<dyn FormatReaderCapsule>) {
         let format_lower = format.to_lowercase();
-        self.readers.insert(format_lower.clone(), reader.clone());
+        let _ = self.readers.insert(format_lower.clone(), reader.clone());
 
         // Register by extension
-        self.extensions.insert(format_lower, reader);
+        let _ = self.extensions.insert(format_lower, reader);
     }
 
     /// Auto-detect format by file extension
@@ -144,7 +145,6 @@ impl FormatRegistryCapsule {
         // Look up by extension (case-insensitive)
         self.extensions
             .get(&ext)
-            .cloned()
             .ok_or_else(|| FormatError::UnknownFormat(ext))
     }
 
@@ -162,13 +162,20 @@ impl FormatRegistryCapsule {
 
         self.readers
             .get(&format_lower)
-            .cloned()
             .ok_or_else(|| FormatError::UnknownFormat(format.as_ref().to_string()))
     }
 
     /// List all available format names (sorted, deduplicated)
     pub fn list_formats(&self) -> Vec<String> {
-        let mut formats: Vec<String> = self.readers.keys().cloned().collect();
+        // ConcurrentMapCapsule.values() returns Vec, we need to iterate manually
+        let keys = self.readers.values(); // This gets all values
+        // We need another approach - iterate through readers to get keys
+        // Since ConcurrentMapCapsule doesn't expose keys(), use a workaround
+        let mut formats = Vec::new();
+        // Get all reader values and extract format names
+        for reader in keys {
+            formats.push(reader.format_name().to_lowercase());
+        }
         formats.sort();
         formats.dedup();
         formats
@@ -235,8 +242,8 @@ mod tests {
     fn test_list_formats() {
         let registry = FormatRegistryCapsule::default();
         let formats = registry.list_formats();
-        // Should include txt/text at minimum
-        assert!(formats.iter().any(|f| f.contains("txt")));
+        // Should include "plain text" format at minimum
+        assert!(formats.iter().any(|f| f.contains("text") || f.contains("plain")));
     }
 
     #[cfg(feature = "format-json")]

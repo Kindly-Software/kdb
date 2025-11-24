@@ -1,4 +1,4 @@
-// Stub file - temporarily disabled for Phase 0 benchmarks
+//! Debug MinHash utility (stub)
 fn main() {
-    println!("debug_minhash temporarily disabled");
+    println!("Debug MinHash utility not yet implemented");
 }

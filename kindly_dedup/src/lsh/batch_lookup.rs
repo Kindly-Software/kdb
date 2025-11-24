@@ -365,7 +365,7 @@ mod tests {
 
     /// Helper: Create test batch lookup instance
     fn create_test_batch_lookup() -> BatchLSHLookup {
-        let buckets = Arc::from(ConcurrentMapCapsule::<BucketKey, Vec<DocId>, 131_072>::new());
+        let buckets = Arc::from(ConcurrentMapCapsule::<BucketKey, Vec<DocId>>::new());
         BatchLSHLookup::new(buckets)
     }
 
@@ -377,7 +377,7 @@ mod tests {
 
     #[test]
     fn test_with_batch_size() {
-        let buckets = Arc::from(ConcurrentMapCapsule::<BucketKey, Vec<DocId>, 131_072>::new());
+        let buckets = Arc::from(ConcurrentMapCapsule::<BucketKey, Vec<DocId>>::new());
         let batch_lookup = BatchLSHLookup::with_batch_size(buckets, 5000);
         assert_eq!(batch_lookup.batch_size, 5000);
     }

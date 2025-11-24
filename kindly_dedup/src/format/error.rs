@@ -66,6 +66,12 @@ impl From<io::Error> for FormatError {
     }
 }
 
+impl From<atomic_capsule::parallel::ParallelError> for FormatError {
+    fn from(e: atomic_capsule::parallel::ParallelError) -> Self {
+        FormatError::Custom(format!("Parallel processing error: {:?}", e))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

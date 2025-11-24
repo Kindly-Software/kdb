@@ -525,8 +525,8 @@ mod tests {
         assert_eq!(parsed.sha256, manifest.sha256);
     }
 
-    #[tokio::test]
-    async fn test_dataset_manager_creation() {
+    #[test]
+    fn test_dataset_manager_creation() {
         let temp_dir = std::env::temp_dir().join("kindly_dedup_test_datasets");
         let manager = DatasetManager::new(&temp_dir).unwrap();
 

@@ -33,11 +33,11 @@
 //!
 //! CRC64 covers: `[coarse_hash][fine_hash][count][doc_ids...]`
 
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use atomic_capsule::collections::ConcurrentMapCapsule;
 
 use crate::disk_backed_bucket_writer::{DiskBackedBucketError, DiskBackedBucketResult};
 
@@ -118,10 +118,8 @@ pub struct DiskBackedBucketReader {
     file_path: String,
 
     /// LRU cache: (coarse_hash, fine_hash) → CacheEntry
-    /// Uses HashMap for simplicity; in production could use ConcurrentMapCapsuleV2
-    /// But since LRU eviction is infrequent, HashMap with Arc<Mutex<_>> is acceptable
-    /// for Phase 3 prototype
-    cache: Arc<std::sync::Mutex<HashMap<(u64, u64), Arc<CacheEntry>>>>,
+    /// Uses ConcurrentMapCapsule (lockfree, no Mutex needed)
+    cache: Arc<ConcurrentMapCapsule<(u64, u64), Arc<CacheEntry>>>,
 
     /// Cache capacity (number of buckets, ~100K = 2-3 GB)
     cache_capacity: usize,
@@ -286,7 +284,7 @@ impl DiskBackedBucketReader {
         Ok(DiskBackedBucketReader {
             file: Arc::new(file),
             file_path: file_path.to_string(),
-            cache: Arc::new(std::sync::Mutex::new(HashMap::new())),
+            cache: Arc::new(ConcurrentMapCapsule::new()),
             cache_capacity,
             cache_hits: AtomicU64::new(0),
             cache_misses: AtomicU64::new(0),
@@ -363,13 +361,10 @@ impl DiskBackedBucketReader {
         let cache_key = (coarse_hash, fine_hash);
 
         // Check cache (T1 Atomic: fast-path lockfree check)
-        {
-            let cache = self.cache.lock().unwrap();
-            if let Some(entry) = cache.get(&cache_key) {
-                entry.update_access_time();
-                self.cache_hits.fetch_add(1, Ordering::Relaxed);
-                return Ok(entry.data.clone());
-            }
+        if let Some(entry) = self.cache.get(&cache_key) {
+            entry.update_access_time();
+            self.cache_hits.fetch_add(1, Ordering::Relaxed);
+            return Ok(entry.data.clone());
         }
 
         // Cache miss: read from disk
@@ -382,23 +377,22 @@ impl DiskBackedBucketReader {
 
         // Insert to cache (with eviction if at capacity)
         let entry = Arc::new(CacheEntry::new(cache_key, bucket_data.clone()));
-        {
-            let mut cache = self.cache.lock().unwrap();
 
-            if cache.len() >= self.cache_capacity {
-                // Evict LRU entry (simple linear scan)
-                let lru_key = cache
-                    .iter()
-                    .min_by_key(|(_, entry)| entry.get_access_time())
-                    .map(|(&key, _)| key);
+        if self.cache.len() >= self.cache_capacity {
+            // Evict LRU entry (iterate through cached values and find oldest)
+            let cache_values = self.cache.values();
+            let lru_key = cache_values
+                .iter()
+                .enumerate()
+                .min_by_key(|(_, entry)| entry.get_access_time())
+                .map(|(_, entry)| entry.bucket_key);
 
-                if let Some(lru_key) = lru_key {
-                    cache.remove(&lru_key);
-                }
+            if let Some(lru_key) = lru_key {
+                let _ = self.cache.remove(&lru_key);
             }
-
-            cache.insert(cache_key, entry);
         }
+
+        let _ = self.cache.insert(cache_key, entry);
 
         self.buckets_read.fetch_add(1, Ordering::Relaxed);
         Ok(bucket_data)
@@ -568,8 +562,7 @@ impl DiskBackedBucketReader {
     ///
     /// Number of buckets currently in cache
     pub fn cache_size(&self) -> usize {
-        let cache = self.cache.lock().unwrap();
-        cache.len()
+        self.cache.len()
     }
 
     /// Evict least-recently-used buckets (manual cache management)
@@ -583,29 +576,34 @@ impl DiskBackedBucketReader {
     /// Eviction is automatic when cache reaches capacity during read_bucket.
     /// This method allows manual control if needed for memory management.
     pub fn evict_lru(&self, count: usize) {
-        let mut cache = self.cache.lock().unwrap();
-
         for _ in 0..count {
-            if cache.is_empty() {
+            if self.cache.len() == 0 {
                 break;
             }
 
             // Find LRU entry
-            let lru_key = cache
+            let cache_values = self.cache.values();
+            let lru_key = cache_values
                 .iter()
-                .min_by_key(|(_, entry)| entry.get_access_time())
-                .map(|(&key, _)| key);
+                .min_by_key(|entry| entry.get_access_time())
+                .map(|entry| entry.bucket_key);
 
             if let Some(lru_key) = lru_key {
-                cache.remove(&lru_key);
+                let _ = self.cache.remove(&lru_key);
             }
         }
     }
 
     /// Clear entire cache
     pub fn clear_cache(&self) {
-        let mut cache = self.cache.lock().unwrap();
-        cache.clear();
+        // ConcurrentMapCapsule doesn't have clear(), so we'll iterate and remove all
+        while self.cache.len() > 0 {
+            if let Some(key) = self.cache.values().first().and_then(|entry| Some(entry.bucket_key)) {
+                let _ = self.cache.remove(&key);
+            } else {
+                break;
+            }
+        }
     }
 
     /// Get total buckets read from disk (metrics)

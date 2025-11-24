@@ -10,7 +10,7 @@
 
 [package]
 name = "kindly_dedup"
-version = "2.1.0"  # 100% serde elimination - all serialization powered by atomic_capsule v0.8.0
+version = "2.3.0"  # Phase 4.5: O(1) Memory Architecture - Production Ready
 edition = "2021"
 rust-version = "1.76.0"
 authors = ["Samuel <samuel@kindly.software>"]
@@ -162,6 +162,15 @@ uuid = { version = "1.6", features = ["v4"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 tempfile = "3.8"
 proptest = "1.4"
+
+# Use jemallocator consistently (not tikv version)
+[dependencies.jemalloc-ctl]
+version = "0.5"
+optional = true
+
+[dependencies.jemallocator]
+version = "0.5"
+optional = true
 # [REMOVED P1] rayon → atomic_capsule::parallel (100% lockfree, 1.5-2× faster)
 # rayon = "1.10"  # For test parallel execution
 
@@ -265,6 +274,9 @@ benchmarking = ["std", "chrono", "atomic_capsule/queue-bounded", "dep:serde", "d
 # Testing infrastructure (T1 MemoryMonitorCapsule + T2+T10 SyntheticCorpusGeneratorCapsule)
 # Requires: rand (Bernoulli trials), rand_xoshiro (Xoshiro256++ deterministic RNG)
 testing = ["std", "benchmarking", "dep:rand", "dep:rand_xoshiro"]
+
+# Memory validation with jemalloc (O(1) memory guarantee verification)
+memory-validation = ["std", "jemalloc-ctl", "jemallocator"]
 
 # Q34 Audit trail (hash-chained tamper-evident logging)
 audit-trail = ["std"]
@@ -417,6 +429,21 @@ required-features = ["production-api"]
 name = "stress_test_10m"
 path = "src/bin/stress_test_10m.rs"
 required-features = ["download-tools"]
+
+[[bin]]
+name = "validate_memory"
+path = "src/bin/validate_memory.rs"
+required-features = ["memory-validation", "parallel-dedup", "benchmarking"]
+
+[[bin]]
+name = "validate_memory_simple"
+path = "src/bin/validate_memory_simple.rs"
+required-features = ["memory-validation"]
+
+[[bin]]
+name = "c4_production_validation"
+path = "src/bin/c4_production_validation.rs"
+required-features = ["memory-validation", "benchmarking"]
 
 # [[bin]] - Missing files (commented out for now)
 # name = "audit_viewer"

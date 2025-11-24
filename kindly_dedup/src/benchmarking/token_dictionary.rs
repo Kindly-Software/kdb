@@ -47,7 +47,7 @@
 //!
 //! **Safety Rating**: 99.99% (pure computation, zero unsafe code)
 
-use std::collections::HashMap;
+use atomic_capsule::collections::ConcurrentMapCapsule;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 /// Token dictionary for efficient ID generation
@@ -78,7 +78,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 #[repr(C, align(64))]
 pub struct TokenDictionary {
     /// Token-to-ID mapping (String → u32)
-    token_to_id: HashMap<String, u32>,
+    token_to_id: ConcurrentMapCapsule<String, u32>,
 
     /// Next available ID (atomic, lock-free)
     next_id: AtomicU32,
@@ -101,7 +101,7 @@ impl TokenDictionary {
     /// Create new token dictionary
     pub fn new() -> Self {
         Self {
-            token_to_id: HashMap::new(),
+            token_to_id: ConcurrentMapCapsule::new(),
             next_id: AtomicU32::new(0),
             _padding: [0u8; 12],
         }
@@ -120,11 +120,11 @@ impl TokenDictionary {
     /// - `#VERIFY_ID_SPACE`: Tests validate typical corpora have <1M unique tokens
     #[inline(always)]
     pub fn encode(&mut self, token: &str) -> u32 {
-        if let Some(&id) = self.token_to_id.get(token) {
+        if let Some(id) = self.token_to_id.get(token) {
             id
         } else {
             let id = self.next_id.fetch_add(1, Ordering::Relaxed);
-            self.token_to_id.insert(token.to_string(), id);
+            let _ = self.token_to_id.insert(token.to_string(), id);
             id
         }
     }
@@ -164,7 +164,15 @@ impl TokenDictionary {
 
     /// Clear dictionary (reset to empty state)
     pub fn clear(&mut self) {
-        self.token_to_id.clear();
+        // ConcurrentMapCapsule doesn't have clear(), so iterate and remove all
+        while self.token_to_id.len() > 0 {
+            if let Some(key) = self.token_to_id.values().first() {
+                // Need to find a key, use a different approach
+                break; // ConcurrentMapCapsule doesn't expose keys()
+            }
+        }
+        // For now, recreate it
+        self.token_to_id = ConcurrentMapCapsule::new();
         self.next_id.store(0, Ordering::Relaxed);
     }
 }

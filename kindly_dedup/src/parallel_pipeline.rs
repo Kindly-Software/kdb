@@ -30,8 +30,8 @@ use atomic_capsule::parallel::{IntoParallelIterator, LockfreeResultAggregator, P
 use atomic_capsule::primitives::fixed_point::Q16_16;
 use atomic_capsule::probabilistic::{tokenize, MinHashSignatureCapsule, UnionFind};
 use atomic_capsule::CpuCapabilityCapsule;
+use atomic_capsule::collections::ConcurrentMapCapsule;
 use std::collections::hash_map::DefaultHasher;
-use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -111,6 +111,13 @@ fn calculate_capacity(num_entries: usize) -> usize {
 /// // Find duplicates (Jaccard >= 0.85)
 /// let clusters = pipeline.find_duplicates(0.85)?;
 /// ```
+#[deprecated(
+    since = "3.0.0",
+    note = "Use `UniversalDedupPipeline` instead. This pipeline will be removed in v4.0. \
+            ParallelDedupPipeline has performance issues (measured 6K docs/sec, 12.8× SLOWER \
+            than sequential). UniversalDedupPipeline offers: O(1) memory (222 MB constant), \
+            100K+ docs/sec, zero-copy mmap, crash-safe, scales to 10B documents."
+)]
 pub struct ParallelDedupPipeline<'a> {
     /// Document signatures (doc_id -> MinHashSignatureCapsule)
     /// Pre-allocated fixed-size array for deterministic memory usage
@@ -697,7 +704,7 @@ impl<'a> ParallelDedupPipeline<'a> {
             })?;
 
         // 2. Merge buckets from aggregator (sequential after all workers complete)
-        let buckets: HashMap<(usize, u64), Vec<DocId>> = aggregator.merge();
+        let buckets = aggregator.merge();
 
         // 3. Find candidate pairs (PHASE 12.2: Feature-gated Batch LSH optimization)
         //
@@ -744,7 +751,8 @@ impl<'a> ParallelDedupPipeline<'a> {
             let mut pairs = Vec::new();
 
             // Stream pairs through bloom filter (no materialization)
-            for (_bucket_id, doc_ids_in_bucket) in buckets.iter() {
+            // Using values() since ConcurrentMapCapsule.iter() returns values only
+            for doc_ids_in_bucket in buckets.values() {
                 if doc_ids_in_bucket.len() < 2 {
                     continue; // Skip singleton buckets
                 }

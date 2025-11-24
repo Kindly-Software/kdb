@@ -382,6 +382,8 @@ pub struct DedupArgs {
     pub audit: Option<PathBuf>,
     pub checkpoint: Option<PathBuf>,
     pub checkpoint_interval: usize,
+    /// Use UniversalDedupPipeline (T6 Mixed, O(1) 222 MB memory)
+    pub universal: bool,
 }
 
 impl DedupArgs {
@@ -429,6 +431,9 @@ impl DedupArgs {
                 .get_flag("--checkpoint-interval")
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0),
+            // UniversalDedupPipeline is DEFAULT as of v3.0
+            // Use --legacy to explicitly select old pipeline (DedupPipeline, ParallelDedupPipeline, etc.)
+            universal: !parsed.has_flag("--legacy"),
         })
     }
 }
@@ -644,7 +649,8 @@ pub fn build_cli() -> CliCapsule {
                     "Save checkpoint every N documents (0 = disabled)",
                 )
                 .default_value("--checkpoint-interval", "0")
-                .validator("--checkpoint-interval", validate_checkpoint_interval),
+                .validator("--checkpoint-interval", validate_checkpoint_interval)
+                .flag("--legacy", "Use legacy pipeline (DedupPipeline) instead of default UniversalDedupPipeline. Deprecated as of v3.0, will be removed in v4.0."),
         )
         // Command: verify
         .command(

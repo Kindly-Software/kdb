@@ -102,7 +102,7 @@
 //! - Union-Find Theory: Tarjan & van Leeuwen "Worst-case analysis of set union algorithms"
 //! - Path Halving: Galler & Fischer "An improved equivalence algorithm"
 
-use std::collections::HashMap;
+use atomic_capsule::collections::ConcurrentMapCapsule;
 use std::fs::OpenOptions;
 use std::io;
 use std::path::Path;
@@ -578,16 +578,23 @@ impl MmapUnionFindCapsule {
     /// // clusters[4...] = individual singletons
     /// ```
     pub fn get_clusters(&self) -> Result<Vec<Vec<DocId>>> {
-        let mut clusters: HashMap<DocId, Vec<DocId>> = HashMap::new();
+        let mut clusters: ConcurrentMapCapsule<DocId, Vec<DocId>> = ConcurrentMapCapsule::new();
 
         // Single pass: group elements by root
         for doc_id in 0..self.capacity {
             let root = self.find_readonly(doc_id)?;
-            clusters.entry(root).or_insert_with(Vec::new).push(doc_id);
+            // For ConcurrentMapCapsule, get() returns Option<V> directly
+            if let Some(vec_ref) = clusters.get(&root) {
+                let mut cluster = vec_ref;
+                cluster.push(doc_id);
+                let _ = clusters.insert(root, cluster);
+            } else {
+                let _ = clusters.insert(root, vec![doc_id]);
+            }
         }
 
-        // Convert to vector (preserving HashMap iteration order, which is arbitrary)
-        Ok(clusters.into_values().collect())
+        // Convert to vector (ConcurrentMapCapsule.values() returns Vec<V> directly)
+        Ok(clusters.values())
     }
 
     /// Get total number of union operations (diagnostic counter)

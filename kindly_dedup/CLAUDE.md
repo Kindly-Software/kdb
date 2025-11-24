@@ -4,9 +4,54 @@
 
 High-performance deduplication pipeline for LLM training datasets using computational capsules from atomic_capsule (T10 Probabilistic tier).
 
-**Status**: v1.13.2 - SIMD Text Hashing + Bloom K=3 Optimization (9.3× compound speedup)
+**Status**: v2.3.0 - Format Architecture Integration (T5 Streaming + BatchStreamingCapsule Foundation) - Complete
 
-**Tier Stack**: T0 (Auditable) + T1 (Atomic) + T2 (SIMD) + T3 (Fixed-Point) + T4 (Batch) + T5 (Streaming) + T9 (Persistent) + T10 (Probabilistic)
+**Tier Stack**: T0 (Auditable) + T1 (Atomic) + T2 (SIMD) + T3 (Fixed-Point) + T4 (Batch) + T5 (Streaming) + T6 (Mixed) + T9 (Persistent) + T10 (Probabilistic)
+
+<!-- ============================================================================
+     MANDATORY STREAMING + PERSISTENT ARCHITECTURE
+     ============================================================================ -->
+<mandatory-streaming-persistent-architecture>
+<rule priority="ABSOLUTE">ALL DATA STRUCTURES MUST USE T9 (PERSISTENT) + T5 (STREAMING). NO EXCEPTIONS.</rule>
+<description>kindly_dedup is designed for LLM training datasets (billions of documents). In-memory approaches DO NOT SCALE.</description>
+
+<enforcement>
+  <rule>NEVER use in-memory HashMap, Vec, or bounded collections for LSH buckets, signatures, or document storage</rule>
+  <rule>ALWAYS use mmap-based persistent storage (PersistentDedupPipeline, T9 tier)</rule>
+  <rule>ALWAYS use streaming/incremental processing (T5 tier, O(1) memory)</rule>
+  <rule>REJECT any PR or implementation that violates O(1) memory constraint</rule>
+  <rule>VALIDATE memory usage: Must be ≤5 GB regardless of corpus size (10M, 100M, 1B docs)</rule>
+</enforcement>
+
+<rationale>
+  <proven-architecture>PersistentDedupPipeline (v1.6+): 93% memory reduction (3.5 GB vs 40 GB), crash-safe, incremental updates</proven-architecture>
+  <validated-performance>373K docs/sec @ 16 cores, scales to billions of documents</validated-performance>
+  <failure-mode>In-memory LSH buckets: 417M band hashes × 16 bytes = 6.7 GB (exceeds 16M capacity, crashes at 333K docs)</failure-mode>
+  <production-target>C4 corpus = 21.7M docs, Common Crawl = 3B+ docs (in-memory approaches impossible)</production-target>
+</rationale>
+
+<required-patterns>
+  <pattern>LSH Buckets: Mmap-based SSTable (persistent, O(1) memory), NOT RobinHoodHashCapsule (in-memory, bounded)</pattern>
+  <pattern>MinHash Signatures: Streaming iterator, NOT Vec&lt;Signature&gt; (in-memory array)</pattern>
+  <pattern>Document Storage: Zero-copy mmap, NOT String allocations</pattern>
+  <pattern>Duplicate Clusters: Union-Find with disk backing, NOT in-memory graph</pattern>
+</required-patterns>
+
+<violations>Violation of streaming/persistent mandate results in IMMEDIATE ROLLBACK. No exceptions for "quick fixes" or "prototypes".</violations>
+</mandatory-streaming-persistent-architecture>
+
+**Latest Update** (2025-11-21): **Format Architecture Integration** (BatchStreamingCapsule Foundation)
+- **Problem**: Loading bottleneck (134s for 12.1M docs, 26 GB) = 38% of total time
+- **Root Cause**: JSON parsing dominates (70%), not allocator contention (~10%)
+- **Solution**: T5 Streaming + T6 Mixed (FormatReaderCapsule optimization + BatchStreamingCapsule integration foundation)
+- **Implementation**:
+  - Added `BatchStreamingDocumentLoader` (T5 Streaming wrapper)
+  - Added atomic_capsule `batch-streaming` feature (T6 Mixed: T4+T5)
+  - Foundation for future token-level batching (requires Copy types)
+- **Current Performance**: 436K docs/sec (simd-json, T2 SIMD + T5 Streaming)
+- **Future Optimization**: Token-level batching in format readers (Phase Q3.4+)
+- **Status**: ✅ Integration complete, Foundation ready for Q3.4
+- **Documentation**: `src/format/batch_streaming_loader.rs` (detailed analysis + constraints)
 
 ## Performance Summary
 
@@ -68,6 +113,27 @@ High-performance deduplication pipeline for LLM training datasets using computat
 - "912K docs/sec projected": Formula-based (60K × 16 × 95%), REJECTED by empirical testing.
 - **Production Recommendation**: Use single-threaded DedupPipeline (60K validated) until parallel redesign complete.
 
+## Deprecation Timeline (v3.0 - Conservative Approach)
+
+**v3.0 (Current - 2025-11-20)**: Deprecation warnings added, UniversalDedupPipeline is DEFAULT
+- `DedupPipeline` marked `#[deprecated(since = "3.0.0")]`
+- `ParallelDedupPipeline` marked `#[deprecated(since = "3.0.0")]` (BROKEN per testing)
+- `PersistentDedupPipeline` marked `#[deprecated(since = "3.0.0")]`
+- `StreamingDedupPipeline` marked `#[deprecated(since = "3.0.0")]`
+- CLI: `--legacy` flag available for backward compatibility
+- Deprecation message: "Use UniversalDedupPipeline instead. This pipeline will be removed in v4.0."
+
+**v3.5 (Estimate Jan 2026)**: Enhanced deprecation warnings
+- More prominent warnings in help text
+- Migration guide references
+
+**v4.0 (Estimate Feb 2026)**: Complete removal
+- Old pipelines removed from codebase
+- `--legacy` flag removed
+- Migration is MANDATORY at this point
+
+**Migration Guide**: See `docs/MIGRATION_v3.md` for detailed instructions
+
 ## Framework Compliance
 
 - **UCE34**: Q1-Q34 complete (T0-T10 tier selection, Q34 audit trails)
@@ -75,7 +141,36 @@ High-performance deduplication pipeline for LLM training datasets using computat
 - **B32**: Fair baselines (Python datasketch, scalar, Q16.16 vs f32)
 - **T28**: 7,500 tests (63 test files, 124 test modules, 85 ignored stress/production tests)
 - **I20**: 20/20 integration validated (Big Bang deployment)
-- **COCA**: 100% lockfree (no mutex/RwLock, 100% atomic capsules)
+- **COCA**: 99.9% lockfree (Mutex<File> exception documented, <0.1% overhead)
+
+## COCA Exceptions (Documented Justifications)
+
+### Exception 1: TransactionLogCapsule Mutex<File>
+
+**Status**: ✅ **ACCEPTED EXCEPTION**
+**File**: `src/lsh/transaction_log.rs`
+**Justification**: File I/O requires exclusive access (kernel syscall atomicity). No lockfree alternative exists without adding 50K LOC dependencies or introducing recovery complexity.
+**Impact**: <0.1% performance overhead (flush only, not in hot path). Measured: 1µs per 16.7µs per-doc time = 0.06% overhead.
+**Validation**: 10M document stress test (crash recovery), concurrent access simulation, CRC32 integrity verification.
+
+**Framework Compliance**:
+- UCE34 ✅: T9 Persistent tier with audit trails
+- ASSUM ✅: 10/10 assumptions documented and verified
+- B32 ✅: <0.1% overhead (< 1% acceptable limit)
+- T28 ✅: 20 tests (crash recovery, fsync, concurrent access)
+- I20 ✅: Zero breaking changes (internal-only)
+- COCA ⚠️: Exception (99.9% lockfree, Mutex in 0.1% of operations, cold path only)
+
+**Documentation**: See `docs/COCA_EXCEPTION_TRANSACTION_LOG.md` for full analysis (7 sections):
+1. Executive summary (what, why, impact)
+2. COCA framework justification (Q1-Q3, alternatives evaluated)
+3. Performance impact analysis (hot/cold path breakdown)
+4. ASSUM safety verification (10 assumptions, all verified)
+5. Framework compliance matrix (4/6 compliant, 1 exception documented)
+6. Alternative designs considered (3 rejected designs, detailed trade-offs)
+7. Production validation (10M corpus stress test, crash recovery, concurrent access)
+
+**Deployment Status**: ✅ **APPROVED FOR PRODUCTION**
 
 ## Testing
 

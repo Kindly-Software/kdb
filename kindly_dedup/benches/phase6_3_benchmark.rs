@@ -92,6 +92,7 @@ use kindly_dedup::DedupPipeline;
 #[cfg(feature = "parallel-dedup")]
 use kindly_dedup::ParallelDedupPipeline;
 
+use atomic_capsule::primitives::cpu_capabilities::CpuCapabilityCapsule;
 use std::time::Duration;
 
 // ============================================================================
@@ -243,6 +244,7 @@ fn bench_parallel_scaling(c: &mut Criterion) {
     const TOKENS_PER_DOC: usize = 100;
 
     let docs = generate_documents(NUM_DOCS, TOKENS_PER_DOC);
+    let cpu_caps = CpuCapabilityCapsule::detect();
     group.throughput(Throughput::Elements(NUM_DOCS as u64));
 
     // K23: Test scaling from 1 to 16 threads
@@ -254,7 +256,7 @@ fn bench_parallel_scaling(c: &mut Criterion) {
             |b, &threads| {
                 b.iter(|| {
                     let mut pipeline =
-                        ParallelDedupPipeline::new(NUM_DOCS, threads).expect("Failed to create parallel pipeline");
+                        ParallelDedupPipeline::new(NUM_DOCS, threads, &cpu_caps).expect("Failed to create parallel pipeline");
 
                     let borrowed: Vec<(usize, &str)> = docs.iter().map(|(id, text)| (*id, text.as_str())).collect();
 
@@ -288,6 +290,8 @@ fn bench_batch_size_effects(c: &mut Criterion) {
     const TOKENS_PER_DOC: usize = 100;
     const NUM_THREADS: usize = 16;
 
+    let cpu_caps = CpuCapabilityCapsule::detect();
+
     // K28: Sweep batch sizes (100, 512, 1K, 4K, 8K)
     for batch_size in [100, 512, 1024, 4096, 8192] {
         let docs = generate_documents(batch_size, TOKENS_PER_DOC);
@@ -298,7 +302,7 @@ fn bench_batch_size_effects(c: &mut Criterion) {
             &batch_size,
             |b, &_size| {
                 b.iter(|| {
-                    let mut pipeline = ParallelDedupPipeline::new(batch_size, NUM_THREADS)
+                    let mut pipeline = ParallelDedupPipeline::new(batch_size, NUM_THREADS, &cpu_caps)
                         .expect("Failed to create parallel pipeline");
 
                     let borrowed: Vec<(usize, &str)> = docs.iter().map(|(id, text)| (*id, text.as_str())).collect();
@@ -333,6 +337,8 @@ fn bench_document_size_effects(c: &mut Criterion) {
     const NUM_DOCS: usize = 5_000;
     const NUM_THREADS: usize = 16;
 
+    let cpu_caps = CpuCapabilityCapsule::detect();
+
     // K29/K33: Sweep token counts (10, 100, 500, 1000, 5000)
     for tokens_per_doc in [10, 100, 500, 1000, 5000] {
         let docs = generate_documents(NUM_DOCS, tokens_per_doc);
@@ -344,7 +350,7 @@ fn bench_document_size_effects(c: &mut Criterion) {
             |b, &_tokens| {
                 b.iter(|| {
                     let mut pipeline =
-                        ParallelDedupPipeline::new(NUM_DOCS, NUM_THREADS).expect("Failed to create parallel pipeline");
+                        ParallelDedupPipeline::new(NUM_DOCS, NUM_THREADS, &cpu_caps).expect("Failed to create parallel pipeline");
 
                     let borrowed: Vec<(usize, &str)> = docs.iter().map(|(id, text)| (*id, text.as_str())).collect();
 
@@ -380,6 +386,7 @@ fn bench_workload_patterns(c: &mut Criterion) {
     const TOKENS_PER_DOC: usize = 100;
     const NUM_THREADS: usize = 16;
 
+    let cpu_caps = CpuCapabilityCapsule::detect();
     group.throughput(Throughput::Elements(NUM_DOCS as u64));
 
     // K3/K27: Mostly unique (10% duplicate rate)
@@ -387,7 +394,7 @@ fn bench_workload_patterns(c: &mut Criterion) {
     group.bench_function("mostly_unique_10pct_duplicates", |b| {
         b.iter(|| {
             let mut pipeline =
-                ParallelDedupPipeline::new(NUM_DOCS, NUM_THREADS).expect("Failed to create parallel pipeline");
+                ParallelDedupPipeline::new(NUM_DOCS, NUM_THREADS, &cpu_caps).expect("Failed to create parallel pipeline");
 
             let borrowed: Vec<(usize, &str)> = docs_10pct.iter().map(|(id, text)| (*id, text.as_str())).collect();
 
@@ -404,7 +411,7 @@ fn bench_workload_patterns(c: &mut Criterion) {
     group.bench_function("mixed_50pct_duplicates", |b| {
         b.iter(|| {
             let mut pipeline =
-                ParallelDedupPipeline::new(NUM_DOCS, NUM_THREADS).expect("Failed to create parallel pipeline");
+                ParallelDedupPipeline::new(NUM_DOCS, NUM_THREADS, &cpu_caps).expect("Failed to create parallel pipeline");
 
             let borrowed: Vec<(usize, &str)> = docs_50pct.iter().map(|(id, text)| (*id, text.as_str())).collect();
 
@@ -421,7 +428,7 @@ fn bench_workload_patterns(c: &mut Criterion) {
     group.bench_function("duplicate_heavy_90pct_duplicates", |b| {
         b.iter(|| {
             let mut pipeline =
-                ParallelDedupPipeline::new(NUM_DOCS, NUM_THREADS).expect("Failed to create parallel pipeline");
+                ParallelDedupPipeline::new(NUM_DOCS, NUM_THREADS, &cpu_caps).expect("Failed to create parallel pipeline");
 
             let borrowed: Vec<(usize, &str)> = docs_90pct.iter().map(|(id, text)| (*id, text.as_str())).collect();
 
@@ -455,13 +462,14 @@ fn bench_component_analysis(c: &mut Criterion) {
     const NUM_THREADS: usize = 16;
 
     let docs = generate_documents(NUM_DOCS, TOKENS_PER_DOC);
+    let cpu_caps = CpuCapabilityCapsule::detect();
     group.throughput(Throughput::Elements(NUM_DOCS as u64));
 
     // K40: Full pipeline end-to-end
     group.bench_function("full_pipeline_end_to_end", |b| {
         b.iter(|| {
             let mut pipeline =
-                ParallelDedupPipeline::new(NUM_DOCS, NUM_THREADS).expect("Failed to create parallel pipeline");
+                ParallelDedupPipeline::new(NUM_DOCS, NUM_THREADS, &cpu_caps).expect("Failed to create parallel pipeline");
 
             let borrowed: Vec<(usize, &str)> = docs.iter().map(|(id, text)| (*id, text.as_str())).collect();
 
@@ -477,7 +485,7 @@ fn bench_component_analysis(c: &mut Criterion) {
     group.bench_function("add_documents_phase_only", |b| {
         b.iter(|| {
             let mut pipeline =
-                ParallelDedupPipeline::new(NUM_DOCS, NUM_THREADS).expect("Failed to create parallel pipeline");
+                ParallelDedupPipeline::new(NUM_DOCS, NUM_THREADS, &cpu_caps).expect("Failed to create parallel pipeline");
 
             let borrowed: Vec<(usize, &str)> = docs.iter().map(|(id, text)| (*id, text.as_str())).collect();
 
@@ -493,7 +501,7 @@ fn bench_component_analysis(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let mut pipeline =
-                    ParallelDedupPipeline::new(NUM_DOCS, NUM_THREADS).expect("Failed to create parallel pipeline");
+                    ParallelDedupPipeline::new(NUM_DOCS, NUM_THREADS, &cpu_caps).expect("Failed to create parallel pipeline");
 
                 let borrowed: Vec<(usize, &str)> = docs.iter().map(|(id, text)| (*id, text.as_str())).collect();
 

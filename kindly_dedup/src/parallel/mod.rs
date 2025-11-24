@@ -30,6 +30,7 @@
 //! - **I20**: Integration framework validation (Q1-Q20)
 
 pub mod batch_queue;
+pub mod batch_coordinator;
 pub mod signature_capsule;
 pub mod thread_pool_capsule;
 pub mod lsh_capsule;
@@ -40,8 +41,10 @@ pub mod worker_state;
 pub mod work_stealing_queue;
 pub mod worker_pool;
 pub mod output_aggregator;
+pub mod parallel_dedup_metacapsule;
 
 pub use batch_queue::{BatchQueueCapsule, BatchQueueError};
+pub use batch_coordinator::{BatchCoordinatorCapsule, BatchCoordinatorError, BatchId, CoordinationStats};
 pub use signature_capsule::{ParallelSignatureCapsule, SignatureError};
 pub use thread_pool_capsule::ThreadPoolCapsule;
 pub use lsh_capsule::ParallelLshCapsule;
@@ -55,4 +58,7 @@ pub use worker_pool::{
 };
 pub use output_aggregator::{
     OutputAggregatorCapsule, AggregatorError, AggregatorStats,
+};
+pub use parallel_dedup_metacapsule::{
+    ParallelDedupMetacapsule, PipelineState, PipelineSnapshot, PhaseMask, MetacapsuleError,
 };

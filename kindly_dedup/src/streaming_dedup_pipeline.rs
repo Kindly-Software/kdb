@@ -286,6 +286,12 @@ fn calculate_lsh_params(num_documents: usize) -> (usize, usize) {
 /// T5 Streaming Deduplication Pipeline
 ///
 /// 5-stage lockfree pipeline with dedicated thread pools
+#[deprecated(
+    since = "3.0.0",
+    note = "Use `UniversalDedupPipeline` instead. This pipeline will be removed in v4.0. \
+            UniversalDedupPipeline offers: O(1) memory (222 MB constant), 100K+ docs/sec, \
+            zero-copy mmap, crash-safe, scales to 10B documents."
+)]
 pub struct StreamingDedupPipeline {
     // Stage queues (BOUNDED for backpressure, 8K = 2^13 capacity each)
     ingest_queue: Arc<QueueCapsule<(DocId, String), MPMC>>,

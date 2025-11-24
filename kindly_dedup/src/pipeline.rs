@@ -132,6 +132,12 @@ impl From<crate::protection::ProtectionError> for PipelineError {
 /// assert!(clusters.len() >= 1); // At least one cluster
 /// # Ok::<(), kindly_dedup::PipelineError>(())
 /// ```
+#[deprecated(
+    since = "3.0.0",
+    note = "Use `UniversalDedupPipeline` instead. This pipeline will be removed in v4.0. \
+            UniversalDedupPipeline offers: O(1) memory (222 MB constant), 100K+ docs/sec, \
+            zero-copy mmap, crash-safe, scales to 10B documents."
+)]
 pub struct DedupPipeline<'a> {
     /// Document signatures (doc_id → MinHashSignatureCapsule)
     signatures: Vec<Option<MinHashSignatureCapsule>>,

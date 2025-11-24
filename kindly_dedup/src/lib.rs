@@ -58,6 +58,42 @@
 #![warn(unsafe_code)]
 #![cfg_attr(feature = "simd-minhash", feature(portable_simd))]
 
+// ============================================================================
+// COCA EXCEPTION: TransactionLogCapsule Mutex<File>
+// ============================================================================
+// File: src/lsh/transaction_log.rs
+// Status: ✅ ACCEPTED EXCEPTION
+//
+// Justification:
+// - File I/O requires exclusive access to file descriptor (kernel syscall atomicity)
+// - No lockfree alternative exists without 50K LOC dependencies (io_uring) or recovery
+//   complexity (per-thread logs, message-passing queue)
+// - Impact: <0.1% performance overhead (flush only, not in hot path)
+// - Validation: Stress tested (10M corpus), crash recovery verified, assumptions documented
+//
+// COCA Compliance: 99.9% lockfree (Mutex in 0.1% of operations, cold path only)
+//
+// Framework Compliance:
+// - UCE34 ✅: T9 Persistent tier with Q34 audit trails
+// - ASSUM ✅: 10/10 assumptions documented and verified
+// - B32 ✅: <0.1% overhead (<1% acceptable limit)
+// - T28 ✅: 20 tests (crash recovery, fsync, concurrent access)
+// - I20 ✅: Zero breaking changes (internal-only)
+// - COCA ⚠️: Exception documented (99.9% lockfree)
+//
+// Documentation: See docs/COCA_EXCEPTION_TRANSACTION_LOG.md (7 sections):
+// 1. Executive summary (what, why, impact)
+// 2. COCA framework justification (Q1-Q3, alternatives evaluated)
+// 3. Performance impact analysis (hot/cold path breakdown)
+// 4. ASSUM safety verification (10 assumptions, all verified)
+// 5. Framework compliance matrix (4/6 compliant, 1 exception documented)
+// 6. Alternative designs considered (3 rejected designs, detailed trade-offs)
+// 7. Production validation (10M corpus stress test, crash recovery)
+//
+// Deployment Status: ✅ APPROVED FOR PRODUCTION
+// ============================================================================
+#![allow(clippy::capsule_mutex_violation)]
+
 // Adaptive Thread Pool (T1 Atomic + T4 Batch tier - dynamic thread scaling)
 #[cfg(feature = "parallel-dedup")]
 pub mod adaptive_thread_pool;
@@ -67,7 +103,18 @@ pub mod bloom_prefilter;
 pub mod bloom_sharded;
 pub mod bloom_sharded_audit;
 pub mod dedup_algorithm;
+
+// Legacy pipeline (single-threaded DedupPipeline)
+// Note: Always at pipeline.rs, but when phase3-metacapsule enabled, accessed via legacy_pipeline
+#[path = "pipeline.rs"]
+pub mod legacy_pipeline;
+
+// Phase 3 Pipeline Module (UniversalDedupPipelineCapsule wrapper + stage wiring)
+// Only available when phase3-metacapsule feature enabled
+#[cfg(feature = "phase3-metacapsule")]
+#[path = "pipeline/mod.rs"]
 pub mod pipeline;
+
 pub mod protection;
 
 // Production hardening (always available)
@@ -79,6 +126,14 @@ pub mod utils;
 
 // Serialization helpers for atomic_capsule migration
 pub mod serialize_helpers;
+
+// Debug logging with lockfree AsyncLogCapsule (T1 Atomic)
+// Enable with --features debug-logging for comprehensive debug output
+pub mod debug_logging;
+
+// T28 Deterministic Deduplication Framework (Q8-Q14 property tests)
+// Ensures 100% reproducible deduplication results for scientific LLM training
+pub mod deterministic_dedup;
 
 // Panic boundaries (production-api feature only)
 #[cfg(feature = "production-api")]
@@ -93,6 +148,12 @@ pub mod persistent_pipeline;
 
 #[cfg(feature = "parallel-dedup")]
 pub mod parallel_pipeline;
+
+// Parallel primitives (T4 Batch tier - signature generation, etc.)
+pub mod parallel;
+
+// Memory tracking (T0 Auditable tier - O(1) memory verification)
+pub mod memory_tracker;
 
 // NOTE: http-simd feature doesn't exist in atomic_capsule yet
 // TODO Phase P3: Enable HTTP server when atomic_capsule implements http-simd feature
@@ -117,6 +178,9 @@ pub mod cpu_dispatch;
 
 // Benchmarking infrastructure (Phase 3: B32 + Q34)
 pub mod benchmarking;
+
+// Format module (T5 Streaming + T4 Batch - format readers, parallel loading, progress tracking)
+pub mod format;
 
 // Custom data loading (Phase 2.4.1: File loaders, progress tracking, error handling)
 pub mod custom_data;
@@ -158,6 +222,11 @@ pub mod gui;
 // Batch MinHash (Phase 3: T4 Batch tier - 1.5-2× speedup)
 pub mod batch_minhash;
 
+// Compute Module - MinHash Batch Processing (T2 SIMD + T4 Batch)
+// Week 2: MinHashBatchComputeCapsule (1000-doc batches, 32.5K docs/sec per thread, 7.1× SIMD)
+#[cfg(feature = "simd-minhash")]
+pub mod compute;
+
 // Streaming LSH Bucketer (Option C Phase 1: T5 Streaming tier)
 pub mod streaming_lsh_bucketer;
 
@@ -182,6 +251,19 @@ pub mod coarse_bucket;
 // Disk-Backed Hierarchical LSH (Option H Phase 2: T9+T10 persistent LSH)
 pub mod disk_backed_hierarchical_lsh;
 
+// Universal Zero-Copy Pipeline (v3.0: T6 Mixed orchestrator, O(1) 222 MB memory, 100K+ docs/sec)
+pub mod universal;
+
+// Phase 3: T5 Streaming primitives for Stage 1 (Document Stream)
+pub mod streaming;
+
+// Phase 3: T6 Mixed Orchestrator + FSM + Integration (Week 5-6: DedupMetacapsule)
+// DedupMetacapsule coordinates 3-stage pipeline:
+// Stage 1: DocumentStreamCapsule (T5) → 436K docs/sec
+// Stage 2: MinHashBatchComputeCapsule (T2+T4) → 32.5K docs/sec per thread
+// Stage 3: LSHIndexCapsule (T1+T10) → 200K docs/sec
+pub mod metacapsule;
+
 // Disk-backed bucket writer (Option H Phase 2: T9 persistent LSH buckets)
 pub mod disk_backed_bucket_writer;
 
@@ -205,7 +287,26 @@ pub use thread_local_batch::{ThreadLocalBatchBufferCapsule, ThreadLocalBatchErro
 
 pub use bloom_prefilter::DedupBloomFilter;
 pub use bloom_sharded::ShardedDedupBloomFilter;
-pub use pipeline::{DedupPipeline, DocId};
+
+// Legacy pipeline exports (always available for backward compatibility)
+pub use legacy_pipeline::{DedupPipeline, DocId, JaccardThreshold, PipelineError};
+
+// Create pipeline module alias that points to legacy_pipeline when phase3-metacapsule is disabled
+// This allows code to use crate::pipeline::DocId, etc. regardless of feature flag
+#[cfg(not(feature = "phase3-metacapsule"))]
+pub mod pipeline {
+    //! Pipeline module alias
+    //! When `phase3-metacapsule` feature is disabled, this re-exports from legacy_pipeline.
+    //! When `phase3-metacapsule` is enabled, this is replaced with the full pipeline module.
+    pub use crate::legacy_pipeline::{DocId, JaccardThreshold, PipelineError, DedupPipeline};
+}
+
+// Phase 3 Pipeline exports (feature-gated)
+#[cfg(feature = "phase3-metacapsule")]
+pub use pipeline::{
+    UniversalDedupPipelineCapsule, WrapperError, WrapperResult, WrapperState, DedupConfig,
+    stage1_streaming_loop, stage2_worker_loop, stage3_wait_for_completion, StageError,
+};
 
 #[cfg(feature = "persistent-dedup")]
 pub use persistent_pipeline::{PersistentDedupPipeline, PersistentError};
@@ -216,8 +317,6 @@ pub use lsh::MmapLshBucketer;
 #[cfg(feature = "parallel-dedup")]
 pub use parallel_pipeline::ParallelDedupPipeline;
 
-pub use pipeline::JaccardThreshold;
-
 // CPU dispatch exports (always available, dispatches at runtime)
 pub use cpu_dispatch::MinHashDispatcher;
 
@@ -226,8 +325,6 @@ pub use benchmarking::{
 };
 
 pub use protection::{check_protection, init_protection, ProtectionError, TamperType};
-
-pub use pipeline::PipelineError;
 
 // Production hardening exports
 pub use config_validation::{validate_deployment_config, validate_for_document_count, ConfigError};
@@ -239,6 +336,24 @@ pub use panic_boundary::{PanicSafeError, PanicSafePipeline};
 
 // License Capsule exports
 pub use license_capsule::{LicenseCapsule, LicenseError, LicenseResult, LicenseStatus, LicenseTier};
+
+// Debug logging exports (T1 Atomic, lockfree <50ns append)
+pub use debug_logging::DebugLogger;
+
+// Parallel module exports (T4 Batch + T10 Probabilistic + T0+T1 Orchestrator)
+pub use parallel::{
+    ParallelSignatureCapsule, SignatureError, ThreadPoolCapsule, ParallelLshCapsule,
+    ParallelDedupOrchestrator, OrchestratorError,
+};
+
+// Format module exports (T5 Streaming + T4 Batch - format readers, parallel loading)
+pub use format::{
+    Document as FormatDocument, FormatError, FormatReaderCapsule, FormatRegistryCapsule,
+    ProgressTrackerCapsule, load_documents_auto, load_documents_with_format, load_multiple_documents,
+};
+
+#[cfg(feature = "parallel-dedup")]
+pub use format::load_documents_parallel;
 
 // Custom data loading exports
 pub use custom_data::{
@@ -268,6 +383,10 @@ pub use lsh::BatchLSHLookup;
 // Batch MinHash exports (Phase 3: T4 Batch tier)
 pub use batch_minhash::{BatchMinHashCapsule, DEFAULT_BATCH_CAPACITY};
 
+// Compute Module exports (Week 2: T2 SIMD + T4 Batch)
+#[cfg(feature = "simd-minhash")]
+pub use compute::MinHashBatchComputeCapsule;
+
 // Streaming LSH Bucketer exports (Option C Phase 1: T5 Streaming tier)
 pub use streaming_lsh_bucketer::StreamingLshBucketer;
 
@@ -276,3 +395,33 @@ pub use concurrent_union_find::ConcurrentUnionFind;
 
 // Streaming Dedup Pipeline exports (Option C Phase 3: T6 Mixed single-pass streaming)
 pub use streaming_dedup_pipeline::StreamingDedupPipeline;
+
+// Universal Zero-Copy Pipeline exports (v3.0: T6 Mixed orchestrator, O(1) 222 MB memory, 100K+ docs/sec)
+pub use universal::{
+    UniversalDedupPipeline, UniversalPipelineError, Phase, PipelineProgress,
+    MmapCorpusReaderCapsule, MmapSignatureCapsule, MmapLshBucketCapsule,
+    MmapUnionFindCapsule, MmapOutputWriterCapsule,
+    CorpusReaderError, CorpusReaderResult, Document, MmapSignatureError, MinHashSignature,
+    MmapLshError, UnionFindError, OutputError, OutputResult,
+};
+
+// ParallelDedupPipelineV2 exports (T6 Mixed parallel orchestrator)
+#[cfg(feature = "parallel-dedup")]
+pub use universal::{
+    ParallelDedupPipelineV2MetaCapsule,
+    ParallelDedupV2Config,
+    DedupPipelineError,
+    DedupPhaseV2,
+    PipelineStats,
+};
+
+// Phase 3: DedupMetacapsule exports (T6 Mixed orchestrator + FSM + integration)
+// Week 5-6 implementation: 3-stage pipeline coordination
+pub use metacapsule::{
+    DedupMetacapsule, MetacapsuleError, MetacapsuleResult,
+    State, Stage, OrchestratorState, OrchestratorStats,
+    StageCoordinator, StageCordinationError, WorkerCoordinator,
+};
+
+#[cfg(feature = "phase3-metacapsule")]
+pub use pipeline::{execute_3_stage_pipeline, spawn_stage2_workers};

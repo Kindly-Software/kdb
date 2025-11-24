@@ -393,6 +393,12 @@ impl FileHeader {
 /// let recovered = PersistentDedupPipeline::recover("dedup.bin")?;
 /// assert_eq!(recovered.count(), 1); // Only unique doc counted
 /// ```
+#[deprecated(
+    since = "3.0.0",
+    note = "Use `UniversalDedupPipeline` instead. This pipeline will be removed in v4.0. \
+            UniversalDedupPipeline offers: O(1) memory (222 MB constant), 100K+ docs/sec, \
+            zero-copy mmap, crash-safe, scales to 10B documents."
+)]
 pub struct PersistentDedupPipeline<'a> {
     /// File path
     path: String,
