@@ -1,0 +1,33 @@
+[workspace]
+# Exclude from parent workspace - clippy lints need special rustc_private handling
+
+[package]
+name = "clippy-capsule-verify"
+version = "0.1.0-alpha.1"
+edition = "2021"
+rust-version = "1.77.0"
+
+description = "Clippy lint for detecting unverified computational capsules"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/atomic-capsule"
+
+[lib]
+# Custom lint crate - loaded by clippy
+crate-type = ["dylib"]
+
+[dependencies]
+# These are compiler-internal crates available via rustc_private feature
+# They are not on crates.io - the compiler provides them when building with nightly
+
+[dev-dependencies]
+compiletest_rs = "0.10"
+trybuild = "1.0"
+
+[package.metadata.rust-analyzer]
+# Help rust-analyzer understand this is a compiler plugin
+rustc_private = true
+
+# This is a clippy lint plugin
+[package.metadata.clippy]
+# Automatically load this lint when running clippy
+# Users add: CLIPPY_CONF_DIR=path/to/clippy-capsule-verify cargo clippy
