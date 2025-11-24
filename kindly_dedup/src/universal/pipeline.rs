@@ -235,7 +235,7 @@ pub struct UniversalDedupPipeline {
     output: Box<MmapOutputWriterCapsule>,
 
     // ============================================================================
-    // Configuration (16 bytes, cold path)
+    // Configuration (32 bytes, cold path)
     // ============================================================================
 
     /// Jaccard similarity threshold (0.0 - 1.0, typically 0.85)
@@ -250,14 +250,26 @@ pub struct UniversalDedupPipeline {
     /// VERIFY: File must exist before process_corpus() is called
     corpus_path: String,
 
+    /// Start document ID for chunk filtering (worker's range start)
+    ///
+    /// ASSUM: Set once at initialization, read-only during execution
+    /// VERIFY: Must be <= end_doc_id and < total_docs
+    start_doc_id: u64,
+
+    /// End document ID for chunk filtering (worker's range end, exclusive)
+    ///
+    /// ASSUM: Set once at initialization, read-only during execution
+    /// VERIFY: Must be > start_doc_id and <= total_docs
+    end_doc_id: u64,
+
     // ============================================================================
-    // Padding to 128-byte boundary (32 bytes)
+    // Padding to 128-byte boundary (24 bytes)
     // ============================================================================
 
     /// Padding to complete 128-byte cache line alignment
-    /// Layout: 32 (state) + 48 (pointers) + 16 (config) = 80 bytes
+    /// Layout: 32 (state) + 48 (pointers) + 32 (config) = 112 bytes
     /// Padded to 128 bytes (next cache line boundary for safety)
-    _padding: [u8; 48],
+    _padding: [u8; 16],
 }
 
 // SAFETY: UniversalDedupPipeline can be safely sent across threads
@@ -323,6 +335,8 @@ impl UniversalDedupPipeline {
     /// * `corpus_path` - Path to input corpus (JSONL format)
     /// * `capacity` - Estimated total documents in corpus
     /// * `threshold` - Jaccard similarity threshold (0.0 - 1.0)
+    /// * `start_doc_id` - Start document ID for chunk filtering (inclusive)
+    /// * `end_doc_id` - End document ID for chunk filtering (exclusive)
     ///
     /// # Returns
     ///
@@ -334,19 +348,35 @@ impl UniversalDedupPipeline {
     /// Validates generation counters across all capsules on creation.
     /// If mismatch detected, truncates to last valid phase.
     ///
-    /// # Example
+    /// # Example - Single-threaded (full corpus)
     ///
     /// ```rust,ignore
     /// let pipeline = UniversalDedupPipeline::new(
     ///     "corpus.jsonl",
     ///     10_000_000,  // 10M docs
-    ///     0.85         // Jaccard threshold
+    ///     0.85,        // Jaccard threshold
+    ///     0,           // start_doc_id (full range)
+    ///     10_000_000,  // end_doc_id (full range)
+    /// )?;
+    /// ```
+    ///
+    /// # Example - Multi-threaded (worker chunk)
+    ///
+    /// ```rust,ignore
+    /// let pipeline = UniversalDedupPipeline::new(
+    ///     "corpus.jsonl",
+    ///     10_000_000,  // 10M docs capacity
+    ///     0.85,        // Jaccard threshold
+    ///     2_500_000,   // start_doc_id (worker 1 of 4)
+    ///     5_000_000,   // end_doc_id (worker 1 of 4)
     /// )?;
     /// ```
     pub fn new(
         corpus_path: &str,
         capacity: usize,
         threshold: f64,
+        start_doc_id: u64,
+        end_doc_id: u64,
     ) -> Result<Self, UniversalPipelineError> {
         // Validate configuration
         if corpus_path.is_empty() {
@@ -364,6 +394,22 @@ impl UniversalDedupPipeline {
         if capacity == 0 {
             return Err(UniversalPipelineError::ConfigError(
                 "capacity must be > 0".to_string(),
+            ));
+        }
+
+        // ASSUM: #ASSUME_CHUNK_RANGE_VALID
+        // Validate chunk range boundaries
+        if start_doc_id >= end_doc_id {
+            return Err(UniversalPipelineError::ConfigError(
+                format!("chunk range invalid: start_doc_id ({}) must be < end_doc_id ({})",
+                    start_doc_id, end_doc_id),
+            ));
+        }
+
+        if end_doc_id > capacity as u64 {
+            return Err(UniversalPipelineError::ConfigError(
+                format!("chunk range out of bounds: end_doc_id ({}) > capacity ({})",
+                    end_doc_id, capacity),
             ));
         }
 
@@ -421,8 +467,12 @@ impl UniversalDedupPipeline {
             threshold,
             corpus_path: corpus_path.to_string(),
 
+            // Store chunk range for document filtering
+            start_doc_id,
+            end_doc_id,
+
             // Padding to 128-byte boundary
-            _padding: [0u8; 48],
+            _padding: [0u8; 16],
         };
 
         // ASSUM: #ASSUME_GENERATION_CONSISTENCY
@@ -558,6 +608,13 @@ impl UniversalDedupPipeline {
                     UniversalPipelineError::from(e)
                 })?;
 
+                // ASSUM: #ASSUME_CHUNK_FILTERING - Filter documents outside chunk range
+                // VERIFY: Each worker processes only its assigned chunk [start_doc_id, end_doc_id)
+                // Skip documents outside this worker's chunk range
+                if doc.id < self.start_doc_id || doc.id >= self.end_doc_id {
+                    continue;
+                }
+
                 docs_in_chunk += 1;
 
                 // Compute MinHash signature (SIMD-accelerated, 7× speedup target)
@@ -573,7 +630,7 @@ impl UniversalDedupPipeline {
 
                 // Progress every document in first chunk
                 if chunk_count == 1 && docs_in_chunk <= 10 {
-                    eprintln!("[TRACE] Processed doc #{} in chunk #{}", docs_in_chunk, chunk_count);
+                    eprintln!("[TRACE] Processed doc #{} (doc_id={}) in chunk #{}", docs_in_chunk, doc.id, chunk_count);
                 }
             }
 
@@ -653,7 +710,14 @@ impl UniversalDedupPipeline {
         // 1. Retrieve MinHash signature from storage
         // 2. Compute L=50 LSH band hashes (1250 total)
         // 3. Insert into memtable with Bloom pre-filter
+        // NOTE: Only hash documents in this worker's chunk range [start_doc_id, end_doc_id)
         for doc_id in 0..docs_signed {
+            // ASSUM: #ASSUME_CHUNK_FILTERING - Skip documents outside chunk range
+            // VERIFY: Each worker only hashes its assigned chunk [start_doc_id, end_doc_id)
+            if doc_id < self.start_doc_id || doc_id >= self.end_doc_id {
+                continue;
+            }
+
             // Read signature from persistent storage via public API
             let signature = self.signature.read_signature(doc_id)
                 .map_err(|e| UniversalPipelineError::CapsuleError(
@@ -1232,41 +1296,63 @@ mod tests {
     /// T28 Q1-Q7: Unit Tests - Basic invariants and state machine
     #[test]
     fn test_create_validates_corpus_path() {
-        let result = UniversalDedupPipeline::new("", 1_000_000, 0.85);
+        let result = UniversalDedupPipeline::new("", 1_000_000, 0.85, 0, 1_000_000);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_create_validates_threshold_range() {
-        let result = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 1.5);
+        let result = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 1.5, 0, 1_000_000);
         assert!(result.is_err());
 
-        let result = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, -0.1);
+        let result = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, -0.1, 0, 1_000_000);
         assert!(result.is_err());
     }
 
     #[test]
     fn test_create_validates_capacity() {
-        let result = UniversalDedupPipeline::new("corpus.jsonl", 0, 0.85);
+        let result = UniversalDedupPipeline::new("corpus.jsonl", 0, 0.85, 0, 0);
         assert!(result.is_err());
     }
 
     #[test]
+    fn test_create_validates_chunk_range() {
+        // start_doc_id >= end_doc_id should fail
+        let result = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85, 500_000, 500_000);
+        assert!(result.is_err(), "start_doc_id must be < end_doc_id");
+
+        // end_doc_id > capacity should fail
+        let result = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85, 0, 1_500_000);
+        assert!(result.is_err(), "end_doc_id must be <= capacity");
+    }
+
+    #[test]
     fn test_create_success() {
-        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85);
+        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85, 0, 1_000_000);
+        assert!(pipeline.is_ok());
+    }
+
+    #[test]
+    fn test_create_success_chunk_range() {
+        // Worker 0 of 4: [0, 250000)
+        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85, 0, 250_000);
+        assert!(pipeline.is_ok());
+
+        // Worker 1 of 4: [250000, 500000)
+        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85, 250_000, 500_000);
         assert!(pipeline.is_ok());
     }
 
     #[test]
     fn test_initial_phase_is_read() {
-        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85).unwrap();
+        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85, 0, 1_000_000).unwrap();
         let progress = pipeline.progress();
         assert_eq!(progress.current_phase, Phase::Read as u64);
     }
 
     #[test]
     fn test_initial_progress_is_zero() {
-        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85).unwrap();
+        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85, 0, 1_000_000).unwrap();
         let progress = pipeline.progress();
         assert_eq!(progress.docs_processed, 0);
         assert_eq!(progress.docs_total, 1_000_000);
@@ -1285,7 +1371,7 @@ mod tests {
     /// T28 Q8-Q14: Property Tests - Invariants and boundaries
     #[test]
     fn test_phase_transition_updates_atomic_state() {
-        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85).unwrap();
+        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85, 0, 1_000_000).unwrap();
 
         // Initial phase should be Read
         assert_eq!(pipeline.current_phase.load(Ordering::Acquire), Phase::Read as u64);
@@ -1299,7 +1385,7 @@ mod tests {
 
     #[test]
     fn test_phase_transition_rejects_invalid_source() {
-        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85).unwrap();
+        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85, 0, 1_000_000).unwrap();
 
         // Try to transition from Sign when current is Read
         let result = pipeline.transition_phase(Phase::Sign, Phase::Hash);
@@ -1308,7 +1394,7 @@ mod tests {
 
     #[test]
     fn test_progress_counter_monotonic() {
-        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85).unwrap();
+        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85, 0, 1_000_000).unwrap();
 
         let p1 = pipeline.progress();
         assert_eq!(p1.docs_processed, 0);
@@ -1328,7 +1414,7 @@ mod tests {
 
     #[test]
     fn test_error_counter_increments() {
-        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85).unwrap();
+        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85, 0, 1_000_000).unwrap();
 
         let p1 = pipeline.progress();
         assert_eq!(p1.error_count, 0);
@@ -1346,7 +1432,7 @@ mod tests {
     #[test]
     fn test_process_corpus_phase_progression() {
         let mut pipeline =
-            UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85).unwrap();
+            UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85, 0, 1_000_000).unwrap();
 
         // Initial phase
         assert_eq!(pipeline.current_phase.load(Ordering::Acquire), Phase::Read as u64);
@@ -1361,7 +1447,7 @@ mod tests {
 
     #[test]
     fn test_find_duplicates_requires_output_phase() {
-        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85).unwrap();
+        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85, 0, 1_000_000).unwrap();
 
         // Should fail if not in Output phase
         let result = pipeline.find_duplicates();
@@ -1383,7 +1469,7 @@ mod tests {
     #[ignore]
     fn test_1m_doc_corpus_stress() {
         // Stress test with 1M documents
-        let mut pipeline = match UniversalDedupPipeline::new("corpus_1m.jsonl", 1_000_000, 0.85) {
+        let mut pipeline = match UniversalDedupPipeline::new("corpus_1m.jsonl", 1_000_000, 0.85, 0, 1_000_000) {
             Ok(p) => p,
             Err(e) => panic!("Failed to create pipeline: {:?}", e),
         };
@@ -1395,7 +1481,7 @@ mod tests {
     #[ignore]
     fn test_1b_doc_corpus_memory_budget() {
         // Verify O(1) memory even with 1B document capacity
-        let _pipeline = match UniversalDedupPipeline::new("corpus_1b.jsonl", 1_000_000_000, 0.85) {
+        let _pipeline = match UniversalDedupPipeline::new("corpus_1b.jsonl", 1_000_000_000, 0.85, 0, 1_000_000_000) {
             Ok(p) => p,
             Err(e) => panic!("Failed to create pipeline for 1B docs: {:?}", e),
         };
@@ -1415,7 +1501,7 @@ mod tests {
     #[test]
     fn test_validate_generation_consistency_all_zero() {
         // Initially, all capsule generation counters should be 0
-        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85).unwrap();
+        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85, 0, 1_000_000).unwrap();
 
         // All capsules should have matching generation counters (all 0)
         let result = pipeline.validate_generation_consistency();
@@ -1428,7 +1514,7 @@ mod tests {
     #[test]
     fn test_generation_accessor_methods_exist() {
         // Verify all 5 capsules have generation() methods
-        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85).unwrap();
+        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85, 0, 1_000_000).unwrap();
 
         // All 5 should return u64 (0 initially)
         let reader_gen = pipeline.reader.generation();
@@ -1448,7 +1534,7 @@ mod tests {
     #[test]
     fn test_generation_consistency_error_message() {
         // Verify error message includes all generation counter values (for diagnostics)
-        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85).unwrap();
+        let pipeline = UniversalDedupPipeline::new("corpus.jsonl", 1_000_000, 0.85, 0, 1_000_000).unwrap();
 
         // Manually create a mismatch scenario for testing
         // (In practice, this would only occur after a crash during write)

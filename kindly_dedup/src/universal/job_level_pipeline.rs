@@ -533,6 +533,7 @@ impl JobLevelDedupPipelineMetaCapsule {
         let coordinator = Arc::new(JobCoordinatorCapsule::new());
         let corpus_path = self.corpus_path.clone();
         let threshold = self.threshold;
+        let total_docs = self.total_docs.load(Ordering::Acquire) as usize;  // Load atomic value
 
         println!("✅ Phase 2: Processing {} chunks in parallel (lockfree std::thread + LockfreeResultAggregatorV2)", chunks.len());
 
@@ -569,23 +570,23 @@ impl JobLevelDedupPipelineMetaCapsule {
                 let start_ns = std::time::Instant::now();
 
                 // Process this chunk independently using UniversalDedupPipeline
-                // NOTE: UniversalDedupPipeline processes entire corpus, so we process full corpus per chunk
-                // This validates lockfree orchestration. Optimization (document filtering) comes in Phase 2.1.
-
-                let chunk_capacity = ((chunk_clone.end_doc_id - chunk_clone.start_doc_id) as usize) +
-                    ((chunk_clone.end_doc_id - chunk_clone.start_doc_id) as usize) / 10;
+                // NOTE: Pass TOTAL corpus capacity, not chunk size.
+                // UniversalDedupPipeline will filter to [start_doc_id, end_doc_id) range.
 
                 // TRACE 2: Pipeline creation starting
                 eprintln!("[TRACE] Pipeline creation starting for chunk {}", chunk_clone.chunk_id);
 
                 match UniversalDedupPipeline::new(
                     &corpus_path_clone,
-                    chunk_capacity,
+                    total_docs,  // TOTAL corpus capacity, not chunk size
                     threshold,
+                    chunk_clone.start_doc_id,
+                    chunk_clone.end_doc_id,
                 ) {
                     Ok(mut pipeline) => {
                         // TRACE 3: Pipeline created, starting process_corpus
-                        eprintln!("[TRACE] Pipeline created, starting process_corpus() for chunk {}", chunk_clone.chunk_id);
+                        eprintln!("[TRACE] Pipeline created, starting process_corpus() for chunk {} (docs {} - {})",
+                            chunk_clone.chunk_id, chunk_clone.start_doc_id, chunk_clone.end_doc_id);
 
                         // Process corpus (Read → Sign → Hash → Cluster → Output phases)
                         match pipeline.process_corpus() {
@@ -735,14 +736,17 @@ impl JobLevelDedupPipelineMetaCapsule {
         use super::pipeline::UniversalDedupPipeline;
 
         // Create independent pipeline for this chunk
-        // Capacity = chunk size + 10% margin for safety
-        let chunk_capacity = ((chunk.end_doc_id - chunk.start_doc_id) as usize) +
-            ((chunk.end_doc_id - chunk.start_doc_id) as usize) / 10;
+        // NOTE: Pass TOTAL corpus capacity (self.total_docs), not chunk size.
+        // UniversalDedupPipeline will filter to [start_doc_id, end_doc_id) range.
+
+        let total_docs = self.total_docs.load(Ordering::Acquire) as usize;
 
         let mut pipeline = UniversalDedupPipeline::new(
             corpus_path,
-            chunk_capacity,
-            threshold,
+            total_docs,  // TOTAL corpus capacity
+            threshold,  // Use passed-in threshold parameter
+            chunk.start_doc_id,
+            chunk.end_doc_id,
         ).map_err(|e| format!("Pipeline creation failed: {}", e))?;
 
         // Process the corpus (all 5 phases: Read, Sign, Hash, Cluster, Output)
