@@ -10,31 +10,68 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     let (corpus_path, num_documents, thread_configs) = if args.len() >= 2 {
-        // Usage: test_parallel_speedup <corpus_path> [num_docs] [thread1,thread2,...]
+        // Usage: test_parallel_speedup <corpus_path> [num_docs or thread_counts] [thread_counts if num_docs provided]
         let path = &args[1];
-        let docs = if args.len() >= 3 {
-            args[2].parse::<usize>().unwrap_or(100_000)
+
+        // Smart detection: if args[2] looks like thread counts, use it as threads and auto-detect docs
+        let (docs, threads) = if args.len() >= 3 {
+            let arg2 = &args[2];
+
+            // Check if arg2 is thread counts (contains comma or is a small single digit)
+            let is_thread_count = arg2.contains(',') ||
+                (arg2.parse::<usize>().ok().map(|n| n <= 256).unwrap_or(false) && arg2.len() <= 3);
+
+            if is_thread_count {
+                // args[2] is thread counts, auto-detect docs
+                let parsed_threads: Vec<usize> = arg2
+                    .split(',')
+                    .filter_map(|s| s.trim().parse::<usize>().ok())
+                    .collect();
+
+                let thread_vec = if parsed_threads.is_empty() {
+                    vec![1, 4, 8, 16]
+                } else {
+                    parsed_threads
+                };
+
+                // Auto-detect from file line count
+                let output = std::process::Command::new("wc")
+                    .args(&["-l", path])
+                    .output()
+                    .ok()
+                    .and_then(|o| String::from_utf8(o.stdout).ok());
+                let auto_docs = output
+                    .and_then(|s| s.split_whitespace().next().map(|n| n.parse().ok()).flatten())
+                    .unwrap_or(100_000);
+
+                (auto_docs, thread_vec)
+            } else {
+                // args[2] is num_docs, args[3] (if exists) is thread counts
+                let parsed_docs = arg2.parse::<usize>().unwrap_or(100_000);
+
+                let thread_vec = if args.len() >= 4 {
+                    args[3]
+                        .split(',')
+                        .filter_map(|s| s.trim().parse::<usize>().ok())
+                        .collect::<Vec<_>>()
+                } else {
+                    vec![1, 4, 8, 16]
+                };
+
+                (parsed_docs, thread_vec)
+            }
         } else {
-            // Auto-detect from file line count
+            // No args[2], auto-detect docs and use default threads
             let output = std::process::Command::new("wc")
                 .args(&["-l", path])
                 .output()
                 .ok()
-                .and_then(|o| {
-                    String::from_utf8(o.stdout).ok()
-                });
-            output
+                .and_then(|o| String::from_utf8(o.stdout).ok());
+            let auto_docs = output
                 .and_then(|s| s.split_whitespace().next().map(|n| n.parse().ok()).flatten())
-                .unwrap_or(100_000)
-        };
+                .unwrap_or(100_000);
 
-        let threads = if args.len() >= 4 {
-            args[3]
-                .split(',')
-                .filter_map(|s| s.trim().parse::<usize>().ok())
-                .collect::<Vec<_>>()
-        } else {
-            vec![1, 4, 8, 16]  // Default: 1, 4, 8, 16 threads
+            (auto_docs, vec![1, 4, 8, 16])
         };
 
         (path.to_string(), docs, threads)
@@ -125,7 +162,7 @@ fn main() {
 
     let baseline_time = results[0].2; // Sequential time
 
-    for (_, num_threads, secs, cluster_count, mem_mb) in &results {
+    for (_, num_threads, secs, _cluster_count, mem_mb) in &results {
         let throughput = num_documents as f64 / secs;
         let speedup = baseline_time / secs;
         let efficiency = (speedup / *num_threads as f64) * 100.0;
@@ -140,7 +177,7 @@ fn main() {
     eprintln!("Baseline (1 thread): {:.3}s ({:.0} docs/sec)", baseline_time, num_documents as f64 / baseline_time);
 
     // Print speedup for each measured configuration
-    for (idx, (_, num_threads, secs, _, _)) in results.iter().enumerate().skip(1) {
+    for (_idx, (_, num_threads, secs, _, _)) in results.iter().enumerate().skip(1) {
         let speedup = baseline_time / secs;
         let ideal_speedup = *num_threads as f64;
         let efficiency = (speedup / ideal_speedup) * 100.0;
