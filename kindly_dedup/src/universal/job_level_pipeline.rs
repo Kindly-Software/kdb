@@ -560,9 +560,6 @@ impl JobLevelDedupPipelineMetaCapsule {
             let chunk_clone = chunk;
 
             let handle = thread::spawn(move || {
-                // TRACE 1: Worker submitted
-                eprintln!("[TRACE] Worker submitted (chunk {})", chunk_clone.chunk_id);
-
                 // Submit job to coordinator (atomic increment)
                 let _ = coordinator_clone.submit_job();
 
@@ -573,9 +570,6 @@ impl JobLevelDedupPipelineMetaCapsule {
                 // NOTE: Pass TOTAL corpus capacity, not chunk size.
                 // UniversalDedupPipeline will filter to [start_doc_id, end_doc_id) range.
 
-                // TRACE 2: Pipeline creation starting
-                eprintln!("[TRACE] Pipeline creation starting for chunk {}", chunk_clone.chunk_id);
-
                 match UniversalDedupPipeline::new(
                     &corpus_path_clone,
                     total_docs,  // TOTAL corpus capacity, not chunk size
@@ -584,10 +578,6 @@ impl JobLevelDedupPipelineMetaCapsule {
                     chunk_clone.end_doc_id,
                 ) {
                     Ok(mut pipeline) => {
-                        // TRACE 3: Pipeline created, starting process_corpus
-                        eprintln!("[TRACE] Pipeline created, starting process_corpus() for chunk {} (docs {} - {})",
-                            chunk_clone.chunk_id, chunk_clone.start_doc_id, chunk_clone.end_doc_id);
-
                         // Process corpus (Read → Sign → Hash → Cluster → Output phases)
                         match pipeline.process_corpus() {
                             Ok(_) => {
@@ -602,34 +592,22 @@ impl JobLevelDedupPipelineMetaCapsule {
                                             (clusters, elapsed_ns)
                                         );
 
-                                        // TRACE 4: Worker completed
-                                        eprintln!("[TRACE] Worker completed chunk {} with {} results", chunk_clone.chunk_id, start_ns.elapsed().as_secs_f64());
-
                                         // Mark job as completed (atomic increment, <10ns)
                                         let _ = coordinator_clone.mark_completed();
                                     }
-                                    Err(e) => {
-                                        eprintln!("❌ Chunk {} find_duplicates failed: {}", chunk_clone.chunk_id, e);
-                                        // TRACE 5: Worker error
-                                        eprintln!("[ERROR] Worker failed chunk {}: find_duplicates", chunk_clone.chunk_id);
+                                    Err(_e) => {
                                         let _ = coordinator_clone.fail_job();
                                         let _ = coordinator_clone.mark_completed();  // FIX: Increment jobs_completed
                                     }
                                 }
                             }
-                            Err(e) => {
-                                eprintln!("❌ Chunk {} process_corpus failed: {}", chunk_clone.chunk_id, e);
-                                // TRACE 5: Worker error
-                                eprintln!("[ERROR] Worker failed chunk {}: process_corpus", chunk_clone.chunk_id);
+                            Err(_e) => {
                                 let _ = coordinator_clone.fail_job();
                                 let _ = coordinator_clone.mark_completed();  // FIX: Increment jobs_completed
                             }
                         }
                     }
-                    Err(e) => {
-                        eprintln!("❌ Chunk {} pipeline creation failed: {}", chunk_clone.chunk_id, e);
-                        // TRACE 5: Worker error
-                        eprintln!("[ERROR] Worker failed chunk {}: pipeline_creation", chunk_clone.chunk_id);
+                    Err(_e) => {
                         let _ = coordinator_clone.fail_job();
                         let _ = coordinator_clone.mark_completed();  // FIX: Increment jobs_completed
                     }
@@ -639,18 +617,13 @@ impl JobLevelDedupPipelineMetaCapsule {
             handles.push(handle);
         }
 
-        // TRACE 6: All workers spawned, waiting for completion
-        eprintln!("[TRACE] All workers spawned ({}), waiting for completion...", num_chunks);
-
         // Join all threads (lockfree wait, no condvar)
         for handle in handles {
             handle.join().expect("Worker thread panicked");
         }
 
-        // TRACE 7: Main thread wait before coordinator.wait_all()
-        eprintln!("[TRACE] All threads joined, waiting for job completion (coordinator.wait_all())...");
+        // Wait for job completion
         coordinator.wait_all();
-        eprintln!("[TRACE] All jobs completed");
 
         // Merge results from aggregator into Vec<JobResult>
         // (LockfreeResultAggregatorV2 automatically flushes during merge)

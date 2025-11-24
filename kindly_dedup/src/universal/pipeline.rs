@@ -527,8 +527,6 @@ impl UniversalDedupPipeline {
         // Note: Phases 1 & 2 are combined because signature computation is
         // part of the streaming pipeline - each document is signed as it's read.
 
-        eprintln!("[MEMORY] Pipeline start: {} MB", get_rss_mb());
-
         self.transition_phase(Phase::Read, Phase::Sign)?;
 
         // =====================================================================
@@ -574,26 +572,18 @@ impl UniversalDedupPipeline {
         // New API: 5 MB constant (iterator borrows from mmap)
         let mut total_docs_streamed = 0u64;
         let mut chunk_count = 0u64;
-        eprintln!("[MEMORY] Before first chunk: {} MB", get_rss_mb());
-        eprintln!("[TRACE] Starting Phase 1: Read with chunk_size={} bytes", CHUNK_SIZE);
 
         loop {
-            eprintln!("[TRACE] Calling next_chunk_iter(), chunk #{}, position {}",
-                chunk_count, self.reader.current_position());
-
             let chunk_iter = self.reader.next_chunk_iter(mmap_data, CHUNK_SIZE)
                 .map_err(|e| {
-                    eprintln!("[ERROR] next_chunk_iter() failed: {}", e);
                     UniversalPipelineError::from(e)
                 })?;
 
             let doc_iter = match chunk_iter {
                 Some(iter) => {
-                    eprintln!("[TRACE] Got chunk iter #{}, will process documents", chunk_count);
                     iter
                 },
                 None => {
-                    eprintln!("[TRACE] No more chunks (EOF reached)");
                     break;
                 }
             };
@@ -604,7 +594,6 @@ impl UniversalDedupPipeline {
             let mut docs_in_chunk = 0u64;
             for doc_result in doc_iter {
                 let doc = doc_result.map_err(|e| {
-                    eprintln!("[ERROR] Document parsing failed: {}", e);
                     UniversalPipelineError::from(e)
                 })?;
 
@@ -627,19 +616,6 @@ impl UniversalDedupPipeline {
                     ))?;
 
                 total_docs_streamed += 1;
-
-                // Progress every document in first chunk
-                if chunk_count == 1 && docs_in_chunk <= 10 {
-                    eprintln!("[TRACE] Processed doc #{} (doc_id={}) in chunk #{}", docs_in_chunk, doc.id, chunk_count);
-                }
-            }
-
-            eprintln!("[TRACE] Chunk #{} complete: {} documents", chunk_count, docs_in_chunk);
-
-            // Memory checkpoint every 10K documents
-            let current_count = self.reader.count_documents();
-            if current_count % 10_000 == 0 {
-                eprintln!("[MEMORY] After {} docs: {} MB", current_count, get_rss_mb());
             }
         }
 
@@ -651,7 +627,6 @@ impl UniversalDedupPipeline {
             println!("  → No documents found in corpus");
         }
 
-        eprintln!("[MEMORY] After Phase 1 (Read): {} MB", get_rss_mb());
         self.docs_processed.store(docs_read, Ordering::Release);
 
         // =====================================================================
@@ -690,7 +665,6 @@ impl UniversalDedupPipeline {
             .map_err(|e| UniversalPipelineError::CapsuleError(format!("Signature flush failed: {:?}", e)))?;
 
         println!("  → Signed {} documents", docs_signed);
-        eprintln!("[MEMORY] After Phase 2 (Sign): {} MB", get_rss_mb());
         self.docs_processed.store(docs_signed, Ordering::Release);
 
         // =====================================================================
@@ -738,15 +712,9 @@ impl UniversalDedupPipeline {
 
             docs_hashed += 1;
             self.docs_processed.store(docs_hashed, Ordering::Release);
-
-            // Memory checkpoint every 10K docs
-            if docs_hashed % 10_000 == 0 {
-                eprintln!("[MEMORY] After {} docs hashed: {} MB", docs_hashed, get_rss_mb());
-            }
         }
 
         println!("  → Hashed {} documents (125 band hashes each)", docs_hashed);
-        eprintln!("[MEMORY] After Phase 3 (Hash): {} MB", get_rss_mb());
 
         // Phase 4: Cluster duplicates via Union-Find
         // =====================================================================
@@ -829,7 +797,6 @@ impl UniversalDedupPipeline {
         println!("\n    - Candidate pairs checked: {}", pairs_checked);
         println!("    - Duplicates merged (union operations): {}", duplicates_found);
 
-        eprintln!("[MEMORY] After Phase 4 (Cluster): {} MB", get_rss_mb());
         let docs_clustered = docs_signed;
         self.docs_processed.store(docs_clustered, Ordering::Release);
 
@@ -865,7 +832,6 @@ impl UniversalDedupPipeline {
 
         let clusters_written = clusters.len();
         println!("  → Wrote {} clusters to output", clusters_written);
-        eprintln!("[MEMORY] After Phase 5 (Output): {} MB", get_rss_mb());
         self.docs_processed.store(docs_clustered, Ordering::Release);
 
         // Mark pipeline as complete

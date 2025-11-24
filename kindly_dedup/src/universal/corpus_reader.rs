@@ -172,14 +172,7 @@ impl<'mmap> Iterator for DocumentIterator<'mmap> {
             iterations += 1;
 
             // Safety safeguard: Detect unbounded loops early
-            if iterations % 100_000 == 0 {
-                eprintln!("[TRACE] DocumentIterator::next() @ iteration {}, position={}/{}, line={}",
-                    iterations, self.position, self.chunk_str.len(), self.line_num);
-            }
-
             if iterations >= MAX_ITERATIONS {
-                eprintln!("[ERROR] DocumentIterator::next() exceeded max iterations ({}). position={}/{}, line={}",
-                    MAX_ITERATIONS, self.position, self.chunk_str.len(), self.line_num);
                 return Some(Err(CorpusReaderError::MalformedJson {
                     line: self.line_num,
                     reason: format!("Infinite loop detected: unbounded iteration at line {}", self.line_num),
@@ -203,12 +196,6 @@ impl<'mmap> Iterator for DocumentIterator<'mmap> {
                     continue;
                 }
 
-                // Log first document parse attempt
-                if self.line_num == 0 {
-                    eprintln!("[TRACE] DocumentIterator::next() parsing first document, line length={} bytes",
-                        trimmed.len());
-                }
-
                 // Parse JSON line (fast, single object)
                 let doc_result = MmapCorpusReaderCapsule::parse_jsonl_line(
                     trimmed,
@@ -227,9 +214,6 @@ impl<'mmap> Iterator for DocumentIterator<'mmap> {
                 // No newline found - handle last line in chunk
                 let line = remaining.trim();
                 if !line.is_empty() {
-                    eprintln!("[TRACE] DocumentIterator::next() parsing last line (no newline), length={} bytes",
-                        line.len());
-
                     let doc_result = MmapCorpusReaderCapsule::parse_jsonl_line(
                         line,
                         self.line_num,
@@ -246,8 +230,6 @@ impl<'mmap> Iterator for DocumentIterator<'mmap> {
                 }
 
                 // Chunk exhausted (no more lines)
-                eprintln!("[TRACE] DocumentIterator::next() chunk exhausted at position={}/{}, total iterations={}",
-                    self.position, self.chunk_str.len(), iterations);
                 break;
             }
         }
@@ -483,11 +465,8 @@ impl MmapCorpusReaderCapsule {
         // Get next chunk position (atomic, lockfree)
         let start = self.position.load(Ordering::Acquire);
 
-        eprintln!("[TRACE] next_chunk_iter: start={}, total_size={}", start, self.total_size);
-
         // #VERIFY_EOF_DETECTION: Check if we're past EOF
         if start >= self.total_size {
-            eprintln!("[TRACE] next_chunk_iter: EOF (start >= total_size)");
             return Ok(None); // EOF
         }
 
@@ -495,13 +474,8 @@ impl MmapCorpusReaderCapsule {
         let tentative_end = (start + chunk_size).min(self.total_size);
         let tentative_end_usize = tentative_end as usize;
 
-        eprintln!("[TRACE] next_chunk_iter: start={}, tentative_end={}, chunk_size={}",
-            start_usize, tentative_end_usize, chunk_size);
-
         // #VERIFY_BOUNDS: Ensure chunk doesn't exceed mmap
         if tentative_end_usize > mmap.len() {
-            eprintln!("[ERROR] next_chunk_iter: bounds check failed: tentative_end_usize={} > mmap.len()={}",
-                tentative_end_usize, mmap.len());
             return Err(CorpusReaderError::UnexpectedEof);
         }
 
@@ -513,8 +487,6 @@ impl MmapCorpusReaderCapsule {
             // #ASSUME_JSONL_FORMAT: Each line is a complete JSON object
             let search_slice = &mmap[start_usize..tentative_end_usize];
 
-            eprintln!("[TRACE] next_chunk_iter: searching for newline in {} bytes", search_slice.len());
-
             // Find LAST newline in chunk (reverse search from end)
             // #ASSUME_BOUNDED_SEARCH: rposition() is O(n) and should be fast on reasonably-sized chunks
             let last_newline_offset = search_slice
@@ -523,33 +495,24 @@ impl MmapCorpusReaderCapsule {
 
             match last_newline_offset {
                 Some(offset) => {
-                    eprintln!("[TRACE] next_chunk_iter: found newline at offset {}", offset);
                     start_usize + offset + 1  // +1 to include the newline
                 },
                 None => {
                     // No newline found - ensure forward progress
                     // #ASSUME_FORWARD_PROGRESS: MUST advance at least 1 byte to prevent infinite loop
-                    eprintln!("[WARN] next_chunk_iter: no newline found in chunk. tentative_end={}, start={}",
-                        tentative_end_usize, start_usize);
-
                     if tentative_end_usize > start_usize {
-                        eprintln!("[TRACE] next_chunk_iter: using tentative_end for forward progress");
                         tentative_end_usize  // Use tentative end if it advances
                     } else {
                         // Edge case: NO newline AND NO forward progress
                         // Force 1-byte advancement to prevent infinite loop
                         // #VERIFY_FORWARD_PROGRESS: This guarantees position advances
-                        eprintln!("[WARN] next_chunk_iter: forcing 1-byte advance (no forward progress)");
                         start_usize + 1
                     }
                 }
             }
         } else {
-            eprintln!("[TRACE] next_chunk_iter: last chunk (tentative_end >= mmap.len())");
             tentative_end_usize  // Last chunk, use all remaining bytes
         };
-
-        eprintln!("[TRACE] next_chunk_iter: actual_end_usize={}, bytes={}", actual_end_usize, actual_end_usize - start_usize);
 
         // Get chunk bytes from mmap (zero-copy)
         let chunk_bytes = &mmap[start_usize..actual_end_usize];
@@ -557,15 +520,12 @@ impl MmapCorpusReaderCapsule {
         // #VERIFY_UTF8_VALID: Validate chunk is UTF-8
         let chunk_str = std::str::from_utf8(chunk_bytes)
             .map_err(|e| {
-                eprintln!("[ERROR] next_chunk_iter: invalid UTF-8 at offset {}: {}", start, e);
                 CorpusReaderError::InvalidUtf8(start, e.to_string())
             })?;
 
         // Advance position by actual bytes consumed (not fixed chunk_size)
         let bytes_consumed = (actual_end_usize - start_usize) as u64;
         self.position.fetch_add(bytes_consumed, Ordering::Release);
-
-        eprintln!("[TRACE] next_chunk_iter: returning iterator with {} bytes", chunk_bytes.len());
 
         // #VERIFY_O1_MEMORY: Return lazy iterator (zero heap allocation)
         Ok(Some(DocumentIterator::new(chunk_str, start, &self.total_docs)))
