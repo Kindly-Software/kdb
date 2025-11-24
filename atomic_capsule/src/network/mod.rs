@@ -63,6 +63,16 @@ pub mod shard_capsule;
 // P2: Quorum Read Capsule (distributed consistency)
 pub mod quorum_read;
 
+// T8 Network Capsules - Pipeline implementations (Agents 4, 5, 6)
+#[cfg(feature = "send-pipeline")]
+pub mod send_pipeline;
+
+#[cfg(feature = "receive-pipeline")]
+pub mod receive_pipeline;
+
+#[cfg(feature = "network-metacapsule")]
+pub mod metacapsule;
+
 // Re-exports
 pub use consistent_hash::ConsistentHashRing;
 pub use json_rpc::{
@@ -83,3 +93,19 @@ pub use shard_capsule::{NetworkShardCapsule, ShardHealth};
 
 // P2: Quorum Read exports
 pub use quorum_read::{QuorumReadCapsule, QuorumResult, MAX_REPLICAS, QUORUM_THRESHOLD};
+
+// T2+T5 SIMD+Streaming Receive Pipeline (Agents 4, 5, 6)
+#[cfg(feature = "receive-pipeline")]
+pub use receive_pipeline::{
+    ReceivePipelineCapsule, RecvState, RecvError, ReceivedPacket, DataFrame,
+};
+
+// T4+T5 Batch+Streaming Send Pipeline (Agents 4, 5, 6)
+#[cfg(feature = "send-pipeline")]
+pub use send_pipeline::{
+    SendPipelineCapsule, SendState, SendError,
+};
+
+// T6 Mixed Network Metacapsule (Agents 4, 5, 6)
+#[cfg(feature = "network-metacapsule")]
+pub use metacapsule::NetworkPacketMetacapsule;
