@@ -48,6 +48,7 @@ pub mod audit_trail;
 pub mod connection_table;
 pub mod endpoint_metacapsule;
 pub mod flow_control;
+pub mod guc_firmware_capsule;
 pub mod http3_control_stream;
 pub mod http3_request_stream;
 pub mod pacing;
@@ -64,6 +65,10 @@ pub use audit_trail::ExportedEvent;
 pub use connection_table::{ConnectionTableCapsule, ConnectionId, ConnectionTableError};
 pub use endpoint_metacapsule::{QuicEndpointError, QuicEndpointMetacapsule};
 pub use flow_control::{FlowControlCapsule, FlowControlError};
+pub use guc_firmware_capsule::{
+    GuCFirmwareCapsule, DoorbellState, FirmwareResponse, GuCError, DoorbellHandle,
+    WorkloadHandle, FirmwareStatus,
+};
 pub use http3_control_stream::{
     ControlStreamState, Http3ControlStreamCapsule, Http3ControlStreamError,
 };
