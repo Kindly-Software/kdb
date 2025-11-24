@@ -612,6 +612,7 @@ impl JobLevelDedupPipelineMetaCapsule {
                                         // TRACE 5: Worker error
                                         eprintln!("[ERROR] Worker failed chunk {}: find_duplicates", chunk_clone.chunk_id);
                                         let _ = coordinator_clone.fail_job();
+                                        let _ = coordinator_clone.mark_completed();  // FIX: Increment jobs_completed
                                     }
                                 }
                             }
@@ -620,6 +621,7 @@ impl JobLevelDedupPipelineMetaCapsule {
                                 // TRACE 5: Worker error
                                 eprintln!("[ERROR] Worker failed chunk {}: process_corpus", chunk_clone.chunk_id);
                                 let _ = coordinator_clone.fail_job();
+                                let _ = coordinator_clone.mark_completed();  // FIX: Increment jobs_completed
                             }
                         }
                     }
@@ -628,6 +630,7 @@ impl JobLevelDedupPipelineMetaCapsule {
                         // TRACE 5: Worker error
                         eprintln!("[ERROR] Worker failed chunk {}: pipeline_creation", chunk_clone.chunk_id);
                         let _ = coordinator_clone.fail_job();
+                        let _ = coordinator_clone.mark_completed();  // FIX: Increment jobs_completed
                     }
                 }
             });
