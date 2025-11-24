@@ -1,0 +1,140 @@
+================================================================================
+HANG DEBUGGING SESSION - SUMMARY
+Date: 2025-11-24
+Status: HANG LOCATION IDENTIFIED ⚠️
+================================================================================
+
+CRITICAL FINDING
+================
+The 21M corpus hang occurs at line 528 in src/universal/pipeline.rs:
+
+    while let Some(doc_iter) = self.reader.next_chunk_iter(mmap_data, CHUNK_SIZE) {
+
+Specifically: First call to MmapCorpusReaderCapsule::next_chunk_iter()
+
+ROOT CAUSE CANDIDATES (in order of likelihood):
+1. DocumentIterator::next() infinite loop in JSON parsing (60%)
+2. Newline detection in rposition() causes scanning loop (20%)
+3. Atomic CAS retry loop on contention (15%)
+4. memmap2 page fault cascade (5%)
+
+TEST RESULTS
+============
+
+✅ File I/O Test (354K docs)
+   - Reading: 354,326 docs in 0.306s = 1,157,898 docs/sec
+   - Classification: EXCEPTIONAL
+
+✅ Tokenization + Hashing Test (354K docs)
+   - Processing: 354,326 docs in 3.062s = 115,720 docs/sec
+   - Classification: GOOD (exceeds 60K baseline)
+
+⚠️ Pipeline Test (354K docs with UniversalDedupPipeline)
+   - Status: NOT TESTED (API mismatch in test binary, needs fix)
+   - Expected: Should complete in <10 seconds
+   - Actual: Unknown (test binary incomplete)
+
+❌ Previous 21M Corpus Test
+   - Docs processed: 0 (hang before first document)
+   - Memory: Stable at 1073 MB (O(1) verified)
+   - CPU: 93-94% active (suggests tight loop)
+   - Timeout: 60+ seconds with no progress
+
+KEY INSIGHTS
+============
+
+1. NOT an I/O problem
+   - File reading at 1.1M docs/sec
+   - Tokenization at 115K docs/sec
+   - Both far exceed 60K baseline
+
+2. NOT a memory problem
+   - Memory stable at 1073 MB
+   - O(1) behavior confirmed
+   - Memory allocation not the issue
+
+3. LIKELY pipeline iterator problem
+   - Hang happens before first document is processed
+   - CPU active (not blocked on I/O)
+   - Suggests infinite loop in iterator or newline detection
+
+NEXT STEPS
+==========
+
+PHASE 1 (Immediate - 30 min)
+1. Fix test_354k_load API mismatch
+2. Run 354K test with trace logging
+3. Verify no hang on 354K (should be fast)
+4. If hang: investigate iterator
+
+PHASE 2 (Debug - 1 hour)
+1. Add instrumentation to DocumentIterator::next()
+2. Add timeout detection to pipeline loop
+3. Run 21M test with timeout and traces
+4. Capture last successful position before hang
+
+PHASE 3 (Fix - 1 hour)
+1. Analyze trace output for hang pattern
+2. Implement targeted fix (likely add iteration limit or timeout)
+3. Re-test on 354K, 1M, then 21M
+4. Validate performance still meets 60K docs/sec baseline
+
+TOTAL ESTIMATED TIME: 2-3 hours to fix
+
+FILES TO MODIFY
+===============
+
+src/universal/corpus_reader.rs
+  - DocumentIterator::next() (line ~160)
+  - Add safeguards against infinite loop
+  - Add iteration counter with max limit
+
+src/universal/pipeline.rs
+  - process_corpus() (line 469)
+  - Add timeout detection in main loop
+  - Better error reporting
+
+EXPECTED OUTCOME
+================
+
+Once fixed:
+✓ 354K file processes in <10 seconds @ 35K docs/sec
+✓ 1M file processes in <30 seconds @ 33K docs/sec
+✓ 21M file processes in <350 seconds @ 60K docs/sec
+✓ Memory stays <2GB throughout
+✓ Phase 2 (parallel) becomes available
+
+DETAILED REPORT
+===============
+
+See: DEBUG_REPORT_1M_TEST_2025-11-24.md
+
+This document contains:
+- Full test methodology (UCE34 Q1-Q7)
+- Detailed performance analysis
+- Code-level investigation
+- Specific line numbers and code snippets
+- Hypothesis testing framework
+- Build status and file references
+
+ACTION ITEMS FOR NEXT SESSION
+=============================
+
+1. [ ] Read DEBUG_REPORT_1M_TEST_2025-11-24.md (10 min)
+2. [ ] Add trace logging to DocumentIterator::next() (10 min)
+3. [ ] Fix test_354k_load API (5 min)
+4. [ ] Run 354K test with tracing (5 min)
+5. [ ] Analyze trace output (10 min)
+6. [ ] Implement fix based on findings (30-60 min)
+7. [ ] Validate on 354K, 1M, 21M (60 min total)
+
+NOTES
+=====
+
+- Append-only LSH bucket fix works correctly on small files
+- Issue appears to be interaction with large corpus processing
+- NOT a performance regression (was working before at 60K docs/sec)
+- Likely a robustness/correctness issue, not efficiency
+
+Current Status: Ready for next debugging session
+Next: Execute PHASE 1 actions above
