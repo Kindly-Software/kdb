@@ -546,8 +546,8 @@ impl HybridDedupPipeline {
             // Compute LSH band hashes on GPU (directly from MinHash output)
             let lsh_start = std::time::Instant::now();
             let lsh_input = LshBandGpuInput {
-                signatures: &minhash_output.signatures,
-                num_docs: minhash_output.num_docs,
+                signatures: minhash_output.signatures(),
+                num_docs: minhash_output.num_docs(),
             };
             let lsh_output = lsh_band.compute(ctx, lsh_input).map_err(|e| {
                 PipelineError::ResourceLimitExceeded {
@@ -888,7 +888,7 @@ impl HybridDedupPipeline {
                 let sig_slice = result.get_signature(i);
                 let mut sig_array = [0u16; 128];
                 sig_array.copy_from_slice(sig_slice);
-                let cpu_sig = MinHashSignatureCapsule::from_signature(&sig_array);
+                let cpu_sig = MinHashSignatureCapsule::from_signature(sig_array);
                 self.signatures[doc_idx] = Some(cpu_sig);
 
                 // Note: LSH buckets are populated separately via band hashes
