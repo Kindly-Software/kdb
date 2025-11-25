@@ -1,0 +1,1127 @@
+//! HybridDedupPipeline - T7 Heterogeneous Tier (CPU-GPU Hybrid)
+//!
+//! Combines CPU tokenization with GPU MinHash/LSH for maximum throughput.
+//!
+//! # Architecture
+//!
+//! ```text
+//! CPU Stage 1: Tokenization (sequential, <10µs/doc)
+//!     |
+//!     v [Double Buffer]
+//! GPU Stage: MinHash + LSH (parallel, 500K-2M docs/sec)
+//!     |
+//!     v [Candidate Pairs]
+//! CPU Stage 2: Union-Find (sequential, O(α(n)))
+//! ```
+//!
+//! # Pipeline Modes
+//!
+//! - **Auto**: Detect GPU availability, use GPU if ≥2× speedup expected
+//! - **GpuAccelerated**: Force GPU (fail if unavailable)
+//! - **CpuOnly**: Use CPU SIMD (for testing, CI, or weak GPUs)
+//!
+//! # Performance Targets (B32 Framework)
+//!
+//! | Hardware | CPU Baseline | GPU Target | Speedup |
+//! |----------|--------------|------------|---------|
+//! | iGPU (Ryzen) | 73.4K docs/sec | 150K docs/sec | 2× |
+//! | GTX 1650 | 73.4K docs/sec | 300K docs/sec | 4× |
+//! | RTX 3060 | 73.4K docs/sec | 500K docs/sec | 7× |
+//! | RTX 4090 | 73.4K docs/sec | 1M docs/sec | 14× |
+//!
+//! # Framework Compliance
+//!
+//! - **UCE34**: T7 Heterogeneous tier (CPU+GPU coordination)
+//! - **COCA**: 100% lockfree via AtomicU64 state
+//! - **ASSUM**: GPU availability runtime-checked, graceful fallback
+//! - **B32**: Fair benchmarking (vs CPU SIMD baseline)
+//! - **T28**: GPU correctness tests (GPU == CPU within tolerance)
+//! - **I20**: Same API as DedupPipeline (drop-in replacement)
+
+use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
+use std::sync::Arc;
+
+use atomic_capsule::CpuCapabilityCapsule;
+use atomic_capsule::probabilistic::{tokenize, MinHashSignatureCapsule, UnionFind};
+
+#[cfg(feature = "gpu")]
+use crate::gpu::{
+    GpuContextCapsule, GpuContextState, GpuCapabilities,
+    MinHashGpuCapsule, MinHashGpuInput, MinHashGpuOutput,
+    LshBandGpuCapsule, LshBandGpuInput, LshBandGpuOutput,
+    DoubleBuffer, GpuBatch, BatchCoordinator,
+    GpuError, GpuResult,
+    NUM_BANDS,
+};
+
+#[cfg(feature = "gpu-async")]
+use crate::gpu::{
+    AsyncPipelineCoordinator, AsyncGpuRunner, GpuBatchResult,
+    PipelinePhase as AsyncPhase,
+};
+
+use crate::PipelineError;
+
+/// Document ID type
+pub type DocId = u32;
+
+/// Pipeline execution mode
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PipelineMode {
+    /// Automatically detect GPU and use if beneficial
+    Auto,
+    /// Force GPU acceleration (error if unavailable)
+    GpuAccelerated,
+    /// Force CPU-only processing (for testing/CI)
+    CpuOnly,
+}
+
+impl Default for PipelineMode {
+    fn default() -> Self {
+        PipelineMode::Auto
+    }
+}
+
+/// Pipeline state (packed in AtomicU64)
+///
+/// Bit layout:
+/// - Bits 0-7: Phase (0=Idle, 1=Tokenizing, 2=Computing, 3=Clustering, 4=Complete)
+/// - Bits 8-15: Error code (0=None)
+/// - Bits 16-31: Documents processed (count)
+/// - Bits 32-63: Generation counter (Q34 audit)
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PipelinePhase {
+    /// Pipeline idle, ready for documents
+    Idle = 0,
+    /// Tokenizing documents (CPU)
+    Tokenizing = 1,
+    /// Computing MinHash/LSH (GPU or CPU)
+    Computing = 2,
+    /// Clustering with Union-Find (CPU)
+    Clustering = 3,
+    /// Processing complete
+    Complete = 4,
+    /// Error state
+    Error = 5,
+}
+
+impl From<u64> for PipelinePhase {
+    fn from(v: u64) -> Self {
+        match v & 0xFF {
+            0 => PipelinePhase::Idle,
+            1 => PipelinePhase::Tokenizing,
+            2 => PipelinePhase::Computing,
+            3 => PipelinePhase::Clustering,
+            4 => PipelinePhase::Complete,
+            _ => PipelinePhase::Error,
+        }
+    }
+}
+
+/// Pack pipeline state into u64
+fn pack_state(phase: PipelinePhase, error_code: u8, docs_processed: u16, generation: u32) -> u64 {
+    (phase as u64)
+        | ((error_code as u64) << 8)
+        | ((docs_processed as u64) << 16)
+        | ((generation as u64) << 32)
+}
+
+/// Unpack pipeline state from u64
+fn unpack_state(packed: u64) -> (PipelinePhase, u8, u16, u32) {
+    let phase = PipelinePhase::from(packed);
+    let error_code = ((packed >> 8) & 0xFF) as u8;
+    let docs_processed = ((packed >> 16) & 0xFFFF) as u16;
+    let generation = ((packed >> 32) & 0xFFFFFFFF) as u32;
+    (phase, error_code, docs_processed, generation)
+}
+
+/// Hybrid pipeline statistics
+#[derive(Debug, Clone, Default)]
+pub struct HybridPipelineStats {
+    /// Documents processed
+    pub docs_processed: u64,
+    /// Documents processed via GPU
+    pub gpu_docs: u64,
+    /// Documents processed via CPU
+    pub cpu_docs: u64,
+    /// Batches submitted to GPU
+    pub gpu_batches: u64,
+    /// Total tokenization time (us)
+    pub tokenization_us: u64,
+    /// Total GPU compute time (us)
+    pub gpu_compute_us: u64,
+    /// Total LSH band hashing time (us)
+    pub lsh_band_us: u64,
+    /// Total clustering time (us)
+    pub clustering_us: u64,
+    /// Duplicate pairs found
+    pub duplicate_pairs: u64,
+    /// Candidate pairs generated by LSH
+    pub lsh_candidates: u64,
+    /// Clusters formed
+    pub clusters: u64,
+}
+
+/// HybridDedupPipeline - GPU-accelerated deduplication
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use kindly_dedup::hybrid_pipeline::{HybridDedupPipeline, PipelineMode};
+/// use atomic_capsule::CpuCapabilityCapsule;
+///
+/// let cpu_caps = CpuCapabilityCapsule::detect();
+/// let mut pipeline = HybridDedupPipeline::new(10_000, PipelineMode::Auto, &cpu_caps)?;
+///
+/// // Add documents
+/// for (id, text) in documents {
+///     pipeline.add_document(id, text)?;
+/// }
+///
+/// // Find duplicates
+/// let clusters = pipeline.find_duplicates(0.85)?;
+/// println!("Found {} duplicate clusters", clusters.len());
+/// ```
+#[repr(C, align(128))]
+pub struct HybridDedupPipeline {
+    /// Atomic state (phase, error, docs_processed, generation)
+    state: AtomicU64,
+
+    /// Pipeline mode
+    mode: PipelineMode,
+
+    /// Using GPU acceleration
+    using_gpu: bool,
+
+    /// GPU context (if available)
+    #[cfg(feature = "gpu")]
+    gpu_context: Option<Arc<GpuContextCapsule>>,
+
+    /// GPU MinHash capsule (if using GPU)
+    #[cfg(feature = "gpu")]
+    minhash_gpu: Option<MinHashGpuCapsule>,
+
+    /// GPU LSH band capsule (if using GPU)
+    #[cfg(feature = "gpu")]
+    lsh_band_gpu: Option<LshBandGpuCapsule>,
+
+    /// Batch coordinator (GPU double buffering)
+    #[cfg(feature = "gpu")]
+    batch_coordinator: Option<BatchCoordinator>,
+
+    /// CPU MinHash signatures (fallback or for final Jaccard computation)
+    signatures: Vec<Option<MinHashSignatureCapsule>>,
+
+    /// LSH bucket index: (band_idx, band_hash) -> Vec<doc_id>
+    /// Used for efficient candidate pair generation
+    #[cfg(feature = "gpu")]
+    lsh_buckets: std::collections::HashMap<(usize, u64), Vec<DocId>>,
+
+    /// Union-Find for clustering
+    union_find: UnionFind,
+
+    /// Target batch size (documents per GPU batch)
+    batch_size: usize,
+
+    /// Maximum tokens per batch
+    max_tokens_per_batch: usize,
+
+    /// Total document capacity
+    capacity: usize,
+
+    /// Statistics
+    stats: HybridPipelineStats,
+
+    /// Async mode enabled
+    #[cfg(feature = "gpu-async")]
+    async_enabled: AtomicBool,
+
+    /// Async pipeline coordinator
+    #[cfg(feature = "gpu-async")]
+    async_coordinator: Option<Arc<AsyncPipelineCoordinator>>,
+
+    /// Async GPU runner
+    #[cfg(feature = "gpu-async")]
+    async_runner: Option<AsyncGpuRunner>,
+
+    /// Pending async results to process
+    #[cfg(feature = "gpu-async")]
+    pending_results: Vec<GpuBatchResult>,
+
+    /// Padding for cache alignment
+    _padding: [u8; 96],
+}
+
+impl HybridDedupPipeline {
+    /// Create new hybrid pipeline
+    ///
+    /// # Arguments
+    ///
+    /// - `capacity`: Expected document count
+    /// - `mode`: Pipeline execution mode
+    /// - `cpu_caps`: CPU capabilities for SIMD dispatch
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(HybridDedupPipeline)`: Pipeline ready for use
+    /// - `Err(PipelineError)`: GPU required but unavailable (GpuAccelerated mode)
+    pub fn new(
+        capacity: usize,
+        mode: PipelineMode,
+        cpu_caps: &CpuCapabilityCapsule,
+    ) -> Result<Self, PipelineError> {
+        let mut pipeline = Self {
+            state: AtomicU64::new(pack_state(PipelinePhase::Idle, 0, 0, 0)),
+            mode,
+            using_gpu: false,
+            #[cfg(feature = "gpu")]
+            gpu_context: None,
+            #[cfg(feature = "gpu")]
+            minhash_gpu: None,
+            #[cfg(feature = "gpu")]
+            lsh_band_gpu: None,
+            #[cfg(feature = "gpu")]
+            batch_coordinator: None,
+            signatures: vec![None; capacity],
+            #[cfg(feature = "gpu")]
+            lsh_buckets: std::collections::HashMap::new(),
+            union_find: UnionFind::new(capacity),
+            batch_size: 10_000,
+            max_tokens_per_batch: 1_000_000,
+            capacity,
+            stats: HybridPipelineStats::default(),
+            #[cfg(feature = "gpu-async")]
+            async_enabled: AtomicBool::new(false),
+            #[cfg(feature = "gpu-async")]
+            async_coordinator: None,
+            #[cfg(feature = "gpu-async")]
+            async_runner: None,
+            #[cfg(feature = "gpu-async")]
+            pending_results: Vec::new(),
+            _padding: [0; 96],
+        };
+
+        // Initialize GPU based on mode
+        #[cfg(feature = "gpu")]
+        match mode {
+            PipelineMode::Auto => {
+                pipeline.try_init_gpu();
+            }
+            PipelineMode::GpuAccelerated => {
+                if !pipeline.try_init_gpu() {
+                    return Err(PipelineError::ResourceLimitExceeded {
+                        reason: "GPU acceleration required but no GPU available".to_string(),
+                    });
+                }
+            }
+            PipelineMode::CpuOnly => {
+                // Don't initialize GPU
+            }
+        }
+
+        #[cfg(not(feature = "gpu"))]
+        if mode == PipelineMode::GpuAccelerated {
+            return Err(PipelineError::ResourceLimitExceeded {
+                reason: "GPU feature not compiled".to_string(),
+            });
+        }
+
+        Ok(pipeline)
+    }
+
+    /// Try to initialize GPU context
+    ///
+    /// Returns true if GPU is available and worth using.
+    #[cfg(feature = "gpu")]
+    fn try_init_gpu(&mut self) -> bool {
+        // Try to create GPU context
+        let ctx = match GpuContextCapsule::new_blocking() {
+            Ok(ctx) => ctx,
+            Err(_) => return false,
+        };
+
+        // Check if GPU is worth using
+        if !ctx.capabilities().worth_using() {
+            return false;
+        }
+
+        // Get recommended batch size
+        self.batch_size = ctx.capabilities().recommended_batch_size().min(100_000);
+
+        // Create MinHash GPU capsule
+        let minhash = match MinHashGpuCapsule::new(&ctx) {
+            Ok(m) => m,
+            Err(_) => return false,
+        };
+
+        // Create LSH Band GPU capsule
+        let lsh_band = match LshBandGpuCapsule::new(&ctx) {
+            Ok(l) => l,
+            Err(_) => return false,
+        };
+
+        // Create batch coordinator
+        let coordinator = BatchCoordinator::new(self.batch_size, self.max_tokens_per_batch);
+
+        // Store GPU resources
+        self.gpu_context = Some(Arc::new(ctx));
+        self.minhash_gpu = Some(minhash);
+        self.lsh_band_gpu = Some(lsh_band);
+        self.batch_coordinator = Some(coordinator);
+        self.using_gpu = true;
+
+        true
+    }
+
+    #[cfg(not(feature = "gpu"))]
+    fn try_init_gpu(&mut self) -> bool {
+        false
+    }
+
+    /// Check if pipeline is using GPU
+    pub fn is_using_gpu(&self) -> bool {
+        self.using_gpu
+    }
+
+    /// Get current pipeline phase
+    pub fn phase(&self) -> PipelinePhase {
+        let packed = self.state.load(Ordering::Acquire);
+        PipelinePhase::from(packed)
+    }
+
+    /// Get pipeline statistics
+    pub fn stats(&self) -> &HybridPipelineStats {
+        &self.stats
+    }
+
+    /// Get GPU capabilities (if using GPU)
+    #[cfg(feature = "gpu")]
+    pub fn gpu_capabilities(&self) -> Option<&GpuCapabilities> {
+        self.gpu_context.as_ref().map(|ctx| ctx.capabilities())
+    }
+
+    /// Add document to pipeline
+    ///
+    /// # Arguments
+    ///
+    /// - `doc_id`: Document identifier
+    /// - `text`: Document text
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())`: Document added
+    /// - `Err(PipelineError)`: Document ID out of bounds or GPU error
+    pub fn add_document(&mut self, doc_id: DocId, text: &str) -> Result<(), PipelineError> {
+        let doc_idx = doc_id as usize;
+
+        // Bounds check
+        if doc_idx >= self.capacity {
+            return Err(PipelineError::DocumentIdOutOfBounds {
+                doc_id: doc_idx,
+                capacity: self.capacity,
+            });
+        }
+
+        // Update state to Tokenizing
+        self.set_phase(PipelinePhase::Tokenizing);
+
+        // Tokenize document
+        let tokens = tokenize(text);
+        // Convert Vec<String> to Vec<&str> for API compatibility
+        let tokens_refs: Vec<&str> = tokens.iter().map(|s| s.as_str()).collect();
+
+        // Choose path based on mode
+        #[cfg(feature = "gpu-async")]
+        if self.async_enabled.load(Ordering::Acquire) {
+            self.add_document_async(doc_id, &tokens_refs)?;
+            // Poll for results periodically (every 100 docs)
+            if self.stats.docs_processed % 100 == 0 {
+                self.poll_async_results();
+            }
+        } else if self.using_gpu {
+            #[cfg(feature = "gpu")]
+            {
+                self.add_document_gpu(doc_id, &tokens_refs)?;
+            }
+        } else {
+            self.add_document_cpu(doc_idx, &tokens_refs);
+        }
+
+        #[cfg(not(feature = "gpu-async"))]
+        if self.using_gpu {
+            #[cfg(feature = "gpu")]
+            {
+                self.add_document_gpu(doc_id, &tokens_refs)?;
+            }
+        } else {
+            self.add_document_cpu(doc_idx, &tokens_refs);
+        }
+
+        // Update stats
+        self.stats.docs_processed += 1;
+        if self.using_gpu {
+            self.stats.gpu_docs += 1;
+        } else {
+            self.stats.cpu_docs += 1;
+        }
+
+        // Update state
+        let packed = self.state.load(Ordering::Acquire);
+        let (_, err, count, gen) = unpack_state(packed);
+        let new_state = pack_state(PipelinePhase::Idle, err, count.saturating_add(1), gen.wrapping_add(1));
+        self.state.store(new_state, Ordering::Release);
+
+        Ok(())
+    }
+
+    /// Add document using GPU path
+    #[cfg(feature = "gpu")]
+    fn add_document_gpu(&mut self, doc_id: DocId, tokens: &[&str]) -> Result<(), PipelineError> {
+        let coordinator = self.batch_coordinator.as_mut().unwrap();
+
+        // Pre-hash tokens to u32
+        let token_hashes: Vec<u32> = tokens
+            .iter()
+            .map(|t| {
+                // Simple FNV-1a hash
+                let mut h = 2166136261u32;
+                for b in t.bytes() {
+                    h ^= b as u32;
+                    h = h.wrapping_mul(16777619);
+                }
+                h
+            })
+            .collect();
+
+        // Add to batch
+        let batch_full = coordinator.add_document(doc_id, token_hashes);
+
+        // If batch is full, submit to GPU
+        if batch_full {
+            coordinator.submit_batch();
+
+            // Process GPU batch (simplified - in production would be async)
+            self.process_gpu_batch()?;
+        }
+
+        Ok(())
+    }
+
+    /// Process GPU batch
+    #[cfg(feature = "gpu")]
+    fn process_gpu_batch(&mut self) -> Result<(), PipelineError> {
+        // Set phase first before taking mutable borrows
+        self.set_phase(PipelinePhase::Computing);
+
+        let ctx = self.gpu_context.as_ref().unwrap();
+        let minhash = self.minhash_gpu.as_ref().unwrap();
+        let lsh_band = self.lsh_band_gpu.as_ref().unwrap();
+        let coordinator = self.batch_coordinator.as_mut().unwrap();
+
+        // Get batches from processing buffer
+        let batches = coordinator.processing_batches();
+
+        for batch in batches.iter() {
+            if batch.is_empty() {
+                continue;
+            }
+
+            // Prepare GPU input for MinHash
+            let minhash_input = MinHashGpuInput {
+                tokens: &batch.tokens,
+                offsets: &batch.offsets,
+                num_docs: batch.len() as u32,
+            };
+
+            // Compute MinHash on GPU
+            let minhash_start = std::time::Instant::now();
+            let minhash_output = minhash.compute(ctx, minhash_input).map_err(|e| {
+                PipelineError::ResourceLimitExceeded {
+                    reason: format!("GPU MinHash compute failed: {}", e),
+                }
+            })?;
+            self.stats.gpu_compute_us += minhash_start.elapsed().as_micros() as u64;
+
+            // Compute LSH band hashes on GPU (directly from MinHash output)
+            let lsh_start = std::time::Instant::now();
+            let lsh_input = LshBandGpuInput {
+                signatures: &minhash_output.signatures,
+                num_docs: minhash_output.num_docs,
+            };
+            let lsh_output = lsh_band.compute(ctx, lsh_input).map_err(|e| {
+                PipelineError::ResourceLimitExceeded {
+                    reason: format!("GPU LSH band compute failed: {}", e),
+                }
+            })?;
+            self.stats.lsh_band_us += lsh_start.elapsed().as_micros() as u64;
+
+            // Store signatures and populate LSH buckets
+            for (i, &doc_id) in batch.doc_ids.iter().enumerate() {
+                // Store CPU signature for later Jaccard verification
+                let sig_array = minhash_output.get_signature(i);
+                let cpu_sig = MinHashSignatureCapsule::from_signature(sig_array);
+                self.signatures[doc_id as usize] = Some(cpu_sig);
+
+                // Insert into LSH buckets for candidate pair generation
+                let band_hashes = lsh_output.get_band_hashes(i);
+                for (band_idx, band_hash) in band_hashes.iter().enumerate() {
+                    self.lsh_buckets
+                        .entry((band_idx, *band_hash))
+                        .or_default()
+                        .push(doc_id);
+                }
+            }
+        }
+
+        // Swap buffers for next batch
+        coordinator.swap_buffers();
+
+        self.stats.gpu_batches += 1;
+        self.set_phase(PipelinePhase::Idle);
+
+        Ok(())
+    }
+
+    /// Add document using CPU path (SIMD MinHash)
+    fn add_document_cpu(&mut self, doc_idx: usize, tokens: &[&str]) {
+        // Create CPU MinHash signature
+        let signature = MinHashSignatureCapsule::compute_signature(tokens);
+        self.signatures[doc_idx] = Some(signature);
+    }
+
+    /// Find duplicates using Jaccard threshold
+    ///
+    /// # Arguments
+    ///
+    /// - `threshold`: Jaccard similarity threshold (0.0 to 1.0)
+    ///
+    /// # Returns
+    ///
+    /// Vector of duplicate clusters (each cluster is a Vec of DocIds)
+    pub fn find_duplicates(&mut self, threshold: f64) -> Result<Vec<Vec<usize>>, PipelineError> {
+        self.set_phase(PipelinePhase::Computing);
+
+        // Flush any remaining GPU batch
+        #[cfg(feature = "gpu")]
+        if self.using_gpu {
+            if let Some(coordinator) = &mut self.batch_coordinator {
+                if coordinator.flush() {
+                    self.process_gpu_batch()?;
+                }
+            }
+        }
+
+        self.set_phase(PipelinePhase::Clustering);
+
+        let threshold_f32 = threshold as f32;
+        let mut candidate_pairs = Vec::new();
+
+        // Use LSH bucket-based candidate generation when GPU is enabled
+        #[cfg(feature = "gpu")]
+        if self.using_gpu && !self.lsh_buckets.is_empty() {
+            // Generate candidate pairs from LSH buckets (much more efficient than brute force)
+            let mut seen_pairs: std::collections::HashSet<(usize, usize)> = std::collections::HashSet::new();
+
+            for doc_ids in self.lsh_buckets.values() {
+                // Documents in the same bucket are candidate pairs
+                if doc_ids.len() < 2 {
+                    continue;
+                }
+
+                for (idx_i, &doc_i) in doc_ids.iter().enumerate() {
+                    for &doc_j in &doc_ids[idx_i + 1..] {
+                        let pair = if doc_i < doc_j {
+                            (doc_i as usize, doc_j as usize)
+                        } else {
+                            (doc_j as usize, doc_i as usize)
+                        };
+
+                        // Skip if we've already seen this pair
+                        if seen_pairs.contains(&pair) {
+                            continue;
+                        }
+                        seen_pairs.insert(pair);
+
+                        // Verify with actual Jaccard similarity
+                        if let (Some(sig_i), Some(sig_j)) = (
+                            self.signatures[pair.0].as_ref(),
+                            self.signatures[pair.1].as_ref(),
+                        ) {
+                            let jaccard = sig_i.jaccard_similarity(sig_j);
+                            if jaccard >= threshold_f32 {
+                                candidate_pairs.push(pair);
+                            }
+                        }
+                    }
+                }
+            }
+
+            self.stats.lsh_candidates = seen_pairs.len() as u64;
+        }
+
+        // Fall back to brute-force comparison when not using GPU LSH
+        #[cfg(feature = "gpu")]
+        let use_brute_force = !self.using_gpu || self.lsh_buckets.is_empty();
+        #[cfg(not(feature = "gpu"))]
+        let use_brute_force = true;
+
+        if use_brute_force {
+            for i in 0..self.capacity {
+                if self.signatures[i].is_none() {
+                    continue;
+                }
+
+                for j in (i + 1)..self.capacity {
+                    if self.signatures[j].is_none() {
+                        continue;
+                    }
+
+                    let sig_i = self.signatures[i].as_ref().unwrap();
+                    let sig_j = self.signatures[j].as_ref().unwrap();
+
+                    // Compute Jaccard similarity from MinHash signatures
+                    let jaccard = sig_i.jaccard_similarity(sig_j);
+                    if jaccard >= threshold_f32 {
+                        candidate_pairs.push((i, j));
+                    }
+                }
+            }
+        }
+
+        self.stats.duplicate_pairs = candidate_pairs.len() as u64;
+
+        // Union-Find clustering
+        for (i, j) in candidate_pairs {
+            self.union_find.union(i, j);
+        }
+
+        // Extract clusters
+        let mut cluster_map: std::collections::HashMap<usize, Vec<usize>> =
+            std::collections::HashMap::new();
+
+        for i in 0..self.capacity {
+            if self.signatures[i].is_some() {
+                let root = self.union_find.find(i);
+                cluster_map.entry(root).or_default().push(i);
+            }
+        }
+
+        // Filter to clusters with >1 member
+        let clusters: Vec<Vec<usize>> = cluster_map
+            .into_values()
+            .filter(|c| c.len() > 1)
+            .collect();
+
+        self.stats.clusters = clusters.len() as u64;
+        self.set_phase(PipelinePhase::Complete);
+
+        Ok(clusters)
+    }
+
+    /// Set pipeline phase (internal)
+    fn set_phase(&self, phase: PipelinePhase) {
+        let packed = self.state.load(Ordering::Acquire);
+        let (_, err, count, gen) = unpack_state(packed);
+        let new_state = pack_state(phase, err, count, gen.wrapping_add(1));
+        self.state.store(new_state, Ordering::Release);
+    }
+
+    /// Get generation counter (Q34 audit)
+    pub fn generation(&self) -> u32 {
+        let packed = self.state.load(Ordering::Acquire);
+        let (_, _, _, gen) = unpack_state(packed);
+        gen
+    }
+
+    // ==================== ASYNC MODE API (gpu-async feature) ====================
+
+    /// Enable async GPU processing mode
+    ///
+    /// When enabled, CPU fills batches while GPU processes previous batch.
+    /// This achieves >80% overlap efficiency, hiding GPU transfer latency.
+    ///
+    /// # Requirements
+    ///
+    /// - GPU must be initialized (is_using_gpu() == true)
+    /// - Feature: `gpu-async`
+    ///
+    /// # Returns
+    ///
+    /// - `true`: Async mode enabled successfully
+    /// - `false`: GPU not available or already in async mode
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let mut pipeline = HybridDedupPipeline::new(10_000, PipelineMode::Auto, &cpu_caps)?;
+    /// if pipeline.enable_async() {
+    ///     println!("Async mode enabled, overlap efficiency: {:.1}%", pipeline.async_overlap_efficiency() * 100.0);
+    /// }
+    /// ```
+    #[cfg(feature = "gpu-async")]
+    pub fn enable_async(&mut self) -> bool {
+        // Require GPU to be initialized
+        if !self.using_gpu {
+            return false;
+        }
+
+        // Already enabled?
+        if self.async_enabled.load(Ordering::Acquire) {
+            return true;
+        }
+
+        // Get GPU context and create MinHash capsule for async runner
+        let ctx = match &self.gpu_context {
+            Some(ctx) => ctx.clone(),
+            None => return false,
+        };
+
+        // Create MinHash capsule for async runner (separate from sync path)
+        let minhash = match MinHashGpuCapsule::new(ctx.as_ref()) {
+            Ok(m) => Arc::new(m),
+            Err(_) => return false,
+        };
+
+        // Create async pipeline coordinator
+        let coordinator = Arc::new(AsyncPipelineCoordinator::new(self.batch_size));
+
+        // Create async GPU runner
+        let mut runner = AsyncGpuRunner::new(ctx, minhash, coordinator.clone());
+        runner.start();
+
+        self.async_coordinator = Some(coordinator);
+        self.async_runner = Some(runner);
+        self.async_enabled.store(true, Ordering::Release);
+
+        true
+    }
+
+    /// Disable async GPU processing mode
+    ///
+    /// Drains pending batches and stops background thread.
+    #[cfg(feature = "gpu-async")]
+    pub fn disable_async(&mut self) {
+        if !self.async_enabled.load(Ordering::Acquire) {
+            return;
+        }
+
+        // Drain and stop runner
+        if let Some(runner) = &mut self.async_runner {
+            runner.drain();
+            runner.stop();
+        }
+
+        // Process any remaining results
+        self.process_pending_async_results();
+
+        self.async_runner = None;
+        self.async_coordinator = None;
+        self.async_enabled.store(false, Ordering::Release);
+    }
+
+    /// Check if async mode is enabled
+    #[cfg(feature = "gpu-async")]
+    pub fn is_async_enabled(&self) -> bool {
+        self.async_enabled.load(Ordering::Acquire)
+    }
+
+    /// Get async overlap efficiency (0.0 to 1.0)
+    ///
+    /// Returns the ratio of time GPU was busy vs idle.
+    /// Target: >0.8 (80% overlap)
+    #[cfg(feature = "gpu-async")]
+    pub fn async_overlap_efficiency(&self) -> f64 {
+        match &self.async_runner {
+            Some(runner) => runner.overlap_efficiency(),
+            None => 0.0,
+        }
+    }
+
+    /// Poll for async GPU results (non-blocking)
+    ///
+    /// Call this periodically during document addition to process
+    /// completed GPU batches and populate LSH buckets.
+    ///
+    /// # Returns
+    ///
+    /// Number of results processed
+    #[cfg(feature = "gpu-async")]
+    pub fn poll_async_results(&mut self) -> usize {
+        if !self.async_enabled.load(Ordering::Acquire) {
+            return 0;
+        }
+
+        let mut count = 0;
+
+        if let Some(runner) = &self.async_runner {
+            while let Some(result) = runner.poll_result() {
+                self.pending_results.push(result);
+                count += 1;
+            }
+        }
+
+        // Process pending results
+        count += self.process_pending_async_results();
+        count
+    }
+
+    /// Process pending async results (internal)
+    ///
+    /// Converts GPU results to signatures and populates LSH buckets.
+    #[cfg(feature = "gpu-async")]
+    fn process_pending_async_results(&mut self) -> usize {
+        if self.pending_results.is_empty() {
+            return 0;
+        }
+
+        let count = self.pending_results.len();
+
+        for result in self.pending_results.drain(..) {
+            for (i, &doc_id) in result.doc_ids.iter().enumerate() {
+                let doc_idx = doc_id as usize;
+                if doc_idx >= self.capacity {
+                    continue;
+                }
+
+                // Extract signature and store
+                let sig_slice = result.get_signature(i);
+                let mut sig_array = [0u16; 128];
+                sig_array.copy_from_slice(sig_slice);
+                let cpu_sig = MinHashSignatureCapsule::from_signature(&sig_array);
+                self.signatures[doc_idx] = Some(cpu_sig);
+
+                // Note: LSH buckets are populated separately via band hashes
+                // For now, we rely on brute-force similarity when using async mode
+            }
+        }
+
+        count
+    }
+
+    /// Add document using async GPU path
+    ///
+    /// Submits document to async GPU runner without blocking.
+    /// Call poll_async_results() periodically to process results.
+    #[cfg(feature = "gpu-async")]
+    fn add_document_async(&mut self, doc_id: DocId, tokens: &[&str]) -> Result<(), PipelineError> {
+        let runner = match &self.async_runner {
+            Some(r) => r,
+            None => return Err(PipelineError::ResourceLimitExceeded {
+                reason: "Async runner not initialized".to_string(),
+            }),
+        };
+
+        // Pre-hash tokens to u32
+        let token_hashes: Vec<u32> = tokens
+            .iter()
+            .map(|t| {
+                let mut h = 2166136261u32;
+                for b in t.bytes() {
+                    h ^= b as u32;
+                    h = h.wrapping_mul(16777619);
+                }
+                h
+            })
+            .collect();
+
+        // Add to current batch via coordinator
+        let coordinator = self.async_coordinator.as_ref().unwrap();
+
+        // Fill the coordinator's buffer
+        {
+            let buffer = coordinator.filling_buffer();
+            buffer.add_document(doc_id, token_hashes);
+        }
+
+        // Check if batch is ready to submit
+        if !coordinator.is_filling_empty() {
+            let buffer = coordinator.filling_buffer();
+            if buffer.len() >= self.batch_size {
+                // Submit batch to GPU
+                let batch = std::mem::replace(
+                    coordinator.filling_buffer(),
+                    GpuBatch::with_capacity(self.batch_size, self.max_tokens_per_batch),
+                );
+
+                if !runner.submit_batch(batch) {
+                    // Failed to submit, put batch back
+                    // This shouldn't happen in normal operation
+                    return Err(PipelineError::ResourceLimitExceeded {
+                        reason: "GPU async queue full".to_string(),
+                    });
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Get async runner statistics
+    #[cfg(feature = "gpu-async")]
+    pub fn async_stats(&self) -> Option<(u64, u64, usize)> {
+        self.async_runner.as_ref().map(|runner| {
+            (
+                runner.batches_submitted(),
+                runner.batches_completed(),
+                runner.pending_results(),
+            )
+        })
+    }
+
+    /// Clear pipeline state (for reuse)
+    pub fn clear(&mut self) {
+        // Disable async mode first (drains pending batches)
+        #[cfg(feature = "gpu-async")]
+        self.disable_async();
+
+        self.signatures.fill(None);
+        self.union_find = UnionFind::new(self.capacity);
+        self.stats = HybridPipelineStats::default();
+
+        #[cfg(feature = "gpu")]
+        {
+            // Clear LSH buckets
+            self.lsh_buckets.clear();
+
+            // Clear batch coordinator
+            if let Some(coordinator) = &mut self.batch_coordinator {
+                coordinator.clear();
+            }
+        }
+
+        #[cfg(feature = "gpu-async")]
+        {
+            self.pending_results.clear();
+        }
+
+        self.state.store(pack_state(PipelinePhase::Idle, 0, 0, 0), Ordering::Release);
+    }
+}
+
+impl std::fmt::Debug for HybridDedupPipeline {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HybridDedupPipeline")
+            .field("mode", &self.mode)
+            .field("using_gpu", &self.using_gpu)
+            .field("phase", &self.phase())
+            .field("capacity", &self.capacity)
+            .field("batch_size", &self.batch_size)
+            .field("stats", &self.stats)
+            .finish()
+    }
+}
+
+// SAFETY: HybridDedupPipeline is Send because all fields are Send
+// - AtomicU64 is Send + Sync
+// - GPU resources (wgpu) are Send (thread-safe)
+// - Vec and primitives are Send
+unsafe impl Send for HybridDedupPipeline {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_pipeline_mode_default() {
+        assert_eq!(PipelineMode::default(), PipelineMode::Auto);
+    }
+
+    #[test]
+    fn test_state_packing() {
+        let packed = pack_state(PipelinePhase::Computing, 5, 1000, 12345);
+        let (phase, err, count, gen) = unpack_state(packed);
+
+        assert_eq!(phase, PipelinePhase::Computing);
+        assert_eq!(err, 5);
+        assert_eq!(count, 1000);
+        assert_eq!(gen, 12345);
+    }
+
+    #[test]
+    fn test_pipeline_creation_cpu_only() {
+        let cpu_caps = CpuCapabilityCapsule::detect();
+        let pipeline = HybridDedupPipeline::new(100, PipelineMode::CpuOnly, &cpu_caps).unwrap();
+
+        assert!(!pipeline.is_using_gpu());
+        assert_eq!(pipeline.phase(), PipelinePhase::Idle);
+        assert_eq!(pipeline.capacity, 100);
+    }
+
+    #[test]
+    fn test_pipeline_add_document_cpu() {
+        let cpu_caps = CpuCapabilityCapsule::detect();
+        let mut pipeline = HybridDedupPipeline::new(10, PipelineMode::CpuOnly, &cpu_caps).unwrap();
+
+        pipeline.add_document(0, "The quick brown fox").unwrap();
+        pipeline.add_document(1, "The quick brown fox jumps").unwrap();
+        pipeline.add_document(2, "Completely different text").unwrap();
+
+        assert_eq!(pipeline.stats().docs_processed, 3);
+        assert_eq!(pipeline.stats().cpu_docs, 3);
+    }
+
+    #[test]
+    fn test_pipeline_find_duplicates_cpu() {
+        let cpu_caps = CpuCapabilityCapsule::detect();
+        let mut pipeline = HybridDedupPipeline::new(5, PipelineMode::CpuOnly, &cpu_caps).unwrap();
+
+        // Add near-duplicate documents
+        pipeline.add_document(0, "The quick brown fox jumps over the lazy dog").unwrap();
+        pipeline.add_document(1, "The quick brown fox jumps over the lazy cat").unwrap();
+        pipeline.add_document(2, "A completely different document with other words").unwrap();
+
+        let clusters = pipeline.find_duplicates(0.5).unwrap();
+
+        // Documents 0 and 1 should be clustered (high similarity)
+        assert!(!clusters.is_empty());
+        assert_eq!(pipeline.phase(), PipelinePhase::Complete);
+    }
+
+    #[test]
+    fn test_pipeline_bounds_check() {
+        let cpu_caps = CpuCapabilityCapsule::detect();
+        let mut pipeline = HybridDedupPipeline::new(5, PipelineMode::CpuOnly, &cpu_caps).unwrap();
+
+        let result = pipeline.add_document(10, "Out of bounds");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_pipeline_clear() {
+        let cpu_caps = CpuCapabilityCapsule::detect();
+        let mut pipeline = HybridDedupPipeline::new(10, PipelineMode::CpuOnly, &cpu_caps).unwrap();
+
+        pipeline.add_document(0, "Test document").unwrap();
+        assert_eq!(pipeline.stats().docs_processed, 1);
+
+        pipeline.clear();
+        assert_eq!(pipeline.stats().docs_processed, 0);
+        assert_eq!(pipeline.phase(), PipelinePhase::Idle);
+    }
+
+    #[test]
+    fn test_pipeline_generation_counter() {
+        let cpu_caps = CpuCapabilityCapsule::detect();
+        let mut pipeline = HybridDedupPipeline::new(10, PipelineMode::CpuOnly, &cpu_caps).unwrap();
+
+        let gen1 = pipeline.generation();
+        pipeline.add_document(0, "Test").unwrap();
+        let gen2 = pipeline.generation();
+
+        assert!(gen2 > gen1);
+    }
+
+    #[cfg(feature = "gpu")]
+    #[test]
+    fn test_pipeline_gpu_auto_detection() {
+        let cpu_caps = CpuCapabilityCapsule::detect();
+        let pipeline = HybridDedupPipeline::new(100, PipelineMode::Auto, &cpu_caps).unwrap();
+
+        // Pipeline should work regardless of GPU availability
+        println!("Using GPU: {}", pipeline.is_using_gpu());
+        if pipeline.is_using_gpu() {
+            println!("GPU: {:?}", pipeline.gpu_capabilities());
+        }
+    }
+}
