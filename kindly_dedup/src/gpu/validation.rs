@@ -114,10 +114,10 @@ pub fn validate_gpu_vs_cpu(
     let cpu_ref = CpuMinHashReference::new();
 
     let num_docs = offsets.len() - 1;
-    if gpu_output.num_docs as usize != num_docs {
+    if gpu_output.num_docs() as usize != num_docs {
         return Err(format!(
             "Document count mismatch: GPU={}, expected={}",
-            gpu_output.num_docs, num_docs
+            gpu_output.num_docs(), num_docs
         ));
     }
 
@@ -185,10 +185,10 @@ pub fn validate_gpu_determinism(
             .compute(ctx, input.clone())
             .map_err(|e| format!("Iteration {} compute failed: {}", i, e))?;
 
-        if output.signatures != baseline.signatures {
+        if output.signatures() != baseline.signatures() {
             let mut differences = 0;
-            for j in 0..output.signatures.len() {
-                if output.signatures[j] != baseline.signatures[j] {
+            for j in 0..output.signatures().len() {
+                if output.signatures()[j] != baseline.signatures()[j] {
                     differences += 1;
                 }
             }
@@ -196,7 +196,7 @@ pub fn validate_gpu_determinism(
                 "Determinism failure at iteration {}: {} differences in {} values",
                 i,
                 differences,
-                output.signatures.len()
+                output.signatures().len()
             ));
         }
     }

@@ -8,11 +8,17 @@
 //! # Framework Compliance
 //!
 //! - UCE34: Q10 T0 Auditable tier (capability detection)
-//! - COCA: Zero mutex, pure data structures
+//! - COCA: Cache-aligned capsule with AtomicU64 state, lockfree
 //! - ASSUM: GPU availability is runtime-checked, not assumed
 //! - B32: Performance recommendations based on measured hardware
+//!
+//! # COCA Compliance Notes
+//!
+//! GpuCapabilities is a read-only configuration capsule after initialization.
+//! The generation counter provides Q34 audit trail for capability snapshots.
 
 use std::fmt;
+use std::sync::atomic::{AtomicU64, Ordering};
 use wgpu::{Adapter, AdapterInfo, Limits};
 
 /// GPU compute backend type
@@ -88,12 +94,35 @@ impl From<wgpu::DeviceType> for GpuClass {
     }
 }
 
-/// GPU compute capabilities
+/// GPU compute capabilities - T0 Auditable Capsule
 ///
 /// Contains all information needed to optimize kernel dispatch
 /// and batch sizing for optimal GPU utilization.
-#[derive(Debug, Clone)]
+///
+/// # COCA Compliance
+///
+/// - Cache-aligned (64 bytes) for optimal memory access
+/// - AtomicU64 state for thread-safe generation tracking
+/// - Read-only after initialization (immutable configuration)
+///
+/// # ASSUM Safety
+///
+/// - `#ASSUME_ADAPTER_VALID`: wgpu adapter returned valid limits/features
+/// - `#VERIFY_ADAPTER_VALID`: Validated by wgpu initialization (errors propagated)
+#[repr(C, align(64))]
 pub struct GpuCapabilities {
+    /// Atomic state: [0:31]=generation, [32:39]=backend_id, [40:47]=device_class, [48:63]=flags
+    ///
+    /// # Layout
+    /// - bits 0-31: generation counter (Q34 audit trail)
+    /// - bits 32-39: backend enum value
+    /// - bits 40-47: device class enum value
+    /// - bits 48: initialized flag
+    /// - bits 49: supports_compute
+    /// - bits 50: supports_f16
+    /// - bits 51: supports_subgroups
+    state: AtomicU64,
+
     /// GPU backend (Vulkan, Metal, DX12, etc.)
     pub backend: Backend,
 
@@ -165,6 +194,11 @@ impl GpuCapabilities {
     /// Create capabilities from wgpu adapter
     ///
     /// Extracts all relevant limits and features for optimization decisions.
+    ///
+    /// # ASSUM Safety
+    ///
+    /// - `#ASSUME_ADAPTER_VALID`: wgpu adapter is properly initialized
+    /// - `#VERIFY_ADAPTER_VALID`: Caller must ensure adapter is valid (from GpuContextCapsule)
     pub fn from_adapter(adapter: &Adapter) -> Self {
         let info: AdapterInfo = adapter.get_info();
         let limits: Limits = adapter.limits();
@@ -186,11 +220,20 @@ impl GpuCapabilities {
             Some(Self::estimate_subgroup_size(&vendor))
         };
 
+        let supports_compute = true; // wgpu guarantees compute support
+        let supports_f16 = features.contains(wgpu::Features::SHADER_F16);
+
+        // Pack state: generation=0, backend, device_class, flags
+        let backend: Backend = info.backend.into();
+        let device_class: GpuClass = info.device_type.into();
+        let state_value = Self::pack_state(0, backend, device_class, true, supports_compute, supports_f16, supports_subgroups);
+
         Self {
-            backend: info.backend.into(),
+            state: AtomicU64::new(state_value),
+            backend,
             device_name: info.name.clone(),
             vendor,
-            device_class: info.device_type.into(),
+            device_class,
             driver: info.driver.clone(),
             max_workgroup_size_x: limits.max_compute_workgroup_size_x,
             max_workgroup_size_y: limits.max_compute_workgroup_size_y,
@@ -204,12 +247,77 @@ impl GpuCapabilities {
             max_uniform_buffer_binding_size: limits.max_uniform_buffer_binding_size,
             max_bind_groups: limits.max_bind_groups,
             max_bindings_per_bind_group: limits.max_bindings_per_bind_group,
-            supports_compute: true, // wgpu guarantees compute support
-            supports_f16: features.contains(wgpu::Features::SHADER_F16),
+            supports_compute,
+            supports_f16,
             supports_subgroups,
             subgroup_size,
             estimated_vram_gb,
         }
+    }
+
+    /// Pack state into AtomicU64
+    ///
+    /// # Layout
+    /// - bits 0-31: generation counter
+    /// - bits 32-39: backend enum (u8)
+    /// - bits 40-47: device class enum (u8)
+    /// - bit 48: initialized
+    /// - bit 49: supports_compute
+    /// - bit 50: supports_f16
+    /// - bit 51: supports_subgroups
+    #[inline]
+    fn pack_state(
+        generation: u32,
+        backend: Backend,
+        device_class: GpuClass,
+        initialized: bool,
+        supports_compute: bool,
+        supports_f16: bool,
+        supports_subgroups: bool,
+    ) -> u64 {
+        let backend_id = match backend {
+            Backend::Vulkan => 0u64,
+            Backend::Metal => 1,
+            Backend::Dx12 => 2,
+            Backend::Dx11 => 3,
+            Backend::Gl => 4,
+            Backend::WebGpu => 5,
+            Backend::Unknown => 7,
+        };
+        let class_id = match device_class {
+            GpuClass::Integrated => 0u64,
+            GpuClass::Discrete => 1,
+            GpuClass::Virtual => 2,
+            GpuClass::Software => 3,
+            GpuClass::Unknown => 7,
+        };
+
+        (generation as u64)
+            | (backend_id << 32)
+            | (class_id << 40)
+            | ((initialized as u64) << 48)
+            | ((supports_compute as u64) << 49)
+            | ((supports_f16 as u64) << 50)
+            | ((supports_subgroups as u64) << 51)
+    }
+
+    /// Get generation counter (Q34 audit trail)
+    #[inline]
+    pub fn generation(&self) -> u32 {
+        (self.state.load(Ordering::Acquire) & 0xFFFF_FFFF) as u32
+    }
+
+    /// Increment generation counter (for snapshot tracking)
+    #[inline]
+    pub fn increment_generation(&self) -> u32 {
+        let old = self.state.fetch_add(1, Ordering::AcqRel);
+        ((old + 1) & 0xFFFF_FFFF) as u32
+    }
+
+    /// Check if capabilities are initialized
+    #[inline]
+    pub fn is_initialized(&self) -> bool {
+        (self.state.load(Ordering::Acquire) >> 48) & 1 == 1
     }
 
     /// Extract vendor name from device info
@@ -383,6 +491,7 @@ impl fmt::Display for GpuCapabilities {
         writeln!(f, "Class: {:?}", self.device_class)?;
         writeln!(f, "Driver: {}", self.driver)?;
         writeln!(f, "Est. VRAM: {:.1} GB", self.estimated_vram_gb)?;
+        writeln!(f, "Generation: {}", self.generation())?;
         writeln!(f, "Max Workgroup: {}x{}x{} (max {} total)",
             self.max_workgroup_size_x,
             self.max_workgroup_size_y,
@@ -402,6 +511,54 @@ impl fmt::Display for GpuCapabilities {
         writeln!(f, "Recommended Batch: {} docs", self.recommended_batch_size())?;
         writeln!(f, "Worth Using: {}", self.worth_using())?;
         Ok(())
+    }
+}
+
+impl fmt::Debug for GpuCapabilities {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("GpuCapabilities")
+            .field("state", &self.state.load(Ordering::Relaxed))
+            .field("generation", &self.generation())
+            .field("backend", &self.backend)
+            .field("device_name", &self.device_name)
+            .field("vendor", &self.vendor)
+            .field("device_class", &self.device_class)
+            .field("max_workgroup_invocations", &self.max_workgroup_invocations)
+            .field("max_buffer_size", &self.max_buffer_size)
+            .field("supports_compute", &self.supports_compute)
+            .field("supports_f16", &self.supports_f16)
+            .field("estimated_vram_gb", &self.estimated_vram_gb)
+            .finish()
+    }
+}
+
+impl Clone for GpuCapabilities {
+    fn clone(&self) -> Self {
+        Self {
+            state: AtomicU64::new(self.state.load(Ordering::Acquire)),
+            backend: self.backend,
+            device_name: self.device_name.clone(),
+            vendor: self.vendor.clone(),
+            device_class: self.device_class,
+            driver: self.driver.clone(),
+            max_workgroup_size_x: self.max_workgroup_size_x,
+            max_workgroup_size_y: self.max_workgroup_size_y,
+            max_workgroup_size_z: self.max_workgroup_size_z,
+            max_workgroup_invocations: self.max_workgroup_invocations,
+            max_dispatch_x: self.max_dispatch_x,
+            max_dispatch_y: self.max_dispatch_y,
+            max_dispatch_z: self.max_dispatch_z,
+            max_buffer_size: self.max_buffer_size,
+            max_storage_buffer_binding_size: self.max_storage_buffer_binding_size,
+            max_uniform_buffer_binding_size: self.max_uniform_buffer_binding_size,
+            max_bind_groups: self.max_bind_groups,
+            max_bindings_per_bind_group: self.max_bindings_per_bind_group,
+            supports_compute: self.supports_compute,
+            supports_f16: self.supports_f16,
+            supports_subgroups: self.supports_subgroups,
+            subgroup_size: self.subgroup_size,
+            estimated_vram_gb: self.estimated_vram_gb,
+        }
     }
 }
 

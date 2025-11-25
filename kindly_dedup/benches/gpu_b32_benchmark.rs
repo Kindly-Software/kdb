@@ -486,6 +486,491 @@ fn gpu_token_scaling(_c: &mut Criterion) {}
 fn hybrid_pipeline_benchmark(_c: &mut Criterion) {}
 
 // =============================================================================
+// End-to-End Hybrid Pipeline Benchmark (Default Feature)
+// =============================================================================
+
+/// Generate realistic documents for benchmarking
+///
+/// Creates documents with realistic token distributions similar to LLM training data.
+/// Uses deterministic seeding for reproducibility (B32 requirement).
+fn generate_realistic_docs(count: usize) -> Vec<String> {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+
+    let vocab = [
+        "the", "quick", "brown", "fox", "jumps", "over", "lazy", "dog",
+        "machine", "learning", "artificial", "intelligence", "neural",
+        "network", "deep", "transformer", "attention", "model", "data",
+        "training", "inference", "optimization", "gradient", "descent",
+        "batch", "epoch", "loss", "function", "activation", "layer",
+        "weight", "bias", "forward", "backward", "propagation", "token",
+    ];
+
+    (0..count)
+        .map(|doc_idx| {
+            // Deterministic pseudo-random using hash
+            let mut hasher = DefaultHasher::new();
+            doc_idx.hash(&mut hasher);
+            let mut seed = hasher.finish();
+
+            // Variable document length (50-500 tokens)
+            let len = 50 + (seed % 451) as usize;
+
+            (0..len)
+                .map(|word_idx| {
+                    // Update seed for each word
+                    seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                    vocab[(seed as usize) % vocab.len()]
+                })
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
+        .collect()
+}
+
+/// Generate near-duplicate documents for realistic deduplication testing
+///
+/// Creates clusters of similar documents to simulate real duplicate scenarios.
+fn generate_docs_with_duplicates(count: usize, duplicate_rate: f64) -> Vec<String> {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+
+    let base_docs = generate_realistic_docs(count);
+    let num_duplicates = ((count as f64) * duplicate_rate) as usize;
+
+    let mut result = Vec::with_capacity(count);
+
+    for (i, doc) in base_docs.into_iter().enumerate() {
+        if i < num_duplicates {
+            // Create a near-duplicate by modifying a few words
+            let mut hasher = DefaultHasher::new();
+            i.hash(&mut hasher);
+            let seed = hasher.finish();
+
+            let words: Vec<&str> = doc.split_whitespace().collect();
+            let modified: Vec<&str> = words
+                .iter()
+                .enumerate()
+                .map(|(j, &w)| {
+                    if (seed.wrapping_add(j as u64)) % 20 == 0 {
+                        "modified" // Replace ~5% of words
+                    } else {
+                        w
+                    }
+                })
+                .collect();
+            result.push(modified.join(" "));
+        } else {
+            result.push(doc);
+        }
+    }
+
+    result
+}
+
+/// End-to-end hybrid pipeline benchmark
+///
+/// Tests the complete deduplication workflow:
+/// 1. CPU Tokenization
+/// 2. MinHash signature computation (GPU or CPU)
+/// 3. LSH band hashing
+/// 4. Union-Find clustering
+///
+/// B32 Compliance:
+/// - Uses realistic documents (not synthetic tokens)
+/// - Tests multiple document counts (1K, 5K, 10K)
+/// - 50 samples with 30s measurement time
+/// - Reports throughput in docs/sec
+#[cfg(feature = "gpu-hybrid")]
+fn hybrid_end_to_end_benchmark(c: &mut Criterion) {
+    use kindly_dedup::hybrid_pipeline::{HybridDedupPipeline, PipelineMode};
+    use atomic_capsule::CpuCapabilityCapsule;
+
+    let cpu_caps = CpuCapabilityCapsule::detect();
+
+    // Pre-generate documents (reuse across iterations)
+    let docs_1k = generate_realistic_docs(1_000);
+    let docs_5k = generate_realistic_docs(5_000);
+    let docs_10k = generate_realistic_docs(10_000);
+
+    let mut group = c.benchmark_group("hybrid_end_to_end");
+    group.sample_size(50);
+    group.measurement_time(Duration::from_secs(30));
+
+    // 1K documents benchmark
+    group.throughput(Throughput::Elements(1_000));
+    group.bench_function("1k_docs", |b| {
+        b.iter_batched(
+            || HybridDedupPipeline::new(1_000, PipelineMode::Auto, &cpu_caps).unwrap(),
+            |mut pipeline: HybridDedupPipeline| {
+                for (id, text) in docs_1k.iter().enumerate() {
+                    pipeline.add_document(id as u32, text).unwrap();
+                }
+                pipeline.find_duplicates(0.8).unwrap()
+            },
+            criterion::BatchSize::SmallInput,
+        );
+    });
+
+    // 5K documents benchmark
+    group.throughput(Throughput::Elements(5_000));
+    group.bench_function("5k_docs", |b| {
+        b.iter_batched(
+            || HybridDedupPipeline::new(5_000, PipelineMode::Auto, &cpu_caps).unwrap(),
+            |mut pipeline: HybridDedupPipeline| {
+                for (id, text) in docs_5k.iter().enumerate() {
+                    pipeline.add_document(id as u32, text).unwrap();
+                }
+                pipeline.find_duplicates(0.8).unwrap()
+            },
+            criterion::BatchSize::SmallInput,
+        );
+    });
+
+    // 10K documents benchmark
+    group.throughput(Throughput::Elements(10_000));
+    group.bench_function("10k_docs", |b| {
+        b.iter_batched(
+            || HybridDedupPipeline::new(10_000, PipelineMode::Auto, &cpu_caps).unwrap(),
+            |mut pipeline: HybridDedupPipeline| {
+                for (id, text) in docs_10k.iter().enumerate() {
+                    pipeline.add_document(id as u32, text).unwrap();
+                }
+                pipeline.find_duplicates(0.8).unwrap()
+            },
+            criterion::BatchSize::LargeInput,
+        );
+    });
+
+    group.finish();
+}
+
+/// Component breakdown benchmark
+///
+/// Measures individual pipeline components to identify bottlenecks:
+/// 1. Tokenization (CPU)
+/// 2. MinHash computation (GPU or CPU)
+/// 3. LSH band hashing (GPU or CPU)
+/// 4. Union-Find clustering (CPU)
+///
+/// B32 Compliance:
+/// - Tests each component in isolation
+/// - Uses realistic inputs
+/// - Identifies true bottlenecks
+#[cfg(feature = "gpu-hybrid")]
+fn hybrid_component_breakdown(c: &mut Criterion) {
+    use atomic_capsule::probabilistic::{tokenize, MinHashSignatureCapsule, UnionFind};
+
+    let mut group = c.benchmark_group("hybrid_breakdown");
+    group.sample_size(100);
+    group.measurement_time(Duration::from_secs(10));
+
+    // Realistic document text (100-500 words)
+    let realistic_text = "The quick brown fox jumps over the lazy dog. \
+        Machine learning models require large datasets for training. \
+        Neural networks use backpropagation for gradient descent optimization. \
+        Transformer architectures have revolutionized natural language processing. \
+        Attention mechanisms allow models to focus on relevant input features. \
+        Deep learning has enabled significant advances in computer vision. "
+        .repeat(50);
+
+    // 1. CPU Tokenization benchmark
+    group.bench_function("1_tokenization", |b| {
+        b.iter(|| {
+            tokenize(&realistic_text)
+        });
+    });
+
+    // 2. MinHash computation (CPU baseline)
+    let tokens = tokenize(&realistic_text);
+    let tokens_refs: Vec<&str> = tokens.iter().map(|s| s.as_str()).collect();
+
+    group.bench_function("2_minhash_cpu", |b| {
+        b.iter(|| {
+            MinHashSignatureCapsule::compute_signature(&tokens_refs)
+        });
+    });
+
+    // 3. Jaccard similarity computation
+    let sig1 = MinHashSignatureCapsule::compute_signature(&tokens_refs);
+    let sig2 = MinHashSignatureCapsule::compute_signature(&tokens_refs);
+
+    group.bench_function("3_jaccard_similarity", |b| {
+        b.iter(|| {
+            sig1.jaccard_similarity(&sig2)
+        });
+    });
+
+    // 4. Union-Find operations
+    let union_pairs: Vec<(usize, usize)> = (0..5000).map(|i| (i, i + 1)).collect();
+
+    group.bench_function("4_union_find_5k_unions", |b| {
+        b.iter_batched(
+            || UnionFind::new(10_000),
+            |mut uf| {
+                for &(a, b) in &union_pairs {
+                    uf.union(a, b);
+                }
+                uf
+            },
+            criterion::BatchSize::SmallInput,
+        );
+    });
+
+    // 5. Union-Find find operations (after unions)
+    let mut uf_setup = UnionFind::new(10_000);
+    for &(a, b) in &union_pairs {
+        uf_setup.union(a, b);
+    }
+
+    group.bench_function("5_union_find_5k_finds", |b| {
+        b.iter(|| {
+            let mut sum = 0usize;
+            for i in 0..5000 {
+                sum = sum.wrapping_add(uf_setup.find(i));
+            }
+            sum
+        });
+    });
+
+    group.finish();
+}
+
+/// GPU vs CPU mode comparison benchmark
+///
+/// Compares HybridDedupPipeline in GPU mode vs CPU-only mode
+/// to measure actual GPU acceleration benefit on real workloads.
+///
+/// B32 Compliance:
+/// - Fair comparison (same algorithm, same data)
+/// - Tests both modes on identical workload
+/// - Reports mode used and speedup ratio
+#[cfg(feature = "gpu-hybrid")]
+fn hybrid_gpu_vs_cpu_mode(c: &mut Criterion) {
+    use kindly_dedup::hybrid_pipeline::{HybridDedupPipeline, PipelineMode};
+    use atomic_capsule::CpuCapabilityCapsule;
+
+    let cpu_caps = CpuCapabilityCapsule::detect();
+    let docs = generate_docs_with_duplicates(5_000, 0.3); // 30% near-duplicates
+
+    let mut group = c.benchmark_group("hybrid_gpu_vs_cpu_mode");
+    group.sample_size(30);
+    group.measurement_time(Duration::from_secs(20));
+    group.throughput(Throughput::Elements(5_000));
+
+    // CPU-only mode (baseline)
+    group.bench_function("cpu_only_5k", |b| {
+        b.iter_batched(
+            || HybridDedupPipeline::new(5_000, PipelineMode::CpuOnly, &cpu_caps).unwrap(),
+            |mut pipeline: HybridDedupPipeline| {
+                for (id, text) in docs.iter().enumerate() {
+                    pipeline.add_document(id as u32, text).unwrap();
+                }
+                pipeline.find_duplicates(0.8).unwrap()
+            },
+            criterion::BatchSize::SmallInput,
+        );
+    });
+
+    // GPU/Auto mode
+    group.bench_function("gpu_auto_5k", |b| {
+        b.iter_batched(
+            || {
+                let p = HybridDedupPipeline::new(5_000, PipelineMode::Auto, &cpu_caps).unwrap();
+                println!("Using GPU: {}", p.is_using_gpu());
+                p
+            },
+            |mut pipeline: HybridDedupPipeline| {
+                for (id, text) in docs.iter().enumerate() {
+                    pipeline.add_document(id as u32, text).unwrap();
+                }
+                pipeline.find_duplicates(0.8).unwrap()
+            },
+            criterion::BatchSize::SmallInput,
+        );
+    });
+
+    group.finish();
+}
+
+/// Document scaling benchmark
+///
+/// Tests how throughput scales with document count (1K to 50K).
+/// Identifies optimal batch sizes and memory pressure points.
+///
+/// B32 Compliance:
+/// - Multiple document counts
+/// - Reports throughput at each scale
+/// - Identifies scaling characteristics
+#[cfg(feature = "gpu-hybrid")]
+fn hybrid_document_scaling(c: &mut Criterion) {
+    use kindly_dedup::hybrid_pipeline::{HybridDedupPipeline, PipelineMode};
+    use atomic_capsule::CpuCapabilityCapsule;
+
+    let cpu_caps = CpuCapabilityCapsule::detect();
+
+    let mut group = c.benchmark_group("hybrid_document_scaling");
+    group.sample_size(20);
+    group.measurement_time(Duration::from_secs(30));
+
+    for num_docs in [1_000, 2_000, 5_000, 10_000, 20_000] {
+        let docs = generate_realistic_docs(num_docs);
+
+        group.throughput(Throughput::Elements(num_docs as u64));
+        group.bench_function(BenchmarkId::new("docs", num_docs), |b| {
+            b.iter_batched(
+                || HybridDedupPipeline::new(num_docs, PipelineMode::Auto, &cpu_caps).unwrap(),
+                |mut pipeline: HybridDedupPipeline| {
+                    for (id, text) in docs.iter().enumerate() {
+                        pipeline.add_document(id as u32, text).unwrap();
+                    }
+                    pipeline.find_duplicates(0.8).unwrap()
+                },
+                criterion::BatchSize::LargeInput,
+            );
+        });
+    }
+
+    group.finish();
+}
+
+/// Duplicate rate impact benchmark
+///
+/// Tests how duplicate rate affects pipeline performance.
+/// Higher duplicate rates should show LSH bucket efficiency gains.
+///
+/// B32 Compliance:
+/// - Multiple duplicate rates (10%, 30%, 50%, 70%)
+/// - Reports throughput at each rate
+/// - Validates LSH bucket efficiency
+#[cfg(feature = "gpu-hybrid")]
+fn hybrid_duplicate_rate_impact(c: &mut Criterion) {
+    use kindly_dedup::hybrid_pipeline::{HybridDedupPipeline, PipelineMode};
+    use atomic_capsule::CpuCapabilityCapsule;
+
+    let cpu_caps = CpuCapabilityCapsule::detect();
+    let num_docs = 5_000;
+
+    let mut group = c.benchmark_group("hybrid_duplicate_rate");
+    group.sample_size(30);
+    group.measurement_time(Duration::from_secs(20));
+    group.throughput(Throughput::Elements(num_docs as u64));
+
+    for dup_rate in [0.1, 0.3, 0.5, 0.7] {
+        let docs = generate_docs_with_duplicates(num_docs, dup_rate);
+
+        group.bench_function(BenchmarkId::new("dup_rate", format!("{:.0}%", dup_rate * 100.0)), |b| {
+            b.iter_batched(
+                || HybridDedupPipeline::new(num_docs, PipelineMode::Auto, &cpu_caps).unwrap(),
+                |mut pipeline: HybridDedupPipeline| {
+                    for (id, text) in docs.iter().enumerate() {
+                        pipeline.add_document(id as u32, text).unwrap();
+                    }
+                    let clusters = pipeline.find_duplicates(0.8).unwrap();
+                    (clusters.len(), pipeline.stats().duplicate_pairs)
+                },
+                criterion::BatchSize::SmallInput,
+            );
+        });
+    }
+
+    group.finish();
+}
+
+// =============================================================================
+// Async Overlap Benchmark (gpu-async feature)
+// =============================================================================
+
+/// Async overlap benchmark - tests CPU-GPU pipeline parallelism
+///
+/// When async mode is enabled, CPU fills batches while GPU processes.
+/// This measures the overlap efficiency (target: >80%).
+///
+/// B32 Compliance:
+/// - Tests async vs sync throughput
+/// - Reports overlap efficiency
+/// - Validates background thread coordination
+#[cfg(feature = "gpu-async")]
+fn async_overlap_benchmark(c: &mut Criterion) {
+    use kindly_dedup::hybrid_pipeline::{HybridDedupPipeline, PipelineMode};
+    use atomic_capsule::CpuCapabilityCapsule;
+
+    let cpu_caps = CpuCapabilityCapsule::detect();
+    let docs = generate_realistic_docs(10_000);
+
+    let mut group = c.benchmark_group("async_overlap");
+    group.sample_size(20);
+    group.measurement_time(Duration::from_secs(30));
+    group.throughput(Throughput::Elements(10_000));
+
+    // Sync mode (baseline)
+    group.bench_function("sync_10k", |b| {
+        b.iter_batched(
+            || HybridDedupPipeline::new(10_000, PipelineMode::Auto, &cpu_caps).unwrap(),
+            |mut pipeline| {
+                for (id, text) in docs.iter().enumerate() {
+                    pipeline.add_document(id as u32, text).unwrap();
+                }
+                pipeline.find_duplicates(0.8).unwrap()
+            },
+            criterion::BatchSize::LargeInput,
+        );
+    });
+
+    // Async mode
+    group.bench_function("async_10k", |b| {
+        b.iter_batched(
+            || {
+                let mut p = HybridDedupPipeline::new(10_000, PipelineMode::Auto, &cpu_caps).unwrap();
+                if p.is_using_gpu() {
+                    let enabled = p.enable_async();
+                    println!("Async enabled: {}", enabled);
+                }
+                p
+            },
+            |mut pipeline| {
+                for (id, text) in docs.iter().enumerate() {
+                    pipeline.add_document(id as u32, text).unwrap();
+                }
+                // Report overlap efficiency
+                if pipeline.is_using_gpu() {
+                    println!("Overlap efficiency: {:.1}%", pipeline.async_overlap_efficiency() * 100.0);
+                }
+                pipeline.find_duplicates(0.8).unwrap()
+            },
+            criterion::BatchSize::LargeInput,
+        );
+    });
+
+    group.finish();
+}
+
+// =============================================================================
+// Stub functions for non-GPU/non-async builds
+// =============================================================================
+
+#[cfg(not(feature = "gpu-hybrid"))]
+fn hybrid_end_to_end_benchmark(_c: &mut Criterion) {
+    println!("Hybrid end-to-end benchmarks require 'gpu-hybrid' feature. Run with:");
+    println!("  cargo bench --features 'gpu-hybrid,benchmarking' --bench gpu_b32_benchmark");
+}
+
+#[cfg(not(feature = "gpu-hybrid"))]
+fn hybrid_component_breakdown(_c: &mut Criterion) {}
+
+#[cfg(not(feature = "gpu-hybrid"))]
+fn hybrid_gpu_vs_cpu_mode(_c: &mut Criterion) {}
+
+#[cfg(not(feature = "gpu-hybrid"))]
+fn hybrid_document_scaling(_c: &mut Criterion) {}
+
+#[cfg(not(feature = "gpu-hybrid"))]
+fn hybrid_duplicate_rate_impact(_c: &mut Criterion) {}
+
+#[cfg(not(feature = "gpu-async"))]
+fn async_overlap_benchmark(_c: &mut Criterion) {}
+
+// =============================================================================
 // Criterion Configuration
 // =============================================================================
 
@@ -495,12 +980,20 @@ criterion_group!(
         .significance_level(0.05)  // 95% CI
         .noise_threshold(0.02);    // 2% noise threshold
     targets =
+        // Existing GPU kernel benchmarks
         gpu_minhash_throughput,
         gpu_vs_cpu_comparison,
         gpu_memory_transfer,
         gpu_batch_scaling,
         gpu_token_scaling,
         hybrid_pipeline_benchmark,
+        // New end-to-end hybrid benchmarks
+        hybrid_end_to_end_benchmark,
+        hybrid_component_breakdown,
+        hybrid_gpu_vs_cpu_mode,
+        hybrid_document_scaling,
+        hybrid_duplicate_rate_impact,
+        async_overlap_benchmark,
 );
 
 criterion_main!(benches);

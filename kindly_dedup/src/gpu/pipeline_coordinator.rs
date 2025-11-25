@@ -162,13 +162,27 @@ impl<T: Clone + Default> DoubleBuffer<T> {
 /// # Layout
 ///
 /// ```text
-/// GpuBatch
+/// GpuBatch (64-byte aligned)
 /// ├── doc_ids: Vec<u32>      (document identifiers)
 /// ├── tokens: Vec<u32>       (pre-hashed tokens, flat array)
 /// ├── offsets: Vec<u32>      (per-document token boundaries)
-/// └── generation: u64        (Q34 audit trail)
+/// ├── generation: AtomicU64  (Q34 audit trail, atomic for lockfree)
+/// └── _padding: [u8; N]      (cache line alignment)
 /// ```
-#[derive(Clone, Default)]
+///
+/// # COCA Compliance
+///
+/// - Cache-aligned to 64 bytes for optimal performance
+/// - Uses AtomicU64 for generation counter (lockfree audit updates)
+/// - Vecs are not inherently lockfree but batch is single-writer
+///
+/// # ASSUM Safety
+///
+/// - `#ASSUME_SINGLE_WRITER`: Only one thread modifies batch at a time
+/// - `#VERIFY_SINGLE_WRITER`: Phase machine in AsyncPipelineCoordinator enforces this
+/// - `#ASSUME_GENERATION_ATOMIC`: Generation reads/writes are atomic
+/// - `#VERIFY_GENERATION_ATOMIC`: Uses AtomicU64 with proper ordering
+#[repr(C, align(64))]
 pub struct GpuBatch {
     /// Document IDs (for result correlation)
     pub doc_ids: Vec<u32>,
@@ -179,8 +193,33 @@ pub struct GpuBatch {
     /// Document offsets in token array (length = num_docs + 1)
     pub offsets: Vec<u32>,
 
-    /// Generation counter (Q34 audit)
-    generation: u64,
+    /// Generation counter (Q34 audit) - AtomicU64 for lockfree access
+    generation: AtomicU64,
+
+    /// Padding for 64-byte cache line alignment
+    /// Vec<u32> is 24 bytes (ptr + len + cap), so 3 * 24 = 72 bytes
+    /// AtomicU64 is 8 bytes, total = 80 bytes
+    /// Need 64 - (80 % 64) = 64 - 16 = 48 bytes padding for next 64-byte boundary
+    /// But with align(64), we just need to fill to multiple of 64
+    _padding: [u8; 40],
+}
+
+impl Default for GpuBatch {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Clone for GpuBatch {
+    fn clone(&self) -> Self {
+        Self {
+            doc_ids: self.doc_ids.clone(),
+            tokens: self.tokens.clone(),
+            offsets: self.offsets.clone(),
+            generation: AtomicU64::new(self.generation.load(Ordering::Acquire)),
+            _padding: [0; 40],
+        }
+    }
 }
 
 impl GpuBatch {
@@ -190,7 +229,8 @@ impl GpuBatch {
             doc_ids: Vec::new(),
             tokens: Vec::new(),
             offsets: vec![0],
-            generation: 0,
+            generation: AtomicU64::new(0),
+            _padding: [0; 40],
         }
     }
 
@@ -208,7 +248,8 @@ impl GpuBatch {
             doc_ids: Vec::with_capacity(doc_capacity),
             tokens: Vec::with_capacity(token_capacity),
             offsets,
-            generation: 0,
+            generation: AtomicU64::new(0),
+            _padding: [0; 40],
         }
     }
 
@@ -269,13 +310,21 @@ impl GpuBatch {
     }
 
     /// Set generation (Q34 audit)
-    pub fn set_generation(&mut self, gen: u64) {
-        self.generation = gen;
+    ///
+    /// # COCA Compliance
+    ///
+    /// Uses atomic store for lockfree updates.
+    pub fn set_generation(&self, gen: u64) {
+        self.generation.store(gen, Ordering::Release);
     }
 
     /// Get generation (Q34 audit)
+    ///
+    /// # COCA Compliance
+    ///
+    /// Uses atomic load for lockfree reads.
     pub fn generation(&self) -> u64 {
-        self.generation
+        self.generation.load(Ordering::Acquire)
     }
 
     /// Check if batch is ready for GPU
@@ -675,21 +724,45 @@ impl AsyncPipelineState {
 /// 100% lockfree - uses CAS for phase transitions, no Mutex/RwLock.
 /// Buffer access is protected by phase state machine (only one accessor at a time).
 ///
-/// # ASSUM Safety
+/// # ASSUM Safety - UnsafeCell Justification
+///
+/// The UnsafeCell<GpuBatch> usage is safe because of the phase state machine:
+///
+/// - `#ASSUME_PHASE_GUARDS_ACCESS`: Phase state machine (Idle->CpuFilling->GpuProcessing->Swapping)
+///   ensures only one accessor at a time to buffer_a/buffer_b
+/// - `#VERIFY_PHASE_GUARDS_ACCESS`: CAS transitions in transition() prevent concurrent access;
+///   only successful CAS holder can proceed to buffer access
+///
+/// - `#ASSUME_BUFFER_A_EXCLUSIVE`: buffer_a only accessed in CpuFilling phase when active_buffer=1,
+///   or in GpuProcessing phase when active_buffer=0
+/// - `#VERIFY_BUFFER_A_EXCLUSIVE`: filling_buffer() returns buffer_a only when active_buffer=1;
+///   processing_buffer() returns buffer_a only when active_buffer=0
+///
+/// - `#ASSUME_BUFFER_B_EXCLUSIVE`: buffer_b only accessed in CpuFilling phase when active_buffer=0,
+///   or in GpuProcessing phase when active_buffer=1
+/// - `#VERIFY_BUFFER_B_EXCLUSIVE`: filling_buffer() returns buffer_b only when active_buffer=0;
+///   processing_buffer() returns buffer_b only when active_buffer=1
+///
+/// - `#ASSUME_SWAP_ATOMIC`: Buffer swap atomically changes active_buffer index, ensuring
+///   no overlap between filling and processing access to same buffer
+/// - `#VERIFY_SWAP_ATOMIC`: swap_buffers() uses CAS on state which includes active_buffer
 ///
 /// - `#ASSUME_SINGLE_CPU_WRITER`: Only one CPU thread fills at a time
-/// - `#VERIFY_SINGLE_CPU_WRITER`: Phase machine enforces sequential access
+/// - `#VERIFY_SINGLE_CPU_WRITER`: Phase machine enforces CpuFilling -> GpuProcessing transition
+///
 /// - `#ASSUME_SINGLE_GPU_READER`: Only one GPU thread processes at a time
-/// - `#VERIFY_SINGLE_GPU_READER`: Phase machine enforces exclusive access
+/// - `#VERIFY_SINGLE_GPU_READER`: Phase machine enforces exclusive GpuProcessing phase
 #[repr(C, align(128))]
 pub struct AsyncPipelineCoordinator {
     /// Packed state: phase | active_buffer | batch_count | queue_depth | generation
     state: AtomicU64,
 
     /// Double buffer A (accessed during CpuFilling when active_buffer=1)
+    /// SAFETY: Protected by phase state machine - see ASSUM tags above
     buffer_a: std::cell::UnsafeCell<GpuBatch>,
 
     /// Double buffer B (accessed during CpuFilling when active_buffer=0)
+    /// SAFETY: Protected by phase state machine - see ASSUM tags above
     buffer_b: std::cell::UnsafeCell<GpuBatch>,
 
     /// CPU batches filled (metrics)

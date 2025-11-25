@@ -118,17 +118,61 @@ impl<'a> LshBandGpuInput<'a> {
     }
 }
 
-/// Output from GPU LSH band computation
-#[derive(Clone)]
+/// Output from GPU LSH band computation - T7 Heterogeneous Capsule
+///
+/// # COCA Compliance
+///
+/// - Cache-aligned (64 bytes) for optimal memory access
+/// - AtomicU64 for generation counter (Q34 audit trail)
+/// - Lockfree read access to band hash data
+///
+/// # ASSUM Safety
+///
+/// - `#ASSUME_GPU_BUFFER_VALID`: wgpu buffer mapping returns valid data
+/// - `#VERIFY_GPU_BUFFER_VALID`: Error handling on map_async + recv()
+/// - `#ASSUME_BAND_COUNT_5`: Output array sized for NUM_BANDS (5) per document
+/// - `#VERIFY_BAND_COUNT_5`: WGSL shader uses NUM_BANDS = 5
+#[repr(C, align(64))]
 pub struct LshBandGpuOutput {
+    /// Generation counter for Q34 audit trail
+    generation: AtomicU64,
     /// Band hashes: NUM_BANDS × u64 per document
     /// Stored as 2 × u32 pairs: [lo, hi, lo, hi, ...]
     band_hashes_packed: Vec<u32>,
     /// Number of documents processed
-    pub num_docs: u32,
+    num_docs: u32,
+    /// Padding for cache line alignment
+    _padding: [u8; 20],
 }
 
 impl LshBandGpuOutput {
+    /// Create a new LshBandGpuOutput with the given band hashes
+    ///
+    /// # Arguments
+    /// * `band_hashes_packed` - Packed u32 band hashes (2 per band per document)
+    /// * `num_docs` - Number of documents
+    /// * `generation` - Generation counter for Q34 audit
+    pub fn new(band_hashes_packed: Vec<u32>, num_docs: u32, generation: u64) -> Self {
+        Self {
+            generation: AtomicU64::new(generation),
+            band_hashes_packed,
+            num_docs,
+            _padding: [0; 20],
+        }
+    }
+
+    /// Get generation counter (Q34 audit trail)
+    #[inline]
+    pub fn generation(&self) -> u64 {
+        self.generation.load(Ordering::Acquire)
+    }
+
+    /// Get number of documents
+    #[inline]
+    pub fn num_docs(&self) -> u32 {
+        self.num_docs
+    }
+
     /// Get band hashes for document i as [u64; NUM_BANDS]
     ///
     /// # Panics
@@ -173,9 +217,21 @@ impl LshBandGpuOutput {
     }
 }
 
+impl Clone for LshBandGpuOutput {
+    fn clone(&self) -> Self {
+        Self {
+            generation: AtomicU64::new(self.generation.load(Ordering::Acquire)),
+            band_hashes_packed: self.band_hashes_packed.clone(),
+            num_docs: self.num_docs,
+            _padding: [0; 20],
+        }
+    }
+}
+
 impl std::fmt::Debug for LshBandGpuOutput {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LshBandGpuOutput")
+            .field("generation", &self.generation.load(Ordering::Relaxed))
             .field("num_docs", &self.num_docs)
             .field("total_band_hashes", &self.total_band_hashes())
             .finish()
@@ -391,16 +447,17 @@ impl LshBandGpuCapsule {
             .map_err(|_| GpuError::BufferMappingFailed("channel recv failed".to_string()))?
             .map_err(|e| GpuError::BufferMappingFailed(format!("{:?}", e)))?;
 
-        // Read data
+        // #ASSUME_GPU_BUFFER_VALID: Buffer mapping succeeded, data is valid
+        // #VERIFY_GPU_BUFFER_VALID: Error handling above ensures mapping success
         let data = buffer_slice.get_mapped_range();
         let band_hashes_packed: Vec<u32> = bytemuck::cast_slice(&data).to_vec();
         drop(data);
         staging_buffer.unmap();
 
-        Ok(LshBandGpuOutput {
-            band_hashes_packed,
-            num_docs: input.num_docs,
-        })
+        // Increment generation counter for Q34 audit trail
+        let generation = self.state.fetch_add(1, Ordering::AcqRel) + 1;
+
+        Ok(LshBandGpuOutput::new(band_hashes_packed, input.num_docs, generation))
     }
 
     /// Compute using per-document kernel (better for small batches)
@@ -498,15 +555,17 @@ impl LshBandGpuCapsule {
             .map_err(|_| GpuError::BufferMappingFailed("channel recv failed".to_string()))?
             .map_err(|e| GpuError::BufferMappingFailed(format!("{:?}", e)))?;
 
+        // #ASSUME_GPU_BUFFER_VALID: Buffer mapping succeeded, data is valid
+        // #VERIFY_GPU_BUFFER_VALID: Error handling above ensures mapping success
         let data = buffer_slice.get_mapped_range();
         let band_hashes_packed: Vec<u32> = bytemuck::cast_slice(&data).to_vec();
         drop(data);
         staging_buffer.unmap();
 
-        Ok(LshBandGpuOutput {
-            band_hashes_packed,
-            num_docs: input.num_docs,
-        })
+        // Increment generation counter for Q34 audit trail
+        let generation = self.state.fetch_add(1, Ordering::AcqRel) + 1;
+
+        Ok(LshBandGpuOutput::new(band_hashes_packed, input.num_docs, generation))
     }
 
     /// Check if kernel is ready for compute
@@ -681,13 +740,13 @@ mod tests {
         packed[0] = 1; // lo
         packed[1] = 1; // hi
 
-        let output = LshBandGpuOutput {
-            band_hashes_packed: packed,
-            num_docs: 2,
-        };
+        let output = LshBandGpuOutput::new(packed, 2, 42);
 
         let hashes = output.get_band_hashes(0);
         assert_eq!(hashes[0], 0x0000000100000001);
+
+        // Verify generation counter
+        assert_eq!(output.generation(), 42);
     }
 
     // =========================================================================

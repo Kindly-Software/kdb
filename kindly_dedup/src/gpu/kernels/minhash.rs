@@ -133,16 +133,66 @@ impl<'a> MinHashGpuInput<'a> {
     }
 }
 
-/// Output from GPU MinHash computation
-#[derive(Clone)]
+/// Output from GPU MinHash computation - T7 Heterogeneous Capsule
+///
+/// # COCA Compliance
+///
+/// - Cache-aligned (64 bytes) for optimal memory access
+/// - AtomicU64 for generation counter (Q34 audit trail)
+/// - Lockfree read access to signature data
+///
+/// # ASSUM Safety
+///
+/// - `#ASSUME_GPU_BUFFER_VALID`: wgpu buffer mapping returns valid data
+/// - `#VERIFY_GPU_BUFFER_VALID`: Error handling on map_async + recv()
+/// - `#ASSUME_SIGNATURE_SIZE_128`: Output array sized for 128 u16 per document
+/// - `#VERIFY_SIGNATURE_SIZE_128`: WGSL shader uses SIGNATURE_SIZE = 128
+#[repr(C, align(64))]
 pub struct MinHashGpuOutput {
+    /// Generation counter for Q34 audit trail
+    generation: AtomicU64,
     /// Signatures: 64 u32 per document (128 u16 packed)
-    pub signatures: Vec<u32>,
+    signatures: Vec<u32>,
     /// Number of documents processed
-    pub num_docs: u32,
+    num_docs: u32,
+    /// Padding for cache line alignment
+    _padding: [u8; 20],
 }
 
 impl MinHashGpuOutput {
+    /// Create a new MinHashGpuOutput with the given signatures
+    ///
+    /// # Arguments
+    /// * `signatures` - Packed u32 signatures (64 per document)
+    /// * `num_docs` - Number of documents
+    /// * `generation` - Generation counter for Q34 audit
+    pub fn new(signatures: Vec<u32>, num_docs: u32, generation: u64) -> Self {
+        Self {
+            generation: AtomicU64::new(generation),
+            signatures,
+            num_docs,
+            _padding: [0; 20],
+        }
+    }
+
+    /// Get generation counter (Q34 audit trail)
+    #[inline]
+    pub fn generation(&self) -> u64 {
+        self.generation.load(Ordering::Acquire)
+    }
+
+    /// Get number of documents
+    #[inline]
+    pub fn num_docs(&self) -> u32 {
+        self.num_docs
+    }
+
+    /// Get raw signatures slice
+    #[inline]
+    pub fn signatures(&self) -> &[u32] {
+        &self.signatures
+    }
+
     /// Get signature for document i as [u16; 128]
     ///
     /// # Panics
@@ -193,9 +243,21 @@ impl MinHashGpuOutput {
     }
 }
 
+impl Clone for MinHashGpuOutput {
+    fn clone(&self) -> Self {
+        Self {
+            generation: AtomicU64::new(self.generation.load(Ordering::Acquire)),
+            signatures: self.signatures.clone(),
+            num_docs: self.num_docs,
+            _padding: [0; 20],
+        }
+    }
+}
+
 impl std::fmt::Debug for MinHashGpuOutput {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MinHashGpuOutput")
+            .field("generation", &self.generation.load(Ordering::Relaxed))
             .field("num_docs", &self.num_docs)
             .field("signatures_len", &self.signatures.len())
             .finish()
@@ -429,16 +491,17 @@ impl MinHashGpuCapsule {
             .map_err(|_| GpuError::BufferMappingFailed("channel recv failed".to_string()))?
             .map_err(|e| GpuError::BufferMappingFailed(format!("{:?}", e)))?;
 
-        // Read data
+        // #ASSUME_GPU_BUFFER_VALID: Buffer mapping succeeded, data is valid
+        // #VERIFY_GPU_BUFFER_VALID: Error handling above ensures mapping success
         let data = buffer_slice.get_mapped_range();
         let signatures: Vec<u32> = bytemuck::cast_slice(&data).to_vec();
         drop(data);
         staging_buffer.unmap();
 
-        Ok(MinHashGpuOutput {
-            signatures,
-            num_docs: input.num_docs,
-        })
+        // Increment generation counter for Q34 audit trail
+        let generation = self.state.fetch_add(1, Ordering::AcqRel) + 1;
+
+        Ok(MinHashGpuOutput::new(signatures, input.num_docs, generation))
     }
 
     /// Generate 128 deterministic seeds for hash permutations
@@ -601,10 +664,7 @@ mod tests {
             signatures[i] = 3 | (4 << 16);
         }
 
-        let output = MinHashGpuOutput {
-            signatures,
-            num_docs: 2,
-        };
+        let output = MinHashGpuOutput::new(signatures, 2, 0);
 
         let sig0 = output.get_signature(0);
         let sig1 = output.get_signature(1);
@@ -616,6 +676,9 @@ mod tests {
         // Check doc 1
         assert!(sig1.iter().step_by(2).all(|&x| x == 3));
         assert!(sig1.iter().skip(1).step_by(2).all(|&x| x == 4));
+
+        // Verify generation counter
+        assert_eq!(output.generation(), 0);
     }
 
     #[test]
@@ -627,14 +690,14 @@ mod tests {
             signatures[64 + i] = i as u32; // Doc 1 (same)
         }
 
-        let output = MinHashGpuOutput {
-            signatures,
-            num_docs: 2,
-        };
+        let output = MinHashGpuOutput::new(signatures, 2, 42);
 
         // Identical signatures should have similarity 1.0
         assert_eq!(output.jaccard_similarity(0, 1), 1.0);
         assert_eq!(output.jaccard_similarity(0, 0), 1.0);
+
+        // Verify generation counter
+        assert_eq!(output.generation(), 42);
     }
 
     // =========================================================================
