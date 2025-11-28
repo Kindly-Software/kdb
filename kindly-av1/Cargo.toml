@@ -1,0 +1,141 @@
+[package]
+name = "kindly-av1"
+version = "1.0.0"
+edition = "2021"
+authors = ["Kindly <support@kindly.dev>"]
+description = "GPU-Accelerated AV1 Video Encoder - World's Fastest Lockfree Encoder"
+license = "Proprietary"
+repository = ""
+keywords = ["av1", "video", "encoder", "gpu", "rocm"]
+categories = ["multimedia::video", "command-line-utilities"]
+
+[dependencies]
+atomic_capsule = { path = "../atomic_capsule", features = [
+    "std", "native", "nightly", "derive", "encoder", "encoder-cdef",
+    "portable_simd", "nightly-atomic", "simd-native", "encoder-metacapsule",
+    # Video decoder features (H.264, VP9, AV1)
+    "decoder-h264", "decoder-vp9", "decoder-av1",
+    # Container demuxer features (MP4, MKV/WebM)
+    "demux-mp4", "demux-mkv",
+    # Q34 audit trail support (hex encoding, BLAKE3)
+    "audit-q34"
+] }
+blake3 = "1.5"
+sha2 = "0.10"
+dirs = "5.0"
+ed25519-dalek = { version = "2.1", features = ["std"] }
+hex = "0.4"
+
+# Vulkan GPU acceleration (optional)
+ash = { version = "0.38", optional = true }
+gpu-allocator = { version = "0.27", optional = true, default-features = false, features = ["vulkan"] }
+
+# wgpu cross-platform GPU acceleration (optional)
+# Supports: Vulkan (Linux/Windows), Metal (macOS/iOS), DX12 (Windows), WebGPU
+wgpu = { version = "23.0", optional = true }
+bytemuck = { version = "1.14", optional = true, features = ["derive"] }
+pollster = { version = "0.4", optional = true }
+
+[build-dependencies]
+shaderc = "0.8"
+
+[dependencies.crossterm]
+version = "0.27"
+optional = true
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.4"
+
+[features]
+default = ["std", "bounds-checking"]
+std = ["atomic_capsule/std"]
+
+# Bounds checking feature (enables runtime bounds validation)
+# Disable for maximum performance in production after thorough testing
+bounds-checking = []
+
+# Interactive CLI dashboard with keyboard controls
+# When disabled, dashboard is display-only (no user input)
+# Priority: cli-kindly-term (COCA compliant, 100% lockfree) > cli-crossterm (deprecated)
+cli-interactive = ["cli-kindly-term"]
+
+# Kindly-term: COCA-compliant terminal via atomic_capsule::terminal
+# 100% lockfree, <100ns event poll, T6 Metacapsule orchestration
+# Requires: tui-terminal (module export) + terminal-full (all subfeatures)
+cli-kindly-term = ["atomic_capsule/tui-terminal", "atomic_capsule/terminal-full"]
+
+# Legacy crossterm support (DEPRECATED - use cli-kindly-term instead)
+# Retained for backward compatibility only
+cli-crossterm = ["dep:crossterm"]
+
+# GPU acceleration features (atomic_capsule kgpu infrastructure)
+# ROCm: AMD GPU acceleration via HIP (Linux only, 100-500x speedup)
+gpu-rocm = ["atomic_capsule/gpu-rocm"]
+# CUDA: NVIDIA GPU acceleration (kindly-hub RTX 3080, CUDA 13.0, 100-1000x speedup)
+gpu-cuda = ["atomic_capsule/gpu-cuda"]
+# Intel: Intel GPU driver primitives (i915, Iris Xe, 10-50x speedup)
+gpu-intel = ["atomic_capsule/gpu-intel"]
+# All GPU backends (auto-detect at runtime)
+gpu-all = ["atomic_capsule/gpu-all"]
+# Vulkan: Cross-platform GPU acceleration (50-200x speedup)
+gpu-vulkan = ["dep:ash", "dep:gpu-allocator", "dep:bytemuck"]
+# wgpu: Cross-platform GPU compute via WebGPU (Vulkan/Metal/DX12/WebGPU)
+# Best choice for cross-platform benchmarking (NVIDIA, AMD, Intel Arc)
+gpu-wgpu = ["dep:wgpu", "dep:bytemuck", "dep:pollster"]
+
+# KGPU-Driver: Pure Rust GPU Driver Stack (replaces Mesa/Vulkan)
+# Use for direct GPU access without external dependencies
+kgpu-driver = ["atomic_capsule/kgpu-driver"]
+kgpu-driver-nvidia = ["atomic_capsule/kgpu-driver-nvidia"]
+kgpu-driver-amd = ["atomic_capsule/kgpu-driver-amd"]
+kgpu-driver-all = ["atomic_capsule/kgpu-driver-all"]
+
+# Combined GPU feature (enables CUDA for kindly-hub benchmarking)
+gpu = ["gpu-cuda"]
+
+# OBS Studio Integration (Three-Phase Architecture)
+# Phase 1: Text file output for OBS Text (GDI+) source
+# Phase 2: HTTP overlay server with WebSocket push for browser sources
+# Phase 3: OBS WebSocket client for direct control and scene automation
+obs-status = []  # Phase 1: Text file output (~1s latency, universal compatibility)
+obs-overlay = []  # Phase 2: HTTP server + WebSocket (pure std::net implementation)
+obs-websocket = []  # Phase 3: OBS WebSocket Protocol 5.0 client (pure std::net)
+obs-all = ["obs-status", "obs-overlay", "obs-websocket"]  # All OBS features
+
+[lib]
+name = "kindly_av1"
+path = "src/lib.rs"
+
+[[bin]]
+name = "kindly-av1"
+path = "src/main.rs"
+
+[[bin]]
+name = "generate_fixtures"
+path = "tests/generate_fixtures.rs"
+
+[[bench]]
+name = "gpu_motion_bench"
+harness = false
+
+[[bench]]
+name = "gpu_stress_bench"
+harness = false
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+opt-level = 3
+
+[profile.bench]
+# Note: panic = "abort" required to match atomic_capsule dependency
+# Criterion works fine with abort - isolation not needed for benchmarks
+panic = "abort"
+
+[profile.release-with-debug]
+inherits = "release"
+debug = true
+strip = "none"
