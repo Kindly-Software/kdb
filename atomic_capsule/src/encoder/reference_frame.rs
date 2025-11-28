@@ -193,7 +193,7 @@ impl ReferenceFrameCapsule {
                     .is_ok()
                 {
                     self.update_dpb_occupancy(1);
-                    return Some(slot);
+                    return Some(slot as u8);
                 }
             }
         }

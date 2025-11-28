@@ -58,11 +58,13 @@ pub mod tile_coordinator;
 pub mod dct_transform;
 pub mod obu_bitstream;
 pub mod entropy_coder;
-pub mod gop_coordinator;
+// Phase 2 placeholder - file not yet implemented
+// pub mod gop_coordinator;
 pub mod reference_frame;
 
-#[cfg(feature = "encoder")]
-pub mod superresolution;
+// Phase 2 placeholder - file not yet implemented
+// #[cfg(feature = "encoder")]
+// pub mod superresolution;
 
 #[cfg(feature = "portable_simd")]
 pub mod intra_prediction;
@@ -70,18 +72,19 @@ pub mod intra_prediction;
 #[cfg(feature = "portable_simd")]
 pub mod loop_filter;
 
+// Phase 2 placeholders - files not yet implemented
 // Loop Restoration Filter (T2 SIMD, 256B)
-pub mod lrf;
+// pub mod lrf;
 
-#[cfg(feature = "nightly-simd")]
-pub mod motion_estimation;
+// #[cfg(feature = "nightly-simd")]
+// pub mod motion_estimation;
 
-pub mod temporal_rdo;
-pub mod lookahead;
+// pub mod temporal_rdo;
+// pub mod lookahead;
 
 // Film Grain Synthesis (T2 SIMD, 256B)
-#[cfg(feature = "encoder")]
-pub mod film_grain;
+// #[cfg(feature = "encoder")]
+// pub mod film_grain;
 
 pub use frame_buffer::FrameBufferCapsule;
 pub use reference_frame::{ReferenceFrameCapsule, ReferenceType};
@@ -91,7 +94,8 @@ pub use tile_coordinator::{TileCoordinatorCapsule, TileStatus};
 pub use dct_transform::DctTransformCapsule;
 pub use obu_bitstream::{ObuBitstreamWriterCapsule, ObuType, FrameType};
 pub use entropy_coder::EntropyCoderCapsule;
-pub use gop_coordinator::{GopCoordinatorCapsule, FrameType as GopFrameType};
+// Phase 2 placeholder - not yet implemented
+// pub use gop_coordinator::{GopCoordinatorCapsule, FrameType as GopFrameType};
 
 #[cfg(feature = "portable_simd")]
 pub use intra_prediction::{IntraPredictionCapsule, IntraMode};
@@ -99,24 +103,25 @@ pub use intra_prediction::{IntraPredictionCapsule, IntraMode};
 #[cfg(feature = "portable_simd")]
 pub use loop_filter::{LoopFilterCapsule, FilterType, EdgeType};
 
-pub use lrf::{LrfCapsule, RestorationFilter};
+// Phase 2 placeholders - not yet implemented
+// pub use lrf::{LrfCapsule, RestorationFilter};
 
-#[cfg(feature = "nightly-simd")]
-pub use motion_estimation::{MotionEstimationCapsule, MotionVector, SearchType, SubPixelMode};
+// #[cfg(feature = "nightly-simd")]
+// pub use motion_estimation::{MotionEstimationCapsule, MotionVector, SearchType, SubPixelMode};
 
-pub use temporal_rdo::{TemporalRDOCapsule, Candidate, MotionVector as RdoMotionVector};
+// pub use temporal_rdo::{TemporalRDOCapsule, Candidate, MotionVector as RdoMotionVector};
 
-pub use lookahead::{
-    LookaheadCapsule, FrameAnalysis, LookaheadError,
-    MAX_LOOKAHEAD_FRAMES, HISTOGRAM_BINS,
-    SCENE_CHANGE_THRESHOLD, HIGH_COMPLEXITY_THRESHOLD,
-};
+// pub use lookahead::{
+//     LookaheadCapsule, FrameAnalysis, LookaheadError,
+//     MAX_LOOKAHEAD_FRAMES, HISTOGRAM_BINS,
+//     SCENE_CHANGE_THRESHOLD, HIGH_COMPLEXITY_THRESHOLD,
+// };
 
-#[cfg(feature = "encoder")]
-pub use superresolution::SuperresolutionCapsule;
+// #[cfg(feature = "encoder")]
+// pub use superresolution::SuperresolutionCapsule;
 
-#[cfg(feature = "encoder")]
-pub use film_grain::{FilmGrainCapsule, ScalingPoint};
+// #[cfg(feature = "encoder")]
+// pub use film_grain::{FilmGrainCapsule, ScalingPoint};
 
 /// AV1 encoder formats
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

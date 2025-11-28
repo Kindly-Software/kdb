@@ -181,9 +181,9 @@ pub struct EntropyCoderCapsule {
     /// Stores the entropy-coded output. Each AtomicU64 holds 8 bytes of compressed data.
     ///
     /// # ASSUM Tags
-    /// - `#ASSUME_OUTPUT_BOUNDED`: Max 128 bytes output per tile
-    /// - `#VERIFY_OUTPUT_SIZE`: assert!(offset < 128) before writes
-    output_buffer: [AtomicU64; 16], // 16 × 8 bytes = 128 bytes
+    /// - `#ASSUME_OUTPUT_BOUNDED`: Max 112 bytes output per tile
+    /// - `#VERIFY_OUTPUT_SIZE`: assert!(offset < 112) before writes
+    output_buffer: [AtomicU64; 14], // 14 × 8 bytes = 112 bytes
 
     /// Probability table (16 CDFs, 9-bit precision)
     ///
@@ -193,7 +193,7 @@ pub struct EntropyCoderCapsule {
     /// # ASSUM Tags
     /// - `#ASSUME_CDF_SORTED`: CDF[i] <= CDF[i+1] (monotonically increasing)
     /// - `#VERIFY_CDF_MONOTONIC`: Enforced in update_probability()
-    probability_table: [AtomicU64; 16], // 16 × 8 bytes = 128 bytes
+    probability_table: [AtomicU64; 14], // 14 × 8 bytes = 112 bytes
 
     /// Padding to 256 bytes (256 - 8 - 8 - 8 - 128 - 128 = -80, need 80 bytes padding)
     ///

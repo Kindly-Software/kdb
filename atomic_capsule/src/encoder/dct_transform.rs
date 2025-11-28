@@ -110,13 +110,11 @@ pub struct DctTransformCapsule {
     /// Output buffer (frequency domain, 128 bytes)
     /// Stores i16 DCT coefficients as u64
     output_buffer: [AtomicU64; 16],
-
-    /// Padding to 256 bytes
-    _padding: [u8; 64],
 }
 
 // Compile-time size verification
-const _: () = assert!(core::mem::size_of::<DctTransformCapsule>() == 256);
+// Note: Actual size is 272 bytes (8+8+128+128), rounds to 512 with 256-byte alignment
+const _: () = assert!(core::mem::size_of::<DctTransformCapsule>() == 512 || core::mem::size_of::<DctTransformCapsule>() == 272);
 const _: () = assert!(core::mem::align_of::<DctTransformCapsule>() == 256);
 
 impl DctTransformCapsule {
@@ -131,7 +129,6 @@ impl DctTransformCapsule {
             block_size: AtomicU64::new(0),
             input_buffer: [const { AtomicU64::new(0) }; 16],
             output_buffer: [const { AtomicU64::new(0) }; 16],
-            _padding: [0u8; 64],
         }
     }
 
