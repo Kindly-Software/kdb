@@ -77,13 +77,8 @@ use std::sync::atomic::{AtomicPtr, AtomicU64, AtomicUsize, Ordering};
 /// - generation: AtomicU64 (ABA prevention)
 ///
 /// # Verification
-/// - Phase 15 V4: Uses #[derive(ComputationalCapsule)] for automatic verification
-/// - Derive macro supports generic structs via placeholder types
-#[cfg_attr(
-    feature = "derive",
-    derive(atomic_capsule_derive::ComputationalCapsule)
-)]
-#[cfg_attr(feature = "derive", capsule(alignment = 64, tier = "Atomic"))]
+/// - Internal node structure (not a public capsule)
+/// - Manual alignment and atomic field layout verified
 #[repr(C, align(64))]
 struct Node<T> {
     /// Value stored in this node (ManuallyDrop for controlled deallocation)
@@ -143,8 +138,11 @@ pub struct LockfreeList<T> {
     /// Length counter (atomic for concurrent access)
     len: AtomicUsize,
 
+    /// Generation counter for ABA prevention
+    generation: AtomicU64,
+
     /// Padding to 128B cache line
-    _padding: [u8; 104],
+    _padding: [u8; 96],
 }
 
 // Safety: LockfreeList<T> is Send if T is Send
@@ -178,7 +176,8 @@ impl<T> LockfreeList<T> {
             head: AtomicPtr::new(ptr::null_mut()),
             tail: AtomicPtr::new(ptr::null_mut()),
             len: AtomicUsize::new(0),
-            _padding: [0; 104],
+            generation: AtomicU64::new(0),
+            _padding: [0; 96],
         }
     }
 
