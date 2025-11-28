@@ -51,17 +51,13 @@ pub mod obs;
 // Re-export common types from CLI module (legacy API)
 pub use cli::legacy::{EncodeArgs, EncodingPreset, GpuBackend};
 
-// Re-export key capsule types
-// NOTE: Encoder functionality integrated into atomic_capsule crate
-// pub use encoder::{
-//     KindlyAv1CliMetacapsule,
-//     GpuMotionEstimationCapsule,
-//     GpuMotionBackend,
-//     GpuMotionError,
-//     GpuMotionStats,
-//     MotionVector as Av1MotionVector,
-//     SearchAlgorithm,
-// };
+// Re-export key capsule types from encoder module
+pub use encoder::{
+    EncoderConfig,
+    EncoderWiringCapsule,
+    KindlyAv1CliMetacapsule,
+    EncoderSubCapsules,
+};
 pub use license::LicenseVerificationCapsule;
 pub use checkpoint::EncoderCheckpointCapsule;
 pub use progress::ProgressCapsule;

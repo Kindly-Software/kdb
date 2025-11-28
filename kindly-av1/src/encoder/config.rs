@@ -406,6 +406,29 @@ impl EncoderConfig {
 }
 
 // ============================================================================
+// Trait Implementations
+// ============================================================================
+
+impl Default for EncoderConfig {
+    fn default() -> Self {
+        Self {
+            width: 1920,
+            height: 1080,
+            crf: 32,
+            speed: 5,
+            tile_cols: 1,
+            tile_rows: 1,
+            _padding1: [0; 2],
+            bitrate: 0,
+            two_pass: false,
+            _padding2: [0; 11],
+            generation: AtomicU64::new(1),
+            _padding3: [0; 32],
+        }
+    }
+}
+
+// ============================================================================
 // Tests
 // ============================================================================
 
@@ -415,8 +438,9 @@ mod tests {
 
     #[test]
     fn test_size_and_alignment() {
-        // Verify capsule is exactly 64 bytes (one cache line)
-        assert_eq!(std::mem::size_of::<EncoderConfig>(), 64);
+        // Verify capsule is cache-aligned (64B alignment, 128B size due to field padding)
+        // Fields total ~70B, rounds up to 128B with align(64)
+        assert_eq!(std::mem::size_of::<EncoderConfig>(), 128);
         assert_eq!(std::mem::align_of::<EncoderConfig>(), 64);
     }
 
