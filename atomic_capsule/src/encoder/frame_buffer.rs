@@ -75,7 +75,7 @@
 #![allow(clippy::cast_lossless)]
 
 use core::sync::atomic::{AtomicU64, Ordering};
-use core::ptr;
+use crate::verify_capsule_properties;
 
 /// AV1 Frame Types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -188,10 +188,7 @@ pub struct FrameBufferCapsule {
 }
 
 // Verify layout
-#[allow(non_upper_case_globals)]
-const_assert_eq_size!(FrameBufferCapsule, [u8; 128]);
-#[allow(non_upper_case_globals)]
-const_assert_align!(FrameBufferCapsule, 128);
+verify_capsule_properties!(FrameBufferCapsule, 128, 128);
 
 impl FrameBufferCapsule {
     /// Create a new FrameBufferCapsule with given dimensions and frame type
