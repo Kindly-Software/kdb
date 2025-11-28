@@ -158,6 +158,8 @@ fn panic(_info: &core::panic::PanicInfo<'_>) -> ! {
 pub mod alignment;
 pub mod arch;
 pub mod retry;
+#[cfg(feature = "los")]
+pub mod los;
 
 // Compile-time verification macros (Q30 Empirical Validation)
 // Note: Macros are exported at crate root due to #[macro_export]
