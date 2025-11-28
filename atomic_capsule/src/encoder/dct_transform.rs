@@ -21,7 +21,7 @@ use core::sync::atomic::{AtomicU64, Ordering};
 use core::arch::x86_64::*;
 
 #[cfg(feature = "portable_simd")]
-use core::simd::{f32x8, SimdFloat};
+use core::simd::f32x8;
 
 /// Transform type selection for AV1 codec
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
