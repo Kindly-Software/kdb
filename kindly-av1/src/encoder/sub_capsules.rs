@@ -91,31 +91,38 @@ pub struct EncoderSubCapsules {
 }
 
 impl EncoderSubCapsules {
-    /// Create new EncoderSubCapsules with initialized sub-capsules
-    ///
-    /// # Arguments
-    /// * `width` - Video frame width in pixels
-    /// * `height` - Video frame height in pixels
-    /// * `fps` - Frames per second (e.g., 30, 60)
-    /// * `bitrate` - Target bitrate in bits/sec
-    /// * `quality` - Quality level (0-63, lower is better)
+    /// Create new EncoderSubCapsules with default initialized sub-capsules
     ///
     /// # Returns
-    /// Initialized EncoderSubCapsules with all sub-capsules ready
+    /// Initialized EncoderSubCapsules with all sub-capsules using defaults
     ///
     /// # Examples
     /// ```rust,no_run
-    /// let subs = EncoderSubCapsules::new(1920, 1080, 30, 5_000_000, 35);
+    /// use kindly_av1::encoder::EncoderSubCapsules;
+    /// let subs = EncoderSubCapsules::new();
     /// ```
-    pub fn new(width: u32, height: u32, fps: u32, bitrate: u64, quality: u8) -> Self {
+    pub fn new() -> Self {
+        use atomic_capsule::encoder::SpeedPreset;
+        use atomic_capsule::encoder::QualityMode;
+        use atomic_capsule::encoder::frame_buffer::FrameType;
+
         Self {
             generation: AtomicU64::new(0),
-            state: Box::new(EncoderStateCapsule::new(width, height, fps, bitrate, quality)),
-            frame_buffer: Box::new(FrameBufferCapsule::new(width, height)),
-            quantizer: Box::new(QuantizationCapsule::new(quality)),
+            // EncoderStateCapsule::new(width, height, speed, quality)
+            state: Box::new(EncoderStateCapsule::new(
+                1920,
+                1080,
+                SpeedPreset::Medium,
+                QualityMode::ConstantQuality,
+            )),
+            // FrameBufferCapsule::new(width, height, frame_type)
+            frame_buffer: Box::new(FrameBufferCapsule::new(1920, 1080, FrameType::Key)),
+            // QuantizationCapsule::new(quantizer_index)
+            quantizer: Box::new(QuantizationCapsule::new(28)),
             dct: Box::new(DctTransformCapsule::new()),
             entropy: Box::new(EntropyCoderCapsule::new()),
-            tile_coord: Box::new(TileCoordinatorCapsule::new(width, height)),
+            // TileCoordinatorCapsule::new(num_cols, num_rows)
+            tile_coord: Box::new(TileCoordinatorCapsule::new(1, 1)),
             bitstream: Box::new(ObuBitstreamWriterCapsule::new()),
             ref_frames: Box::new(ReferenceFrameCapsule::new()),
             _padding: [0u8; 184],
@@ -263,13 +270,13 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let subs = EncoderSubCapsules::new(1920, 1080, 30, 5_000_000, 35);
+        let subs = EncoderSubCapsules::new();
         assert_eq!(subs.generation(), 0, "Initial generation should be 0");
     }
 
     #[test]
     fn test_generation_counter() {
-        let subs = EncoderSubCapsules::new(1920, 1080, 30, 5_000_000, 35);
+        let subs = EncoderSubCapsules::new();
         assert_eq!(subs.generation(), 0);
 
         subs.increment_generation();
@@ -281,7 +288,7 @@ mod tests {
 
     #[test]
     fn test_accessor_methods() {
-        let mut subs = EncoderSubCapsules::new(1920, 1080, 30, 5_000_000, 35);
+        let mut subs = EncoderSubCapsules::new();
 
         // Test immutable access
         let _state = subs.state();
