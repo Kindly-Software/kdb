@@ -207,6 +207,6 @@ mod tests {
         // Verify enum types compile
         let _ = FrameType::KeyFrame;
         let _ = SpeedPreset::Medium;
-        let _ = QualityMode::Quality;
+        let _ = QualityMode::ConstantQuality;
     }
 }
