@@ -345,7 +345,10 @@ impl IntraPredictionCapsule {
         // #VERIFY_BLOCK_SIZE_4X4: Validated by caller, documented in function contract
         assert!(width == 4 && height == 4, "Block size must be 4×4");
 
-        self.predict_internal(mode, angle_delta, 4, 4)
+        let result = self.predict_internal(mode, angle_delta, 4, 4);
+        let mut output = [0u8; 16];
+        output.copy_from_slice(&result[..16]);
+        output
     }
 
     /// Predict 8×8 block (SIMD optimized)
