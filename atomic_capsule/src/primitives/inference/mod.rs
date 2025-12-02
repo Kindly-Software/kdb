@@ -10,6 +10,9 @@
 //! - **SIMDMatMulCapsule** (T2+T4): Vectorized matrix multiplication with batch processing
 //! - **FlashAttentionCapsule** (T2+T5): Memory-efficient attention with L1 cache blocking
 //! - **QuantizationCapsule** (T3): INT8/INT16 quantization with fixed-point arithmetic
+//! - **SimdQ16x8Capsule** (T2+T3): Deterministic SIMD quantization with Q16.16 fixed-point
+//! - **Q4KMSuperBlockCapsule** (T3+T4): GGUF-compatible 4-bit quantization for LLM inference
+//! - **GgufParserCapsule** (T6): GGUF file parser with mmap support (T0+T1+T5+T9)
 //!
 //! ## UCE34 Framework Application
 //!
@@ -125,17 +128,50 @@
 //! - **Documentation**: Complete API docs with examples
 //! - **Performance**: Validated against scalar baselines with statistical rigor
 
+pub mod deterministic_quant;
 pub mod flash_attention;
+pub mod gguf_parser;
+pub mod gigameta_weight;
+pub mod q4_k_m;
 pub mod quantization;
+pub mod ram_cache;
 pub mod simd_matmul;
+pub mod ssd_loader;
+pub mod vram_cache;
+pub mod weight_audit;
 
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 pub mod quantization_avx2;
 
+// T28 Q29-Q35 Determinism Tests
+#[cfg(test)]
+mod determinism_tests;
+
 // Re-export capsule types
+pub use deterministic_quant::{Q16_16, SimdQ16x8Capsule};
 pub use flash_attention::FlashAttentionCapsule;
+pub use gigameta_weight::{
+    CacheMetrics, GigaMetaConfig, GigaMetaError, GigaMetaPhase, GigaMetaSnapshot,
+    GigaMetaWeightCapsule, TierMetrics, WeightBlock,
+};
+pub use q4_k_m::{Q4KMSuperBlockCapsule, Q4KMTensor, Q8_8};
 pub use quantization::QuantizationCapsule;
+pub use ram_cache::{
+    RamCacheCapsule, RamCacheError, RamCacheMetrics, RamCachePhase, RamCacheSnapshot,
+};
 pub use simd_matmul::SIMDMatMulCapsule;
+pub use ssd_loader::{
+    SsdLoaderCapsule, SsdLoaderError, SsdLoaderMetrics, SsdLoaderPhase, SsdLoaderSnapshot,
+};
+pub use vram_cache::{VramCacheCapsule, VramCacheError, VramCacheMetrics, VramCacheSnapshot};
+pub use weight_audit::{
+    fnv1a_hash, WeightAuditCapsule, WeightAuditError, WeightAuditMetrics, WeightAuditSnapshot,
+};
+pub use gguf_parser::{
+    GgufParserCapsule, GgufError, GgufHeader, GgufMetrics, GgufPhase, GgufSnapshot,
+    GgmlType, GgufMetadataType, TensorInfo, GGUF_MAGIC, GGUF_VERSION,
+    fnv1a_hash as gguf_fnv1a_hash,
+};
 
 #[cfg(all(target_arch = "x86_64", target_feature = "avx2"))]
 pub use quantization_avx2::Avx2QuantizerQ88;

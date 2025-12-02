@@ -50,6 +50,65 @@ pub mod matmul;
 // #[cfg(feature = "inference-quantization")]
 // pub mod quantization;
 
+// KV-cache compression module (T2+T10 SIMD + Probabilistic)
+#[cfg(feature = "inference-kv-cache-compression")]
+pub mod kv_cache_compression;
+
+// Learned codebook module (T0+T10 Auditable + Probabilistic)
+#[cfg(feature = "inference-learned-codebook")]
+pub mod learned_codebook;
+
+// Multi-token prediction module (T5 Streaming)
+#[cfg(feature = "inference-multi-token-prediction")]
+pub mod multi_token_prediction;
+
+// Speculative draft module (T1+T5 Atomic + Streaming)
+#[cfg(feature = "inference-speculative-draft")]
+pub mod speculative_draft;
+
+// Prefetch scheduler module (T4+T5 Batch + Streaming)
+#[cfg(feature = "inference-prefetch-scheduler")]
+pub mod prefetch_scheduler;
+
+// LLM inference metacapsule (T6 Mixed tier orchestrator)
+#[cfg(feature = "inference-llm-metacapsule")]
+pub mod llm_inference_metacapsule;
+
 // Re-export matmul types
 #[cfg(feature = "inference-matmul")]
 pub use matmul::MatMulCapsule;
+
+// Re-export kv-cache-compression types
+#[cfg(feature = "inference-kv-cache-compression")]
+pub use kv_cache_compression::{
+    CompressedKV, CompressionType, KVCacheCompressionCapsule,
+};
+
+// Re-export learned-codebook types
+#[cfg(feature = "inference-learned-codebook")]
+pub use learned_codebook::{CodebookError, LearnedCodebookCapsule};
+
+// Re-export multi-token-prediction types
+#[cfg(feature = "inference-multi-token-prediction")]
+pub use multi_token_prediction::{
+    MultiTokenPredictionCapsule, PredictionResult, MtpStatistics, MtpError,
+};
+
+// Re-export speculative-draft types
+#[cfg(feature = "inference-speculative-draft")]
+pub use speculative_draft::{
+    AcceptanceStats, DraftError, RejectionReason, SpeculativeDraftCapsule, VerifyResult,
+};
+
+// Re-export prefetch-scheduler types
+#[cfg(feature = "inference-prefetch-scheduler")]
+pub use prefetch_scheduler::{
+    PrefetchError, PrefetchRequest, PrefetchSchedulerCapsule, PrefetchStatistics, PrefetchType,
+};
+
+// Re-export llm-inference-metacapsule types
+#[cfg(feature = "inference-llm-metacapsule")]
+pub use llm_inference_metacapsule::{
+    CompressionFlags, GenerateResult, GenerationConfig, InferenceMode, InferenceStatistics,
+    LLMInferenceMetacapsule, Phase,
+};
