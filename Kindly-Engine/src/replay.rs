@@ -929,6 +929,72 @@ pub fn battle_ai_series(events: &[(u64, ReplayRecord)]) -> Vec<(u64, u16, u16, O
         .collect()
 }
 
+/// Extract strategic ownership/repair events: (tick, kind, province_id, primary, secondary).
+pub fn strategic_series(
+    events: &[(u64, ReplayRecord)],
+) -> Vec<(u64, StrategicEventKind, u16, u16, u16)> {
+    events
+        .iter()
+        .filter_map(|(tick, rec)| match rec {
+            ReplayRecord::Strategic {
+                kind,
+                province_id,
+                primary,
+                secondary,
+            } => Some((*tick, *kind, *province_id, *primary, *secondary)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Extract applied command delays: (tick, count, avg_delay_ticks).
+pub fn command_delay_applied_series(events: &[(u64, ReplayRecord)]) -> Vec<(u64, u16, u16)> {
+    events
+        .iter()
+        .filter_map(|(tick, rec)| match rec {
+            ReplayRecord::CommandDelayApplied {
+                count,
+                avg_delay_ticks,
+            } => Some((*tick, *count, *avg_delay_ticks)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Extract command delay histogram chunks: (tick, chunk_idx, [b0,b1,b2,b3]).
+pub fn command_delay_hist_series(
+    events: &[(u64, ReplayRecord)],
+) -> Vec<(u64, u8, [u16; 4])> {
+    events
+        .iter()
+        .filter_map(|(tick, rec)| match rec {
+            ReplayRecord::CommandHistogram {
+                kind: CommandHistogramKind::Delay,
+                chunk,
+                buckets,
+            } => Some((*tick, *chunk, *buckets)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Extract courier ETA histogram chunks: (tick, chunk_idx, [b0,b1,b2,b3]).
+pub fn courier_eta_hist_series(
+    events: &[(u64, ReplayRecord)],
+) -> Vec<(u64, u8, [u16; 4])> {
+    events
+        .iter()
+        .filter_map(|(tick, rec)| match rec {
+            ReplayRecord::CommandHistogram {
+                kind: CommandHistogramKind::Eta,
+                chunk,
+                buckets,
+            } => Some((*tick, *chunk, *buckets)),
+            _ => None,
+        })
+        .collect()
+}
+
 verify_capsule_properties!(ReplayMmapCapsule, 128, 256);
 
 /// Helper capsule to flush replay logs into mmap with optional index chaining.
@@ -1190,5 +1256,49 @@ mod tests {
         let decoded = decode_events(&events);
         let series = supply_series(&decoded);
         assert_eq!(series, vec![(7, 10_000, 2_000)]);
+    }
+
+    #[test]
+    fn strategic_and_command_delay_series_roundtrip() {
+        use crate::strategic_map::{StrategicEventKind, StrategicEventSnapshot};
+
+        let strat_payload = encode_strategic_event_payload(&StrategicEventSnapshot {
+            kind: StrategicEventKind::InfrastructureRepair,
+            province_id: 9,
+            from_owner_id: 0,
+            to_owner_id: 0,
+            from_infra_q16: 12_000,
+            to_infra_q16: 14_000,
+            resistance_q16: 0,
+            generation: 0,
+        });
+        let cmd_delay_payload = encode_command_delay_applied(5, 12);
+        let cmd_hist_payload = encode_command_delay_hist_payload(0, &[1, 2, 3, 4]);
+        let courier_hist_payload = encode_courier_eta_hist_payload(1, &[5, 6, 7, 8]);
+
+        let events = vec![
+            ReplayEvent::new(1, strat_payload),
+            ReplayEvent::new(2, cmd_delay_payload),
+            ReplayEvent::new(3, cmd_hist_payload),
+            ReplayEvent::new(4, courier_hist_payload),
+        ];
+
+        let decoded = decode_events(&events);
+        let strat_series = strategic_series(&decoded);
+        assert_eq!(strat_series.len(), 1);
+        assert_eq!(strat_series[0].0, 1);
+        assert_eq!(strat_series[0].1, StrategicEventKind::InfrastructureRepair);
+        assert_eq!(strat_series[0].2, 9);
+        assert_eq!(strat_series[0].3, 750); // 12_000 >> 4
+        assert_eq!(strat_series[0].4, 875); // 14_000 >> 4
+
+        let applied = command_delay_applied_series(&decoded);
+        assert_eq!(applied, vec![(2, 5, 12)]);
+
+        let cmd_hist = command_delay_hist_series(&decoded);
+        assert_eq!(cmd_hist, vec![(3, 0, [1, 2, 3, 4])]);
+
+        let courier_hist = courier_eta_hist_series(&decoded);
+        assert_eq!(courier_hist, vec![(4, 1, [5, 6, 7, 8])]);
     }
 }
