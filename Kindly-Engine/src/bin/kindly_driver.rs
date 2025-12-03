@@ -93,6 +93,7 @@ fn nearest_target_id(
 struct DriverArgs {
     render_out: PathBuf,
     replay_out: PathBuf,
+    replay_summary: bool,
     replay_index: Option<PathBuf>,
     snapshot_out: PathBuf,
     strat_interval: u64,
@@ -105,6 +106,7 @@ struct DriverArgs {
     doctrine_defaults: Option<String>,
     grenade_fuse_ms: u16,
     grenade_fragments: u16,
+    replay_summary: bool,
 }
 
 impl DriverArgs {
@@ -113,6 +115,7 @@ impl DriverArgs {
         let mut cfg = Self {
             render_out: PathBuf::from("data/kindly-engine/render_stream.bin"),
             replay_out: PathBuf::from("data/kindly-engine/replay.bin"),
+            replay_summary: false,
             replay_index: Some(PathBuf::from("data/kindly-engine/replay.idx")),
             snapshot_out: PathBuf::from("data/kindly-engine/snapshot.bin"),
             strat_interval: 5,
@@ -140,6 +143,9 @@ impl DriverArgs {
                         eprintln!("--replay-out requires a path");
                         std::process::exit(2);
                     }));
+                }
+                "--replay-summary" => {
+                    cfg.replay_summary = true;
                 }
                 "--snapshot-out" => {
                     cfg.snapshot_out = PathBuf::from(args.next().unwrap_or_else(|| {
@@ -259,6 +265,7 @@ fn print_help() {
         "Usage: kindly_driver [options]\n\
          --render-out <path>      Render stream output file for io_uring (default data/kindly-engine/render_stream.bin)\n\
          --replay-out <path>      Replay mmap output (default data/kindly-engine/replay.bin)\n\
+         --replay-summary         Decode replay after run (StratOps summary)\n\
          --snapshot-out <path>    Snapshot mmap output (default data/kindly-engine/snapshot.bin)\n\
          --replay-index <path>    Enable replay indexing at path (default data/kindly-engine/replay.idx)\n\
          --no-index               Disable replay index writes\n\
@@ -826,7 +833,8 @@ fn run_stream_with_io_uring(
     use kindly_engine::io_bridge::RenderUringSinkCapsule;
     use kindly_engine::pathing::PathingCapsule as _;
     use kindly_engine::replay::{
-        ReplayFlushCapsule, ReplayIndexCapsule, ReplayLogCapsule, ReplayMmapCapsule,
+        build_stratops_lane, decode_replay_payload, ReplayFlushCapsule, ReplayIndexCapsule,
+        ReplayLogCapsule, ReplayMmapCapsule,
     };
     use kindly_engine::snapshot::{CampaignSnapshotCapsule, SnapshotMmapCapsule};
     use kindly_engine::structure::StructureCapsule;
@@ -943,6 +951,55 @@ fn run_stream_with_io_uring(
         "io_uring stream tick {} overlay_version {} snapshot_chain {} render_frame_id {}",
         frame.tick, frame.overlay.version, frame.snapshot_chain, frame.render.frame_id
     );
+
+    if cfg.replay_summary {
+        match std::fs::read(&cfg.replay_out) {
+            Ok(bytes) => {
+                let mut decoded = Vec::new();
+                for chunk in bytes.chunks(16) {
+                    if chunk.len() < 16 {
+                        break;
+                    }
+                    let tick = u64::from_le_bytes(chunk[0..8].try_into().unwrap());
+                    let payload = u64::from_le_bytes(chunk[8..16].try_into().unwrap());
+                    decoded.push((tick, decode_replay_payload(payload)));
+                }
+                let lane = build_stratops_lane(&decoded);
+                if lane.is_empty() {
+                    println!("replay summary: no StratOps records found");
+                } else {
+                    let mut strat = 0;
+                    let mut delay_applied = 0;
+                    let mut delay_hist = 0;
+                    let mut eta_hist = 0;
+                    for rec in &lane {
+                        match rec {
+                            kindly_engine::replay::StratOpsRecord::Strategic { .. } => strat += 1,
+                            kindly_engine::replay::StratOpsRecord::CommandDelayApplied { .. } => {
+                                delay_applied += 1
+                            }
+                            kindly_engine::replay::StratOpsRecord::CommandDelayHist { .. } => {
+                                delay_hist += 1
+                            }
+                            kindly_engine::replay::StratOpsRecord::CourierEtaHist { .. } => {
+                                eta_hist += 1
+                            }
+                        }
+                    }
+                    println!("=== StratOps replay summary ===");
+                    println!("strategic events        : {strat}");
+                    println!("cmd delay applied       : {delay_applied}");
+                    println!("cmd delay hist chunks   : {delay_hist}");
+                    println!("courier ETA hist chunks : {eta_hist}");
+                    println!("recent (up to 10):");
+                    for rec in lane.iter().rev().take(10).rev() {
+                        println!("  {rec:?}");
+                    }
+                }
+            }
+            Err(err) => eprintln!("failed to read replay for summary: {err}"),
+        }
+    }
 }
 
 fn seed_fire_doctrine_presets(
