@@ -688,6 +688,46 @@ impl CampaignSnapshotCapsule {
             command_delays,
         ))
     }
+
+    /// Deserialize a snapshot and optionally restore a command delay buffer in-place.
+    ///
+    /// Returns the same tuple as `deserialize_formations` plus the number of restored delayed
+    /// orders written into `command_delays` (if provided).
+    pub fn deserialize_into_world(
+        &self,
+        bytes: &[u8],
+        world: &mut WorldSlabCapsule,
+        prev_hash: u64,
+        command_delays: Option<&crate::order::CommandDelayBufferCapsule>,
+    ) -> Option<(
+        TelemetrySnapshot,
+        crate::order::QueueStats,
+        Vec<crate::formation::FormationSnapshot>,
+        Vec<StructureSnapshot>,
+        Option<StrategicPersistSnapshot>,
+        Option<DiplomaticPersistSnapshot>,
+        Option<EconomyPersistSnapshot>,
+        Option<CommandDelayPersistSnapshot>,
+        usize,
+    )> {
+        let decoded = self.deserialize_formations(bytes, world, prev_hash)?;
+        let restored_count = if let Some(buf) = command_delays {
+            restore_command_delays(decoded.7.as_ref(), buf)
+        } else {
+            0
+        };
+        Some((
+            decoded.0,
+            decoded.1,
+            decoded.2,
+            decoded.3,
+            decoded.4,
+            decoded.5,
+            decoded.6,
+            decoded.7,
+            restored_count,
+        ))
+    }
 }
 
 fn hash64(prev: u64, bytes: &[u8]) -> u64 {
@@ -923,6 +963,47 @@ mod tests {
         assert_eq!(count, 1);
         let mut out = Vec::new();
         restored.drain_ready(42, &mut out);
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].kind, OrderKind::Move);
+    }
+
+    #[test]
+    fn deserialize_into_world_restores_command_delays() {
+        use crate::order::{pack_move_payload, CommandDelayBufferCapsule, OrderKind};
+        let formations = vec![FormationCapsule::new(1, 0, 0, 0, 0, 0, 0, 0, 0, 0)];
+        let orders = OrderQueueCapsule::new();
+        let telemetry = TelemetryCapsule::new();
+        let delays = CommandDelayBufferCapsule::new();
+        let order = crate::order::OrderData {
+            kind: OrderKind::Move,
+            formation_id: 0,
+            generation: 1,
+            payload_a: pack_move_payload(10, 0),
+            payload_b: 0,
+        };
+        assert!(delays.enqueue(&order, 7));
+        let snapper = CampaignSnapshotCapsule::new();
+        let buf = snapper.serialize(
+            &formations,
+            &orders,
+            &telemetry,
+            &[],
+            None,
+            None,
+            None,
+            Some(&delays),
+            0,
+        );
+        let mut world = WorldSlabCapsule::new(1);
+        let restored_buffer = CommandDelayBufferCapsule::new();
+        let (_tele, _stats, _forms, _structs, _strat, _dip, _econ, delays_snap, restored_count) =
+            snapper
+                .deserialize_into_world(&buf, &mut world, 0, Some(&restored_buffer))
+                .expect("snapshot decode");
+        assert_eq!(restored_count, 1);
+        assert!(delays_snap.is_some());
+        let mut out = Vec::new();
+        restored_buffer.drain_ready(7, &mut out);
         assert_eq!(out.len(), 1);
         assert_eq!(out[0].kind, OrderKind::Move);
     }
