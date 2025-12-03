@@ -1,5 +1,10 @@
+use crate::diplomacy::{DiplomaticRelationSnapshot, DiplomaticSnapshot};
+use crate::order::CommandDelaySnapshot;
+use crate::province_economy::{BuildOrderSnapshot, EconomySnapshot};
 use crate::formation::FormationCapsule;
 use crate::order::OrderQueueCapsule;
+use crate::strategic_map::{StrategicEventKind, StrategicEventSnapshot, StrategicSnapshot};
+use crate::structure::{StructureCapsule, StructureSnapshot};
 use crate::telemetry::{TelemetryCapsule, TelemetrySnapshot};
 use crate::world::WorldSlabCapsule;
 use atomic_capsule::mmap::{MmapError, MmapLayout, MmapManager};
@@ -7,7 +12,56 @@ use atomic_capsule::verify_capsule_properties;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 const SNAP_MAGIC: u32 = 0x574C4457; // "WLDW"
-const SNAP_VERSION: u32 = 4;
+const SNAP_VERSION: u32 = 10;
+
+/// Optional strategic payload persisted alongside tactical snapshots.
+#[derive(Debug, Clone)]
+pub struct StrategicPersistSnapshot {
+    pub tick: u64,
+    pub generation: u64,
+    pub hash_chain: u64,
+    pub prev_hash_chain: u64,
+    pub events: Vec<StrategicEventSnapshot>,
+}
+
+/// Optional diplomatic payload persisted alongside tactical snapshots.
+#[derive(Debug, Clone)]
+pub struct DiplomaticPersistSnapshot {
+    pub tick: u64,
+    pub generation: u64,
+    pub hash_chain: u64,
+    pub prev_hash_chain: u64,
+    pub relations: Vec<DiplomaticRelationSnapshot>,
+}
+
+/// Optional province economy payload persisted alongside tactical snapshots.
+#[derive(Debug, Clone)]
+pub struct EconomyPersistSnapshot {
+    pub tick: u64,
+    pub generation: u64,
+    pub hash_chain: u64,
+    pub prev_hash_chain: u64,
+    pub orders: Vec<BuildOrderSnapshot>,
+}
+
+/// Optional command delay buffer snapshot persisted alongside tactical snapshots.
+#[derive(Debug, Clone)]
+pub struct CommandDelayPersistSnapshot {
+    pub pending: Vec<CommandDelaySnapshot>,
+}
+
+/// Rehydrate a command delay buffer from a persisted snapshot.
+pub fn restore_command_delays(
+    snapshot: Option<&CommandDelayPersistSnapshot>,
+    buffer: &crate::order::CommandDelayBufferCapsule,
+) -> usize {
+    if let Some(snap) = snapshot {
+        buffer.restore_from(&snap.pending)
+    } else {
+        buffer.clear();
+        0
+    }
+}
 
 /// Snapshot capsule: serialize formations/orders/telemetry into a contiguous buffer.
 #[repr(C, align(64))]
@@ -27,14 +81,20 @@ impl CampaignSnapshotCapsule {
         formations: &[FormationCapsule],
         orders: &OrderQueueCapsule,
         telemetry: &TelemetryCapsule,
+        structures: &[StructureCapsule],
+        strategic: Option<&StrategicSnapshot>,
+        diplomatic: Option<&DiplomaticSnapshot>,
+        economy: Option<&EconomySnapshot>,
+        command_delays: Option<&crate::order::CommandDelayBufferCapsule>,
         prev_hash: u64,
     ) -> Vec<u8> {
         let stats = orders.stats();
         let tele = telemetry.snapshot();
-        let mut buf = Vec::with_capacity(64 + formations.len() * 64);
+        let mut buf = Vec::with_capacity(96 + formations.len() * 64 + structures.len() * 48);
         buf.extend_from_slice(&SNAP_MAGIC.to_le_bytes());
         buf.extend_from_slice(&SNAP_VERSION.to_le_bytes());
         buf.extend_from_slice(&(formations.len() as u32).to_le_bytes());
+        buf.extend_from_slice(&(structures.len() as u32).to_le_bytes());
         buf.extend_from_slice(&stats.head.to_le_bytes());
         buf.extend_from_slice(&stats.tail.to_le_bytes());
         buf.extend_from_slice(&stats.dropped.to_le_bytes());
@@ -52,6 +112,7 @@ impl CampaignSnapshotCapsule {
         buf.extend_from_slice(&tele.supply_pressure_accum_q16.to_le_bytes());
         buf.extend_from_slice(&tele.supply_fatigue_accum_q16.to_le_bytes());
         buf.extend_from_slice(&tele.supply_samples.to_le_bytes());
+        buf.extend_from_slice(&tele.ai_orders.to_le_bytes());
         buf.extend_from_slice(&tele.charge_orders.to_le_bytes());
         buf.extend_from_slice(&tele.charge_commits.to_le_bytes());
         buf.extend_from_slice(&tele.brace_orders.to_le_bytes());
@@ -80,6 +141,122 @@ impl CampaignSnapshotCapsule {
             buf.extend_from_slice(&s.velocity_q16.to_le_bytes());
             buf.extend_from_slice(&s.physics_flags.to_le_bytes());
         }
+
+        for s in structures {
+            let snap: StructureSnapshot = s.snapshot();
+            buf.extend_from_slice(&snap.structure_id.to_le_bytes());
+            buf.extend_from_slice(&snap.position_x_q16.to_le_bytes());
+            buf.extend_from_slice(&snap.position_z_q16.to_le_bytes());
+            buf.extend_from_slice(&snap.half_extent_x_q16.to_le_bytes());
+            buf.extend_from_slice(&snap.half_extent_z_q16.to_le_bytes());
+            for &face in &snap.cover_q16 {
+                buf.extend_from_slice(&face.to_le_bytes());
+            }
+            buf.extend_from_slice(&snap.breach_mask.to_le_bytes());
+            buf.extend_from_slice(&snap.slots_total.to_le_bytes());
+            buf.extend_from_slice(&snap.slots_used.to_le_bytes());
+            buf.extend_from_slice(&snap.apertures.to_le_bytes());
+            buf.extend_from_slice(&snap.generation.to_le_bytes());
+        }
+        // Strategic block (optional).
+        let empty_events: [StrategicEventSnapshot; 0] = [];
+        let (strat_tick, strat_gen, strat_hash, strat_prev, strat_events) =
+            if let Some(strat) = strategic {
+                (
+                    strat.tick,
+                    strat.generation,
+                    strat.hash_chain,
+                    strat.prev_hash_chain,
+                    strat.events.as_slice(),
+                )
+            } else {
+                (0, 0, 0, 0, empty_events.as_slice())
+            };
+        buf.extend_from_slice(&strat_tick.to_le_bytes());
+        buf.extend_from_slice(&strat_gen.to_le_bytes());
+        buf.extend_from_slice(&strat_hash.to_le_bytes());
+        buf.extend_from_slice(&strat_prev.to_le_bytes());
+        buf.extend_from_slice(&(strat_events.len() as u32).to_le_bytes());
+        for ev in strat_events {
+            buf.push(ev.kind as u8);
+            buf.extend_from_slice(&ev.province_id.to_le_bytes());
+            buf.extend_from_slice(&ev.from_owner_id.to_le_bytes());
+            buf.extend_from_slice(&ev.to_owner_id.to_le_bytes());
+            buf.extend_from_slice(&ev.from_infra_q16.to_le_bytes());
+            buf.extend_from_slice(&ev.to_infra_q16.to_le_bytes());
+            buf.extend_from_slice(&ev.resistance_q16.to_le_bytes());
+            buf.extend_from_slice(&ev.generation.to_le_bytes());
+        }
+        // Diplomatic block (optional).
+        let empty_relations: [DiplomaticRelationSnapshot; 0] = [];
+        let (dip_tick, dip_gen, dip_hash, dip_prev, dip_relations) =
+            if let Some(dip) = diplomatic {
+                (
+                    dip.tick,
+                    dip.generation,
+                    dip.hash_chain,
+                    dip.prev_hash_chain,
+                    dip.relations.as_slice(),
+                )
+            } else {
+                (0, 0, 0, 0, empty_relations.as_slice())
+            };
+        buf.extend_from_slice(&dip_tick.to_le_bytes());
+        buf.extend_from_slice(&dip_gen.to_le_bytes());
+        buf.extend_from_slice(&dip_hash.to_le_bytes());
+        buf.extend_from_slice(&dip_prev.to_le_bytes());
+        buf.extend_from_slice(&(dip_relations.len() as u32).to_le_bytes());
+        for rel in dip_relations {
+            buf.push(rel.state as u8);
+            buf.extend_from_slice(&rel.a.to_le_bytes());
+            buf.extend_from_slice(&rel.b.to_le_bytes());
+            buf.extend_from_slice(&rel.truce_until_tick.to_le_bytes());
+            buf.extend_from_slice(&rel.casus_belli_until_tick.to_le_bytes());
+            buf.extend_from_slice(&rel.war_exhaustion_q16.to_le_bytes());
+            buf.extend_from_slice(&rel.generation.to_le_bytes());
+        }
+        // Economy block (optional).
+        let empty_orders: [BuildOrderSnapshot; 0] = [];
+        let (econ_tick, econ_gen, econ_hash, econ_prev, econ_orders) =
+            if let Some(econ) = economy {
+                (
+                    econ.tick,
+                    econ.generation,
+                    econ.hash_chain,
+                    econ.prev_hash_chain,
+                    econ.orders.as_slice(),
+                )
+            } else {
+                (0, 0, 0, 0, empty_orders.as_slice())
+            };
+        buf.extend_from_slice(&econ_tick.to_le_bytes());
+        buf.extend_from_slice(&econ_gen.to_le_bytes());
+        buf.extend_from_slice(&econ_hash.to_le_bytes());
+        buf.extend_from_slice(&econ_prev.to_le_bytes());
+        buf.extend_from_slice(&(econ_orders.len() as u32).to_le_bytes());
+        for order in econ_orders {
+            buf.push(order.kind.as_u8());
+            buf.extend_from_slice(&order.province_id.to_le_bytes());
+            buf.extend_from_slice(&order.target_infra_q16.to_le_bytes());
+            buf.extend_from_slice(&order.remaining_ticks.to_le_bytes());
+            buf.extend_from_slice(&order.generation.to_le_bytes());
+        }
+        // Command delay buffer (optional).
+        let empty_delays: [CommandDelaySnapshot; 0] = [];
+        let delay_orders = if let Some(delays) = command_delays {
+            delays.pending_snapshots()
+        } else {
+            empty_delays.to_vec()
+        };
+        buf.extend_from_slice(&(delay_orders.len() as u32).to_le_bytes());
+        for d in &delay_orders {
+            buf.extend_from_slice(&d.ready_tick.to_le_bytes());
+            buf.push(d.order.kind as u8);
+            buf.extend_from_slice(&d.order.formation_id.to_le_bytes());
+            buf.extend_from_slice(&d.order.generation.to_le_bytes());
+            buf.extend_from_slice(&d.order.payload_a.to_le_bytes());
+            buf.extend_from_slice(&d.order.payload_b.to_le_bytes());
+        }
         let hash = hash64(prev_hash, &buf);
         buf.extend_from_slice(&hash.to_le_bytes());
         buf
@@ -94,8 +271,13 @@ impl CampaignSnapshotCapsule {
         TelemetrySnapshot,
         crate::order::QueueStats,
         Vec<crate::formation::FormationSnapshot>,
+        Vec<StructureSnapshot>,
+        Option<StrategicPersistSnapshot>,
+        Option<DiplomaticPersistSnapshot>,
+        Option<EconomyPersistSnapshot>,
+        Option<CommandDelayPersistSnapshot>,
     )> {
-        // Minimum length for version 3 snapshots (header + queue stats + telemetry + footer).
+        // Minimum length for versioned snapshots (header + queue stats + telemetry + footer).
         if bytes.len() < 156 {
             return None;
         }
@@ -104,113 +286,150 @@ impl CampaignSnapshotCapsule {
         if hash64(prev_hash, body) != footer_hash {
             return None;
         }
-        let magic = u32::from_le_bytes(body[0..4].try_into().ok()?);
-        let version = u32::from_le_bytes(body[4..8].try_into().ok()?);
-        if magic != SNAP_MAGIC || version != SNAP_VERSION {
-            return None;
-        }
-        let formation_count = u32::from_le_bytes(body[8..12].try_into().ok()?) as usize;
-        let head = u64::from_le_bytes(body[12..20].try_into().ok()?);
-        let tail = u64::from_le_bytes(body[20..28].try_into().ok()?);
-        let dropped = u64::from_le_bytes(body[28..36].try_into().ok()?);
-        let capacity = u64::from_le_bytes(body[36..44].try_into().ok()?);
-        let tele = if version >= 4 {
-            // Version 4 includes supply accumulators.
-            if body.len() < 172 {
+
+        fn read_u32(bytes: &[u8], cursor: &mut usize) -> Option<u32> {
+            if *cursor + 4 > bytes.len() {
                 return None;
             }
+            let v = u32::from_le_bytes(bytes[*cursor..*cursor + 4].try_into().ok()?);
+            *cursor += 4;
+            Some(v)
+        }
+        fn read_u64(bytes: &[u8], cursor: &mut usize) -> Option<u64> {
+            if *cursor + 8 > bytes.len() {
+                return None;
+            }
+            let v = u64::from_le_bytes(bytes[*cursor..*cursor + 8].try_into().ok()?);
+            *cursor += 8;
+            Some(v)
+        }
+        fn read_u16(bytes: &[u8], cursor: &mut usize) -> Option<u16> {
+            if *cursor + 2 > bytes.len() {
+                return None;
+            }
+            let v = u16::from_le_bytes(bytes[*cursor..*cursor + 2].try_into().ok()?);
+            *cursor += 2;
+            Some(v)
+        }
+        fn read_u8(bytes: &[u8], cursor: &mut usize) -> Option<u8> {
+            if *cursor + 1 > bytes.len() {
+                return None;
+            }
+            let v = *bytes.get(*cursor)?;
+            *cursor += 1;
+            Some(v)
+        }
+
+        let mut cursor = 0;
+        let magic = read_u32(body, &mut cursor)?;
+        let version = read_u32(body, &mut cursor)?;
+        if magic != SNAP_MAGIC || version < 3 || version > SNAP_VERSION {
+            return None;
+        }
+
+        let formation_count = read_u32(body, &mut cursor)? as usize;
+        let structure_count = if version >= 5 {
+            read_u32(body, &mut cursor)? as usize
+        } else {
+            0
+        };
+        let head = read_u64(body, &mut cursor)?;
+        let tail = read_u64(body, &mut cursor)?;
+        let dropped = read_u64(body, &mut cursor)?;
+        let capacity = read_u64(body, &mut cursor)?;
+
+        let tele = if version >= 6 {
             TelemetrySnapshot {
-                events: u64::from_le_bytes(body[44..52].try_into().ok()?),
-                casualties: u64::from_le_bytes(body[52..60].try_into().ok()?),
-                shock_weight_q16: u64::from_le_bytes(body[60..68].try_into().ok()?),
-                ammo_spent: u64::from_le_bytes(body[68..76].try_into().ok()?),
-                tick_last_flush: u64::from_le_bytes(body[76..84].try_into().ok()?),
-                retreats: u64::from_le_bytes(body[84..92].try_into().ok()?),
-                musket_shots: u64::from_le_bytes(body[92..100].try_into().ok()?),
-                artillery_shots: u64::from_le_bytes(body[100..108].try_into().ok()?),
-                formation_breaks: u64::from_le_bytes(body[108..116].try_into().ok()?),
-                morale_shocks: u64::from_le_bytes(body[116..124].try_into().ok()?),
-                supply_pressure_accum_q16: u64::from_le_bytes(body[124..132].try_into().ok()?),
-                supply_fatigue_accum_q16: u64::from_le_bytes(body[132..140].try_into().ok()?),
-                supply_samples: u64::from_le_bytes(body[140..148].try_into().ok()?),
-                charge_orders: u64::from_le_bytes(body[148..156].try_into().ok()?),
-                charge_commits: u64::from_le_bytes(body[156..164].try_into().ok()?),
-                brace_orders: u64::from_le_bytes(body[164..172].try_into().ok()?),
+                events: read_u64(body, &mut cursor)?,
+                casualties: read_u64(body, &mut cursor)?,
+                shock_weight_q16: read_u64(body, &mut cursor)?,
+                ammo_spent: read_u64(body, &mut cursor)?,
+                tick_last_flush: read_u64(body, &mut cursor)?,
+                retreats: read_u64(body, &mut cursor)?,
+                musket_shots: read_u64(body, &mut cursor)?,
+                artillery_shots: read_u64(body, &mut cursor)?,
+                formation_breaks: read_u64(body, &mut cursor)?,
+                morale_shocks: read_u64(body, &mut cursor)?,
+                supply_pressure_accum_q16: read_u64(body, &mut cursor)?,
+                supply_fatigue_accum_q16: read_u64(body, &mut cursor)?,
+                supply_samples: read_u64(body, &mut cursor)?,
+                ai_orders: read_u64(body, &mut cursor)?,
+                charge_orders: read_u64(body, &mut cursor)?,
+                charge_commits: read_u64(body, &mut cursor)?,
+                brace_orders: read_u64(body, &mut cursor)?,
+            }
+        } else if version >= 4 {
+            TelemetrySnapshot {
+                events: read_u64(body, &mut cursor)?,
+                casualties: read_u64(body, &mut cursor)?,
+                shock_weight_q16: read_u64(body, &mut cursor)?,
+                ammo_spent: read_u64(body, &mut cursor)?,
+                tick_last_flush: read_u64(body, &mut cursor)?,
+                retreats: read_u64(body, &mut cursor)?,
+                musket_shots: read_u64(body, &mut cursor)?,
+                artillery_shots: read_u64(body, &mut cursor)?,
+                formation_breaks: read_u64(body, &mut cursor)?,
+                morale_shocks: read_u64(body, &mut cursor)?,
+                supply_pressure_accum_q16: read_u64(body, &mut cursor)?,
+                supply_fatigue_accum_q16: read_u64(body, &mut cursor)?,
+                supply_samples: read_u64(body, &mut cursor)?,
+                ai_orders: 0,
+                charge_orders: read_u64(body, &mut cursor)?,
+                charge_commits: read_u64(body, &mut cursor)?,
+                brace_orders: read_u64(body, &mut cursor)?,
             }
         } else {
             TelemetrySnapshot {
-                events: u64::from_le_bytes(body[44..52].try_into().ok()?),
-                casualties: u64::from_le_bytes(body[52..60].try_into().ok()?),
-                shock_weight_q16: u64::from_le_bytes(body[60..68].try_into().ok()?),
-                ammo_spent: u64::from_le_bytes(body[68..76].try_into().ok()?),
-                tick_last_flush: u64::from_le_bytes(body[76..84].try_into().ok()?),
-                retreats: u64::from_le_bytes(body[84..92].try_into().ok()?),
-                musket_shots: u64::from_le_bytes(body[92..100].try_into().ok()?),
-                artillery_shots: u64::from_le_bytes(body[100..108].try_into().ok()?),
-                formation_breaks: u64::from_le_bytes(body[108..116].try_into().ok()?),
-                morale_shocks: u64::from_le_bytes(body[116..124].try_into().ok()?),
-                charge_orders: u64::from_le_bytes(body[124..132].try_into().ok()?),
-                charge_commits: u64::from_le_bytes(body[132..140].try_into().ok()?),
-                brace_orders: u64::from_le_bytes(body[140..148].try_into().ok()?),
+                events: read_u64(body, &mut cursor)?,
+                casualties: read_u64(body, &mut cursor)?,
+                shock_weight_q16: read_u64(body, &mut cursor)?,
+                ammo_spent: read_u64(body, &mut cursor)?,
+                tick_last_flush: read_u64(body, &mut cursor)?,
+                retreats: read_u64(body, &mut cursor)?,
+                musket_shots: read_u64(body, &mut cursor)?,
+                artillery_shots: read_u64(body, &mut cursor)?,
+                formation_breaks: read_u64(body, &mut cursor)?,
+                morale_shocks: read_u64(body, &mut cursor)?,
+                ai_orders: 0,
+                charge_orders: read_u64(body, &mut cursor)?,
+                charge_commits: read_u64(body, &mut cursor)?,
+                brace_orders: read_u64(body, &mut cursor)?,
                 supply_pressure_accum_q16: 0,
                 supply_fatigue_accum_q16: 0,
                 supply_samples: 0,
             }
         };
 
-        let mut cursor = if version >= 4 { 172 } else { 148 };
         let mut formations_out = Vec::with_capacity(formation_count);
         for _ in 0..formation_count {
-            if cursor + 46 > body.len() {
-                return None;
-            }
-            let formation_id = u32::from_le_bytes(body[cursor..cursor + 4].try_into().ok()?);
-            let posture = body[cursor + 4];
-            let stance = body[cursor + 5];
-            let generation = u32::from_le_bytes(body[cursor + 6..cursor + 10].try_into().ok()?);
-            let cohesion_q16 = u32::from_le_bytes(body[cursor + 10..cursor + 14].try_into().ok()?);
-            let fatigue_q16 = u32::from_le_bytes(body[cursor + 14..cursor + 18].try_into().ok()?);
-            let ammo = u32::from_le_bytes(body[cursor + 18..cursor + 22].try_into().ok()?);
-            let morale_q16 = u32::from_le_bytes(body[cursor + 22..cursor + 26].try_into().ok()?);
-            let facing_deg_q16 =
-                u32::from_le_bytes(body[cursor + 26..cursor + 30].try_into().ok()?);
-            let position_x_q16 =
-                u32::from_le_bytes(body[cursor + 30..cursor + 34].try_into().ok()?);
-            let position_z_q16 =
-                u32::from_le_bytes(body[cursor + 34..cursor + 38].try_into().ok()?);
-            let command_delay_ms =
-                u32::from_le_bytes(body[cursor + 38..cursor + 42].try_into().ok()?);
-            let retreat_mode_flags =
-                u16::from_le_bytes(body[cursor + 42..cursor + 44].try_into().ok()?);
-            let charge_posture = *body.get(cursor + 44)?;
-            let braced = *body.get(cursor + 45)? != 0;
-            cursor += 46;
-            let (
-                density_q16,
-                mass_q16,
-                variance_q16,
-                damping_q16,
-                velocity_q16,
-                physics_flags,
-                consumed,
-            ) = if version >= 3 {
-                if cursor + 20 + 2 > body.len() {
-                    return None;
-                }
-                (
-                    u32::from_le_bytes(body[cursor..cursor + 4].try_into().ok()?),
-                    u32::from_le_bytes(body[cursor + 4..cursor + 8].try_into().ok()?),
-                    u32::from_le_bytes(body[cursor + 8..cursor + 12].try_into().ok()?),
-                    u32::from_le_bytes(body[cursor + 12..cursor + 16].try_into().ok()?),
-                    u32::from_le_bytes(body[cursor + 16..cursor + 20].try_into().ok()?),
-                    u16::from_le_bytes(body[cursor + 20..cursor + 22].try_into().ok()?),
-                    22,
-                )
-            } else {
-                // Backward compatibility: default to line infantry physics.
-                (40_000, 44_000, 28_000, 12_000, 24_000, 0, 0)
-            };
-            cursor += consumed;
+            let formation_id = read_u32(body, &mut cursor)?;
+            let posture = read_u8(body, &mut cursor)?;
+            let stance = read_u8(body, &mut cursor)?;
+            let generation = read_u32(body, &mut cursor)?;
+            let cohesion_q16 = read_u32(body, &mut cursor)?;
+            let fatigue_q16 = read_u32(body, &mut cursor)?;
+            let ammo = read_u32(body, &mut cursor)?;
+            let morale_q16 = read_u32(body, &mut cursor)?;
+            let facing_deg_q16 = read_u32(body, &mut cursor)?;
+            let position_x_q16 = read_u32(body, &mut cursor)?;
+            let position_z_q16 = read_u32(body, &mut cursor)?;
+            let command_delay_ms = read_u32(body, &mut cursor)?;
+            let retreat_mode_flags = read_u16(body, &mut cursor)?;
+            let charge_posture = read_u8(body, &mut cursor)?;
+            let braced = read_u8(body, &mut cursor)? != 0;
+            let (density_q16, mass_q16, variance_q16, damping_q16, velocity_q16, physics_flags) =
+                if version >= 3 {
+                    (
+                        read_u32(body, &mut cursor)?,
+                        read_u32(body, &mut cursor)?,
+                        read_u32(body, &mut cursor)?,
+                        read_u32(body, &mut cursor)?,
+                        read_u32(body, &mut cursor)?,
+                        read_u16(body, &mut cursor)?,
+                    )
+                } else {
+                    (40_000, 44_000, 28_000, 12_000, 24_000, 0)
+                };
             let snap = crate::formation::FormationSnapshot {
                 formation_id,
                 posture,
@@ -250,6 +469,209 @@ impl CampaignSnapshotCapsule {
                 },
             ));
         }
+
+        let mut structures_out = Vec::with_capacity(structure_count);
+        for _ in 0..structure_count {
+            let structure_id = read_u32(body, &mut cursor)?;
+            let position_x_q16 = read_u32(body, &mut cursor)?;
+            let position_z_q16 = read_u32(body, &mut cursor)?;
+            let half_extent_x_q16 = read_u32(body, &mut cursor)?;
+            let half_extent_z_q16 = read_u32(body, &mut cursor)?;
+            let mut cover_q16 = [0u32; 4];
+            for face in &mut cover_q16 {
+                *face = read_u32(body, &mut cursor)?;
+            }
+            let breach_mask = read_u32(body, &mut cursor)?;
+            let slots_total = read_u32(body, &mut cursor)? as u16;
+            let slots_used = read_u32(body, &mut cursor)? as u16;
+            let apertures = read_u32(body, &mut cursor)? as u16;
+            let generation = read_u32(body, &mut cursor)?;
+
+            structures_out.push(StructureSnapshot {
+                structure_id,
+                position_x_q16,
+                position_z_q16,
+                half_extent_x_q16,
+                half_extent_z_q16,
+                cover_q16,
+                breach_mask,
+                slots_total,
+                slots_used,
+                apertures,
+                generation,
+            });
+        }
+        let strategic = if version >= 7 {
+            let tick = read_u64(body, &mut cursor)?;
+            let generation = read_u64(body, &mut cursor)?;
+            let hash_chain = read_u64(body, &mut cursor)?;
+            let prev_hash_chain = read_u64(body, &mut cursor)?;
+            let event_count = read_u32(body, &mut cursor)? as usize;
+            let mut events = Vec::with_capacity(event_count);
+            for _ in 0..event_count {
+                let kind_raw = read_u8(body, &mut cursor)?;
+                let province_id = read_u32(body, &mut cursor)?;
+                let from_owner_id = read_u32(body, &mut cursor)?;
+                let to_owner_id = read_u32(body, &mut cursor)?;
+                let from_infra_q16 = read_u32(body, &mut cursor)?;
+                let to_infra_q16 = read_u32(body, &mut cursor)?;
+                let resistance_q16 = read_u32(body, &mut cursor)?;
+                let generation_ev = read_u64(body, &mut cursor)?;
+                let kind =
+                    StrategicEventKind::from_u8(kind_raw).unwrap_or(StrategicEventKind::OwnershipChange);
+                events.push(StrategicEventSnapshot {
+                    kind,
+                    province_id,
+                    from_owner_id,
+                    to_owner_id,
+                    from_infra_q16,
+                    to_infra_q16,
+                    resistance_q16,
+                    generation: generation_ev,
+                });
+            }
+            if tick == 0
+                && generation == 0
+                && hash_chain == 0
+                && prev_hash_chain == 0
+                && events.is_empty()
+            {
+                None
+            } else {
+                Some(StrategicPersistSnapshot {
+                    tick,
+                    generation,
+                    hash_chain,
+                    prev_hash_chain,
+                    events,
+                })
+            }
+        } else {
+            None
+        };
+
+        let diplomatic = if version >= 8 {
+            let tick = read_u64(body, &mut cursor)?;
+            let generation = read_u64(body, &mut cursor)?;
+            let hash_chain = read_u64(body, &mut cursor)?;
+            let prev_hash_chain = read_u64(body, &mut cursor)?;
+            let relation_count = read_u32(body, &mut cursor)? as usize;
+            let mut relations = Vec::with_capacity(relation_count);
+            for _ in 0..relation_count {
+                let state_raw = read_u8(body, &mut cursor)?;
+                let a = read_u16(body, &mut cursor)?;
+                let b = read_u16(body, &mut cursor)?;
+                let truce_until = read_u64(body, &mut cursor)?;
+                let cb_until = read_u64(body, &mut cursor)?;
+                let war_exhaustion_q16 = read_u32(body, &mut cursor)?;
+                let generation_rel = read_u64(body, &mut cursor)?;
+                let state =
+                    crate::diplomacy::DiplomaticState::from_u8(state_raw).unwrap_or(crate::diplomacy::DiplomaticState::Peace);
+                relations.push(DiplomaticRelationSnapshot {
+                    a,
+                    b,
+                    state,
+                    truce_until_tick: truce_until,
+                    casus_belli_until_tick: cb_until,
+                    war_exhaustion_q16,
+                    generation: generation_rel,
+                });
+            }
+            if tick == 0
+                && generation == 0
+                && hash_chain == 0
+                && prev_hash_chain == 0
+                && relations.is_empty()
+            {
+                None
+            } else {
+                Some(DiplomaticPersistSnapshot {
+                    tick,
+                    generation,
+                    hash_chain,
+                    prev_hash_chain,
+                    relations,
+                })
+            }
+        } else {
+            None
+        };
+
+        let economy = if version >= 9 {
+            let tick = read_u64(body, &mut cursor)?;
+            let generation = read_u64(body, &mut cursor)?;
+            let hash_chain = read_u64(body, &mut cursor)?;
+            let prev_hash_chain = read_u64(body, &mut cursor)?;
+            let order_count = read_u32(body, &mut cursor)? as usize;
+            let mut orders = Vec::with_capacity(order_count);
+            for _ in 0..order_count {
+                let kind_raw = read_u8(body, &mut cursor)?;
+                let province_id = read_u32(body, &mut cursor)?;
+                let target_infra_q16 = read_u32(body, &mut cursor)?;
+                let remaining_ticks = read_u32(body, &mut cursor)?;
+                let generation_order = read_u64(body, &mut cursor)?;
+                let kind = crate::province_economy::BuildOrderKind::from_u8(kind_raw)
+                    .unwrap_or(crate::province_economy::BuildOrderKind::Infrastructure);
+                orders.push(BuildOrderSnapshot {
+                    province_id,
+                    kind,
+                    target_infra_q16,
+                    remaining_ticks,
+                    generation: generation_order,
+                });
+            }
+            if tick == 0
+                && generation == 0
+                && hash_chain == 0
+                && prev_hash_chain == 0
+                && orders.is_empty()
+            {
+                None
+            } else {
+                Some(EconomyPersistSnapshot {
+                    tick,
+                    generation,
+                    hash_chain,
+                    prev_hash_chain,
+                    orders,
+                })
+            }
+        } else {
+            None
+        };
+
+        let command_delays = if version >= 10 {
+            let delay_count = read_u32(body, &mut cursor)? as usize;
+            let mut pending = Vec::with_capacity(delay_count);
+            for _ in 0..delay_count {
+                let ready_tick = read_u64(body, &mut cursor)?;
+                let kind_raw = read_u8(body, &mut cursor)?;
+                let formation_id = read_u32(body, &mut cursor)?;
+                let generation_order = read_u32(body, &mut cursor)?;
+                let payload_a = read_u64(body, &mut cursor)?;
+                let payload_b = read_u64(body, &mut cursor)?;
+                let kind = crate::order::OrderKind::from_u8(kind_raw)
+                    .unwrap_or(crate::order::OrderKind::Hold);
+                pending.push(CommandDelaySnapshot {
+                    ready_tick,
+                    order: crate::order::OrderData {
+                        kind,
+                        formation_id,
+                        generation: generation_order,
+                        payload_a,
+                        payload_b,
+                    },
+                });
+            }
+            if pending.is_empty() {
+                None
+            } else {
+                Some(CommandDelayPersistSnapshot { pending })
+            }
+        } else {
+            None
+        };
+
         Some((
             tele,
             crate::order::QueueStats {
@@ -259,6 +681,11 @@ impl CampaignSnapshotCapsule {
                 capacity,
             },
             formations_out,
+            structures_out,
+            strategic,
+            diplomatic,
+            economy,
+            command_delays,
         ))
     }
 }
@@ -391,6 +818,7 @@ verify_capsule_properties!(SnapshotMmapCapsule, 128, 256);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::diplomacy::DiplomaticStateCapsule;
     use crate::formation::FormationCapsule;
     use crate::telemetry::TelemetryCapsule;
 
@@ -403,14 +831,100 @@ mod tests {
         let orders = OrderQueueCapsule::new();
         let telemetry = TelemetryCapsule::new();
         let snapper = CampaignSnapshotCapsule::new();
-        let buf = snapper.serialize(&formations, &orders, &telemetry, 0);
+        let buf =
+            snapper.serialize(&formations, &orders, &telemetry, &[], None, None, None, None, 0);
         let mut world = WorldSlabCapsule::new(1);
-        let (tele, stats, forms) = snapper.deserialize_formations(&buf, &mut world, 0).unwrap();
+        let (tele, stats, forms, structures, strat, dip, econ, delays) =
+            snapper.deserialize_formations(&buf, &mut world, 0).unwrap();
         assert_eq!(tele.events, 0);
         assert_eq!(world.len(), 2);
         assert_eq!(stats.head, 0);
         assert_eq!(stats.tail, 0);
         assert_eq!(forms.len(), 2);
+        assert!(structures.is_empty());
+        assert!(strat.is_none());
+        assert!(dip.is_none());
+        assert!(econ.is_none());
+        assert!(delays.is_none());
+    }
+
+    #[test]
+    fn diplomatic_snapshot_roundtrips() {
+        let formations = vec![FormationCapsule::new(1, 0, 0, 0, 0, 0, 0, 0, 0, 0)];
+        let orders = OrderQueueCapsule::new();
+        let telemetry = TelemetryCapsule::new();
+        let dip = DiplomaticStateCapsule::new(3);
+        dip.set_war(0, 1);
+        dip.set_casus_belli(1, 2, 120);
+        let dip_snap = dip.snapshot(10);
+        let snapper = CampaignSnapshotCapsule::new();
+        let buf = snapper.serialize(
+            &formations,
+            &orders,
+            &telemetry,
+            &[],
+            None,
+            Some(&dip_snap),
+            None,
+            None,
+            0,
+        );
+        let mut world = WorldSlabCapsule::new(1);
+        let (_tele, _stats, _forms, _structs, strat, dip_out, econ_out, delays_out) =
+            snapper.deserialize_formations(&buf, &mut world, 0).unwrap();
+        assert!(strat.is_none());
+        let dip_decoded = dip_out.expect("diplomatic snapshot");
+        assert_eq!(dip_decoded.tick, dip_snap.tick);
+        assert_eq!(dip_decoded.hash_chain, dip_snap.hash_chain);
+        assert_eq!(dip_decoded.relations.len(), dip_snap.relations.len());
+        assert_eq!(dip_decoded.relations[0].state, dip_snap.relations[0].state);
+        assert!(econ_out.is_none());
+        assert!(delays_out.is_none());
+    }
+
+    #[test]
+    fn command_delay_buffer_persists() {
+        use crate::order::{pack_move_payload, CommandDelayBufferCapsule, OrderKind};
+        let formations = vec![FormationCapsule::new(1, 0, 0, 0, 0, 0, 0, 0, 0, 0)];
+        let orders = OrderQueueCapsule::new();
+        let telemetry = TelemetryCapsule::new();
+        let delays = CommandDelayBufferCapsule::new();
+        let order = crate::order::OrderData {
+            kind: OrderKind::Move,
+            formation_id: 0,
+            generation: 1,
+            payload_a: pack_move_payload(10, 0),
+            payload_b: 0,
+        };
+        assert!(delays.enqueue(&order, 42));
+        let snapper = CampaignSnapshotCapsule::new();
+        let buf = snapper.serialize(
+            &formations,
+            &orders,
+            &telemetry,
+            &[],
+            None,
+            None,
+            None,
+            Some(&delays),
+            0,
+        );
+        let mut world = WorldSlabCapsule::new(1);
+        let (_tele, _stats, _forms, _structs, _strat, _dip, _econ, delays_snap) =
+            snapper.deserialize_formations(&buf, &mut world, 0).unwrap();
+        let delays_snap = delays_snap.expect("delays snapshot");
+        assert_eq!(delays_snap.pending.len(), 1);
+        assert_eq!(delays_snap.pending[0].ready_tick, 42);
+        assert_eq!(delays_snap.pending[0].order.kind, OrderKind::Move);
+
+        // Restore into a fresh buffer and drain at the ready tick.
+        let restored = CommandDelayBufferCapsule::new();
+        let count = crate::snapshot::restore_command_delays(Some(&delays_snap), &restored);
+        assert_eq!(count, 1);
+        let mut out = Vec::new();
+        restored.drain_ready(42, &mut out);
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].kind, OrderKind::Move);
     }
 
     #[test]
@@ -420,10 +934,11 @@ mod tests {
         let orders = OrderQueueCapsule::new();
         let telemetry = TelemetryCapsule::new();
         let snapper = CampaignSnapshotCapsule::new();
-        let buf = snapper.serialize(&formations, &orders, &telemetry, 0);
+        let buf =
+            snapper.serialize(&formations, &orders, &telemetry, &[], None, None, None, None, 0);
 
         let tmp_path = std::env::temp_dir().join("kindly_engine_snapshot.bin");
-        let mmap_capsule =
+        let mut mmap_capsule =
             SnapshotMmapCapsule::new(&tmp_path, 1_048_576, 1).expect("create snapshot mmap");
         let chain = mmap_capsule.append(&buf, 0).expect("append snapshot");
         assert_ne!(chain, 0);
@@ -447,9 +962,10 @@ mod tests {
         let orders = OrderQueueCapsule::new();
         let telemetry = TelemetryCapsule::new();
         let snapper = CampaignSnapshotCapsule::new();
-        let buf = snapper.serialize(&formations, &orders, &telemetry, 123);
+        let buf =
+            snapper.serialize(&formations, &orders, &telemetry, &[], None, None, None, None, 123);
         let tmp_path = std::env::temp_dir().join("kindly_engine_snapshot2.bin");
-        let mmap_capsule =
+        let mut mmap_capsule =
             SnapshotMmapCapsule::new(&tmp_path, 1_048_576, 1).expect("create snapshot mmap");
         let (chain, offset, len) = mmap_capsule
             .append_and_verify(&buf, 123)

@@ -8,20 +8,26 @@ use kindly_engine::ballistics::{
 use kindly_engine::courier::{CourierCapsule, Doctrine};
 use kindly_engine::fire_doctrine::{FireDoctrineCapsule, FireDoctrineMode};
 use kindly_engine::formation::FormationCapsule;
+use kindly_engine::command::{commanders_to_generals, CommanderCapsule, CommandHierarchyCapsule};
+use kindly_engine::general::{snapshot_generals, GeneralCapsule};
+use kindly_engine::grenade::GrenadeCapsule;
 use kindly_engine::kgpu_bridge::{
-    make_doctrine_overlay_from_render, make_supply_heatmap_from_render, try_submit_with_kgpu_driver,
-    KgpuTerminalCapsule, RenderOverlayCapsule, SupplyHeatmapLegend, SupplyHeatmapSink,
-    TerminalDoctrineSink, TerminalHeatmapSink,
+    make_aperture_overlay_from_render, make_doctrine_overlay_from_render,
+    make_supply_heatmap_from_render, try_submit_with_kgpu_driver, KgpuTerminalCapsule,
+    RenderOverlayCapsule, SupplyHeatmapLegend, SupplyHeatmapSink, TerminalDoctrineSink,
+    TerminalHeatmapSink,
 };
 use kindly_engine::kgpu_ingest::{KgpuIngestCapsule, KgpuRenderSinkCapsule};
 use kindly_engine::math::Q16_16;
 use kindly_engine::order::{
     pack_charge_meta, pack_fire_doctrine_payload, pack_fire_meta_extended, pack_fire_payload,
-    pack_move_payload, pack_posture_payload, unpack_fire_payload, OrderKind, OrderQueueCapsule,
+    pack_grenade_meta, pack_grenade_payload, pack_move_payload, pack_posture_payload,
+    unpack_fire_payload, CommandDelayBufferCapsule, OrderKind, OrderQueueCapsule,
 };
 use kindly_engine::pathing::PathingCapsule;
 use kindly_engine::physics::PhysicsPreset;
-use kindly_engine::supply::{SupplyCapsule, SupplyRoad, SupplySnapshot};
+use kindly_engine::strategic_map::{ProvinceCapsule, StrategicMapCapsule, WeatherKeyframe};
+use kindly_engine::supply::{SupplyRoad, SupplySnapshot};
 use kindly_engine::telemetry::TelemetryCapsule;
 use kindly_engine::terrain::{TerrainGridCapsule, TerrainSnapshot};
 use kindly_engine::tick::{
@@ -97,6 +103,8 @@ struct DriverArgs {
     supply_graph: Option<PathBuf>,
     weather_script: Option<PathBuf>,
     doctrine_defaults: Option<String>,
+    grenade_fuse_ms: u16,
+    grenade_fragments: u16,
 }
 
 impl DriverArgs {
@@ -114,6 +122,9 @@ impl DriverArgs {
             heatmap_enabled: true,
             supply_graph: None,
             weather_script: None,
+            doctrine_defaults: None,
+            grenade_fuse_ms: 1200,
+            grenade_fragments: 48,
         };
 
         while let Some(arg) = args.next() {
@@ -197,6 +208,18 @@ impl DriverArgs {
                         std::process::exit(2);
                     }));
                 }
+                "--grenade-fuse" => {
+                    cfg.grenade_fuse_ms = args
+                        .next()
+                        .and_then(|v| v.parse().ok())
+                        .unwrap_or(cfg.grenade_fuse_ms);
+                }
+                "--grenade-fragments" => {
+                    cfg.grenade_fragments = args
+                        .next()
+                        .and_then(|v| v.parse().ok())
+                        .unwrap_or(cfg.grenade_fragments);
+                }
                 "--help" | "-h" => {
                     print_help();
                     std::process::exit(0);
@@ -246,7 +269,9 @@ fn print_help() {
         --no-heatmap             Disable supply/fatigue heatmap submission\n\
         --supply-graph <path>    Optional supply graph file (lines: from to capacity loss distance)\n\
         --weather-script <path>  Optional weather script (lines: tick precip wind gust)\n\
-        --doctrine-defaults <list> Comma list (volley:<ticks>,byrank:<ticks>,rolling:<ticks>,advance:<ticks>)"
+        --doctrine-defaults <list> Comma list (volley:<ticks>,byrank:<ticks>,rolling:<ticks>,advance:<ticks>)\n\
+        --grenade-fuse <ms>      Default grenade fuse (ms, default 1200)\n\
+        --grenade-fragments <n>  Default grenade fragment count (default 48)"
     );
 }
 
@@ -393,17 +418,16 @@ fn load_weather_script(path: &Path) -> io::Result<Vec<WeatherKeyframe>> {
     let reader = BufReader::new(file);
     let mut frames = Vec::new();
     for (idx, line) in reader.lines().enumerate() {
-        let raw = line?;
-        let trimmed = raw.trim();
-        if trimmed.is_empty() || trimmed.starts_with('#') {
+        let line = line?;
+        if line.trim().is_empty() || line.starts_with('#') {
             continue;
         }
-        let parts: Vec<_> = trimmed.split_whitespace().collect();
+        let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() < 4 {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 format!(
-                    "line {}: expected 4 fields (tick precip wind gust)",
+                    "line {}: expected at least 4 fields (tick precip wind gust [wind_dir])",
                     idx + 1
                 ),
             ));
@@ -424,117 +448,21 @@ fn load_weather_script(path: &Path) -> io::Result<Vec<WeatherKeyframe>> {
                 )
             })
         };
+        let wind_dir = if parts.len() > 4 {
+            parse_u32(parts[4])?
+        } else {
+            0
+        };
         frames.push(WeatherKeyframe {
             tick: parse_u64(parts[0])?,
             precipitation_q16: parse_u32(parts[1])?,
             wind_speed_q16: parse_u32(parts[2])?,
             gust_q16: parse_u32(parts[3])?,
+            wind_dir_deg_q16: wind_dir,
         });
     }
     frames.sort_by_key(|f| f.tick);
     Ok(frames)
-}
-
-/// Campaign feeds: deterministic supply + weather derived from formation physics (replaces placeholders).
-struct CampaignFeeds {
-    supply: SupplyCapsule,
-    weather: WeatherCapsule,
-    weather_script: Option<Vec<WeatherKeyframe>>,
-    weather_cursor: usize,
-}
-
-impl CampaignFeeds {
-    fn new(
-        formations: &[FormationCapsule],
-        roads: Option<&[SupplyRoad]>,
-        weather_script: Option<Vec<WeatherKeyframe>>,
-    ) -> Self {
-        let mut supply = SupplyCapsule::new(formations.len());
-        if let Some(edges) = roads {
-            for edge in edges {
-                supply.add_road(
-                    edge.from,
-                    edge.to,
-                    edge.capacity_q16,
-                    edge.loss_q16,
-                    edge.distance_tiles,
-                );
-            }
-        } else {
-            // Bidirectional roads between adjacent formations to simulate a simple front-line mesh.
-            for idx in 0..formations.len() {
-                let next = (idx + 1) % formations.len();
-                if idx != next {
-                    supply.add_road(idx as u32, next as u32, 60_000, 1_200, 4);
-                    supply.add_road(next as u32, idx as u32, 60_000, 1_200, 4);
-                }
-            }
-        }
-        for idx in 0..formations.len() {
-            let snap = formations[idx].snapshot();
-            supply.set_ammo(idx as u32, snap.ammo);
-        }
-        let weather = WeatherCapsule::new();
-        weather.set_precipitation(18_000);
-        weather.set_wind(12 << 16, 10_000);
-        Self {
-            supply,
-            weather,
-            weather_script,
-            weather_cursor: 0,
-        }
-    }
-
-    fn step(&mut self, sim_tick: u64, formations: &[FormationCapsule]) -> SupplySnapshot {
-        if let Some(script) = self.weather_script.as_ref() {
-            if let Some(last) = script.last() {
-                while self.weather_cursor + 1 < script.len()
-                    && script[self.weather_cursor + 1].tick <= sim_tick
-                {
-                    self.weather_cursor += 1;
-                }
-                let key = &script[self.weather_cursor.min(script.len() - 1)];
-                self.weather
-                    .set_precipitation(key.precipitation_q16.min(65_536));
-                self.weather
-                    .set_wind(key.wind_speed_q16.min(65_536), key.gust_q16.min(65_536));
-                if sim_tick > last.tick {
-                    self.weather_cursor = script.len() - 1;
-                }
-            }
-        } else {
-            // Weather script: alternating dry/cloudburst/overcast phases tied to the campaign clock.
-            let phase = (sim_tick % 12) as u32;
-            let precip = match phase {
-                0..=3 => 16_000,
-                4..=7 => 36_000,
-                _ => 22_000,
-            };
-            let wind = (12_000 + phase.saturating_mul(1_200)).min(45_000);
-            self.weather.set_precipitation(precip);
-            self.weather.set_wind(wind, wind / 2);
-        }
-        let wx = self.weather.step();
-        self.supply.set_weather(wx.mud_q16, wx.wind_speed_q16);
-        let decay_penalty = 65_536u32.saturating_sub(self.weather.supply_decay_scale_q16());
-        let decay_q16 = 2_048u32.saturating_add(decay_penalty / 4).min(30_000);
-        self.supply.set_decay_q16(decay_q16);
-
-        // Demand/pressure derived from formation physics (density/mass) and current fatigue.
-        for (idx, formation) in formations.iter().enumerate() {
-            let snap: kindly_engine::formation::FormationSnapshot = formation.snapshot();
-            let density_bias = snap.density_q16 / 6;
-            let mass_bias = snap.mass_q16 / 8;
-            let fatigue_drag = snap.fatigue_q16 / 12;
-            let base = 32_000u32
-                .saturating_add(density_bias)
-                .saturating_add(mass_bias)
-                .saturating_sub(fatigue_drag);
-            self.supply.inject_pressure(idx as u32, base.min(65_536));
-        }
-
-        self.supply.step()
-    }
 }
 
 fn main() {
@@ -550,6 +478,8 @@ fn main() {
     if let (Some(path), Some(edges)) = (&cfg.supply_graph, supply_roads.as_ref()) {
         let edge_count: usize = edges.len();
         println!("loaded supply graph {:?} ({} edges)", path, edge_count);
+    } else {
+        println!("supply graph not provided: using deterministic fallback mesh between formations");
     }
     let weather_script = match cfg.weather_script.as_ref() {
         Some(path) => Some(load_weather_script(path).unwrap_or_else(|err| {
@@ -563,6 +493,10 @@ fn main() {
             "loaded weather script {:?} ({} keyframes)",
             path,
             script.len()
+        );
+    } else {
+        println!(
+            "weather script not provided: using deterministic fallback precipitation/wind phases"
         );
     }
 
@@ -579,6 +513,14 @@ fn main() {
         1,
         0,
     );
+    let grenades = GrenadeCapsule::new(
+        30 << 16,
+        cfg.grenade_fuse_ms as u32,
+        cfg.grenade_fragments as u32,
+        50_000,
+        2 << 16,
+        cfg.strat_seed,
+    );
     let fire_profile = FireControlProfileCapsule::default();
     let terrain = TerrainGridCapsule::new(
         8,
@@ -594,20 +536,8 @@ fn main() {
 
     // Formations/pathing
     let formations = vec![
-        FormationCapsule::new_with_preset(
-            0,
-            0,
-            0,
-            40_000,
-            8_000,
-            50_000,
-            120,
-            0,
-            0,
-            0,
-            PhysicsPreset::LineInfantry,
-        ),
-        FormationCapsule::new_with_preset(
+        FormationCapsule::spawn_line(0, 0, 0, 40_000, 8_000, 50_000, 120, 0, 0, 0),
+        FormationCapsule::spawn_guard(
             1,
             0,
             0,
@@ -618,17 +548,60 @@ fn main() {
             Q16_16::from_f64(50.0).to_raw() as u32,
             0,
             0,
-            PhysicsPreset::OldGuard,
+        ),
+        FormationCapsule::spawn_grenadier(
+            2,
+            0,
+            0,
+            42_000,
+            7_000,
+            50_000,
+            96,
+            Q16_16::from_f64(-25.0).to_raw() as u32,
+            10 << 16,
+            0,
         ),
     ];
-    let pathings = vec![PathingCapsule::new(16, 0, 8), PathingCapsule::new(16, 0, 8)];
+    let pathings = vec![
+        PathingCapsule::new(16, 0, 8),
+        PathingCapsule::new(16, 0, 8),
+        PathingCapsule::new(16, 0, 8),
+    ];
+    // Commanders (single army commander following formation 0 for demo).
+    let mut commanders = vec![CommanderCapsule::new(
+        formations[0].snapshot().position_x_q16,
+        formations[0].snapshot().position_z_q16,
+        20_000,
+        2_000,
+        1_000,
+        1_000,
+        2,
+        true,
+    )];
     seed_fire_doctrine_presets(
         &fire_doctrine,
         &formations,
         cfg.doctrine_defaults.as_deref(),
     );
-    let mut campaign =
-        CampaignFeeds::new(&formations, supply_roads.as_deref(), weather_script.clone());
+    let command_delays = CommandDelayBufferCapsule::new();
+    let command_hierarchy = CommandHierarchyCapsule::new(formations.len());
+    for (idx, _f) in formations.iter().enumerate() {
+        command_hierarchy.assign_commander(idx, 0);
+    }
+    let mut provinces: Vec<ProvinceCapsule> = formations
+        .iter()
+        .map(|f| {
+            let snap = f.snapshot();
+            let p = ProvinceCapsule::new(0, 100_000, 40_000);
+            p.set_depot_pressure(snap.density_q16.min(60_000));
+            p
+        })
+        .collect();
+    let mut strategic_map =
+        StrategicMapCapsule::new(provinces, supply_roads.as_deref(), weather_script.clone());
+    for (idx, formation) in formations.iter().enumerate() {
+        strategic_map.set_ammo(idx as u32, formation.snapshot().ammo);
+    }
 
     // Overlay ingestion (no GPU side-effects; just demonstrates overlay publication).
     let overlay_capsule = RenderOverlayCapsule::new();
@@ -637,9 +610,11 @@ fn main() {
     let doctrine_sink = TerminalDoctrineSink::new();
     let heatmap_legend = SupplyHeatmapLegend::default();
     let mut heatmap_legend_printed = false;
+    let mut aperture_legend_printed = false;
     #[allow(unused_mut)]
     let mut kgpu_sink: Option<KgpuRenderSinkCapsule> = None;
     let mut kgpu_ingest = KgpuIngestCapsule::new(2_048);
+    let command_delays = CommandDelayBufferCapsule::new();
     #[cfg(all(feature = "kgpu-driver-linux", target_os = "linux"))]
     {
         if cfg.use_kgpu_driver {
@@ -669,7 +644,8 @@ fn main() {
 
     for sim_tick in 0..10 {
         // Campaign-driven supply/weather feeds (no placeholders).
-        let supply_snap = campaign.step(sim_tick, &formations);
+        let strat_snap = strategic_map.step(sim_tick);
+        let supply_snap = &strat_snap.supply;
 
         // If target ID is known, resolve deterministic fire-control with shooter/target snapshots.
         if let Some(order) = orders.pop_order() {
@@ -686,6 +662,7 @@ fn main() {
                     &order,
                     &terrain,
                     &ballistics,
+                    None,
                     &telemetry,
                     &fire_profile,
                     &formations,
@@ -711,14 +688,38 @@ fn main() {
                 sim_tick,
                 &orders,
                 &formations,
-                &supply_snap,
+                supply_snap,
                 courier_eta_hint,
             );
             orders
                 .push_order(OrderKind::ArtilleryFire, 0, payload_a, payload_b)
                 .expect("queue push");
+            if formations.len() > 1 {
+                let grenadier_idx = formations.len() - 1;
+                let shooter = formations[grenadier_idx].snapshot();
+                let target = select_grenade_target(&formations, grenadier_idx, &terrain)
+                    .unwrap_or_else(|| formations[1].snapshot());
+                let grenade_payload =
+                    pack_grenade_payload(target.position_x_q16, target.position_z_q16);
+                let grenade_meta = pack_grenade_meta(cfg.grenade_fuse_ms, cfg.grenade_fragments);
+                orders
+                    .push_order(
+                        OrderKind::Grenade,
+                        shooter.formation_id,
+                        grenade_payload,
+                        grenade_meta,
+                    )
+                    .expect("queue push");
+            }
             strat_clock.advance();
         }
+
+        if let (Some(cmd), Some(first)) = (commanders.first(), formations.first()) {
+            let pos = first.snapshot();
+            cmd.set_position(pos.position_x_q16, pos.position_z_q16);
+        }
+        let commander_snaps: Vec<_> = commanders.iter().map(CommanderCapsule::snapshot).collect();
+        let general_snaps = commanders_to_generals(&commander_snaps);
 
         let shard = make_shard_context(
             0,
@@ -730,11 +731,21 @@ fn main() {
             Some(&ballistics),
             Some(&fire_profile),
             Some(&terrain),
-            Some(&supply_snap),
-            Some(&courier),
+            Some(&grenades),
             None,
+            None,
+            Some(supply_snap),
+            Some(&courier),
+            Some(&fire_doctrine),
+            None,
+            None,
+            Some(&general_snaps),
+            Some(&command_hierarchy),
+            Some(&commander_snaps),
+            Some(&strat_snap),
+            Some(&command_delays),
         );
-        let stats = tick_world::<16>(&[shard]);
+        let stats = tick_world::<16>(sim_tick, &[shard]);
 
         // Produce a render view and publish overlays for kgpu.
         let shard_views = [&formations[..]];
@@ -748,6 +759,7 @@ fn main() {
             &supply_heatmap_sink,
             &heatmap_legend,
             &mut heatmap_legend_printed,
+            &mut aperture_legend_printed,
             &mut kgpu_ingest,
             &doctrine_sink,
         );
@@ -768,6 +780,7 @@ fn main() {
             &ballistics,
             &fire_profile,
             &terrain,
+            &grenades,
             &cfg,
             &overlay_capsule,
             &kgpu,
@@ -793,6 +806,7 @@ fn run_stream_with_io_uring(
     ballistics: &BallisticsCapsule,
     fire_profile: &FireControlProfileCapsule,
     terrain: &TerrainGridCapsule,
+    grenades: &GrenadeCapsule,
     cfg: &DriverArgs,
     overlay_capsule: &RenderOverlayCapsule,
     kgpu: &KgpuTerminalCapsule,
@@ -803,16 +817,19 @@ fn run_stream_with_io_uring(
     heatmap_sink: &TerminalHeatmapSink,
     heatmap_legend: &SupplyHeatmapLegend,
     heatmap_legend_printed: &mut bool,
+    aperture_legend_printed: &mut bool,
     kgpu_ingest: &mut KgpuIngestCapsule,
     doctrine_sink: &TerminalDoctrineSink,
 ) {
     use kindly_engine::driver::DriverCapsule;
+    use kindly_engine::grenade::GrenadeCapsule;
     use kindly_engine::io_bridge::RenderUringSinkCapsule;
     use kindly_engine::pathing::PathingCapsule as _;
     use kindly_engine::replay::{
         ReplayFlushCapsule, ReplayIndexCapsule, ReplayLogCapsule, ReplayMmapCapsule,
     };
     use kindly_engine::snapshot::{CampaignSnapshotCapsule, SnapshotMmapCapsule};
+    use kindly_engine::structure::StructureCapsule;
     use kindly_engine::tick::WorldLoopCapsule;
     use kindly_engine::WorldRuntimeCapsule;
     use std::fs::OpenOptions;
@@ -838,16 +855,31 @@ fn run_stream_with_io_uring(
 
     let replay_log: ReplayLogCapsule<1024> = ReplayLogCapsule::new();
     let replay_flush = ReplayFlushCapsule::new();
-    let replay_mmap = ReplayMmapCapsule::new(&tmp_replay, 1_048_576, 1).expect("replay mmap");
+    let mut replay_mmap = ReplayMmapCapsule::new(&tmp_replay, 1_048_576, 1).expect("replay mmap");
     let replay_index = tmp_index
         .as_ref()
         .and_then(|path| ReplayIndexCapsule::new(path, 1_048_576, 1).ok());
 
     let snapshot_capsule = CampaignSnapshotCapsule::new();
-    let snapshot_mmap =
+    let mut snapshot_mmap =
         SnapshotMmapCapsule::new(&tmp_snapshot, 1_048_576, 1).expect("snapshot mmap");
-    let mut campaign = CampaignFeeds::new(formations, supply_roads, weather_script);
-    let supply_snap = campaign.step(0, formations);
+    let provinces: Vec<ProvinceCapsule> = formations
+        .iter()
+        .map(|f| {
+            let snap = f.snapshot();
+            let p = ProvinceCapsule::new(0, 100_000, 40_000);
+            p.set_depot_pressure(snap.density_q16.min(60_000));
+            p
+        })
+        .collect();
+    let mut campaign = StrategicMapCapsule::new(provinces, supply_roads, weather_script);
+    for (idx, formation) in formations.iter().enumerate() {
+        campaign.set_ammo(idx as u32, formation.snapshot().ammo);
+    }
+    let strat_snap = campaign.step(0);
+    let supply_snap = &strat_snap.supply;
+
+    let structures: Vec<StructureCapsule> = Vec::new();
 
     let mut driver = DriverCapsule::new(
         runtime,
@@ -856,29 +888,54 @@ fn run_stream_with_io_uring(
         &kgpu,
         &replay_log,
         &replay_flush,
-        &replay_mmap,
+        &mut replay_mmap,
         replay_index.as_ref(),
         &snapshot_capsule,
-        &snapshot_mmap,
+        &mut snapshot_mmap,
         formations,
+        &structures,
+        None,
         orders,
         telemetry,
         Some(ballistics),
         Some(fire_profile),
         Some(terrain),
+        Some(grenades),
+        None,
         Some(&courier),
         Some(&fire_doctrine),
     );
 
-    let shard = driver.make_shard_context(0, formations, pathings, None, Some(&supply_snap));
-    let frame = driver.step(&[shard]).expect("driver step");
+    let shard = driver.make_shard_context(
+        0,
+        formations,
+        pathings,
+        None,
+        Some(supply_snap),
+        Some(&strat_snap),
+        None,
+        None,
+        None,
+        Some(&command_delays),
+    );
+    let frame = driver
+        .step(
+            &[shard],
+            Some(&strat_snap),
+            None,
+            None,
+            Some(&command_delays),
+            kgpu_sink.as_deref_mut(),
+        )
+        .expect("driver step");
     publish_render_snapshot(
         &frame.render,
-        kgpu_sink,
+        None,
         heatmap_enabled,
         heatmap_sink,
         heatmap_legend,
         heatmap_legend_printed,
+        &mut false, // aperture legend only printed in main driver loop
         kgpu_ingest,
         &doctrine_sink,
     );
@@ -931,6 +988,33 @@ fn seed_fire_doctrine_presets(
     }
 }
 
+/// Pick a grenade target: prefer the densest enemy formation with lowest cover toward the grenadier.
+fn select_grenade_target(
+    formations: &[FormationCapsule],
+    grenadier_idx: usize,
+    terrain: &TerrainGridCapsule,
+) -> Option<FormationSnapshot> {
+    let shooter = formations.get(grenadier_idx)?.snapshot();
+    let shooter_tile = (shooter.position_x_q16 >> 16, shooter.position_z_q16 >> 16);
+    formations
+        .iter()
+        .enumerate()
+        .filter(|(idx, _)| *idx != grenadier_idx)
+        .map(|(_, f)| f.snapshot())
+        .map(|snap| {
+            let target_tile = (snap.position_x_q16 >> 16, snap.position_z_q16 >> 16);
+            let cover_q16 = terrain.los_clear(shooter_tile, target_tile).1;
+            (snap, cover_q16)
+        })
+        .max_by(|(a_snap, a_cover), (b_snap, b_cover)| {
+            a_snap
+                .density_q16
+                .cmp(&b_snap.density_q16)
+                .then_with(|| b_cover.cmp(a_cover))
+        })
+        .map(|(snap, _)| snap)
+}
+
 fn publish_render_snapshot(
     snapshot: &kindly_engine::kgpu_bridge::RenderSnapshot<'_>,
     kgpu_sink: Option<&mut KgpuRenderSinkCapsule>,
@@ -938,6 +1022,7 @@ fn publish_render_snapshot(
     heatmap_sink: &TerminalHeatmapSink,
     legend: &SupplyHeatmapLegend,
     legend_printed: &mut bool,
+    aperture_legend_printed: &mut bool,
     kgpu_ingest: &mut KgpuIngestCapsule,
     doctrine_sink: &TerminalDoctrineSink,
 ) {
@@ -967,5 +1052,11 @@ fn publish_render_snapshot(
     // Doctrine/rank-fire overlay publication (terminal path).
     let doctrine_frame = make_doctrine_overlay_from_render(snapshot);
     doctrine_sink.submit(&doctrine_frame);
+    if !*aperture_legend_printed {
+        println!("aperture overlay: R=min aperture, G=max, B=avg (normalized Q16.16)");
+        *aperture_legend_printed = true;
+    }
+    // Build aperture overlay frame for renderer/debug consumers (no-op terminal submit).
+    let _aperture_frame = make_aperture_overlay_from_render(snapshot);
     let _ = try_submit_with_kgpu_driver(snapshot);
 }
