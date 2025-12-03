@@ -995,6 +995,82 @@ pub fn courier_eta_hist_series(
         .collect()
 }
 
+/// StratOps-focused replay record for campaign analytics.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StratOpsRecord {
+    Strategic {
+        tick: u64,
+        kind: StrategicEventKind,
+        province_id: u16,
+        primary: u16,
+        secondary: u16,
+    },
+    CommandDelayApplied {
+        tick: u64,
+        count: u16,
+        avg_delay_ticks: u16,
+    },
+    CommandDelayHist {
+        tick: u64,
+        chunk: u8,
+        buckets: [u16; 4],
+    },
+    CourierEtaHist {
+        tick: u64,
+        chunk: u8,
+        buckets: [u16; 4],
+    },
+}
+
+/// Build a campaign-focused replay lane from decoded events.
+pub fn build_stratops_lane(events: &[(u64, ReplayRecord)]) -> Vec<StratOpsRecord> {
+    let mut out = Vec::new();
+    for (tick, rec) in events {
+        match rec {
+            ReplayRecord::Strategic {
+                kind,
+                province_id,
+                primary,
+                secondary,
+            } => out.push(StratOpsRecord::Strategic {
+                tick: *tick,
+                kind: *kind,
+                province_id: *province_id,
+                primary: *primary,
+                secondary: *secondary,
+            }),
+            ReplayRecord::CommandDelayApplied {
+                count,
+                avg_delay_ticks,
+            } => out.push(StratOpsRecord::CommandDelayApplied {
+                tick: *tick,
+                count: *count,
+                avg_delay_ticks: *avg_delay_ticks,
+            }),
+            ReplayRecord::CommandHistogram {
+                kind: CommandHistogramKind::Delay,
+                chunk,
+                buckets,
+            } => out.push(StratOpsRecord::CommandDelayHist {
+                tick: *tick,
+                chunk: *chunk,
+                buckets: *buckets,
+            }),
+            ReplayRecord::CommandHistogram {
+                kind: CommandHistogramKind::Eta,
+                chunk,
+                buckets,
+            } => out.push(StratOpsRecord::CourierEtaHist {
+                tick: *tick,
+                chunk: *chunk,
+                buckets: *buckets,
+            }),
+            _ => {}
+        }
+    }
+    out
+}
+
 verify_capsule_properties!(ReplayMmapCapsule, 128, 256);
 
 /// Helper capsule to flush replay logs into mmap with optional index chaining.
@@ -1300,5 +1376,40 @@ mod tests {
 
         let courier_hist = courier_eta_hist_series(&decoded);
         assert_eq!(courier_hist, vec![(4, 1, [5, 6, 7, 8])]);
+
+        let stratops = build_stratops_lane(&decoded);
+        assert!(matches!(
+            stratops[0],
+            StratOpsRecord::Strategic {
+                tick: 1,
+                kind: StrategicEventKind::InfrastructureRepair,
+                province_id: 9,
+                ..
+            }
+        ));
+        assert!(matches!(
+            stratops[1],
+            StratOpsRecord::CommandDelayApplied {
+                tick: 2,
+                count: 5,
+                avg_delay_ticks: 12
+            }
+        ));
+        assert!(matches!(
+            stratops[2],
+            StratOpsRecord::CommandDelayHist {
+                tick: 3,
+                chunk: 0,
+                buckets
+            } if buckets == [1,2,3,4]
+        ));
+        assert!(matches!(
+            stratops[3],
+            StratOpsRecord::CourierEtaHist {
+                tick: 4,
+                chunk: 1,
+                buckets
+            } if buckets == [5,6,7,8]
+        ));
     }
 }
