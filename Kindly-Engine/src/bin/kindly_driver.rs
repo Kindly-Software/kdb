@@ -93,7 +93,6 @@ fn nearest_target_id(
 struct DriverArgs {
     render_out: PathBuf,
     replay_out: PathBuf,
-    replay_summary: bool,
     replay_index: Option<PathBuf>,
     snapshot_out: PathBuf,
     strat_interval: u64,
@@ -107,6 +106,7 @@ struct DriverArgs {
     grenade_fuse_ms: u16,
     grenade_fragments: u16,
     replay_summary: bool,
+    replay_summary_out: Option<PathBuf>,
 }
 
 impl DriverArgs {
@@ -116,6 +116,7 @@ impl DriverArgs {
             render_out: PathBuf::from("data/kindly-engine/render_stream.bin"),
             replay_out: PathBuf::from("data/kindly-engine/replay.bin"),
             replay_summary: false,
+            replay_summary_out: None,
             replay_index: Some(PathBuf::from("data/kindly-engine/replay.idx")),
             snapshot_out: PathBuf::from("data/kindly-engine/snapshot.bin"),
             strat_interval: 5,
@@ -146,6 +147,12 @@ impl DriverArgs {
                 }
                 "--replay-summary" => {
                     cfg.replay_summary = true;
+                }
+                "--replay-summary-out" => {
+                    cfg.replay_summary_out = Some(PathBuf::from(args.next().unwrap_or_else(|| {
+                        eprintln!("--replay-summary-out requires a path");
+                        std::process::exit(2);
+                    })));
                 }
                 "--snapshot-out" => {
                     cfg.snapshot_out = PathBuf::from(args.next().unwrap_or_else(|| {
@@ -266,6 +273,7 @@ fn print_help() {
          --render-out <path>      Render stream output file for io_uring (default data/kindly-engine/render_stream.bin)\n\
          --replay-out <path>      Replay mmap output (default data/kindly-engine/replay.bin)\n\
          --replay-summary         Decode replay after run (StratOps summary)\n\
+         --replay-summary-out <path> Write StratOps summary JSON to path\n\
          --snapshot-out <path>    Snapshot mmap output (default data/kindly-engine/snapshot.bin)\n\
          --replay-index <path>    Enable replay indexing at path (default data/kindly-engine/replay.idx)\n\
          --no-index               Disable replay index writes\n\
@@ -952,7 +960,7 @@ fn run_stream_with_io_uring(
         frame.tick, frame.overlay.version, frame.snapshot_chain, frame.render.frame_id
     );
 
-    if cfg.replay_summary {
+    if cfg.replay_summary || cfg.replay_summary_out.is_some() {
         match std::fs::read(&cfg.replay_out) {
             Ok(bytes) => {
                 let mut decoded = Vec::new();
@@ -965,41 +973,122 @@ fn run_stream_with_io_uring(
                     decoded.push((tick, decode_replay_payload(payload)));
                 }
                 let lane = build_stratops_lane(&decoded);
-                if lane.is_empty() {
-                    println!("replay summary: no StratOps records found");
-                } else {
-                    let mut strat = 0;
-                    let mut delay_applied = 0;
-                    let mut delay_hist = 0;
-                    let mut eta_hist = 0;
-                    for rec in &lane {
-                        match rec {
-                            kindly_engine::replay::StratOpsRecord::Strategic { .. } => strat += 1,
-                            kindly_engine::replay::StratOpsRecord::CommandDelayApplied { .. } => {
-                                delay_applied += 1
-                            }
-                            kindly_engine::replay::StratOpsRecord::CommandDelayHist { .. } => {
-                                delay_hist += 1
-                            }
-                            kindly_engine::replay::StratOpsRecord::CourierEtaHist { .. } => {
-                                eta_hist += 1
+                if cfg.replay_summary {
+                    if lane.is_empty() {
+                        println!("replay summary: no StratOps records found");
+                    } else {
+                        let mut strat = 0;
+                        let mut delay_applied = 0;
+                        let mut delay_hist = 0;
+                        let mut eta_hist = 0;
+                        for rec in &lane {
+                            match rec {
+                                kindly_engine::replay::StratOpsRecord::Strategic { .. } => strat += 1,
+                                kindly_engine::replay::StratOpsRecord::CommandDelayApplied { .. } => {
+                                    delay_applied += 1
+                                }
+                                kindly_engine::replay::StratOpsRecord::CommandDelayHist { .. } => {
+                                    delay_hist += 1
+                                }
+                                kindly_engine::replay::StratOpsRecord::CourierEtaHist { .. } => {
+                                    eta_hist += 1
+                                }
                             }
                         }
+                        println!("=== StratOps replay summary ===");
+                        println!("strategic events        : {strat}");
+                        println!("cmd delay applied       : {delay_applied}");
+                        println!("cmd delay hist chunks   : {delay_hist}");
+                        println!("courier ETA hist chunks : {eta_hist}");
+                        println!("recent (up to 10):");
+                        for rec in lane.iter().rev().take(10).rev() {
+                            println!("  {rec:?}");
+                        }
                     }
-                    println!("=== StratOps replay summary ===");
-                    println!("strategic events        : {strat}");
-                    println!("cmd delay applied       : {delay_applied}");
-                    println!("cmd delay hist chunks   : {delay_hist}");
-                    println!("courier ETA hist chunks : {eta_hist}");
-                    println!("recent (up to 10):");
-                    for rec in lane.iter().rev().take(10).rev() {
-                        println!("  {rec:?}");
+                }
+                if let Some(path) = &cfg.replay_summary_out {
+                    if let Err(err) = write_stratops_json(&lane, path) {
+                        eprintln!("failed to write replay summary json: {err}");
+                    } else {
+                        println!("wrote StratOps summary json to {:?}", path);
                     }
                 }
             }
             Err(err) => eprintln!("failed to read replay for summary: {err}"),
         }
     }
+}
+
+fn write_stratops_json(
+    lane: &[kindly_engine::replay::StratOpsRecord],
+    path: &Path,
+) -> std::io::Result<()> {
+    use std::io::Write;
+    let mut strat = 0u64;
+    let mut delay_applied = 0u64;
+    let mut delay_hist = 0u64;
+    let mut eta_hist = 0u64;
+    for rec in lane {
+        match rec {
+            kindly_engine::replay::StratOpsRecord::Strategic { .. } => strat += 1,
+            kindly_engine::replay::StratOpsRecord::CommandDelayApplied { .. } => delay_applied += 1,
+            kindly_engine::replay::StratOpsRecord::CommandDelayHist { .. } => delay_hist += 1,
+            kindly_engine::replay::StratOpsRecord::CourierEtaHist { .. } => eta_hist += 1,
+        }
+    }
+    let mut recent = String::new();
+    recent.push('[');
+    for (idx, rec) in lane.iter().rev().take(10).rev().enumerate() {
+        if idx > 0 {
+            recent.push(',');
+        }
+        let entry = match rec {
+            kindly_engine::replay::StratOpsRecord::Strategic {
+                tick,
+                kind,
+                province_id,
+                primary,
+                secondary,
+            } => format!(
+                "{{\"type\":\"strategic\",\"tick\":{},\"kind\":\"{:?}\",\"province_id\":{},\"primary\":{},\"secondary\":{}}}",
+                tick, kind, province_id, primary, secondary
+            ),
+            kindly_engine::replay::StratOpsRecord::CommandDelayApplied {
+                tick,
+                count,
+                avg_delay_ticks,
+            } => format!(
+                "{{\"type\":\"cmd_delay_applied\",\"tick\":{},\"count\":{},\"avg_delay_ticks\":{}}}",
+                tick, count, avg_delay_ticks
+            ),
+            kindly_engine::replay::StratOpsRecord::CommandDelayHist {
+                tick,
+                chunk,
+                buckets,
+            } => format!(
+                "{{\"type\":\"cmd_delay_hist\",\"tick\":{},\"chunk\":{},\"buckets\":[{},{},{},{}]}}",
+                tick, chunk, buckets[0], buckets[1], buckets[2], buckets[3]
+            ),
+            kindly_engine::replay::StratOpsRecord::CourierEtaHist {
+                tick,
+                chunk,
+                buckets,
+            } => format!(
+                "{{\"type\":\"courier_eta_hist\",\"tick\":{},\"chunk\":{},\"buckets\":[{},{},{},{}]}}",
+                tick, chunk, buckets[0], buckets[1], buckets[2], buckets[3]
+            ),
+        };
+        recent.push_str(&entry);
+    }
+    recent.push(']');
+
+    let json = format!(
+        "{{\"strategic\":{},\"cmd_delay_applied\":{},\"cmd_delay_hist\":{},\"courier_eta_hist\":{},\"recent\":{}}}",
+        strat, delay_applied, delay_hist, eta_hist, recent
+    );
+    let mut file = std::fs::File::create(path)?;
+    file.write_all(json.as_bytes())?;
+    Ok(())
 }
 
 fn seed_fire_doctrine_presets(
