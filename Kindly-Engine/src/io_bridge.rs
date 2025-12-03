@@ -195,18 +195,18 @@ impl RuntimeStreamCapsule {
         snapshot_capsule: &CampaignSnapshotCapsule,
         snapshot_mmap: &mut SnapshotMmapCapsule,
         formations: &[FormationCapsule],
-    structures: &[StructureCapsule],
-    orders: &OrderQueueCapsule,
-    telemetry: &TelemetryCapsule,
-    strategic: Option<&StrategicSnapshot>,
-    diplomatic: Option<&DiplomaticSnapshot>,
-    economy: Option<&crate::province_economy::EconomySnapshot>,
-    command_delays: Option<&crate::order::CommandDelayBufferCapsule>,
-    overlay_capsule: &RenderOverlayCapsule,
-    kgpu: &KgpuTerminalCapsule,
-    kgpu_sink: Option<&mut KgpuRenderSinkCapsule>,
-) -> Result<
-    (
+        structures: &[StructureCapsule],
+        orders: &OrderQueueCapsule,
+        telemetry: &TelemetryCapsule,
+        strategic: Option<&StrategicSnapshot>,
+        diplomatic: Option<&DiplomaticSnapshot>,
+        economy: Option<&crate::province_economy::EconomySnapshot>,
+        command_delays: Option<&crate::order::CommandDelayBufferCapsule>,
+        overlay_capsule: &RenderOverlayCapsule,
+        kgpu: &KgpuTerminalCapsule,
+        kgpu_sink: Option<&mut KgpuRenderSinkCapsule>,
+    ) -> Result<
+        (
             WorldFrame<'a>,
             crate::replay::ReplayPersistSnapshot,
             u64,
@@ -230,6 +230,7 @@ impl RuntimeStreamCapsule {
             strategic,
             diplomatic,
             economy,
+            command_delays,
         )?;
         let render_view = frame.render.clone();
         let overlay = kgpu.ingest_overlays(overlay_capsule, &render_view, frame.tick);

@@ -1,3 +1,5 @@
+use crate::order::OrderKind;
+use crate::strategic_map::StrategicEventKind;
 use atomic_capsule::{verify_alignment_only, verify_capsule_properties};
 use core::array::from_fn;
 use core::sync::atomic::{AtomicU64, Ordering};
@@ -19,6 +21,12 @@ impl ReplayEvent {
     pub fn new(tick: u64, payload: u64) -> Self {
         Self { tick, payload }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CommandHistogramKind {
+    Delay,
+    Eta,
 }
 /// Replay entry capsule (tick + payload).
 #[repr(C, align(32))]
@@ -412,6 +420,76 @@ pub fn encode_command_replay_payload(
     tag | stress | eta | losses | spoofed
 }
 
+/// Encode applied command delay summary (count + avg ticks).
+///
+/// Layout:
+/// - bits 63..48: 0xC320 tag
+/// - bits 47..32: delayed order count (u16)
+/// - bits 31..16: avg delay ticks (u16)
+pub fn encode_command_delay_applied(count: u32, avg_delay_ticks: u32) -> u64 {
+    let tag = 0xC320u64 << 48;
+    let c = (count.min(0xFFFF) as u64) << 32;
+    let avg = (avg_delay_ticks.min(0xFFFF) as u64) << 16;
+    tag | c | avg
+}
+
+/// Encode a strategic ownership/repair event for replay overlays.
+///
+/// Layout:
+/// - bits 63..48: 0xCA00 tag
+/// - bits 47..40: kind (0 = ownership change, 1 = infrastructure repair)
+/// - bits 39..24: province_id (clamped to 16 bits)
+/// - bits 23..12: primary (owner_from or infra_from_q16 >> 4, clamped to 12 bits)
+/// - bits 11..0 : secondary (owner_to or infra_to_q16 >> 4, clamped to 12 bits)
+pub fn encode_strategic_event_payload(ev: &crate::strategic_map::StrategicEventSnapshot) -> u64 {
+    let tag = 0xCA00u64 << 48;
+    let kind = (ev.kind as u64 & 0xFF) << 40;
+    let province = (ev.province_id.min(0xFFFF) as u64) << 24;
+    let (primary, secondary) = match ev.kind {
+        StrategicEventKind::OwnershipChange => (
+            (ev.from_owner_id.min(0xFFF) as u64) << 12,
+            ev.to_owner_id.min(0xFFF) as u64,
+        ),
+        StrategicEventKind::InfrastructureRepair => (
+            ((ev.from_infra_q16 >> 4).min(0xFFF) as u64) << 12,
+            (ev.to_infra_q16 >> 4).min(0xFFF) as u64,
+        ),
+    };
+    tag | kind | province | primary | secondary
+}
+
+/// Encode 4 histogram buckets (command delay) into one payload chunk.
+///
+/// Tag scheme:
+/// - 0xC310 chunk0 (buckets 0..3) delay
+/// - 0xC311 chunk1 (buckets 4..7) delay
+pub fn encode_command_delay_hist_payload(chunk: u8, buckets: &[u32]) -> u64 {
+    debug_assert!(buckets.len() == 4);
+    let tag = ((0xC310u64 + chunk.min(1) as u64) << 48) as u64;
+    encode_histogram_body(tag, buckets)
+}
+
+/// Encode 4 histogram buckets (courier ETA) into one payload chunk.
+///
+/// Tag scheme:
+/// - 0xC312 chunk0 (buckets 0..3) eta
+/// - 0xC313 chunk1 (buckets 4..7) eta
+pub fn encode_courier_eta_hist_payload(chunk: u8, buckets: &[u32]) -> u64 {
+    debug_assert!(buckets.len() == 4);
+    let tag = ((0xC312u64 + chunk.min(1) as u64) << 48) as u64;
+    encode_histogram_body(tag, buckets)
+}
+
+fn encode_histogram_body(tag: u64, buckets: &[u32]) -> u64 {
+    let mut out = tag;
+    for (idx, bucket) in buckets.iter().enumerate().take(4) {
+        let shift = 36 - (idx * 12);
+        let val = (*bucket).min(0xFFF) as u64;
+        out |= val << shift;
+    }
+    out
+}
+
 /// Encode artillery debug overlays (ricochet/crater/fuse/splash).
 ///
 /// Layout:
@@ -484,6 +562,78 @@ pub fn encode_doctrine_replay_payload(
     tag | mask | mode_bits | cadence | rank_events | advance
 }
 
+/// Encode battle AI decision (source/target/order/score) for telemetry/replay.
+///
+/// Layout:
+/// - bits 63..48: 0xC900 tag
+/// - bits 47..32: source formation id (u16, clamped)
+/// - bits 31..16: target formation id (u16, clamped)
+/// - bits 15..8 : order kind (u8)
+/// - bits 7..0  : score_q8 (u8, normalized)
+pub fn encode_battle_ai_replay_payload(
+    source_formation_id: u32,
+    target_formation_id: u32,
+    order: OrderKind,
+    score_q8: u8,
+) -> u64 {
+    let tag = 0xC900u64 << 48;
+    let src = (source_formation_id.min(0xFFFF) as u64) << 32;
+    let tgt = (target_formation_id.min(0xFFFF) as u64) << 16;
+    let ord = (order as u64) << 8;
+    tag | src | tgt | ord | (score_q8 as u64)
+}
+
+/// Encode grenade telemetry: casualties, cover, detonation.
+///
+/// Layout:
+/// - bits 63..48: 0xC700 tag
+/// - bits 47..32: expected casualties (u16, clamped)
+/// - bits 31..16: avg cover q16 (u16, clamped)
+/// - bits 15..0 : detonation ms (u16, clamped)
+pub fn encode_grenade_replay_payload(
+    casualties: u32,
+    avg_cover_q16: u32,
+    detonation_ms: u32,
+) -> u64 {
+    let tag = 0xC700u64 << 48;
+    let cas = (casualties.min(0xFFFF) as u64) << 32;
+    let cover = (avg_cover_q16.min(0xFFFF) as u64) << 16;
+    let det = detonation_ms.min(0xFFFF) as u64;
+    tag | cas | cover | det
+}
+
+/// Encode garrison overlay snapshot.
+///
+/// Layout:
+/// - bits 63..48: 0xC800 tag
+/// - bits 47..32: garrisoned count (u16, clamped)
+/// - bits 31..16: breached structures (u16, clamped)
+/// - bits 15..0 : avg aperture width (deg, Q16.16 truncated to u16)
+pub fn encode_garrison_replay_payload(
+    garrisoned: u32,
+    breached: u32,
+    avg_aperture_q16: u32,
+) -> u64 {
+    let tag = 0xC800u64 << 48;
+    let g = (garrisoned.min(0xFFFF) as u64) << 32;
+    let b = (breached.min(0xFFFF) as u64) << 16;
+    let a = avg_aperture_q16.min(0xFFFF) as u64;
+    tag | g | b | a
+}
+
+/// Encode per-slot aperture detail (min/max) for garrisons (Q16.16 truncated to u16).
+///
+/// Layout:
+/// - bits 63..48: 0xC801 tag
+/// - bits 31..16: min aperture width (u16, Q16.16 truncated)
+/// - bits 15..0 : max aperture width (u16, Q16.16 truncated)
+pub fn encode_garrison_aperture_detail_payload(min_q16: u32, max_q16: u32) -> u64 {
+    let tag = 0xC801u64 << 48;
+    let min = (min_q16.min(0xFFFF) as u64) << 16;
+    let max = max_q16.min(0xFFFF) as u64;
+    tag | min | max
+}
+
 /// Decoded replay record kinds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReplayRecord {
@@ -511,6 +661,24 @@ pub enum ReplayRecord {
         courier_losses: u8,
         courier_spoofed: u8,
     },
+    /// Applied command delay summary.
+    CommandDelayApplied {
+        count: u16,
+        avg_delay_ticks: u16,
+    },
+    /// Strategic overlay: ownership/repair events.
+    Strategic {
+        kind: StrategicEventKind,
+        province_id: u16,
+        primary: u16,
+        secondary: u16,
+    },
+    /// Command delay/courier ETA histogram chunk (4 buckets).
+    CommandHistogram {
+        kind: CommandHistogramKind,
+        chunk: u8,
+        buckets: [u16; 4],
+    },
     /// Artillery overlay snapshot.
     Artillery {
         ricochet_bounces: u8,
@@ -533,6 +701,30 @@ pub enum ReplayRecord {
         cadence_ticks: u16,
         rank_fire_events: u8,
         advance_fire_events: u8,
+    },
+    /// Battle AI decision snapshot.
+    BattleAi {
+        source_formation_id: u16,
+        target_formation_id: u16,
+        order_kind: OrderKind,
+        score_q8: u8,
+    },
+    /// Grenade snapshot: casualties/cover/detonation.
+    Grenade {
+        casualties: u16,
+        avg_cover_q16: u16,
+        detonation_ms: u16,
+    },
+    /// Garrison overlay snapshot (count, breaches, avg aperture width).
+    Garrison {
+        garrisoned: u16,
+        breached: u16,
+        avg_aperture_q16: u16,
+    },
+    /// Garrison aperture detail snapshot (min/max widths).
+    GarrisonDetail {
+        min_aperture_q16: u16,
+        max_aperture_q16: u16,
     },
     /// Unknown/untagged payload (for forward compatibility).
     Unknown(u64),
@@ -557,6 +749,52 @@ pub fn decode_replay_payload(payload: u64) -> ReplayRecord {
             courier_losses: ((payload >> 8) & 0xFF) as u8,
             courier_spoofed: (payload & 0xFF) as u8,
         },
+        0xC320 => ReplayRecord::CommandDelayApplied {
+            count: ((payload >> 32) & 0xFFFF) as u16,
+            avg_delay_ticks: ((payload >> 16) & 0xFFFF) as u16,
+        },
+        0xC310 | 0xC311 => {
+            let tag = payload >> 48;
+            let buckets = [
+                ((payload >> 36) & 0xFFF) as u16,
+                ((payload >> 24) & 0xFFF) as u16,
+                ((payload >> 12) & 0xFFF) as u16,
+                (payload & 0xFFF) as u16,
+            ];
+            ReplayRecord::CommandHistogram {
+                kind: CommandHistogramKind::Delay,
+                chunk: if tag == 0xC311 { 1 } else { 0 },
+                buckets,
+            }
+        }
+        0xC312 | 0xC313 => {
+            let tag = payload >> 48;
+            let buckets = [
+                ((payload >> 36) & 0xFFF) as u16,
+                ((payload >> 24) & 0xFFF) as u16,
+                ((payload >> 12) & 0xFFF) as u16,
+                (payload & 0xFFF) as u16,
+            ];
+            ReplayRecord::CommandHistogram {
+                kind: CommandHistogramKind::Eta,
+                chunk: if tag == 0xC313 { 1 } else { 0 },
+                buckets,
+            }
+        }
+        0xCA00 => {
+            let kind_raw = ((payload >> 40) & 0xFF) as u8;
+            let province_id = ((payload >> 24) & 0xFFFF) as u16;
+            let primary = ((payload >> 12) & 0xFFF) as u16;
+            let secondary = (payload & 0xFFF) as u16;
+            let kind = StrategicEventKind::from_u8(kind_raw)
+                .unwrap_or(StrategicEventKind::OwnershipChange);
+            ReplayRecord::Strategic {
+                kind,
+                province_id,
+                primary,
+                secondary,
+            }
+        }
         0xC400 => ReplayRecord::Artillery {
             ricochet_bounces: ((payload >> 40) & 0xFF) as u8,
             crater_radius_tiles: ((payload >> 32) & 0xFF) as u8,
@@ -576,6 +814,29 @@ pub fn decode_replay_payload(payload: u64) -> ReplayRecord {
             cadence_ticks: ((payload >> 16) & 0xFFFF) as u16,
             rank_fire_events: ((payload >> 8) & 0xFF) as u8,
             advance_fire_events: (payload & 0xFF) as u8,
+        },
+        0xC900 => match OrderKind::from_u8(((payload >> 8) & 0xFF) as u8) {
+            Some(order_kind) => ReplayRecord::BattleAi {
+                source_formation_id: ((payload >> 32) & 0xFFFF) as u16,
+                target_formation_id: ((payload >> 16) & 0xFFFF) as u16,
+                order_kind,
+                score_q8: (payload & 0xFF) as u8,
+            },
+            None => ReplayRecord::Unknown(payload),
+        },
+        0xC700 => ReplayRecord::Grenade {
+            casualties: ((payload >> 32) & 0xFFFF) as u16,
+            avg_cover_q16: ((payload >> 16) & 0xFFFF) as u16,
+            detonation_ms: (payload & 0xFFFF) as u16,
+        },
+        0xC800 => ReplayRecord::Garrison {
+            garrisoned: ((payload >> 32) & 0xFFFF) as u16,
+            breached: ((payload >> 16) & 0xFFFF) as u16,
+            avg_aperture_q16: (payload & 0xFFFF) as u16,
+        },
+        0xC801 => ReplayRecord::GarrisonDetail {
+            min_aperture_q16: ((payload >> 16) & 0xFFFF) as u16,
+            max_aperture_q16: (payload & 0xFFFF) as u16,
         },
         _ => ReplayRecord::Shock {
             casualties: (payload >> 32) as u32,
@@ -607,10 +868,23 @@ pub fn supply_series(events: &[(u64, ReplayRecord)]) -> Vec<(u64, u16, u16)> {
         .collect()
 }
 
+/// Extract grenade timeline: (tick, casualties, cover_q16, detonation_ms).
+pub fn grenade_series(events: &[(u64, ReplayRecord)]) -> Vec<(u64, u16, u16, u16)> {
+    events
+        .iter()
+        .filter_map(|(tick, rec)| match rec {
+            ReplayRecord::Grenade {
+                casualties,
+                avg_cover_q16,
+                detonation_ms,
+            } => Some((*tick, *casualties, *avg_cover_q16, *detonation_ms)),
+            _ => None,
+        })
+        .collect()
+}
+
 /// Extract doctrine/rank-fire samples from a decoded stream.
-pub fn doctrine_series(
-    events: &[(u64, ReplayRecord)],
-) -> Vec<(u64, u8, u8, u16, u8, u8)> {
+pub fn doctrine_series(events: &[(u64, ReplayRecord)]) -> Vec<(u64, u8, u8, u16, u8, u8)> {
     events
         .iter()
         .filter_map(|(tick, rec)| match rec {
@@ -627,6 +901,28 @@ pub fn doctrine_series(
                 *cadence_ticks,
                 *rank_fire_events,
                 *advance_fire_events,
+            )),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Extract battle AI decision timeline: (tick, src_id, tgt_id, order, score_q8).
+pub fn battle_ai_series(events: &[(u64, ReplayRecord)]) -> Vec<(u64, u16, u16, OrderKind, u8)> {
+    events
+        .iter()
+        .filter_map(|(tick, rec)| match rec {
+            ReplayRecord::BattleAi {
+                source_formation_id,
+                target_formation_id,
+                order_kind,
+                score_q8,
+            } => Some((
+                *tick,
+                *source_formation_id,
+                *target_formation_id,
+                *order_kind,
+                *score_q8,
             )),
             _ => None,
         })
@@ -677,7 +973,11 @@ pub struct ReplayIoUringWriterCapsule {
 }
 
 #[cfg(feature = "io-uring")]
-verify_capsule_properties!(ReplayIoUringWriterCapsule, 128, 128);
+verify_capsule_properties!(
+    ReplayIoUringWriterCapsule,
+    core::mem::align_of::<ReplayIoUringWriterCapsule>(),
+    core::mem::size_of::<ReplayIoUringWriterCapsule>()
+);
 
 #[cfg(feature = "io-uring")]
 impl ReplayIoUringWriterCapsule {
@@ -703,7 +1003,7 @@ impl ReplayIoUringWriterCapsule {
 
     /// Append drained events via a single batched write; returns user_data id.
     pub fn append_from_log<const N: usize>(
-        &self,
+        &mut self,
         log: &ReplayLogCapsule<N>,
     ) -> Result<u64, IoUringError> {
         let events = log.drain();
@@ -806,7 +1106,8 @@ mod tests {
         log.record(11, 222);
 
         let tmp_path = std::env::temp_dir().join("kindly_engine_replay_roundtrip.bin");
-        let mmap_capsule = ReplayMmapCapsule::new(&tmp_path, 1_048_576, 1).expect("create mmap");
+        let mut mmap_capsule =
+            ReplayMmapCapsule::new(&tmp_path, 1_048_576, 1).expect("create mmap");
         mmap_capsule.append_from_log(&log).expect("append");
 
         let snap = mmap_capsule.snapshot();
@@ -836,7 +1137,8 @@ mod tests {
         log.record(11, 222);
 
         let tmp_path = std::env::temp_dir().join("kindly_engine_replay_index.bin");
-        let mmap_capsule = ReplayMmapCapsule::new(&tmp_path, 1_048_576, 1).expect("create mmap");
+        let mut mmap_capsule =
+            ReplayMmapCapsule::new(&tmp_path, 1_048_576, 1).expect("create mmap");
         let index = ReplayIndexCapsule::new();
         mmap_capsule
             .append_from_log_with_index(&log, &index)
@@ -856,10 +1158,11 @@ mod tests {
         let log: ReplayLogCapsule<8> = ReplayLogCapsule::new();
         log.record(3, 123);
         let tmp_path = std::env::temp_dir().join("kindly_engine_replay_flush.bin");
-        let mmap_capsule = ReplayMmapCapsule::new(&tmp_path, 1_048_576, 1).expect("create mmap");
+        let mut mmap_capsule =
+            ReplayMmapCapsule::new(&tmp_path, 1_048_576, 1).expect("create mmap");
         let flush = ReplayFlushCapsule::new();
         let snap = flush
-            .flush_to_mmap(&log, &mmap_capsule, None)
+            .flush_to_mmap(&log, &mut mmap_capsule, None)
             .expect("flush to mmap");
         assert_eq!(snap.flushed_events, 1);
         let _ = std::fs::remove_file(Path::new(&tmp_path));
