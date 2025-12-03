@@ -1082,9 +1082,17 @@ pub fn tick_shard<const FB: usize>(
             let mut fatigue_recovery = 0u32;
             for general in generals.iter() {
                 if general.in_aura(snap.position_x_q16, snap.position_z_q16) {
-                    morale_boost = morale_boost.saturating_add(general.morale_boost_q16);
-                    fatigue_recovery =
-                        fatigue_recovery.saturating_add(general.fatigue_recovery_q16);
+                    let mut aura_morale = general.morale_boost_q16;
+                    let mut aura_fatigue = general.fatigue_recovery_q16;
+                    if general.chariot {
+                        // Chariot generals project a stronger presence: +50% morale and fatigue recovery.
+                        aura_morale = aura_morale
+                            .saturating_add(aura_morale.saturating_div(2));
+                        aura_fatigue = aura_fatigue
+                            .saturating_add(aura_fatigue.saturating_div(2));
+                    }
+                    morale_boost = morale_boost.saturating_add(aura_morale);
+                    fatigue_recovery = fatigue_recovery.saturating_add(aura_fatigue);
                 }
             }
             if morale_boost > 0 {
