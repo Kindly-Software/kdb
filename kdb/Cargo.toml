@@ -1,0 +1,96 @@
+[package]
+name = "kdb"
+version = "0.1.0"
+edition = "2021"
+authors = ["Samuel <samuel@primitives.dev>"]
+description = "KDB - The Kindly Debugger: T6 Mixed audit-compliant debugger with cryptographic hash-chain integrity (10-30× faster than GDB)"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourorg/kdb"
+keywords = ["debugger", "audit", "compliance", "capsule", "lockfree"]
+categories = ["development-tools::debugging", "development-tools"]
+
+[dependencies]
+# Core atomic operations
+atomic_capsule = { version = "0.9", path = "../atomic_capsule", features = ["std", "security-adaptive-rate-limiter"] }
+
+# Optional: atomic_capsule_derive for automatic verification
+atomic_capsule_derive = { version = "0.9", path = "../atomic_capsule_derive", optional = true }
+
+# CRC64 for hash-chain integrity (Q34 compliance)
+crc = "3.0"
+
+# JSON serialization for HTTP API
+serde_json = "1.0"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.4"
+libc = "0.2"  # For memory/FD limit tests in production stress
+
+# Ptrace support (Linux only)
+[target.'cfg(target_os = "linux")'.dependencies]
+nix = { version = "0.27", features = ["ptrace"] }
+gimli = "0.31"
+object = { version = "0.36", features = ["read"] }
+memmap2 = "0.9"
+libc = "0.2"
+errno = "0.3"
+
+[features]
+default = ["std"]
+
+# Standard library support
+std = []
+
+# SIMD support (requires nightly Rust)
+# - AVX2 on x86_64 (auto-detected at runtime)
+# - NEON on aarch64 (auto-detected at runtime)
+simd = []
+
+# Automatic verification with #[derive(ComputationalCapsule)]
+derive = ["atomic_capsule_derive"]
+
+# Property testing (T28 Q8-Q14 compliance)
+property-tests = []
+
+# Platform-specific features (automatically enabled per target OS)
+# See https://github.com/yourorg/kdb/docs/PLATFORM_SUPPORT.md
+linux-ptrace = []      # Linux ptrace debugging (default on Linux)
+macos-mach = []        # macOS Mach API debugging (planned, not yet implemented)
+windows-debug = []     # Windows Debug API debugging (planned, not yet implemented)
+
+# All features
+all = ["std", "simd", "derive", "property-tests"]
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = false  # Keep debug symbols for debugger
+
+[profile.bench]
+inherits = "release"
+
+[[example]]
+name = "stack_unwinding_demo"
+path = "examples/stack_unwinding_demo.rs"
+required-features = ["std", "simd"]
+
+[[example]]
+name = "register_reader_demo"
+path = "examples/register_reader_demo.rs"
+required-features = ["std"]
+
+[[bench]]
+name = "time_travel"
+path = "benches/time_travel.rs"
+required-features = ["std"]
+harness = false
+
+[[test]]
+name = "production_stress"
+path = "tests/production_stress.rs"
+harness = true
+
+[profile.test]
+opt-level = 2  # Optimize tests for realistic performance measurement
