@@ -120,6 +120,46 @@ pub mod anomaly_detector;
 #[cfg(feature = "anomaly-detection")]
 pub use anomaly_detector::{AnomalyDetectorCapsule, AnomalyResult, AnomalyError};
 
+// T2+T3 TinyML Decision Tree Ensemble for AnomalyDetectorV2 (behind feature flag)
+#[cfg(feature = "anomaly-v2")]
+pub mod tinyml_ensemble;
+#[cfg(feature = "anomaly-v2")]
+pub use tinyml_ensemble::{
+    DecisionTreeNode, TinyMLTree, TinyMLTreeEnsemble,
+    f32_to_q8_8, q8_8_to_f32,
+};
+
+// T3+T1 GMM Capsule for AnomalyDetectorV2 (behind feature flag)
+#[cfg(feature = "anomaly-v2")]
+pub mod gmm_capsule;
+#[cfg(feature = "anomaly-v2")]
+pub use gmm_capsule::{
+    GaussianComponent, GMMCapsule, GmmError,
+    f64_to_q16_16, q16_16_to_f64, q16_16_mul, q16_16_div, q16_16_sqrt, q16_16_exp,
+    MAX_GMM_COMPONENTS, DEFAULT_EMA_ALPHA_Q16, DEFAULT_ANOMALY_THRESHOLD_Q16,
+};
+
+// T5+T3 Temporal Sequence Capsule for AnomalyDetectorV2 (behind feature flag)
+#[cfg(feature = "anomaly-v2")]
+pub mod temporal_sequence;
+#[cfg(feature = "anomaly-v2")]
+pub use temporal_sequence::{
+    TemporalEntry, TemporalSequenceCapsule, DECAY_TABLE_Q8_8,
+    TEMPORAL_BUFFER_SIZE, DEFAULT_DECAY_FACTOR_Q8, DEFAULT_BURST_THRESHOLD_Q8,
+    DEFAULT_TIMING_THRESHOLD_MS,
+};
+
+// T6 Mixed AnomalyDetectorV2 - Full hybrid detection (behind feature flag)
+#[cfg(all(feature = "anomaly-v2", feature = "anomaly-detection"))]
+pub mod anomaly_detector_v2;
+#[cfg(all(feature = "anomaly-v2", feature = "anomaly-detection"))]
+pub use anomaly_detector_v2::{
+    AnomalyDetectorV2, AnomalyResultV2, AnomalyDetectorV2Error,
+    DetectionReport, V2Statistics,
+    LAYER_PROBABILISTIC, LAYER_GMM, LAYER_TINYML, LAYER_TEMPORAL, ALL_LAYERS,
+    DEFAULT_GMM_THRESHOLD, DEFAULT_TINYML_THRESHOLD, DEFAULT_BURST_THRESHOLD,
+};
+
 use crate::error::AuditError;
 use crate::patterns::dual_atomic::DualAtomicU64;
 use core::sync::atomic::Ordering;

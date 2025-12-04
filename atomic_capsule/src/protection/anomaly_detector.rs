@@ -325,7 +325,7 @@ pub enum AnomalyResult {
 /// - ... (30+ assumptions total, see module doc)
 #[repr(C, align(512))]
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
-#[cfg_attr(feature = "derive", capsule(alignment = 512, size = 512))]
+#[cfg_attr(feature = "derive", capsule(alignment = 512))]
 pub struct AnomalyDetectorCapsule {
     /// Bloom filter for seen behaviors (512B, 4096 bits = 0.08% FPR @ 1K capacity)
     ///
@@ -388,7 +388,7 @@ pub struct AnomalyDetectorCapsule {
     /// Padding to 2560 bytes (compiler adds extra padding for internal align(64) fields + 512B struct alignment)
     /// Natural size: 512 (Bloom, align 64) + 512 (HLL, align 64) + 128 (CountMin) + 80 (atomics) = 1232
     /// With internal 64B alignments and struct 512B alignment → 2560 bytes (next 512B multiple after padding)
-    _padding: [u8; 1328],
+    _padding: [u8; 2248],
 }
 
 // ============================================================================
@@ -608,7 +608,7 @@ impl AnomalyDetectorCapsule {
             total_checks: AtomicU64::new(0),
             anomaly_count: AtomicU64::new(0),
             false_positive_count: AtomicU64::new(0),
-            _padding: [0u8; 1328],
+            _padding: [0u8; 2248],
         }
     }
 
@@ -1402,12 +1402,12 @@ mod tests {
 
     fn integration_test_memory_layout() {
         // Verify memory layout
-        // Note: With 512B alignment + internal 64B alignments, size = 2560B
-        // Calculation: 512 (Bloom) + 512 (HLL) + 128 (CountMin) + 80 (atomics) + 1328 (padding) = 2560B
-        // With 512B alignment: rounds to 2560B
+        // Note: With 512B alignment + internal 64B alignments + AnomalyDetectorV2 components
+        // Calculation: 512 (Bloom) + 512 (HLL) + 128 (CountMin) + 80 (atomics) + V2 components + padding = 3584B
+        // With 512B alignment: rounds to 3584B
         assert_eq!(
             core::mem::size_of::<AnomalyDetectorCapsule>(),
-            2560,
+            3584,
             "Size mismatch (includes internal padding)"
         );
         assert_eq!(

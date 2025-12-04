@@ -1,6 +1,6 @@
 [package]
 name = "atomic_capsule"
-version = "0.8.0"  # Complete serialization stack with 35 capsules
+version = "0.9.0"  # GPU HAL Phase 2: 9 kernel capsules (T7 Heterogeneous, 10-1000× speedup)
 edition = "2021"
 resolver = "2"  # CRITICAL: Prevents feature unification across targets
 rust-version = "1.76"  # Stable unless nightly feature enabled
@@ -59,6 +59,8 @@ std = ["alloc"]  # Standard library support
 # #VERIFY_PLATFORM: Documentation warns against mixing platform features
 wasm = ["std", "dep:wasm-bindgen"]  # WebAssembly target (wasm32-unknown-unknown)
 native = ["std", "dep:memmap2"]  # x86_64/aarch64 Linux/macOS/Windows (tokio now optional)
+# Disable io_uring modules unless explicitly enabled; stub by default to avoid build errors.
+io-uring = []
 tokio-compat = ["dep:tokio"]  # Enable only if tokio integration needed (async-log, etc.)
 embedded = []  # ARM Cortex-M (no_std, optional alloc)
 capsule-os = ["std"]  # Future: Capsule OS native syscalls
@@ -81,6 +83,7 @@ security-constant-time-simd = ["security-constant-time-ops", "std", "nightly", "
 
 # T1: Atomic Coordination (<100ns operations)
 atomic-core = []  # Base T1 primitives (DualAtomicU64, generation counters)
+portable-atomic-u128 = ["dep:portable-atomic"]  # Native 128-bit atomics for CompactDualAtomicU64 (requires x86_64 cmpxchg16b, ARM64 LDXP/STXP)
 cpu-capabilities = ["std"]  # Runtime CPU detection (AVX-512/AVX2/SSE4.2/NEON)
 circuit-breaker-standard64 = ["std"]  # Full 64-bit circuit breaker layout
 circuit-breaker-compact48 = []  # 48-bit layout for embedded
@@ -96,7 +99,57 @@ load-balancer = ["std"]  # T1+T4: High-performance load balancing with 7 algorit
 systemd = ["std"]  # T1: Systemd service coordination (<100ns state queries, ~1ms systemctl refresh)
 encoder-cdef = []  # T2: AV1 CDEF filter (256B, <1μs per 8×8 block, SIMD-ready)
 encoder = ["std"]  # T2: AV1 encoder primitives (SuperresolutionCapsule: 256B, <10μs per 1024×1024, 8-tap Lanczos-3)
+encoder-intra-prediction = ["std", "nightly", "portable_simd"]  # T2: AV1 SIMD intra prediction (256B, <1μs per 32×32, 5× scalar)
+chacha20-rng = ["std"]  # T1 Atomic: ChaCha20 CSPRNG (RFC 8439, <10ns/u64, replaces rand crate dependency, 64B cache-aligned)
 encoder-metacapsule = ["encoder", "std", "nightly", "portable_simd"]  # T6: Av1EncoderMetacapsule (1024B orchestration, 18 capsules, <10μs coordination)
+nightly-simd = ["nightly", "portable_simd"]  # T2: SIMD motion estimation + encoder primitives (requires nightly for portable_simd)
+
+# Video Decoder Features (T1-T5, migrated from kindly-av1)
+# H.264/AVC decoder (ITU-T H.264) - requires nightly for portable_simd
+decoder-h264 = ["std", "dep:thiserror", "nightly", "portable_simd"]  # T2 SIMD: H.264 bitstream, CABAC, SPS/PPS, transform, macroblock, prediction, deblock
+# VP9 decoder (Google VP9) - requires nightly for portable_simd
+decoder-vp9 = ["std", "dep:thiserror", "nightly", "portable_simd"]  # T2 SIMD: VP9 bitstream, boolean coder, frame header, segmentation, transform, prediction, loop filter
+# AV1 decoder (AOMedia AV1) - requires nightly for portable_simd
+decoder-av1 = ["std", "dep:thiserror", "nightly", "portable_simd"]  # T2 SIMD: AV1 bitstream, symbol decoder, sequence header, tile group, transform, prediction, loop filter
+# HEVC/H.265 decoder (ITU-T H.265) - requires nightly for portable_simd
+decoder-hevc = ["std", "dep:thiserror", "nightly", "portable_simd"]  # T2 SIMD: HEVC inverse transform (4x4/8x8/16x16/32x32 DCT-II, 4x4 DST-VII, transform skip, transquant bypass)
+# All video decoders
+decoder-all = ["decoder-h264", "decoder-vp9", "decoder-av1", "decoder-hevc"]  # All decoder capsules
+
+# Container Demuxer Features (T1-T5, migrated from kindly-av1)
+# MP4/ISO BMFF demuxer
+demux-mp4 = ["std", "dep:thiserror"]  # T5 Streaming: MP4 box parsing, track extraction, sample tables
+# Matroska/WebM demuxer
+demux-mkv = ["std", "dep:thiserror"]  # T5 Streaming: MKV/WebM EBML parsing, cluster extraction, cues, track management
+# All container demuxers
+demux-all = ["demux-mp4", "demux-mkv"]  # All demuxer capsules
+
+# Container Muxer Features (T1-T5, Phase 11A)
+# MP4/ISO BMFF muxer
+mux-mp4 = ["std"]  # T5 Streaming: MP4 box writing, ftyp/moov/mdat atoms, H.264/H.265/AV1 video, AAC/Opus audio
+# Matroska muxer (full MKV)
+mux-mkv = ["std"]  # T5 Streaming: Full MKV EBML writing, multiple tracks, cues, chapters, tags
+# WebM muxer (MKV subset for web)
+mux-webm = ["std"]  # T5 Streaming: WebM-compliant subset (VP8/VP9/AV1 + Vorbis/Opus only), web streaming optimized
+# Fragmented MP4 muxer (DASH/HLS)
+mux-fmp4 = ["std"]  # T5 Streaming: Fragmented MP4 for adaptive streaming, moof/mdat segments
+# All container muxers
+mux-all = ["mux-mp4", "mux-mkv", "mux-webm", "mux-fmp4"]  # All muxer capsules
+
+# Combined video feature (decoder + demuxer)
+video = ["decoder-all", "demux-all"]  # Complete video stack (all decoders + all demuxers)
+
+# Audio Decoder Features (T1-T2, Phase 10)
+# AAC decoder (ISO/IEC 14496-3) - AAC-LC, HE-AAC v1/v2
+audio-aac = ["std", "dep:thiserror", "nightly", "portable_simd"]  # T1 Atomic + T2 SIMD: AAC bitstream parsing, MDCT, filterbank
+# Opus decoder (RFC 6716) - SILK, CELT, hybrid mode
+audio-opus = ["std", "dep:thiserror", "nightly", "portable_simd"]  # T1 Atomic + T2 SIMD: Opus bitstream, range decoder, SILK/CELT DSP
+# FLAC decoder (Xiph FLAC) - Lossless audio
+audio-flac = ["std", "dep:thiserror"]  # T1 Atomic: FLAC bitstream parsing, LPC, Rice decoding
+# Vorbis decoder (Xiph Vorbis) - Legacy codec for WebM/OGG
+audio-vorbis = ["std", "dep:thiserror", "nightly", "portable_simd"]  # T1 Atomic + T2 SIMD: Vorbis bitstream, MDCT, floor/residue
+# All audio decoders
+audio-all = ["audio-aac", "audio-opus", "audio-flac", "audio-vorbis"]  # All audio decoder capsules
 
 # T2: SIMD Vectorization (2-19× speedup)
 # #ASSUME_SIMD_NIGHTLY: All SIMD features require nightly Rust
@@ -111,6 +164,11 @@ tls = ["std", "dep:rustls-pemfile", "dep:webpki-roots"]  # T8+T1+T4 Network: TLS
 simd-hex = ["nightly", "portable_simd"]  # T2 SIMD hex string encoding (4× speedup, HexEncoderCapsule)
 simd-hash = ["nightly", "portable_simd"]  # T2 SIMD neighborhood scan for ScalableHashMapCapsule (5.3× scan speedup, 1.7× insert, 1.9× get)
 simd-crypto = ["std", "nightly", "portable_simd", "derive", "dep:aes-gcm", "dep:sha3", "dep:pbkdf2", "dep:sha2"]  # T2 SIMD cryptography (AES-256-GCM, SHA3-256, PBKDF2-HMAC-SHA256, 2-10× speedup)
+
+# T6 Mixed: Line-of-Sight (LOS) Module - SIMD-accelerated ray traversal (50-100× compound)
+los = ["std", "nightly", "portable_simd"]  # T6 Mixed: LOS with portable_simd fallback (Dense/Tactical/Batched/Sparse rays)
+los-avx2 = ["los"]  # AVX2 fast path for Dense and Batched rays (8× unroll, gather-free, Q16.16)
+los-full = ["los", "los-avx2"]  # All LOS features (AVX2 primary + portable_simd fallback)
 
 # T3: Fixed-Point Determinism (2-10× speedup)
 fixed-point = []  # Q8.8, Q16.16, Q32.32, Q48.16
@@ -182,6 +240,24 @@ numa-rebalancing = ["adaptive-parallel"]  # NUMA load balancing
 nightly-adaptive = ["nightly", "portable_simd", "nightly-atomic", "dep:num_cpus"]  # 20-40% improvement
 progress-ratatui = ["std", "dep:ratatui"]  # T1 Atomic: Ratatui TUI adapter for BatchProgressRenderer
 terminal-size = ["dep:terminal_size"]  # T1 Atomic: TerminalCapabilityCapsule (terminal detection, optional dependency)
+tui-terminal = ["std"]  # T0 Auditable: Terminal I/O module (zero-dependency platform abstraction for raw mode, events, alternate screen)
+
+# Terminal sub-features (modular composition)
+terminal = ["std"]  # T1 Atomic: Base terminal module (mode management, error types)
+terminal-event = ["terminal"]  # T0+T5: Event types and lockfree queue
+terminal-parser = ["terminal"]  # T2 SIMD: ANSI escape sequence parser (2-8× speedup)
+
+# GUI Features (T5 Streaming)
+gui = ["std", "dep:thiserror"]  # T5 Streaming: EffectQueueCapsule (GPUI pattern, <20ns enqueue, <100ns per effect flush)
+terminal-output = ["terminal"]  # T1+T3: Output styling and colors
+terminal-simd = ["terminal-parser", "nightly", "portable_simd"]  # T2 SIMD parser acceleration
+terminal-unix = ["terminal"]  # Unix backend (termios, signals)
+terminal-windows = ["terminal"]  # Windows backend (SetConsoleMode)
+terminal-gpu = ["terminal", "std"]  # T4+T5: GPU rendering capsules (glyph cache, batch rasterization)
+terminal-widgets = ["terminal", "terminal-event", "std"]  # T1+T3: Widget system (button, label, checkbox, etc.)
+terminal-style = ["terminal", "std"]  # T1+T3: CSS-like animations and styling (Q16.16 timing, easing functions)
+terminal-full = ["terminal", "terminal-event", "terminal-parser", "terminal-output", "terminal-unix", "terminal-widgets", "terminal-style"]  # Complete terminal stack (excludes Windows)
+preset-terminal = ["std", "terminal-full"]  # Terminal preset (std + all Unix features)
 
 # T5: Streaming (O(1) incremental compute)
 streaming = ["std"]  # T5 Streaming tier (foundation)
@@ -231,13 +307,18 @@ compression-lz4 = ["std", "dep:lz4_flex", "dep:rayon", "dep:thiserror", "derive"
 compression-q4-4 = ["fixed-point", "dep:thiserror", "derive"]  # T3 Fixed-Point Q4.4 quantization (8:1 compression)
 compression-simd-parse = ["portable_simd", "dep:thiserror", "derive"]  # T2 SIMD checkpoint parsing (2-4× speedup)
 compression-streaming = ["std", "dep:thiserror", "compression-q4-4"]  # T6 Mixed incremental quantization (2× memory)
-compression-all = ["compression-lz4", "compression-q4-4", "compression-simd-parse", "compression-streaming"]  # All Phase 3 compression
+compression-entropy = ["portable_simd", "std"]  # T2 SIMD: Huffman/ANS entropy decoding (>10GB/s, QuIP#/AQLM LLM weight decompression)
+compression-all = ["compression-lz4", "compression-q4-4", "compression-simd-parse", "compression-streaming", "compression-entropy"]  # All Phase 3 compression
 
 # T7: GPU Massively Parallel (traits only, 100-1000× speedup)
 # No feature flags - GPU traits are always available
 
 # T8: Network (10-50× speedup)
-network = ["native", "tokio-compat", "dep:serde", "dep:bincode"]  # Distributed coordination
+network = ["native", "tokio-compat", "dep:serde", "dep:bincode", "histogram", "derive", "nightly"]  # Distributed coordination
+send-pipeline = ["network", "std"]  # T4+T5 Send Pipeline (batch + streaming)
+receive-pipeline = ["network", "std", "portable_simd"]  # T2+T5 Receive Pipeline (SIMD + streaming)
+network-metacapsule = ["send-pipeline", "receive-pipeline"]  # T6 Mixed Network Metacapsule (orchestration)
+full-network = ["network-metacapsule", "send-pipeline", "receive-pipeline"]  # Complete network stack
 distributed = ["std", "dep:siphasher", "dep:reqwest", "tokio-compat", "dep:futures", "dep:serde", "dep:serde_json"]  # HTTP/2 cache
 distributed-compression = ["distributed", "dep:zstd"]  # zstd compression
 distributed-audit = ["distributed"]  # Hash-chained audit trail
@@ -297,6 +378,8 @@ hll = ["probabilistic", "dep:siphasher"]  # HyperLogLog cardinality estimation
 hll-simd = ["hll", "portable_simd"]  # SIMD-accelerated HLL merge (8-16× faster)
 hll-sharded = ["hll"]  # Sharded HLL for >64 threads
 anomaly-detection = ["std", "bloom-filter", "hll", "fixed-point"]  # T10+T1 Anomaly detector (Bloom + HLL + EMA)
+anomaly-v2 = ["std", "anomaly-detection"]  # T2+T3: AnomalyDetectorV2 TinyML ensemble (8 decision trees, Q8.8 quantized, <60ns SIMD inference)
+anomaly-v2-simd = ["anomaly-v2", "nightly", "portable_simd"]  # T2 SIMD: Parallel 8-tree evaluation (<60ns total)
 
 # TIER 4: Nightly Features (cutting-edge optimizations)
 # #ASSUME_NIGHTLY_FEATURES: All nightly features are optional and feature-gated
@@ -345,7 +428,13 @@ inference-matmul = ["inference-primitives", "dep:rayon"]  # T2+T4 matmul
 inference-attention = ["inference-primitives"]  # T2+T5 flash attention
 inference-quantization = ["inference-primitives", "fixed-point"]  # T3 Q8/Q16
 inference-avx2-quant = ["inference-primitives"]  # T2 custom AVX2 intrinsics (10-20× target)
-inference-all = ["inference-matmul", "inference-attention", "inference-quantization", "inference-avx2-quant"]  # All inference
+inference-kv-cache-compression = ["inference-primitives", "fixed-point"]  # T2+T10: KV-cache compression (2-8× via INT8/INT4/VQ, MiniKV+PyramidKV layer-discriminative)
+inference-learned-codebook = ["inference-primitives", "dep:half"]  # T0+T10: Learned codebook quantization (AQLM/QuIP#/AWQ, <1% perplexity loss at 4-bit)
+inference-multi-token-prediction = ["inference-primitives", "fixed-point"]  # T5 Streaming: Multi-token prediction (2.5-5× speedup, 4 heads, ring buffer, Q16.16 confidence)
+inference-speculative-draft = ["inference-primitives", "fixed-point"]  # T1+T5 Atomic+Streaming: Speculative decoding (2-5× speedup, adaptive gamma, rejection sampling, EWMA acceptance)
+inference-prefetch-scheduler = ["inference-primitives"]  # T4+T5 Batch+Streaming: Memory prefetch scheduler (80%+ latency hiding, <50ns schedule, >90% hit rate)
+inference-llm-metacapsule = ["inference-primitives"]  # T6 Mixed: LLM inference orchestrator (10-100× compound speedup)
+inference-all = ["inference-matmul", "inference-attention", "inference-quantization", "inference-avx2-quant", "inference-kv-cache-compression", "inference-learned-codebook", "inference-multi-token-prediction", "inference-speculative-draft", "inference-prefetch-scheduler", "inference-llm-metacapsule"]  # All inference
 
 # TIER 9: CNLS Quantum Wave Mechanics (T2+T3+T6)
 complex-simd = ["portable_simd"]  # T2 ComplexF32x4 (10-13× speedup)
@@ -381,6 +470,14 @@ security-jailbreak-defender = ["std", "probabilistic"]  # JailbreakDefenderCapsu
 security-prompt-injection = ["std"]  # PromptInjectionDetectorCapsule: 3-layer hybrid detection (embedding+ML+heuristics, T6:T1+T2+T3, <100ns, 90-95% accuracy)
 security-data-exfiltration = ["std"]  # DataExfiltrationGuardCapsule: PII pattern matching and audit trails (T6+T10, <100ns)
 security-false-positive-mitigation = ["std", "security-prompt-injection", "security-jailbreak-defender", "security-data-exfiltration"]  # FalsePositiveMitigationCapsule: 98.6% FPR reduction via 4-layer defense (T6:T1+T3+T10, <40ns overhead, 0.072% FPR)
+
+# Week 8: Federated Learning + XAI Explainability + Adversarial Robustness
+security-federated-learning = ["std"]  # FederatedGradientBuffer (128B): Lockfree gradient accumulation with differential privacy (epsilon=0.1, <50ns accumulate, <200ns aggregate)
+security-xai-audit = ["std"]  # XAIDecisionRecord (64B) + XAIAuditRing (16KB): SHAP-like feature importance + Q34 hash-chain audit (<500ns importance, <50ns append)
+security-adversarial-defense = ["std", "security-behavioral-anomaly"]  # AdversarialDefense (64B): Feature range validation + perturbation detection (<50ns check, <20ns sanitize)
+security-behavioral-anomaly-v2 = ["std", "security-behavioral-anomaly"]  # BehavioralAnomalyCapsuleV2 + TinyML + Attention + Adversarial Defense (<600ns full pipeline)
+security-week8-all = ["security-federated-learning", "security-xai-audit", "security-adversarial-defense", "security-behavioral-anomaly-v2"]  # Complete Week 8 package
+
 security-protection-system = ["security-zero-trust", "security-behavioral-anomaly", "security-adaptive-rate-limiter", "security-constant-time-ops", "security-advanced-bot-detector"]  # Complete 6-layer defense-in-depth
 runtime-reactor = ["std"]  # T1: Lockfree I/O reactor (epoll/kqueue, replaces Tokio reactor)
 runtime-signal = ["std", "runtime-reactor", "async-channels", "tokio-compat"]  # T1: Lockfree async signal handling (signalfd/kqueue/self-pipe, multi-listener support)
@@ -397,6 +494,46 @@ gpu-cuda = ["std", "dep:cudarc"]  # T7: CUDA backend (NVIDIA GPU, Compute Capabi
 gpu-rocm = ["std"]  # T7: ROCm/HIP backend (AMD GPU, GCN 4.0+/RDNA 1+, 100-1000× speedup, FFI bindings pending)
 gpu-intel = ["std"]  # T1 Atomic: Intel GPU driver primitives (i915, Iris Xe, 10-50× speedup, zero external deps)
 gpu-all = ["gpu-cuda", "gpu-rocm", "gpu-intel"]  # T7: All GPU backends (auto-detect at runtime)
+
+# KGPU-Driver: Pure Rust GPU Driver Stack (Replaces Vulkan/Mesa - Phase 2.0)
+# #ASSUME_DIRECT_GPU: Direct hardware access via DRM/GEM or MMIO
+# #ASSUME_FIRMWARE: Intel GuC/HuC, AMD PSP loadable; NVIDIA GSP bypassed via Trojan Kernel
+# #VERIFY_PLATFORM: Linux (DRM) or Capsule-OS (direct) platform required
+kgpu-driver = ["std", "gpu-intel"]  # T1 Atomic: Core GPU driver primitives (GpuPlatform trait, GpuMemoryCapsule)
+kgpu-driver-linux = ["kgpu-driver", "linux-gpu"]  # T1+T8: Linux DRM/GEM/KMS platform (i915, amdgpu, nouveau)
+kgpu-driver-capsule-os = ["kgpu-driver"]  # T1: Capsule-OS direct hardware platform (MMIO, no kernel)
+kgpu-driver-intel = ["kgpu-driver", "gpu-intel"]  # T1: Intel Gen9+ support (MI commands, EXECLIST ring)
+kgpu-driver-amd = ["kgpu-driver", "gpu-rocm"]  # T1: AMD GCN/RDNA support (PM4 packets, CP ring)
+kgpu-driver-nvidia = ["kgpu-driver", "std", "dep:libc", "dep:once_cell"]  # T1: NVIDIA Pascal+ support (Trojan Kernel, pinned memory ring, CUDA FFI via dlopen - no CUDA SDK required)
+kgpu-driver-all = ["kgpu-driver-linux", "kgpu-driver-intel", "kgpu-driver-amd", "kgpu-driver-nvidia"]  # All platforms + vendors
+# K8: KGPU Integration Testing (T7 Heterogeneous)
+gpu-tests = ["std"]  # T7: KGPU integration tests (requires GPU hardware, #[ignore] by default)
+
+# Phase 3B: Linux i915 Driver Integration (T1 Atomic + T8 Network via ioctl)
+# #ASSUME_LINUX_TARGET: Requires Linux (target_os = "linux")
+# #ASSUME_I915_DRIVER: Intel GPU with i915 kernel driver loaded
+# #VERIFY_DRM_ACCESS: User must have access to /dev/dri/* (video group membership)
+linux-gpu = ["std", "dep:libc"]  # T1+T8: Linux GPU HAL (PCIe BAR, DRM/GEM, KMS display, i915 driver)
+
+# Vulkan Compute (T7 Heterogeneous - cross-platform)
+# #ASSUME_VULKAN_AVAILABLE: Vulkan 1.2+ runtime available
+# #VERIFY_GRACEFUL_DEGRADATION: Returns NotImplemented without full impl
+vulkan-compute = ["std", "dep:ash"]  # T7: Vulkan compute dispatch with ash bindings
+
+# Vulkan Backend (Real ash 0.38 implementation)
+# #ASSUME_VULKAN_LOADER_AVAILABLE: Vulkan SDK installed on system
+# #ASSUME_PHYSICAL_DEVICE_VALID: At least one GPU supports Vulkan 1.0+
+vulkan = ["std", "dep:ash", "dep:ash-window", "dep:raw-window-handle"]  # T7: Full Vulkan backend via ash 0.38
+dx12 = ["std", "dep:windows"]  # T7: Full DirectX 12 backend via windows-rs 0.58 (Windows 10 1903+)
+
+# Shader Compilation (KGPU Phase K9)
+# T0 Auditable (source hashing) + T7 Heterogeneous (cross-platform shader translation)
+naga-shader = ["std", "dep:naga"]  # Universal shader compilation (WGSL → SPIR-V/MSL/HLSL/GLSL, 13× faster than alternatives)
+
+# Metal Backend (macOS/iOS native graphics)
+# #ASSUME_METAL_AVAILABLE: macOS 10.15+ or iOS 13+
+# #ASSUME_UNIFIED_MEMORY_APPLE_SILICON: M1/M2/M3 have unified memory
+metal = ["std", "dep:metal", "dep:cocoa", "dep:objc", "dep:core-graphics-types"]  # T7: Full Metal backend via metal-rs 0.32
 
 # TIER 11: Unified Traits (backward compatible)
 unified-traits = []  # Enable unified capsule trait hierarchy (opt-in)
@@ -420,6 +557,7 @@ training-data = ["fixed-point-quantizer", "streaming-strategy-labeler", "persist
 [dependencies]
 # ZERO dependencies for core functionality (no_std compatible)
 atomic_capsule_derive = { path = "../atomic_capsule_derive", optional = true }
+portable-atomic = { version = "1.6", optional = true, default-features = false, features = ["require-cas"] }  # Native 128-bit atomics for CompactDualAtomicU64
 
 # Tier 0 Auditable - Optional cryptographic dependencies
 xxhash-rust = { version = "0.8", features = ["xxh64", "xxh3"], optional = true }
@@ -452,6 +590,9 @@ reed-solomon-erasure = { version = "6.0", optional = true }
 # Tier 5 Streaming - Async log
 tokio = { version = "1.0", features = ["rt", "fs", "io-util", "time", "net", "macros"], optional = true }
 once_cell = { version = "1.19", optional = true }  # For logging module global state
+
+# Tier 10 Inference - f16 support
+half = { version = "2.3", optional = true, default-features = false, features = ["std"] }  # Portable f16 for learned codebook quantization
 
 # T8 Network - RPC serialization
 bincode = { version = "1.3", optional = true }
@@ -528,14 +669,33 @@ parking_lot = { version = "0.12", optional = true }
 
 # T7: GPU Acceleration - CUDA backend (Phase 5)
 cudarc = { version = "0.10", optional = true, features = ["driver"] }  # CUDA Rust bindings (NVIDIA GPU)
+ash = { version = "0.38", optional = true }  # Vulkan bindings for compute dispatch
+ash-window = { version = "0.13", optional = true }  # Platform surface creation for Vulkan
+raw-window-handle = { version = "0.6", optional = true }  # Window handle abstraction
+naga = { version = "22.1", optional = true, features = ["wgsl-in", "spv-out", "msl-out", "hlsl-out", "glsl-out"] }  # Universal shader translator (WGSL → SPIR-V/MSL/HLSL/GLSL)
 
 # TPM 2.0 Hardware Binding - Platform-specific
 # Platform-specific dependencies
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
 tss-esapi = { version = "7.5", optional = true, default-features = false }  # TPM 2.0 bindings (TCG Software Stack)
 
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Direct3D12",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_System_Threading",
+    "Win32_Security",
+], optional = true }
+
 [target.'cfg(target_os = "macos")'.dependencies]
 security-framework = { version = "2.9", optional = true }  # Secure Enclave bindings (macOS)
+metal = { version = "0.32", optional = true }  # Metal graphics API bindings (macOS/iOS)
+cocoa = { version = "0.25", optional = true }  # Cocoa framework bindings for CAMetalLayer
+objc = { version = "0.2", optional = true }  # Objective-C runtime for Metal interop
+core-graphics-types = { version = "0.2", optional = true }  # Core Graphics types (CGSize, etc.)
 
 [target.'cfg(target_os = "linux")'.dependencies]
 libc = { version = "0.2", optional = false }  # Required for RT priority on Linux
@@ -862,6 +1022,11 @@ name = "packet_buffer_const_bench"
 harness = false
 required-features = ["std"]
 
+[[bench]]
+name = "par_iter_vs_rayon_bench"
+harness = false
+required-features = ["std"]
+
 # ============================================================================
 # BINARIES
 # ============================================================================
@@ -885,6 +1050,16 @@ name = "git-coordinated"
 path = "src/bin/git-coordinated.rs"
 required-features = ["std"]
 
+[[bin]]
+name = "git-coordinated-v2"
+path = "src/bin/git-coordinated-v2.rs"
+required-features = ["std"]
+
+[[bin]]
+name = "alias-manager"
+path = "src/bin/alias-manager.rs"
+required-features = ["std", "queue-bounded"]
+
 # ============================================================================
 # DOCS.RS CONFIGURATION
 # ============================================================================
@@ -903,13 +1078,19 @@ rustdoc-args = ["--cfg", "docsrs"]
 [profile.dev]
 panic = "unwind"
 
-# Release profile - panic = "abort" for no_std compatibility
+# Release profile - panic = "abort" DISABLED for test compatibility
+# NOTE: Cargo ignores [profile.test].panic settings entirely.
+# Tests always use [profile.dev] panic setting (unwind), not [profile.test].
+# See: https://doc.rust-lang.org/cargo/reference/profiles.html#test
+# Criterion.rs benchmarks require panic = "unwind" for proper error handling.
 [profile.release]
-panic = "abort"
+# panic = "abort"  # COMMENTED OUT: Prevents test builds (requires -Zpanic_abort_tests)
 
-# Test profile (override dev) - use abort for no_std compatibility
-[profile.test]
-panic = "abort"  # Required for no_std crate (std feature not guaranteed)
+# Bench profile - panic = "unwind" for Criterion compatibility
+# Criterion.rs requires unwinding to handle test failures and panics properly.
+# Without this, benchmarks fail to compile when [profile.release].panic = "abort".
+[profile.bench]
+panic = "unwind"
 
 [profile.wasm-release]
 inherits = "release"
@@ -1005,6 +1186,11 @@ name = "http3_integration_bench"
 harness = false
 required-features = ["std"]
 
+[[bench]]
+name = "full_frame_encoding_bench"
+harness = false
+required-features = ["std", "portable_simd"]
+
 # Commented out: Benchmark files do not exist (2025-11-10)
 # [[bench]]
 # name = "hybrid_btree_bench"
@@ -1071,3 +1257,56 @@ name = "encoder_metacapsule_minimal_bench"
 harness = false
 required-features = ["encoder-metacapsule"]
 
+[[bench]]
+name = "encoder_metacapsule_bench"
+harness = false
+required-features = ["encoder-metacapsule"]
+
+[[bench]]
+name = "gpu_b32_benchmarks"
+harness = false
+required-features = ["std"]  # HAL Phase 1 capsules are backend-agnostic (T1 Atomic driver primitives)
+
+[[bench]]
+name = "crc64_simd_bench"
+harness = false
+required-features = ["std"]
+
+[[bench]]
+name = "image_lanczos3_bench"
+harness = false
+required-features = ["portable_simd"]
+
+[[bench]]
+name = "los_b32_bench"
+harness = false
+required-features = ["los"]
+
+[[bench]]
+name = "dual_atomic_b32_bench"
+harness = false
+
+[[bench]]
+name = "motion_estimation_bench"
+harness = false
+required-features = ["std", "portable_simd"]
+
+[[bench]]
+name = "tile_coordinator_bench"
+harness = false
+required-features = ["std"]
+
+[[bench]]
+name = "llm_inference_bench"
+harness = false
+required-features = ["inference-all"]
+
+[[bench]]
+name = "inference_primitives_bench"
+harness = false
+required-features = ["inference-all"]
+
+[[bench]]
+name = "federated_xai_bench"
+harness = false
+required-features = ["security-federated-learning", "security-xai-audit"]
