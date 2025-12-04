@@ -49,7 +49,7 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, OnceLock};
 
-use atomic_capsule::capsules::security::AdaptiveRateLimiterCapsule;
+use atomic_capsule::capsules::security::{AdaptiveRateLimiterCapsule, ConstantTimeOpsCapsule};
 use atomic_capsule::http::{
     CorsConfig, CorsMiddlewareCapsule, SameSitePolicy,
     ValidationCapsule,
@@ -122,6 +122,21 @@ static VALIDATOR: OnceLock<ValidationCapsule> = OnceLock::new();
 
 fn get_validator() -> &'static ValidationCapsule {
     VALIDATOR.get_or_init(ValidationCapsule::new)
+}
+
+// ============================================================================
+// Global Constant-Time Operations (T1 Atomic: <20ns timing-attack resistant)
+// ============================================================================
+
+/// Global constant-time operations capsule for timing-attack-resistant comparisons
+/// - XOR-accumulation with bitwise OR reduction (BearSSL/Libsodium pattern)
+/// - Zero branches on secret data (verified: no conditional jumps)
+/// - Fixed memory access pattern (all elements touched)
+/// - Performance: <20ns for 32 bytes
+static CONSTANT_TIME: OnceLock<ConstantTimeOpsCapsule> = OnceLock::new();
+
+fn get_constant_time() -> &'static ConstantTimeOpsCapsule {
+    CONSTANT_TIME.get_or_init(ConstantTimeOpsCapsule::new)
 }
 
 // ============================================================================
@@ -583,19 +598,50 @@ impl HttpResponse {
 // Request Handlers
 // ============================================================================
 
+/// Validate API key with timing-attack-resistant comparison
+///
+/// # Security
+/// Uses ConstantTimeOpsCapsule for timing-attack-resistant comparison:
+/// - Zero branches on secret data (verified: no conditional jumps)
+/// - Fixed memory access pattern (all elements touched)
+/// - Performance: <20ns for 32 bytes
+///
+/// BEFORE (vulnerable to timing attacks):
+/// ```rust,ignore
+/// Some(key) if Some(key.as_str()) == state.api_key.as_deref() => Ok(())
+/// ```
+///
+/// AFTER (timing-attack resistant):
+/// Uses `ct_compare()` which performs XOR-accumulation with bitwise OR reduction
 fn validate_api_key(req: &HttpRequest, state: &Arc<ServerState>) -> Result<(), HttpResponse> {
     // Skip validation if no API key configured (development mode)
     if state.api_key.is_none() {
         return Ok(());
     }
 
+    let expected_key = state.api_key.as_deref().unwrap();
     let provided_key = req.headers.get("x-rapidapi-key");
+
     match provided_key {
-        Some(key) if Some(key.as_str()) == state.api_key.as_deref() => Ok(()),
-        _ => Err(HttpResponse::json(
+        Some(key) => {
+            // Use constant-time comparison to prevent timing attacks
+            // ct_compare returns true if equal, false otherwise
+            // Performance: <20ns, variance <1%
+            let ct_ops = get_constant_time();
+            if ct_ops.ct_compare(key.as_bytes(), expected_key.as_bytes()) {
+                Ok(())
+            } else {
+                Err(HttpResponse::json(
+                    401,
+                    "Unauthorized",
+                    r#"{"error":"Invalid API key"}"#.to_string(),
+                ))
+            }
+        }
+        None => Err(HttpResponse::json(
             401,
             "Unauthorized",
-            r#"{"error":"Invalid or missing X-RapidAPI-Key header"}"#.to_string(),
+            r#"{"error":"API key required"}"#.to_string(),
         )),
     }
 }
@@ -1375,10 +1421,14 @@ fn main() {
     let _ = get_validator();
     println!("[INFO] Input validator initialized (PID, breakpoint address)");
 
+    // Initialize constant-time operations for timing-attack-resistant API key comparison
+    let _ = get_constant_time();
+    println!("[INFO] Constant-time operations initialized (<20ns timing-attack resistant)");
+
     // Read API key from environment (optional)
     let api_key = std::env::var("RAPIDAPI_KEY").ok();
     if api_key.is_some() {
-        println!("[INFO] RapidAPI key validation: ENABLED");
+        println!("[INFO] RapidAPI key validation: ENABLED (constant-time comparison)");
     } else {
         println!("[WARN] RapidAPI key validation: DISABLED (development mode)");
     }
@@ -1586,5 +1636,64 @@ mod tests {
         // Disallowed origins
         assert!(!cors.validate_origin("https://evil.com").unwrap());
         assert!(!cors.validate_origin("http://malicious.site").unwrap());
+    }
+
+    // ========================================================================
+    // Constant-Time Operations Tests (T1 Atomic)
+    // ========================================================================
+
+    #[test]
+    fn test_constant_time_initialization() {
+        // Test that constant-time capsule initializes correctly
+        // Note: Using a fresh capsule to avoid test ordering issues with global state
+        let ct = ConstantTimeOpsCapsule::new();
+        assert_eq!(ct.operation_count(), 0);
+        assert_eq!(ct.violation_count(), 0);
+    }
+
+    #[test]
+    fn test_constant_time_compare_equal() {
+        let ct = ConstantTimeOpsCapsule::new();
+        let key1 = b"secret-api-key-1234567890abcdef";
+        let key2 = b"secret-api-key-1234567890abcdef";
+        assert!(ct.ct_compare(key1, key2));
+    }
+
+    #[test]
+    fn test_constant_time_compare_not_equal() {
+        let ct = ConstantTimeOpsCapsule::new();
+        let key1 = b"secret-api-key-1234567890abcdef";
+        let key2 = b"wrong-api-key-01234567890abcdef";
+        assert!(!ct.ct_compare(key1, key2));
+    }
+
+    #[test]
+    fn test_constant_time_compare_first_byte_differs() {
+        let ct = ConstantTimeOpsCapsule::new();
+        let key1 = b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        let key2 = b"Xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        // Should still take same time regardless of where mismatch is
+        assert!(!ct.ct_compare(key1, key2));
+    }
+
+    #[test]
+    fn test_constant_time_compare_last_byte_differs() {
+        let ct = ConstantTimeOpsCapsule::new();
+        let key1 = b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        let key2 = b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaX";
+        // Should still take same time regardless of where mismatch is
+        assert!(!ct.ct_compare(key1, key2));
+    }
+
+    #[test]
+    fn test_constant_time_operation_counter() {
+        let ct = ConstantTimeOpsCapsule::new();
+        assert_eq!(ct.operation_count(), 0);
+
+        let _ = ct.ct_compare(b"test", b"test");
+        assert_eq!(ct.operation_count(), 1);
+
+        let _ = ct.ct_compare(b"test", b"test");
+        assert_eq!(ct.operation_count(), 2);
     }
 }

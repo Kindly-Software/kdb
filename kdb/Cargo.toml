@@ -11,7 +11,7 @@ categories = ["development-tools::debugging", "development-tools"]
 
 [dependencies]
 # Core atomic operations
-atomic_capsule = { version = "0.9", path = "../atomic_capsule", features = ["std", "security-adaptive-rate-limiter"] }
+atomic_capsule = { version = "0.9", path = "../atomic_capsule", features = ["std", "http", "security-adaptive-rate-limiter", "security-constant-time-ops"] }
 
 # Optional: atomic_capsule_derive for automatic verification
 atomic_capsule_derive = { version = "0.9", path = "../atomic_capsule_derive", optional = true }
