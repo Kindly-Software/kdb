@@ -683,11 +683,10 @@ impl HpackEncoderCapsule {
 
         for &symbol in data {
             // Look up symbol in Huffman table
-            let code = if symbol < 256 {
+            // Note: symbol is u8, so always in range 0..=255
+            let code = {
                 // Use precomputed table (full table would have 256 entries)
                 (symbol as u32, 8) // Placeholder: 8-bit identity encoding
-            } else {
-                return Err(HpackError::HuffmanDecodeError);
             };
 
             // Write bits to output

@@ -218,8 +218,8 @@ pub struct HttpConnectionPoolCapsule {
     /// Peak concurrent connections observed
     peak_connections: AtomicU32,
 
-    /// Padding to complete second cache line (20 bytes)
-    _padding2: [u8; 20],
+    /// Padding to complete second cache line (28 bytes)
+    _padding2: [u8; 28],
 }
 
 // ============================================================================
@@ -275,7 +275,7 @@ impl HttpConnectionPoolCapsule {
             accept_errors: AtomicU64::new(0),
             avg_connection_duration: AtomicU64::new(0),
             peak_connections: AtomicU32::new(0),
-            _padding2: [0u8; 20],
+            _padding2: [0u8; 28],
         }
     }
 

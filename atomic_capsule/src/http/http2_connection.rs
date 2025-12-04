@@ -311,15 +311,15 @@ pub enum Http2Error {
     /// Invalid frame received
     FrameError(&'static str) = 0x06,
     /// Settings validation failed
-    SettingsError(&'static str) = 0x01,
+    SettingsError(&'static str) = 0x04,
     /// Flow control violation
     FlowControlError(&'static str) = 0x03,
     /// Compression error
     CompressionError(&'static str) = 0x09,
     /// Connection not in expected state
-    StateError(&'static str) = 0x01,
+    StateError(&'static str) = 0x07,
     /// Invalid settings value
-    SettingsValueError(&'static str) = 0x01,
+    SettingsValueError(&'static str) = 0x08,
     /// Connection already closed
     ConnectionClosed = 0x05,
 }
@@ -497,6 +497,7 @@ impl<'a> Http2Frame<'a> {
 #[repr(C, align(256))]
 #[derive(Debug)]
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
+#[cfg_attr(feature = "derive", capsule(alignment = 256))]
 pub struct Http2ConnectionCapsule {
     // Cache line 0: State machine + coordination (64 bytes)
     /// Connection state (8 bits) + flags (8 bits) + error_code (16 bits) + reserved (32 bits)
@@ -541,8 +542,8 @@ pub struct Http2ConnectionCapsule {
     /// Statistics: frames_sent(32) | frames_received(32)
     statistics: AtomicU64,
 
-    /// Padding to complete fourth cache line
-    _pad3: [u8; 32],
+    /// Padding to complete fourth cache line (64 - 5*8 = 24 bytes)
+    _pad3: [u8; 24],
 }
 
 // Verify 256-byte alignment
@@ -572,7 +573,7 @@ impl Http2ConnectionCapsule {
             hpack_decoder_ptr: AtomicU64::new(0),
             frame_parser_ptr: AtomicU64::new(0),
             statistics: AtomicU64::new(0),
-            _pad3: [0u8; 32],
+            _pad3: [0u8; 24],
         };
 
         // Encode role in state

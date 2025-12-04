@@ -108,6 +108,7 @@ const MEMORY_THRESHOLD: u32 = (1024 * 1024) - 1; // Spill at 1MB-1
 /// All operations are 100% lockfree using atomic CAS operations.
 #[repr(C, align(256))]
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
+#[cfg_attr(feature = "derive", capsule(alignment = 256))]
 pub struct HttpBodyBufferCapsule {
     // Cache Line 0 (0-63): Core buffer state
     memory_buffer: AtomicU64,       // 8 bytes: pointer to 1MB buffer

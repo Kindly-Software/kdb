@@ -336,17 +336,12 @@ pub struct SecurityHeadersCapsule {
 
 // Verify cache alignment
 const _: () = {
-    const fn assert_size() {
-        let size = mem::size_of::<SecurityHeadersCapsule>();
-        let align = mem::align_of::<SecurityHeadersCapsule>();
-        // Check alignment is 64B
-        #[allow(unconditional_panic)]
-        const _: () = ()[..(if align != 64 { 1 } else { 0 })];
-        // Check size is exactly 64B
-        #[allow(unconditional_panic)]
-        const _: () = ()[..(if size != 64 { 1 } else { 0 })];
-    }
-    let _ = assert_size;
+    const SIZE: usize = mem::size_of::<SecurityHeadersCapsule>();
+    const ALIGN: usize = mem::align_of::<SecurityHeadersCapsule>();
+    // Check alignment is 64B
+    assert!(ALIGN == 64, "SecurityHeadersCapsule must have 64-byte alignment");
+    // Check size is exactly 64B
+    assert!(SIZE == 64, "SecurityHeadersCapsule must be 64 bytes");
 };
 
 impl SecurityHeadersCapsule {

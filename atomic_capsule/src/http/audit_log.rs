@@ -217,6 +217,7 @@ impl AuditEntry {
 /// See module documentation for architecture details and ASSUM framework.
 #[repr(C, align(128))]
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
+#[cfg_attr(feature = "derive", capsule(alignment = 128))]
 pub struct HttpAuditLogCapsule {
     // Cache Line 0 (64 bytes)
     /// Ring buffer head position (0..16384)

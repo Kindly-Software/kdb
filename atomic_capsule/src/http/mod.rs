@@ -342,7 +342,7 @@ pub use security_headers::{
 };
 
 // Re-export T8 Network + T1 Atomic Server Capsule
-pub use server::{HttpServerCapsule, HttpServerError, ServerConfig, ServerState};
+pub use server::{HttpServerCapsule, HttpServerError, ServerConfig, ServerState as HttpServerState};
 
 // Re-export middleware capsule (T1 Atomic)
 pub use middleware::{
@@ -377,7 +377,7 @@ pub use validation::{
 
 // Re-export T8+T1 HTTP/2 Connection Manager Capsule (RFC 9113 Section 3-7 compliant)
 pub use http2_connection::{
-    ConnectionRole, ConnectionState, Http2ConnectionCapsule, Http2Error, Http2ErrorCode,
+    ConnectionRole, ConnectionState as Http2ConnectionState, Http2ConnectionCapsule, Http2Error, Http2ErrorCode,
     Http2Flags, Http2Frame, Http2FrameHeader, Http2Settings,
 };
 

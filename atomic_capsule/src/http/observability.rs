@@ -89,7 +89,7 @@
 //! circuit_breaker_state 0
 //! ```
 
-use crate::primitives::DualAtomicU64;
+use crate::patterns::DualAtomicU64;
 use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 

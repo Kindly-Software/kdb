@@ -406,7 +406,7 @@ pub struct HttpServerCapsule {
     total_rejected: AtomicU64,
 
     /// Padding to fill 256 bytes exactly
-    _padding: [u8; 24],
+    _padding: [u8; 32],
 }
 
 // Compile-time verification of layout (Q33: Mandatory verification)
@@ -459,7 +459,7 @@ impl HttpServerCapsule {
             last_accept_ns: AtomicU64::new(0),
             total_accepted: AtomicU64::new(0),
             total_rejected: AtomicU64::new(0),
-            _padding: [0u8; 24],
+            _padding: [0u8; 32],
         }
     }
 

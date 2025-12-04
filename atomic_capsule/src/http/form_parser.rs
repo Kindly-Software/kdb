@@ -251,6 +251,7 @@ impl From<io::Error> for FormParserError {
 /// and io_uring disk spooling for large files.
 #[repr(C, align(256))]
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
+#[cfg_attr(feature = "derive", capsule(alignment = 256))]
 pub struct FormParserCapsule {
     // Cache Line 0 (0-63): Parser core state
     state: AtomicU64,                   // 8 bytes: ParserState (u8) + flags
@@ -410,7 +411,7 @@ impl FormParserCapsule {
     /// - Multipart boundaries may span chunks (state machine handles continuation)
     /// - Returns only complete fields (incomplete trailing field deferred)
     /// - Zero-copy slices (no allocation inside parse loop)
-    pub fn parse_chunk(&mut self, chunk: &[u8]) -> Result<Vec<FieldData>, FormParserError> {
+    pub fn parse_chunk<'a>(&mut self, chunk: &'a [u8]) -> Result<Vec<FieldData<'a>>, FormParserError> {
         let start_ns = std::time::Instant::now();
 
         // Update byte counter
@@ -418,19 +419,19 @@ impl FormParserCapsule {
             .fetch_add(chunk.len() as u64, Ordering::Relaxed);
 
         // Dispatch based on current state
-        let fields = match ParserState::from_state(self.state.load(Ordering::Acquire)) {
-            ParserState::Preamble => self.handle_preamble(chunk)?,
-            ParserState::FindBoundary => self.handle_find_boundary(chunk)?,
-            ParserState::ParseHeaders => self.handle_parse_headers(chunk)?,
-            ParserState::ExtractField => self.handle_extract_field(chunk)?,
-            ParserState::ContentLoop => self.handle_content_loop(chunk)?,
-            ParserState::BoundaryCheck => self.handle_boundary_check(chunk)?,
+        let result = match ParserState::from_state(self.state.load(Ordering::Acquire)) {
+            ParserState::Preamble => self.handle_preamble(chunk),
+            ParserState::FindBoundary => self.handle_find_boundary(chunk),
+            ParserState::ParseHeaders => self.handle_parse_headers(chunk),
+            ParserState::ExtractField => self.handle_extract_field(chunk),
+            ParserState::ContentLoop => self.handle_content_loop(chunk),
+            ParserState::BoundaryCheck => self.handle_boundary_check(chunk),
             ParserState::Complete | ParserState::Error => {
-                return Err(FormParserError::StateTransitionError);
+                Err(FormParserError::StateTransitionError)
             }
         };
 
-        // Update latency metrics
+        // Update latency metrics (done after mutable borrow ends)
         let elapsed_ns = start_ns.elapsed().as_nanos() as u64;
         self.total_latency_ns.fetch_add(elapsed_ns, Ordering::Relaxed);
         let mut max_latency = self.max_latency_ns.load(Ordering::Relaxed);
@@ -446,7 +447,7 @@ impl FormParserCapsule {
             }
         }
 
-        Ok(fields)
+        result
     }
 
     // ========================================================================
@@ -454,7 +455,7 @@ impl FormParserCapsule {
     // ========================================================================
 
     /// Handle preamble before first boundary
-    fn handle_preamble(&mut self, _chunk: &[u8]) -> Result<Vec<FieldData>, FormParserError> {
+    fn handle_preamble<'a>(&mut self, _chunk: &'a [u8]) -> Result<Vec<FieldData<'a>>, FormParserError> {
         // Preamble is typically empty; transition to FindBoundary
         self.state
             .store(ParserState::FindBoundary as u64, Ordering::Release);
@@ -466,7 +467,7 @@ impl FormParserCapsule {
     /// # Performance
     /// - Time: <500ns (memchr on 8KB chunk, SIMD 30× faster)
     /// - Algorithm: Linear scan with SIMD boundary detection
-    fn handle_find_boundary(&mut self, chunk: &[u8]) -> Result<Vec<FieldData>, FormParserError> {
+    fn handle_find_boundary<'a>(&mut self, chunk: &'a [u8]) -> Result<Vec<FieldData<'a>>, FormParserError> {
         let boundary = self.get_boundary()?;
 
         // SIMD boundary detection using memchr if available
@@ -484,7 +485,7 @@ impl FormParserCapsule {
     }
 
     /// Parse Content-Disposition and Content-Type headers
-    fn handle_parse_headers(&mut self, chunk: &[u8]) -> Result<Vec<FieldData>, FormParserError> {
+    fn handle_parse_headers<'a>(&mut self, chunk: &'a [u8]) -> Result<Vec<FieldData<'a>>, FormParserError> {
         // Headers end with CRLF CRLF
         let header_end = chunk.windows(4).position(|w| w == b"\r\n\r\n");
 
@@ -507,7 +508,7 @@ impl FormParserCapsule {
     }
 
     /// Extract field name/filename from Content-Disposition header
-    fn handle_extract_field(&mut self, chunk: &[u8]) -> Result<Vec<FieldData>, FormParserError> {
+    fn handle_extract_field<'a>(&mut self, chunk: &'a [u8]) -> Result<Vec<FieldData<'a>>, FormParserError> {
         // Parse Content-Disposition: form-data; name="fieldname"; filename="filename"
         // Example: form-data; name="file"; filename="test.txt"
 
@@ -549,7 +550,7 @@ impl FormParserCapsule {
     }
 
     /// Read field content until boundary
-    fn handle_content_loop(&mut self, chunk: &[u8]) -> Result<Vec<FieldData>, FormParserError> {
+    fn handle_content_loop<'a>(&mut self, chunk: &'a [u8]) -> Result<Vec<FieldData<'a>>, FormParserError> {
         let boundary = self.get_boundary()?;
 
         // Scan for CRLF--boundary
@@ -564,7 +565,7 @@ impl FormParserCapsule {
     }
 
     /// Check for epilon boundary (--boundary--)
-    fn handle_boundary_check(&mut self, chunk: &[u8]) -> Result<Vec<FieldData>, FormParserError> {
+    fn handle_boundary_check<'a>(&mut self, chunk: &'a [u8]) -> Result<Vec<FieldData<'a>>, FormParserError> {
         // Check for --boundary-- (epilon) or --boundary CRLF (next part)
         if chunk.len() >= 2 && chunk.starts_with(b"--") {
             // Epilon boundary; parsing complete
@@ -612,6 +613,7 @@ impl FormParserCapsule {
         #[cfg(all(feature = "portable_simd", target_arch = "x86_64"))]
         {
             use std::simd::u8x16;
+            use std::simd::cmp::SimdPartialEq;
             let search_byte = needle[0];
 
             // Process 16 bytes at a time
@@ -650,6 +652,7 @@ impl FormParserCapsule {
         #[cfg(all(feature = "portable_simd", not(target_arch = "x86_64")))]
         {
             use std::simd::u8x16;
+            use std::simd::cmp::SimdPartialEq;
             let search_byte = needle[0];
 
             for i in (0..haystack.len().saturating_sub(16)).step_by(16) {

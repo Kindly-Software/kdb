@@ -258,6 +258,7 @@ impl FileMetadataCache {
 /// Static file server capsule (T9 Persistent + T1 Atomic)
 #[repr(C, align(256))]
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
+#[cfg_attr(feature = "derive", capsule(alignment = 256))]
 pub struct StaticFileServerCapsule {
     // Cache line 0: Coordination & Metrics
     cache_index: AtomicU64,           // Round-robin LRU pointer (0-7)
