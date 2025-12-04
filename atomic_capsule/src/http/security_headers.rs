@@ -276,35 +276,64 @@ impl PrecomputedHeaders {
 
 /// SecurityHeadersCapsule - T1 Atomic security header injection
 ///
-/// Memory layout (64B cache-aligned):
+/// Memory layout (128B cache-aligned):
 /// ```text
 /// Offset  Field                      Size   Notes
-/// 0       config_ptr                8      AtomicU64 (→ SecurityHeadersConfig)
-/// 8       precomputed_headers_ptr   8      AtomicU64 (→ &'static str)
-/// 16      flags                     8      AtomicU64 (enable flags)
-/// 24      requests_processed        8      AtomicU64 (statistics)
-/// 32      nonces_generated          8      AtomicU64 (statistics)
-/// 40      total_latency_ns          8      AtomicU64 (statistics)
-/// 48      _padding                  16     Pad to 64B
+/// 0       hsts                      16     &'static str (ptr + len)
+/// 16      frame_options             16     &'static str (ptr + len)
+/// 32      coep                      16     &'static str (ptr + len)
+/// 48      coop                      16     &'static str (ptr + len)
+/// 64      corp                      16     &'static str (ptr + len)
+/// 80      content_type_options      16     &'static str (ptr + len)
+/// 96      xss_protection            16     &'static str (ptr + len)
+/// 112     referrer_policy           16     &'static str (ptr + len)
+/// 128     flags                     8      AtomicU64 (enable flags)
+/// 136     requests_processed        8      AtomicU64 (statistics)
+/// 144     nonces_generated          8      AtomicU64 (statistics)
+/// 152     total_latency_ns          8      AtomicU64 (statistics)
+/// 160     _padding                  32     Pad to 192B (3 cache lines)
 /// ```
 ///
 /// # ASSUM: Cache Alignment
-/// - Layout is 64B aligned for false sharing prevention
+/// - Layout is 64B aligned for false sharing prevention (192B = 3 cache lines)
 /// - AtomicU64 operations are lock-free (verified: cfg_attr)
+/// - Precomputed headers are stored inline as &'static str (no dangling pointers)
+///
+/// # Design Decision: Inline Storage vs Pointers
+/// Previous design stored raw pointers to stack-allocated PrecomputedHeaders,
+/// causing undefined behavior (dangling pointers). Fixed by inlining the
+/// &'static str references directly into the capsule. Since all header strings
+/// are compile-time constants (&'static str), this is safe and eliminates
+/// pointer management complexity.
 ///
 #[repr(C, align(64))]
 pub struct SecurityHeadersCapsule {
-    /// Configuration pointer (allows runtime policy changes)
+    /// Precomputed HSTS header (&'static str, inline)
     ///
-    /// # ASSUME_INVARIANT: Pointer is always valid
-    /// # VERIFY_INVARIANT: Stored as non-null reference
-    config_ptr: AtomicU64,
+    /// # ASSUME_INVARIANT: String is static lifetime, never deallocated
+    /// # VERIFY_INVARIANT: All values come from const string literals
+    hsts: &'static str,
 
-    /// Precomputed headers pointer (points to static strings)
-    ///
-    /// # ASSUME_INVARIANT: Pointer is always valid and immutable
-    /// # VERIFY_INVARIANT: Stored at construction time
-    precomputed_headers_ptr: AtomicU64,
+    /// Precomputed X-Frame-Options header
+    frame_options: &'static str,
+
+    /// Precomputed COEP header
+    coep: &'static str,
+
+    /// Precomputed COOP header
+    coop: &'static str,
+
+    /// Precomputed CORP header
+    corp: &'static str,
+
+    /// Precomputed X-Content-Type-Options header
+    content_type_options: &'static str,
+
+    /// Precomputed X-XSS-Protection header
+    xss_protection: &'static str,
+
+    /// Precomputed Referrer-Policy header
+    referrer_policy: &'static str,
 
     /// Feature flags (enable/disable headers)
     ///
@@ -330,8 +359,8 @@ pub struct SecurityHeadersCapsule {
     /// # VERIFY_OVERFLOW: Saturating add prevents overflow
     total_latency_ns: AtomicU64,
 
-    /// Padding to 64B cache line
-    _padding: [u8; 16],
+    /// Padding to 192B (3 cache lines)
+    _padding: [u8; 32],
 }
 
 // Verify cache alignment
@@ -340,8 +369,9 @@ const _: () = {
     const ALIGN: usize = mem::align_of::<SecurityHeadersCapsule>();
     // Check alignment is 64B
     assert!(ALIGN == 64, "SecurityHeadersCapsule must have 64-byte alignment");
-    // Check size is exactly 64B
-    assert!(SIZE == 64, "SecurityHeadersCapsule must be 64 bytes");
+    // Check size is exactly 192B (3 cache lines)
+    // 8 * &'static str (16B each) = 128B + 4 * AtomicU64 (8B each) = 32B + 32B padding = 192B
+    assert!(SIZE == 192, "SecurityHeadersCapsule must be 192 bytes");
 };
 
 impl SecurityHeadersCapsule {
@@ -351,25 +381,35 @@ impl SecurityHeadersCapsule {
     /// - O(1) time complexity
     /// - <50ns creation time (atomic initialization)
     ///
+    /// # Safety
+    /// All header strings are &'static str (compile-time constants), so no
+    /// lifetime or dangling pointer issues. The capsule owns the string
+    /// references directly rather than storing pointers to intermediate structs.
+    ///
     /// # Examples
     ///
     /// ```ignore
     /// let capsule = SecurityHeadersCapsule::new(SecurityHeadersPolicy::default());
     /// ```
     pub fn new(policy: SecurityHeadersPolicy) -> Self {
+        // Compute precomputed headers and inline them directly
         let precomputed = PrecomputedHeaders::from_policy(&policy);
 
-        let config_ptr = &policy as *const SecurityHeadersPolicy as u64;
-        let precomputed_ptr = &precomputed as *const PrecomputedHeaders as u64;
-
         Self {
-            config_ptr: AtomicU64::new(config_ptr),
-            precomputed_headers_ptr: AtomicU64::new(precomputed_ptr),
+            // Inline the &'static str references directly - no pointers needed
+            hsts: precomputed.hsts,
+            frame_options: precomputed.frame_options,
+            coep: precomputed.coep,
+            coop: precomputed.coop,
+            corp: precomputed.corp,
+            content_type_options: precomputed.content_type_options,
+            xss_protection: precomputed.xss_protection,
+            referrer_policy: precomputed.referrer_policy,
             flags: AtomicU64::new(0),
             requests_processed: AtomicU64::new(0),
             nonces_generated: AtomicU64::new(0),
             total_latency_ns: AtomicU64::new(0),
-            _padding: [0u8; 16],
+            _padding: [0u8; 32],
         }
     }
 
@@ -406,16 +446,6 @@ impl SecurityHeadersCapsule {
     /// let with_headers = capsule.inject_headers(response, true);
     /// ```
     pub fn inject_headers(&self, response: &str, include_csp: bool) -> String {
-        // Load configuration atomically (Acquire ordering)
-        let _config_ptr = self.config_ptr.load(Ordering::Acquire);
-        let precomputed_ptr = self.precomputed_headers_ptr.load(Ordering::Acquire);
-
-        // ASSUME_INVARIANT: pointer is valid
-        // VERIFY_INVARIANT: Stored at construction time
-        let _precomputed = unsafe {
-            &*(precomputed_ptr as *const PrecomputedHeaders)
-        };
-
         // Find header/body boundary
         let boundary = response.find("\r\n\r\n");
 
@@ -426,17 +456,18 @@ impl SecurityHeadersCapsule {
             let (headers, body_marker_and_body) = response.split_at(boundary_pos);
             result.push_str(headers);
 
-            // Inject static headers (Relaxed ordering - non-critical statistics)
-            // #ASSUME_HEADERS_IMMUTABLE: These don't change
+            // Inject static headers directly from inline fields
+            // #ASSUME_HEADERS_IMMUTABLE: These are &'static str, never change
+            // No unsafe pointer dereferencing needed - fields are owned &'static str
             result.push_str("\r\n");
-            result.push_str(_precomputed.hsts);
-            result.push_str(_precomputed.frame_options);
-            result.push_str(_precomputed.coep);
-            result.push_str(_precomputed.coop);
-            result.push_str(_precomputed.corp);
-            result.push_str(_precomputed.content_type_options);
-            result.push_str(_precomputed.xss_protection);
-            result.push_str(_precomputed.referrer_policy);
+            result.push_str(self.hsts);
+            result.push_str(self.frame_options);
+            result.push_str(self.coep);
+            result.push_str(self.coop);
+            result.push_str(self.corp);
+            result.push_str(self.content_type_options);
+            result.push_str(self.xss_protection);
+            result.push_str(self.referrer_policy);
 
             // Generate and inject CSP nonce if enabled
             if include_csp {
@@ -568,7 +599,7 @@ impl fmt::Debug for SecurityHeadersCapsule {
             .field("nonces_generated", &nonces)
             .field("total_latency_ns", &latency)
             .field("align", &64)
-            .field("size", &64)
+            .field("size", &192)
             .finish()
     }
 }
@@ -585,11 +616,11 @@ impl fmt::Display for SecurityHeadersCapsule {
 }
 
 // Verify alignment and size at compile time (using array trick)
-// This ensures SIZE = 64 and ALIGN = 64 at compile time
+// This ensures SIZE = 192 and ALIGN = 64 at compile time
 const _: () = {
     // The following will only compile if the condition is true
-    // If SecurityHeadersCapsule is not 64 bytes, this will fail to compile
-    const SIZE_CHECK: [(); 64] = [(); mem::size_of::<SecurityHeadersCapsule>()];
+    // If SecurityHeadersCapsule is not 192 bytes, this will fail to compile
+    const SIZE_CHECK: [(); 192] = [(); mem::size_of::<SecurityHeadersCapsule>()];
     const ALIGN_CHECK: [(); 64] = [(); mem::align_of::<SecurityHeadersCapsule>()];
 
     let _ = (SIZE_CHECK, ALIGN_CHECK);
