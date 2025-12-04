@@ -1,0 +1,31 @@
+[package]
+name = "train_gmm"
+version = "0.1.0"
+edition = "2021"
+authors = ["Samuel <samuel@kindly.dev>"]
+description = "Offline GMM training tool for GMMCapsule Q16.16 format export"
+license = "Proprietary"
+repository = "https://github.com/kindly/primitives"
+keywords = ["gmm", "gaussian-mixture", "machine-learning", "fixed-point", "Q16.16"]
+categories = ["science", "command-line-utilities"]
+readme = "README.md"
+
+[dependencies]
+# Zero external dependencies for core functionality (COCA compliance)
+# Only CLI parsing from standard library
+
+[[bin]]
+name = "train_gmm"
+path = "src/main.rs"
+
+[features]
+default = []
+# Optional: Enable for verbose debugging output
+debug = []
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
