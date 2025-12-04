@@ -489,13 +489,15 @@ impl SecurityHeadersCapsule {
 
         if let Some(boundary_pos) = boundary {
             // Split headers and body
+            // boundary_pos is the position of the FIRST \r in \r\n\r\n
+            // So headers = everything before \r\n\r\n (ends with \r\n)
+            // And body_marker_and_body = \r\n\r\n + body
             let (headers, body_marker_and_body) = response.split_at(boundary_pos);
             result.push_str(headers);
 
             // Inject static headers directly from inline fields
             // #ASSUME_HEADERS_IMMUTABLE: These are &'static str, never change
             // No unsafe pointer dereferencing needed - fields are owned &'static str
-            result.push_str("\r\n");
             result.push_str(self.hsts);
             result.push_str(self.frame_options);
             result.push_str(self.coep);
@@ -536,7 +538,9 @@ impl SecurityHeadersCapsule {
             }
 
             // Append body
-            result.push_str(body_marker_and_body);
+            // body_marker_and_body starts with \r\n\r\n, but we already have \r\n from the last header
+            // So skip the first \r\n to avoid triple newlines
+            result.push_str(&body_marker_and_body[2..]);
         } else {
             result.push_str(response);
         }
