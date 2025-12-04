@@ -1,0 +1,22 @@
+[workspace]
+
+[package]
+name = "validate-mcp"
+version = "0.1.0"
+edition = "2021"
+authors = ["Samuel <samuel@primitives.dev>"]
+description = "Validation binary for kdb_mcp health checks and protocol validation"
+
+[dependencies]
+clap = { version = "4.4", features = ["derive"] }
+reqwest = { version = "0.11", features = ["blocking", "json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+thiserror = "1.0"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true

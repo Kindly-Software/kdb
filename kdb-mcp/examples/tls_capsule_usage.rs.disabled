@@ -1,0 +1,320 @@
+//! TlsCapsule Usage Examples
+//!
+//! Demonstrates how to use TlsCapsule for certificate management in atomic_mcp_server.
+//!
+//! **Run this example**:
+//! ```bash
+//! cargo run --example tls_capsule_usage --features "std,tls"
+//! ```
+
+#[cfg(feature = "tls")]
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    use atomic_mcp_server::{TlsCapsule, TlsError};
+    use std::path::Path;
+    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::fs;
+
+    println!("=== TlsCapsule Usage Examples ===\n");
+
+    // ========================================================================
+    // Example 1: Initialize TlsCapsule
+    // ========================================================================
+    println!("Example 1: Initialize TlsCapsule");
+    println!("{}", "─".repeat(50));
+
+    // Create temporary test certificates
+    let cert_dir = std::env::temp_dir().join("tls_example");
+    fs::create_dir_all(&cert_dir)?;
+
+    let cert_path = cert_dir.join("example.pem");
+    let key_path = cert_dir.join("example.key");
+
+    // Write dummy PEM (in production, these are from Let's Encrypt)
+    fs::write(
+        &cert_path,
+        "-----BEGIN CERTIFICATE-----\nMIIBkTCB+wIJAKHHIG...\n-----END CERTIFICATE-----",
+    )?;
+    fs::write(
+        &key_path,
+        "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBg...\n-----END PRIVATE KEY-----",
+    )?;
+
+    // Create TlsCapsule
+    let tls = TlsCapsule::new(&cert_path, &key_path, "mcp.kindly.ai")?;
+
+    println!("✓ TlsCapsule created successfully");
+    println!("  Domain: {}", tls.domain());
+    println!("  Size: {} bytes", std::mem::size_of::<TlsCapsule>());
+    println!("  Alignment: {} bytes\n", std::mem::align_of::<TlsCapsule>());
+
+    // ========================================================================
+    // Example 2: Check Certificate Expiry
+    // ========================================================================
+    println!("Example 2: Check Certificate Expiry");
+    println!("{}", "─".repeat(50));
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    match tls.check_expiry(now) {
+        Ok(()) => println!("✓ Certificate is valid (not expired)"),
+        Err(TlsError::CertificateExpired) => println!("✗ Certificate has expired!"),
+        Err(e) => println!("✗ Error checking expiry: {:?}", e),
+    }
+
+    let days = tls.days_until_expiry(now);
+    println!("  Days until expiry: {}\n", days);
+
+    // ========================================================================
+    // Example 3: Check if Renewal Needed
+    // ========================================================================
+    println!("Example 3: Check if Renewal Needed");
+    println!("{}", "─".repeat(50));
+
+    let renewal_window_days = 30;
+    if tls.needs_renewal(renewal_window_days, now) {
+        println!(
+            "⚠️  Certificate needs renewal! (within {} days of expiry)",
+            renewal_window_days
+        );
+    } else {
+        println!("✓ Certificate does not need renewal yet");
+    }
+    println!();
+
+    // ========================================================================
+    // Example 4: Monitor Renewal Attempts
+    // ========================================================================
+    println!("Example 4: Monitor Renewal Attempts");
+    println!("{}", "─".repeat(50));
+
+    let (attempts, failures, last_renewal_ts) = tls.renewal_stats();
+
+    println!("  Total renewal attempts: {}", attempts);
+    println!("  Total renewal failures: {}", failures);
+    println!("  Last successful renewal: {} (Unix timestamp)", last_renewal_ts);
+
+    let human_readable = format_timestamp(last_renewal_ts);
+    println!("  Last successful renewal (human): {}\n", human_readable);
+
+    // ========================================================================
+    // Example 5: Start Renewal Process
+    // ========================================================================
+    println!("Example 5: Start Renewal Process (Atomic CAS)");
+    println!("{}", "─".repeat(50));
+
+    match tls.start_renewal() {
+        Ok(()) => {
+            println!("✓ Renewal lock acquired (no other renewal in progress)");
+
+            // Simulate renewal success
+            let new_expiry = now + 365 * 86400; // 1 year from now
+            match tls.complete_renewal(new_expiry) {
+                Ok(()) => {
+                    println!("✓ Renewal completed successfully");
+                    println!("  New expiry: {} (in {} days)", new_expiry, 365);
+                }
+                Err(e) => println!("✗ Failed to complete renewal: {:?}", e),
+            }
+        }
+        Err(()) => {
+            println!("⚠️  Renewal already in progress (someone else holds lock)");
+        }
+    }
+    println!();
+
+    // ========================================================================
+    // Example 6: Handle Renewal Failure
+    // ========================================================================
+    println!("Example 6: Handle Renewal Failure");
+    println!("{}", "─".repeat(50));
+
+    if tls.start_renewal().is_ok() {
+        // Simulate failure (e.g., network error, DNS validation failed)
+        println!("Renewal attempt failed!");
+        tls.renewal_failed();
+
+        let (attempts, failures, _) = tls.renewal_stats();
+        println!("✓ Failure recorded");
+        println!("  Total attempts: {}", attempts);
+        println!("  Total failures: {}", failures);
+
+        if failures > 3 {
+            println!("⚠️  Alert: {} consecutive failures!", failures);
+        }
+    }
+    println!();
+
+    // ========================================================================
+    // Example 7: Background Renewal Task (Pseudo-code)
+    // ========================================================================
+    println!("Example 7: Background Renewal Task Pattern");
+    println!("{}", "─".repeat(50));
+
+    println!("This is the pattern to use in your background task:");
+    println!(r#"
+// In tokio::spawn or similar background task:
+loop {
+    tokio::time::sleep(Duration::from_secs(3600)).await;  // Check hourly
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    // Check if renewal needed (7 days before expiry)
+    if tls.needs_renewal(7, now) {
+        eprintln!("⚠️  Certificate renewal needed");
+
+        // Try to start renewal
+        if tls.start_renewal().is_ok() {
+            eprintln!("Starting certificate renewal...");
+
+            // Call external renewal service
+            match std::process::Command::new("certbot")
+                .args(&["renew", "--quiet"])
+                .output()
+            {
+                Ok(output) if output.status.success() => {
+                    // Update with new expiry (90 days from now)
+                    let new_expiry = now + 90 * 86400;
+                    let _ = tls.complete_renewal(new_expiry);
+                    eprintln!("✓ Certificate renewed!");
+                }
+                _ => {
+                    // Record failure
+                    tls.renewal_failed();
+                    eprintln!("✗ Renewal failed, retrying next hour");
+                }
+            }
+        }
+    }
+}
+    "#);
+    println!();
+
+    // ========================================================================
+    // Example 8: Export Metrics (Prometheus format)
+    // ========================================================================
+    println!("Example 8: Export Metrics (Prometheus Format)");
+    println!("{}", "─".repeat(50));
+
+    println!("# HELP mcp_cert_expiry_unix Certificate expiry timestamp");
+    println!("# TYPE mcp_cert_expiry_unix gauge");
+    println!("mcp_cert_expiry_unix {}", tls.cert_expiry_unix());
+
+    println!("\n# HELP mcp_cert_days_until_expiry Days until certificate expiry");
+    println!("# TYPE mcp_cert_days_until_expiry gauge");
+    println!("mcp_cert_days_until_expiry {}", tls.days_until_expiry(now));
+
+    let (attempts, failures, _) = tls.renewal_stats();
+    println!("\n# HELP mcp_cert_renewal_attempts Total certificate renewal attempts");
+    println!("# TYPE mcp_cert_renewal_attempts counter");
+    println!("mcp_cert_renewal_attempts_total {}", attempts);
+
+    println!("\n# HELP mcp_cert_renewal_failures Total certificate renewal failures");
+    println!("# TYPE mcp_cert_renewal_failures counter");
+    println!("mcp_cert_renewal_failures_total {}", failures);
+    println!();
+
+    // ========================================================================
+    // Example 9: Error Handling
+    // ========================================================================
+    println!("Example 9: Error Handling");
+    println!("{}", "─".repeat(50));
+
+    // Test various error conditions
+    match TlsCapsule::new(Path::new("/nonexistent/cert.pem"), &key_path, "test.com") {
+        Err(TlsError::CertificateNotFound) => {
+            println!("✓ Correctly detected missing certificate file")
+        }
+        Err(e) => println!("Unexpected error: {:?}", e),
+        Ok(_) => println!("Unexpected: created capsule for nonexistent file"),
+    }
+
+    match TlsCapsule::new(
+        &cert_path,
+        &key_path,
+        &"x".repeat(100), // Domain too long
+    ) {
+        Err(TlsError::InvalidPath) => println!("✓ Correctly detected invalid domain (too long)"),
+        Err(e) => println!("Unexpected error: {:?}", e),
+        Ok(_) => println!("Unexpected: created capsule for invalid domain"),
+    }
+    println!();
+
+    // ========================================================================
+    // Example 10: Performance Characteristics
+    // ========================================================================
+    println!("Example 10: Performance Characteristics");
+    println!("{}", "─".repeat(50));
+
+    println!("TlsCapsule operations latency (on your system):");
+    println!();
+
+    // Measure check_expiry
+    let start = std::time::Instant::now();
+    for _ in 0..1000 {
+        let _ = tls.check_expiry(now);
+    }
+    let elapsed = start.elapsed();
+    println!(
+        "✓ check_expiry() × 1000: {:.2}μs (avg: {:.0}ns)",
+        elapsed.as_micros() as f64 / 1000.0,
+        elapsed.as_nanos() as f64 / 1000.0
+    );
+
+    // Measure needs_renewal
+    let start = std::time::Instant::now();
+    for _ in 0..1000 {
+        let _ = tls.needs_renewal(30, now);
+    }
+    let elapsed = start.elapsed();
+    println!(
+        "✓ needs_renewal() × 1000: {:.2}μs (avg: {:.0}ns)",
+        elapsed.as_micros() as f64 / 1000.0,
+        elapsed.as_nanos() as f64 / 1000.0
+    );
+
+    // Measure renewal_stats
+    let start = std::time::Instant::now();
+    for _ in 0..1000 {
+        let _ = tls.renewal_stats();
+    }
+    let elapsed = start.elapsed();
+    println!(
+        "✓ renewal_stats() × 1000: {:.2}μs (avg: {:.0}ns)",
+        elapsed.as_micros() as f64 / 1000.0,
+        elapsed.as_nanos() as f64 / 1000.0
+    );
+    println!();
+
+    // Cleanup
+    let _ = fs::remove_file(&cert_path);
+    let _ = fs::remove_file(&key_path);
+    let _ = fs::remove_dir(&cert_dir);
+
+    println!("=== All Examples Complete ===");
+
+    Ok(())
+}
+
+#[cfg(not(feature = "tls"))]
+fn main() {
+    eprintln!("Please enable the 'tls' feature to run this example:");
+    eprintln!("  cargo run --example tls_capsule_usage --features 'std,tls'");
+    std::process::exit(1);
+}
+
+/// Format Unix timestamp as human-readable string (simplified)
+fn format_timestamp(unix_secs: u64) -> String {
+    // In production, use chrono or time crate for proper formatting
+    // This is a simplified version
+    if unix_secs == 0 {
+        "Never".to_string()
+    } else {
+        format!("{} (Unix timestamp)", unix_secs)
+    }
+}

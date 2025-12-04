@@ -1,0 +1,453 @@
+# Atomic MCP Server - CI/CD Pipeline
+# UCE34 Framework: Q10 T1 Atomic (lockfree coordination), B32 validated
+# Target: <7 minutes total (lint+test+build+deploy)
+# Status: Production-ready multi-stage pipeline
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, 'feature/**', 'hotfix/**' ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch: # Manual trigger
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0 # Disable incremental for CI reproducibility
+  RUST_VERSION: nightly-2025-01-01 # Nightly for portable_simd, atomic_from_mut
+
+jobs:
+  # ============================================================================
+  # Stage 1: Lint and Format (~30s)
+  # ============================================================================
+  lint-and-format:
+    name: "Stage 1: Lint & Format"
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt, clippy
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache Cargo build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-
+
+      - name: Run rustfmt check
+        run: |
+          echo "::group::Formatting check"
+          cargo fmt --all -- --check
+          echo "::endgroup::"
+
+      - name: Run clippy (all features)
+        run: |
+          echo "::group::Clippy lints"
+          cargo clippy --all-features --all-targets -- \
+            -D warnings \
+            -D clippy::all \
+            -D clippy::pedantic \
+            -W clippy::nursery \
+            -A clippy::module_name_repetitions \
+            -A clippy::missing_errors_doc \
+            -A clippy::missing_panics_doc
+          echo "::endgroup::"
+
+      - name: Run cargo audit (security vulnerabilities)
+        run: |
+          echo "::group::Security audit"
+          cargo install --locked cargo-audit || true
+          cargo audit --deny warnings || true # Non-blocking for now
+          echo "::endgroup::"
+
+  # ============================================================================
+  # Stage 2: Tests with Code Coverage (~2min)
+  # ============================================================================
+  test-and-coverage:
+    name: "Stage 2: Tests & Coverage"
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    needs: lint-and-format
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: llvm-tools-preview
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-test-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-test-
+
+      - name: Install cargo-llvm-cov
+        run: |
+          cargo install cargo-llvm-cov || true
+
+      - name: Run unit tests (lib)
+        run: |
+          echo "::group::Unit tests"
+          cargo test --lib --all-features --no-fail-fast
+          echo "::endgroup::"
+
+      - name: Run integration tests
+        run: |
+          echo "::group::Integration tests"
+          cargo test --tests --all-features --no-fail-fast
+          echo "::endgroup::"
+
+      - name: Run doc tests
+        run: |
+          echo "::group::Documentation tests"
+          cargo test --doc --all-features --no-fail-fast
+          echo "::endgroup::"
+
+      - name: Generate code coverage
+        run: |
+          echo "::group::Code coverage"
+          cargo llvm-cov --all-features --lcov --output-path lcov.info || true
+          echo "::endgroup::"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: lcov.info
+          fail_ci_if_error: false # Non-blocking
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Coverage summary
+        run: |
+          echo "::group::Coverage summary"
+          cargo llvm-cov report --summary-only || echo "Coverage: N/A"
+          echo "::endgroup::"
+
+  # ============================================================================
+  # Stage 3: Security Scan (ASSUM Audit + Unsafe Blocks) (~1min)
+  # ============================================================================
+  security-scan:
+    name: "Stage 3: Security Scan"
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    needs: lint-and-format
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Count unsafe blocks
+        run: |
+          echo "::group::Unsafe block audit"
+          UNSAFE_COUNT=$(grep -r "unsafe" src/ --include="*.rs" | wc -l || echo "0")
+          echo "Total unsafe blocks: $UNSAFE_COUNT"
+          if [ "$UNSAFE_COUNT" -gt 50 ]; then
+            echo "::warning::High unsafe count: $UNSAFE_COUNT blocks (target: <50)"
+          else
+            echo "✅ Unsafe count acceptable: $UNSAFE_COUNT blocks"
+          fi
+          echo "::endgroup::"
+
+      - name: Check ASSUM tags
+        run: |
+          echo "::group::ASSUM framework validation"
+          ASSUME_COUNT=$(grep -r "#ASSUME" src/ --include="*.rs" | wc -l || echo "0")
+          VERIFY_COUNT=$(grep -r "#VERIFY" src/ --include="*.rs" | wc -l || echo "0")
+          echo "ASSUME tags: $ASSUME_COUNT"
+          echo "VERIFY tags: $VERIFY_COUNT"
+
+          if [ "$ASSUME_COUNT" -gt 0 ] && [ "$VERIFY_COUNT" -eq 0 ]; then
+            echo "::error::ASSUM tags without VERIFY (safety violation)"
+            exit 1
+          fi
+
+          echo "✅ ASSUM framework compliant"
+          echo "::endgroup::"
+
+      - name: Run cargo-geiger (unsafe radiation)
+        run: |
+          echo "::group::Unsafe radiation scan"
+          cargo install --locked cargo-geiger || true
+          cargo geiger --all-features || echo "Geiger scan skipped"
+          echo "::endgroup::"
+
+  # ============================================================================
+  # Stage 4: Build Release Binary (~3min)
+  # ============================================================================
+  build-release:
+    name: "Stage 4: Build Release"
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    needs: [test-and-coverage, security-scan]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Cache build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-release-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-release-
+
+      - name: Build release binary
+        run: |
+          echo "::group::Release build"
+          cargo build --release --bin mcp_debug_server --all-features
+          echo "::endgroup::"
+
+      - name: Strip and verify binary
+        run: |
+          echo "::group::Binary verification"
+          strip target/release/mcp_debug_server
+          ls -lh target/release/mcp_debug_server
+          file target/release/mcp_debug_server
+          ldd target/release/mcp_debug_server || true
+          echo "::endgroup::"
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp_debug_server-linux-x86_64
+          path: target/release/mcp_debug_server
+          retention-days: 30
+
+      - name: Create binary checksum
+        run: |
+          echo "::group::Binary checksum"
+          cd target/release
+          sha256sum mcp_debug_server > mcp_debug_server.sha256
+          cat mcp_debug_server.sha256
+          echo "::endgroup::"
+
+      - name: Upload checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp_debug_server-checksum
+          path: target/release/mcp_debug_server.sha256
+          retention-days: 30
+
+  # ============================================================================
+  # Stage 5: Deploy to 192.168.0.38 (main branch only) (~30s)
+  # ============================================================================
+  deploy-production:
+    name: "Stage 5: Deploy to Production"
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    needs: build-release
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: http://192.168.0.38:5678/metrics
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mcp_debug_server-linux-x86_64
+          path: ./artifacts
+
+      - name: Setup SSH key
+        run: |
+          echo "::group::SSH setup"
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H 192.168.0.38 >> ~/.ssh/known_hosts || true
+          echo "::endgroup::"
+
+      - name: Deploy to server
+        run: |
+          echo "::group::Deployment"
+          chmod +x ./artifacts/mcp_debug_server
+
+          # Stop service (graceful)
+          ssh samuel@192.168.0.38 "sudo systemctl stop mcp-debug.service || true" || true
+
+          # Backup old binary
+          ssh samuel@192.168.0.38 "cp /usr/local/bin/mcp_debug_server /usr/local/bin/mcp_debug_server.backup-$(date +%Y%m%d-%H%M%S) || true" || true
+
+          # Upload new binary
+          scp ./artifacts/mcp_debug_server samuel@192.168.0.38:/tmp/mcp_debug_server
+
+          # Install binary
+          ssh samuel@192.168.0.38 "sudo mv /tmp/mcp_debug_server /usr/local/bin/mcp_debug_server && sudo chmod +x /usr/local/bin/mcp_debug_server"
+
+          # Start service
+          ssh samuel@192.168.0.38 "sudo systemctl start mcp-debug.service"
+
+          # Wait for service
+          sleep 5
+
+          # Check status
+          ssh samuel@192.168.0.38 "sudo systemctl status mcp-debug.service --no-pager || true"
+
+          echo "✅ Deployment complete"
+          echo "::endgroup::"
+
+      - name: Verify deployment
+        run: |
+          echo "::group::Deployment verification"
+          # Health check
+          curl -f http://192.168.0.38:5678/health || echo "Health check failed"
+
+          # Metrics check
+          curl -f http://192.168.0.38:5678/metrics | head -20 || echo "Metrics check failed"
+
+          echo "::endgroup::"
+
+  # ============================================================================
+  # Stage 6: Post-Deployment Smoke Tests + Notifications (~30s)
+  # ============================================================================
+  smoke-tests:
+    name: "Stage 6: Smoke Tests & Notifications"
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    needs: deploy-production
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run smoke tests
+        run: |
+          echo "::group::Smoke tests"
+
+          # Test 1: Health endpoint
+          echo "Test 1: Health check..."
+          curl -f http://192.168.0.38:5678/health || exit 1
+
+          # Test 2: Metrics endpoint
+          echo "Test 2: Metrics endpoint..."
+          METRICS=$(curl -f http://192.168.0.38:5678/metrics)
+          echo "$METRICS" | grep "kdb_requests_total" || exit 1
+
+          # Test 3: Prometheus scrape
+          echo "Test 3: Prometheus scrape..."
+          echo "$METRICS" | grep "HELP" || exit 1
+          echo "$METRICS" | grep "TYPE" || exit 1
+
+          echo "✅ All smoke tests passed"
+          echo "::endgroup::"
+
+      - name: Send Slack notification (success)
+        if: success()
+        run: |
+          echo "::group::Slack notification"
+          PAYLOAD='{
+            "text": "✅ atomic_mcp_server deployed successfully",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*Deployment Success*\n\n• Commit: `${{ github.sha }}`\n• Branch: `${{ github.ref_name }}`\n• Server: 192.168.0.38:5678\n• Time: '"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"
+                }
+              }
+            ]
+          }'
+
+          curl -X POST "${{ secrets.SLACK_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" || echo "Slack notification failed (non-blocking)"
+          echo "::endgroup::"
+
+      - name: Send Slack notification (failure)
+        if: failure()
+        run: |
+          echo "::group::Slack failure notification"
+          PAYLOAD='{
+            "text": "❌ atomic_mcp_server deployment FAILED",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*Deployment Failure*\n\n• Commit: `${{ github.sha }}`\n• Branch: `${{ github.ref_name }}`\n• Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                }
+              }
+            ]
+          }'
+
+          curl -X POST "${{ secrets.SLACK_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" || echo "Slack notification failed (non-blocking)"
+          echo "::endgroup::"
+
+  # ============================================================================
+  # Summary Job (always run)
+  # ============================================================================
+  ci-summary:
+    name: "CI/CD Summary"
+    runs-on: ubuntu-22.04
+    needs: [lint-and-format, test-and-coverage, security-scan, build-release]
+    if: always()
+    steps:
+      - name: Print summary
+        run: |
+          echo "::group::Pipeline Summary"
+          echo "Pipeline completed for: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Triggered by: ${{ github.event_name }}"
+          echo ""
+          echo "Stage 1 (Lint): ${{ needs.lint-and-format.result }}"
+          echo "Stage 2 (Tests): ${{ needs.test-and-coverage.result }}"
+          echo "Stage 3 (Security): ${{ needs.security-scan.result }}"
+          echo "Stage 4 (Build): ${{ needs.build-release.result }}"
+          echo "::endgroup::"
+
+      - name: Check pipeline status
+        run: |
+          if [ "${{ needs.lint-and-format.result }}" != "success" ] || \
+             [ "${{ needs.test-and-coverage.result }}" != "success" ] || \
+             [ "${{ needs.security-scan.result }}" != "success" ] || \
+             [ "${{ needs.build-release.result }}" != "success" ]; then
+            echo "::error::Pipeline failed"
+            exit 1
+          fi
+          echo "✅ All stages passed"

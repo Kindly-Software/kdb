@@ -1,0 +1,64 @@
+{
+  "mcpServers": {
+    "claude-doc-optimizer": {
+      "command": "/home/samuel/Primitives/atomic_mcp_server/target/release/mcp_debug_server",
+      "args": [
+        "--mode",
+        "stdio",
+        "--features",
+        "document-tools",
+        "--cache-dir",
+        "/home/samuel/.cache/claude-doc-optimizer"
+      ],
+      "env": {
+        "CLAUDE_DOCS_ROOT": "/home/samuel",
+        "RUST_LOG": "info",
+        "CACHE_SIZE": "1073741824"
+      },
+      "disabled": false,
+      "timeout": 30000
+    }
+  },
+  "hooks": [
+    {
+      "matcher": "SessionStart",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "/home/samuel/Primitives/atomic_mcp_server/scripts/preload-docs.sh",
+          "timeout": 10000,
+          "description": "Preload CLAUDE.md framework files into XPath cache"
+        }
+      ]
+    },
+    {
+      "matcher": "PostToolUse",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "/home/samuel/Primitives/atomic_mcp_server/scripts/log-tool-use.sh",
+          "description": "Log MCP tool usage for analytics"
+        }
+      ]
+    }
+  ],
+  "allowedTools": [
+    "xpath_query",
+    "validate_schema",
+    "cache_stats",
+    "preload_documents",
+    "framework_lookup"
+  ],
+  "cacheConfig": {
+    "enabled": true,
+    "directory": "/home/samuel/.cache/claude-doc-optimizer",
+    "maxSize": 1073741824,
+    "ttl": 86400,
+    "compressionLevel": 6
+  },
+  "performanceMonitoring": {
+    "enabled": true,
+    "sampleRate": 0.1,
+    "logFile": "/home/samuel/.cache/claude-doc-optimizer/performance.log"
+  }
+}

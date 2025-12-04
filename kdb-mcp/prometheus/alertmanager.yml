@@ -1,0 +1,281 @@
+# Alertmanager Configuration - atomic_mcp_server
+# Routes alerts to Slack, PagerDuty, and email based on severity
+# UCE34 Framework: Q10 T1 Atomic alert routing, <1s notification delivery
+
+global:
+  # Default SMTP settings (for email notifications)
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@atomic-mcp-server.com'
+  smtp_auth_username: 'alerts@atomic-mcp-server.com'
+  smtp_auth_password: '${SMTP_PASSWORD}' # Set via env var
+  smtp_require_tls: true
+
+  # Resolve timeout (how long to wait before resolving alert)
+  resolve_timeout: 5m
+
+  # PagerDuty integration key (set via env var)
+  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+
+# Alert routing tree
+route:
+  # Default receiver (catch-all)
+  receiver: 'slack-default'
+
+  # Group alerts by category and impact
+  group_by: ['alertname', 'category', 'severity']
+
+  # Wait 30s before sending first notification (batching)
+  group_wait: 30s
+
+  # Send additional notifications every 5m for active alerts
+  group_interval: 5m
+
+  # Re-notify every 4h for unresolved critical alerts
+  repeat_interval: 4h
+
+  # Child routes (specific routing based on labels)
+  routes:
+    # Route 1: Critical SLA violations → PagerDuty + Slack + Email
+    - match:
+        severity: critical
+        category: sla
+      receiver: 'pagerduty-oncall'
+      continue: true # Also send to other receivers
+      routes:
+        - receiver: 'slack-critical'
+          continue: true
+        - receiver: 'email-oncall'
+
+    # Route 2: Security events → PagerDuty + Slack security channel
+    - match:
+        severity: critical
+        category: security
+      receiver: 'pagerduty-security'
+      continue: true
+      routes:
+        - receiver: 'slack-security'
+
+    # Route 3: Resource exhaustion → PagerDuty + Slack infra
+    - match:
+        severity: critical
+        category: resources
+      receiver: 'pagerduty-oncall'
+      continue: true
+      routes:
+        - receiver: 'slack-infra'
+
+    # Route 4: Performance warnings → Slack only (no pages)
+    - match:
+        severity: warning
+        category: performance
+      receiver: 'slack-performance'
+
+    # Route 5: Business metrics → Slack business channel
+    - match:
+        category: business
+      receiver: 'slack-business'
+
+    # Route 6: SLO burn rate → Slack + Email
+    - match:
+        category: slo
+      receiver: 'slack-slo'
+      continue: true
+      routes:
+        - receiver: 'email-sre'
+
+# Receivers (notification integrations)
+receivers:
+  # Default Slack channel (all alerts)
+  - name: 'slack-default'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_DEFAULT}' # Set via env var
+        channel: '#mcp-alerts'
+        title: '{{ .GroupLabels.alertname }}'
+        text: |
+          *Summary*: {{ .CommonAnnotations.summary }}
+          *Severity*: {{ .GroupLabels.severity }}
+          *Category*: {{ .GroupLabels.category }}
+          *Impact*: {{ .GroupLabels.impact }}
+
+          {{ .CommonAnnotations.description }}
+
+          *Runbook*: {{ .CommonAnnotations.runbook_url }}
+        send_resolved: true
+        color: |
+          {{ if eq .GroupLabels.severity "critical" }}danger{{ else if eq .GroupLabels.severity "warning" }}warning{{ else }}good{{ end }}
+
+  # Critical alerts Slack channel
+  - name: 'slack-critical'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_CRITICAL}'
+        channel: '#mcp-critical'
+        title: ':rotating_light: CRITICAL: {{ .GroupLabels.alertname }}'
+        text: |
+          *CRITICAL ALERT*
+
+          *Summary*: {{ .CommonAnnotations.summary }}
+          *Impact*: {{ .GroupLabels.impact }}
+
+          {{ .CommonAnnotations.description }}
+
+          *Action Required*: See runbook
+          *Runbook*: {{ .CommonAnnotations.runbook_url }}
+        send_resolved: true
+        color: 'danger'
+
+  # Security alerts Slack channel
+  - name: 'slack-security'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_SECURITY}'
+        channel: '#security-alerts'
+        title: ':shield: Security Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          *SECURITY EVENT*
+
+          {{ .CommonAnnotations.summary }}
+
+          {{ .CommonAnnotations.description }}
+
+          *Investigate immediately*: {{ .CommonAnnotations.runbook_url }}
+        send_resolved: true
+        color: 'danger'
+
+  # Infrastructure alerts Slack channel
+  - name: 'slack-infra'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_INFRA}'
+        channel: '#infra-alerts'
+        title: 'Infrastructure Alert: {{ .GroupLabels.alertname }}'
+        text: '{{ .CommonAnnotations.summary }}'
+        send_resolved: true
+
+  # Performance warnings Slack channel
+  - name: 'slack-performance'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_PERFORMANCE}'
+        channel: '#performance'
+        title: 'Performance Warning: {{ .GroupLabels.alertname }}'
+        text: '{{ .CommonAnnotations.summary }}'
+        send_resolved: true
+        color: 'warning'
+
+  # Business metrics Slack channel
+  - name: 'slack-business'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_BUSINESS}'
+        channel: '#business-metrics'
+        title: 'Business Metric Alert: {{ .GroupLabels.alertname }}'
+        text: '{{ .CommonAnnotations.summary }}'
+        send_resolved: true
+
+  # SLO tracking Slack channel
+  - name: 'slack-slo'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_SLO}'
+        channel: '#slo-tracking'
+        title: 'SLO Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          *Error Budget Alert*
+
+          {{ .CommonAnnotations.summary }}
+
+          {{ .CommonAnnotations.description }}
+        send_resolved: true
+        color: 'warning'
+
+  # PagerDuty on-call integration
+  - name: 'pagerduty-oncall'
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY_ONCALL}'
+        description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+        details:
+          severity: '{{ .GroupLabels.severity }}'
+          category: '{{ .GroupLabels.category }}'
+          impact: '{{ .GroupLabels.impact }}'
+          description: '{{ .CommonAnnotations.description }}'
+          runbook: '{{ .CommonAnnotations.runbook_url }}'
+        client: 'atomic_mcp_server'
+        client_url: 'http://192.168.0.38:5678/metrics'
+
+  # PagerDuty security team integration
+  - name: 'pagerduty-security'
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY_SECURITY}'
+        description: 'SECURITY: {{ .GroupLabels.alertname }}'
+        details:
+          summary: '{{ .CommonAnnotations.summary }}'
+          description: '{{ .CommonAnnotations.description }}'
+          runbook: '{{ .CommonAnnotations.runbook_url }}'
+        client: 'atomic_mcp_server'
+        client_url: 'http://192.168.0.38:5678/metrics'
+
+  # Email on-call team
+  - name: 'email-oncall'
+    email_configs:
+      - to: 'oncall@atomic-mcp-server.com'
+        from: 'alerts@atomic-mcp-server.com'
+        smarthost: 'smtp.gmail.com:587'
+        auth_username: 'alerts@atomic-mcp-server.com'
+        auth_password: '${SMTP_PASSWORD}'
+        require_tls: true
+        headers:
+          Subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
+        text: |
+          CRITICAL ALERT: {{ .GroupLabels.alertname }}
+
+          Summary: {{ .CommonAnnotations.summary }}
+          Severity: {{ .GroupLabels.severity }}
+          Category: {{ .GroupLabels.category }}
+          Impact: {{ .GroupLabels.impact }}
+
+          {{ .CommonAnnotations.description }}
+
+          Runbook: {{ .CommonAnnotations.runbook_url }}
+
+  # Email SRE team (SLO tracking)
+  - name: 'email-sre'
+    email_configs:
+      - to: 'sre@atomic-mcp-server.com'
+        from: 'alerts@atomic-mcp-server.com'
+        headers:
+          Subject: '[SLO] {{ .GroupLabels.alertname }}'
+        text: |
+          SLO Alert: {{ .GroupLabels.alertname }}
+
+          {{ .CommonAnnotations.summary }}
+
+          {{ .CommonAnnotations.description }}
+
+          Runbook: {{ .CommonAnnotations.runbook_url }}
+
+# Inhibition rules (suppress lower-priority alerts when higher-priority fires)
+inhibit_rules:
+  # Inhibit warning alerts if critical alert is firing for same resource
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'category']
+
+  # Inhibit performance warnings if SLA violation is firing
+  - source_match:
+      category: 'sla'
+    target_match:
+      category: 'performance'
+    equal: ['alertname']
+
+# Mute rules (silence alerts during maintenance windows)
+mute_time_intervals:
+  - name: 'weekends'
+    time_intervals:
+      - weekdays: ['saturday', 'sunday']
+        times:
+          - start_time: '00:00'
+            end_time: '23:59'
+
+  - name: 'maintenance'
+    time_intervals:
+      - weekdays: ['tuesday']
+        times:
+          - start_time: '02:00'
+            end_time: '04:00'

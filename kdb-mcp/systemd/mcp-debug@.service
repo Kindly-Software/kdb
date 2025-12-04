@@ -1,0 +1,191 @@
+[Unit]
+Description=kdb-mcp Debug Server (Instance %i) - T6 Mixed
+Documentation=https://github.com/yourorg/kdb-mcp/docs/SYSTEMD_SERVICE.md
+After=network-online.target time-sync.target local-fs.target
+Wants=network-online.target
+Requires=local-fs.target
+
+[Service]
+# ============================================================================
+# Instance-Specific Configuration
+# ============================================================================
+
+Type=notify
+
+# Load instance-specific environment (port, state directory)
+EnvironmentFile=/etc/mcp-debug/instance-%i.env
+
+ExecStart=/usr/local/bin/kdb-mcp-server \
+  --host 192.168.0.38 \
+  --port ${MCP_PORT} \
+  --state-dir ${MCP_STATE_DIR} \
+  --instance %i \
+  --log-level info \
+  --features audit-trail,ptrace-debug,rate-limiter
+
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5s
+StartLimitBurst=3
+StartLimitIntervalSec=60s
+
+TimeoutStartSec=60s
+TimeoutStopSec=30s
+
+# ============================================================================
+# User & Group Isolation
+# ============================================================================
+
+User=mcp
+Group=mcp
+SupplementaryGroups=wheel debugger
+
+# ============================================================================
+# Instance-Specific State Directories
+# ============================================================================
+
+StateDirectory=mcp-%i
+StateDirectoryMode=0700
+RuntimeDirectory=mcp-%i
+RuntimeDirectoryMode=0700
+CacheDirectory=mcp-%i
+CacheDirectoryMode=0700
+LogsDirectory=mcp-%i
+LogsDirectoryMode=0700
+
+WorkingDirectory=/var/lib/mcp-%i
+
+# ============================================================================
+# Resource Limits
+# ============================================================================
+
+MemoryMax=512M
+MemoryHigh=400M
+MemoryAccounting=yes
+
+CPUQuota=50%
+CPUAccounting=yes
+CPUShares=1024
+CPUWeight=100
+
+TasksMax=256
+TasksAccounting=yes
+
+LimitNOFILE=8192
+LimitNPROC=4096
+
+# ============================================================================
+# Security Hardening: Privilege Minimization
+# ============================================================================
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/mcp-%i /var/log/mcp-%i /run/mcp-%i
+
+PrivateDevices=yes
+PrivateIPC=yes
+
+# ============================================================================
+# Security Hardening: Namespace Isolation
+# ============================================================================
+
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectProc=invisible
+ProtectClock=yes
+ProtectHostname=yes
+
+# ============================================================================
+# Security Hardening: Network Restriction
+# ============================================================================
+
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressAllow=192.168.0.0/24
+IPAddressDeny=any
+IPAddressAllow=127.0.0.1/8
+IPAddressAllow=::1/128
+
+# Instance-specific port whitelist (set via environment variable)
+# SocketBindAllow=192.168.0.38:${MCP_PORT}  # Not supported in SocketBindAllow yet
+
+# ============================================================================
+# Security Hardening: Filesystem Access
+# ============================================================================
+
+TemporaryFileSystem=/tmp /var/tmp
+TemporaryFileSystemSize=16M:32M
+
+ReadOnlyPaths=/etc /usr /lib /lib64 /boot /sys
+
+# ============================================================================
+# Security Hardening: Capability Minimization
+# ============================================================================
+
+CapabilityBoundingSet=CAP_SYS_PTRACE CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_SYS_PTRACE CAP_NET_BIND_SERVICE
+
+SecureBits=keep-caps keep-caps-locked noroot-locked no-setuid-fixup-locked no-cap-ambient-raise-locked
+
+# ============================================================================
+# Security Hardening: Syscall Filtering
+# ============================================================================
+
+SystemCallFilter=~@clock @module @mount @privileged @raw-io @reboot @swap @obsolete
+SystemCallFilter=ptrace process_vm_readv process_vm_writev mmap mmap2 madvise
+
+SeccompFilter=@default
+ProtectClock=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RemoveIPC=yes
+LockPersonality=yes
+UMask=0077
+
+# ============================================================================
+# Security Hardening: Memory & Code Integrity
+# ============================================================================
+
+MemoryDenyWriteExecute=no
+ASLR=yes
+
+# ============================================================================
+# Logging & Monitoring
+# ============================================================================
+
+StandardOutput=journal
+StandardError=journal
+
+SyslogIdentifier=mcp-debug-%i
+SyslogFacility=daemon
+SyslogLevel=info
+
+LogRateLimitBurst=1000
+LogRateLimitIntervalSec=30s
+LogNamespace=mcp-debug-%i
+
+# ============================================================================
+# Environment & Configuration
+# ============================================================================
+
+Environment=RUST_BACKTRACE=1
+Environment=RUST_LOG=mcp_debug=info,kdb_mcp=info,kdb=debug
+Environment=RUST_LIB_BACKTRACE=1
+
+EnvironmentFile=/etc/mcp-debug/mcp-debug.env
+EnvironmentFile=-/etc/mcp-debug/mcp-debug-local.env
+
+# ============================================================================
+# Startup Notification & Health Checks
+# ============================================================================
+
+Type=notify
+NotifyAccess=main
+
+[Install]
+WantedBy=multi-user.target
+Alias=mcp-%i.service

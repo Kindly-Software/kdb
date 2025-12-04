@@ -1,0 +1,632 @@
+================================================================================
+ATOMIC MCP SERVER: REQUEST FLOW DIAGRAMS & TRACES
+================================================================================
+
+1. STDIO REQUEST FLOW (PRIMARY - FULLY INTEGRATED)
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ CLIENT (Claude Code / AI Assistant)                                         │
+│ stdin → {"jsonrpc":"2.0","id":1,"method":"debugger/attach","params":{...}} │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ Write to stdin
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ENTRY: mcp_debug_server.rs                                                  │
+│ main() → Phase 1-3: Initialize capsules (1.3 MB, deterministic)             │
+│       → Phase 4: Configure license (demo-key-2025)                          │
+│       → Phase 5: tokio::runtime::Builder::new_current_thread()             │
+│       → rt.block_on(async { runtime.run(...) })                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ASYNC EVENT LOOP: McpRuntimeCapsule::run() [src/runtime.rs]               │
+│                                                                              │
+│ ITERATION:                                                                  │
+│   1. Poll stdin for JSON-RPC line (blocking read)                          │
+│   2. Parse complete line into buffer                                       │
+│   3. Extract client_ip = "stdin" (special case)                           │
+│   4. Extract api_key from environment (Phase 1)                           │
+│   5. Call McpServerCapsule::handle_request()                             │
+│      └─ [Full authentication + processing pipeline - see below]            │
+│   6. Receive Response JSON                                                │
+│   7. Queue to stdout buffer                                              │
+│   8. Flush stdout (batched writes)                                       │
+│   9. Check should_shutdown flag                                          │
+│      └─ SIGINT (Ctrl+C) → graceful shutdown                             │
+│   10. Repeat until shutdown                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ [McpServerCapsule::handle_request()]
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ SERVER PROCESSING PIPELINE: src/server.rs:192-296                           │
+│                                                                              │
+│ Input: json (request body), api_key, client_ip, debugger                   │
+│                                                                              │
+│ ┌────────────────────────────────────────────────────────────────────────┐  │
+│ │ STEP 1: Parse JSON-RPC                                               │  │
+│ │   json_rpc.parse_request(json) → JsonRpcRequest                      │  │
+│ │   Extract: method, params, id                                         │  │
+│ │   Latency: <1μs                                                        │  │
+│ └────────────────────────────────────────────────────────────────────────┘  │
+│                                    │                                        │
+│                                    ▼                                        │
+│ ┌────────────────────────────────────────────────────────────────────────┐  │
+│ │ STEP 2: Extract Parameters                                            │  │
+│ │   target_pid = params["pid"].as_u64() → u32                          │  │
+│ │   command = method_to_command(method) → Command enum                 │  │
+│ │   Latency: <100ns                                                      │  │
+│ └────────────────────────────────────────────────────────────────────────┘  │
+│                                    │                                        │
+│                                    ▼                                        │
+│ ┌────────────────────────────────────────────────────────────────────────┐  │
+│ │ STEP 3: ⚡ AUTHENTICATE (CVSS 9.3 FIX)                               │  │
+│ │   authenticate_request(api_key, client_ip, target_pid, command)      │  │
+│ │                                                                        │  │
+│ │   [src/auth_middleware.rs:138-201]                                   │  │
+│ │   CHECK 1: API Key validation                                         │  │
+│ │     ├─ Required: config.require_api_key = true                        │  │
+│ │     ├─ Non-empty: key.is_empty() == false                           │  │
+│ │     └─ Length: key.len() >= 16                                       │  │
+│ │                                                                        │  │
+│ │   CHECK 2: Client IP validation                                       │  │
+│ │     └─ Required: client_ip.is_some()                                 │  │
+│ │                                                                        │  │
+│ │   CHECK 3: Command Permission                                         │  │
+│ │     └─ config.allowed_commands.contains(&command)                    │  │
+│ │        Default: [Read, StackTrace] (read-only)                       │  │
+│ │                                                                        │  │
+│ │   CHECK 4: PID Permission                                             │  │
+│ │     └─ config.allowed_pids.contains(&target_pid)                     │  │
+│ │        Default: None (all PIDs allowed)                              │  │
+│ │                                                                        │  │
+│ │   BUILD: RequestAuthContext                                           │  │
+│ │     ├─ client_id = hash_string(ip)                                   │  │
+│ │     ├─ user_id = hash_string(api_key)                                │  │
+│ │     ├─ session_id = user_id                                          │  │
+│ │     ├─ allowed_commands = config.allowed_commands.clone()            │  │
+│ │     ├─ allowed_pids = config.allowed_pids.clone()                    │  │
+│ │     ├─ quota = 10,000 bytes default                                  │  │
+│ │     ├─ rate_tokens = 100.0 default                                   │  │
+│ │     ├─ risk_score = 0 (Phase 2: zero-trust policy)                   │  │
+│ │     └─ request_id = next unique id                                   │  │
+│ │                                                                        │  │
+│ │   ON FAILURE → Return AuthenticationError                             │  │
+│ │     ├─ MissingApiKey → {"error": "Authentication required"}          │  │
+│ │     ├─ InvalidApiKey → {"error": "Invalid API key"}                  │  │
+│ │     ├─ MissingClientIp → {"error": "Missing client IP"}              │  │
+│ │     ├─ PermissionDenied → {"error": "Permission denied: ..."}        │  │
+│ │     └─ PidNotAllowed → {"error": "PID ... not allowed"}              │  │
+│ │                                                                        │  │
+│ │   ON FAILURE: audit_log.record(req.id, 0, 0, false)                 │  │
+│ │              failed_requests.fetch_add(1)                             │  │
+│ │   Latency: <100ns (simple checks)                                    │  │
+│ └────────────────────────────────────────────────────────────────────────┘  │
+│                                    │ OK                                      │
+│                                    ▼                                        │
+│ ┌────────────────────────────────────────────────────────────────────────┐  │
+│ │ STEP 4: Validate License                                              │  │
+│ │   license.validate() → bool                                           │  │
+│ │   Latency: <10ns (cached)                                             │  │
+│ │   ON FAILURE: return -32001 "Invalid license"                         │  │
+│ └────────────────────────────────────────────────────────────────────────┘  │
+│                                    │ OK                                      │
+│                                    ▼                                        │
+│ ┌────────────────────────────────────────────────────────────────────────┐  │
+│ │ STEP 5: Check Rate Limit                                              │  │
+│ │   rate_limiter.check(1 token) → Result                               │  │
+│ │   Latency: <150ns (token bucket T1)                                   │  │
+│ │   ON FAILURE: return -32002 "Rate limited, wait Xns"                  │  │
+│ └────────────────────────────────────────────────────────────────────────┘  │
+│                                    │ OK                                      │
+│                                    ▼                                        │
+│ ┌────────────────────────────────────────────────────────────────────────┐  │
+│ │ STEP 6: Check Quota                                                   │  │
+│ │   quota.check_and_increment(json.len()) → Result                     │  │
+│ │   Latency: <70ns (atomic counter)                                     │  │
+│ │   ON FAILURE: return -32003 "Quota exceeded: ..."                     │  │
+│ └────────────────────────────────────────────────────────────────────────┘  │
+│                                    │ OK                                      │
+│                                    ▼                                        │
+│ ┌────────────────────────────────────────────────────────────────────────┐  │
+│ │ STEP 7: Route to Tool                                                 │  │
+│ │   tools.lookup(method) → Option<ToolHandle>                          │  │
+│ │                                                                        │  │
+│ │   Lookup: O(MAX_TOOLS) linear scan, <120ns                            │  │
+│ │   ├─ fetch_add(lookup_count)                                         │  │
+│ │   ├─ Compare names: compare_names(&entry.name, method.as_bytes())    │  │
+│ │   └─ Return ToolHandle { tool_id, handler_id, entry }                │  │
+│ │                                                                        │  │
+│ │   Tools available (all 9 registered):                                 │  │
+│ │   ├─ handler_id 1: "debugger/attach"                                 │  │
+│ │   ├─ handler_id 2: "debugger/set_breakpoint"                         │  │
+│ │   ├─ handler_id 3: "debugger/continue"                               │  │
+│ │   ├─ handler_id 4: "debugger/step_forward"                           │  │
+│ │   ├─ handler_id 5: "debugger/step_backward"                          │  │
+│ │   ├─ handler_id 6: "debugger/get_stack_trace"                        │  │
+│ │   ├─ handler_id 7: "debugger/get_variables"                          │  │
+│ │   ├─ handler_id 8: "debugger/find_similar_bugs"                      │  │
+│ │   └─ handler_id 9: "debugger/export_trace"                           │  │
+│ │                                                                        │  │
+│ │   ON FAILURE: return "Unknown method: ..."                            │  │
+│ │   Latency: <120ns (hash table lookup, T1)                             │  │
+│ └────────────────────────────────────────────────────────────────────────┘  │
+│                                    │ OK                                      │
+│                                    ▼                                        │
+│ ┌────────────────────────────────────────────────────────────────────────┐  │
+│ │ STEP 8: ⚡ DISPATCH & EXECUTE TOOL                                   │  │
+│ │   dispatch_tool(handler_id, params, auth_ctx, debugger)              │  │
+│ │                                                                        │  │
+│ │   Match handler_id → Call corresponding tool function                │  │
+│ │   EVERY tool receives: params, auth_ctx, debugger                    │  │
+│ │                                                                        │  │
+│ │   Example: handler_id 1 → tool_attach()                              │  │
+│ │   ┌──────────────────────────────────────────────────────────────┐   │  │
+│ │   │ TOOL EXECUTION: tool_attach()                                │   │  │
+│ │   │                                                              │   │  │
+│ │   │ 1. Extract PID from params["pid"]                          │   │  │
+│ │   │    └─ Validate range: 0 < pid <= i32::MAX                  │   │  │
+│ │   │                                                              │   │  │
+│ │   │ 2. Check Authentication Permission                         │   │  │
+│ │   │    auth_ctx.has_pid_permission(pid)                        │   │  │
+│ │   │    └─ Return error if denied: audit_log.record(false)      │   │  │
+│ │   │                                                              │   │  │
+│ │   │ 3. ⚡ VALIDATE PID (CVSS 8.2 FIX)                         │   │  │
+│ │   │    [src/security.rs:85-125]                                │   │  │
+│ │   │                                                              │   │  │
+│ │   │    validate_pid_attach(pid) → Result<(), SecurityError>   │   │  │
+│ │   │                                                              │   │  │
+│ │   │    CHECK 1: Blacklist Protected PIDs                        │   │  │
+│ │   │      if PROTECTED_PIDS.contains(&pid) [0, 1]              │   │  │
+│ │   │      └─ Err: ProtectedProcess(pid)                         │   │  │
+│ │   │                                                              │   │  │
+│ │   │    CHECK 2: Range Validation                                │   │  │
+│ │   │      if pid < 0                                             │   │  │
+│ │   │      └─ Err: InvalidPid(pid)                                │   │  │
+│ │   │                                                              │   │  │
+│ │   │    CHECK 3: Process Exists                                  │   │  │
+│ │   │      if !Path::new("/proc/{pid}").exists()                 │   │  │
+│ │   │      └─ Err: ProcessNotFound(pid)                           │   │  │
+│ │   │                                                              │   │  │
+│ │   │    CHECK 4: UID Validation                                  │   │  │
+│ │   │      proc_uid = get_process_uid(pid) [read /proc/{pid}/status] │  │
+│ │   │      my_uid = getuid()                                      │   │  │
+│ │   │      if proc_uid != my_uid {                                │   │  │
+│ │   │        if !has_capability(CAP_SYS_PTRACE)                  │   │  │
+│ │   │        └─ Err: PermissionDenied { pid, reason }            │   │  │
+│ │   │      }                                                       │   │  │
+│ │   │                                                              │   │  │
+│ │   │    CHECK 5: Already Traced                                  │   │  │
+│ │   │      if is_already_traced(pid) [check /proc/{pid}/status TracerPid] │  │
+│ │   │      └─ Err: AlreadyAttached(pid)                           │   │  │
+│ │   │                                                              │   │  │
+│ │   │    ON VALIDATION FAILURE:                                   │   │  │
+│ │   │      audit_log.record(request_id, 1, 0, false)             │   │  │
+│ │   │      Return detailed SecurityError                         │   │  │
+│ │   │                                                              │   │  │
+│ │   │ 4. Safe to Attach                                           │   │  │
+│ │   │    debugger.attach_to_process(pid as u64)                  │   │  │
+│ │   │    └─ Call kdb DebuggerCapsule (ptrace ATTACH)            │   │  │
+│ │   │    └─ Latency: ~5-10μs (kernel ptrace syscall)             │   │  │
+│ │   │                                                              │   │  │
+│ │   │ 5. Audit Success                                            │   │  │
+│ │   │    audit_log.record(auth_ctx.request_id, 1, 0, true)       │   │  │
+│ │   │                                                              │   │  │
+│ │   │ 6. Return Success Response                                  │   │  │
+│ │   │    Ok(json!({                                               │   │  │
+│ │   │      "status": "attached",                                  │   │  │
+│ │   │      "pid": pid,                                            │   │  │
+│ │   │      "security": "validated",                               │   │  │
+│ │   │      "user_id": auth_ctx.user_id                           │   │  │
+│ │   │    }))                                                       │   │  │
+│ │   └──────────────────────────────────────────────────────────────┘   │  │
+│ │                                                                        │  │
+│ │   Other tools (set_breakpoint, continue, step, etc.) follow same    │  │
+│ │   pattern: authenticate → validate → execute → audit                │  │
+│ │                                                                        │  │
+│ │   Latency: <50ns dispatch + variable tool execution                 │  │
+│ └────────────────────────────────────────────────────────────────────────┘  │
+│                                    │                                        │
+│                                    ▼                                        │
+│ ┌────────────────────────────────────────────────────────────────────────┐  │
+│ │ STEP 9: Record Metrics                                                │  │
+│ │   latency_ns = get_timestamp_ns() - start_ns                         │  │
+│ │   record_latency(latency_ns) → Update latency buckets                │  │
+│ │   handle.record_call(latency_ns)                                     │  │
+│ │   Latency: <10ns (atomic increments)                                 │  │
+│ └────────────────────────────────────────────────────────────────────────┘  │
+│                                    │                                        │
+│                                    ▼                                        │
+│ ┌────────────────────────────────────────────────────────────────────────┐  │
+│ │ STEP 10: Audit Log                                                    │  │
+│ │   audit_log.record(req.id, handle.tool_id, latency_ns, true)        │  │
+│ │                                                                        │  │
+│ │   AuditEntry structure:                                              │  │
+│ │   ├─ timestamp_ns: u64                                               │  │
+│ │   ├─ request_id: u64 (from RequestAuthContext)                       │  │
+│ │   ├─ tool_id: u64                                                    │  │
+│ │   ├─ user_hash: u64                                                  │  │
+│ │   ├─ latency_ns: u64                                                 │  │
+│ │   └─ success: u64 (1 = success, 0 = failure)                         │  │
+│ │                                                                        │  │
+│ │   Coordination: AtomicU64 head (lockfree fetch_add)                  │  │
+│ │   Capacity: 512 entries (ring buffer with wraparound)               │  │
+│ │   Latency: <50ns (atomic CAS operation)                              │  │
+│ └────────────────────────────────────────────────────────────────────────┘  │
+│                                    │                                        │
+│                                    ▼                                        │
+│ ┌────────────────────────────────────────────────────────────────────────┐  │
+│ │ STEP 11: Format Response                                              │  │
+│ │   json_rpc.format_response(req.id, result)                           │  │
+│ │   Return: JSON-RPC 2.0 response                                      │  │
+│ │   Format: {"jsonrpc":"2.0","id":1,"result":{...}}                   │  │
+│ │   Latency: <1μs (JSON serialization)                                 │  │
+│ │                                                                        │  │
+│ │   ON SUCCESS:                                                        │  │
+│ │   ├─ total_requests.fetch_add(1)                                     │  │
+│ │   ├─ successful_requests.fetch_add(1)                                │  │
+│ │   └─ Return Ok(response)                                             │  │
+│ │                                                                        │  │
+│ │   ON ERROR:                                                          │  │
+│ │   ├─ failed_requests.fetch_add(1)                                    │  │
+│ │   └─ Return Err(response) with error code                            │  │
+│ └────────────────────────────────────────────────────────────────────────┘  │
+│                                                                              │
+│ TOTAL PIPELINE LATENCY (excl. tool):                                        │
+│ Parse (<1μs) + Extract (<100ns) + Auth (<100ns) + License (<10ns)          │
+│ + Rate (<150ns) + Quota (<70ns) + Lookup (<120ns) + Dispatch (<50ns)       │
+│ + Metrics (<10ns) + Audit (<50ns) + Format (<1μs)                          │
+│ = ~2.5μs + variable (tool latency)                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ RESPONSE TO CLIENT (stdout)                                                 │
+│ {"jsonrpc":"2.0","id":1,"result":{"status":"attached","pid":123,          │
+│  "security":"validated","user_id":18446744073709551500}}                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+2. HTTP REQUEST FLOW (SECONDARY - STUB RESPONSE)
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ CLIENT: curl -X POST http://localhost:8080/rpc \                           │
+│   -H "Authorization: Bearer <api_key>" \                                   │
+│   -d '{"jsonrpc":"2.0","id":1,"method":"debugger/attach","params":{"pid":123}}'
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ TCP connection
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ENTRY: mcp_http_server.rs:122                                               │
+│ TcpListener::bind("127.0.0.1:8080") → accept connections                   │
+│ listener.incoming() → for each TcpStream                                    │
+│   └─ handle_client(socket, transport, server)                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ HTTP PARSING: mcp_http_server.rs:157-240                                    │
+│                                                                              │
+│ socket.read(&mut buffer) → Read up to 4096 bytes                           │
+│                                                                              │
+│ parse_http_request(socket, transport, request_data):                       │
+│   1. UTF-8 decode request_data                                             │
+│   2. Split into lines                                                      │
+│   3. Parse request line: "POST /rpc HTTP/1.1"                             │
+│      ├─ Method: must be "POST" ✅                                          │
+│      └─ Path: must be "/rpc" ✅                                            │
+│   4. Find empty line (end of headers)                                      │
+│   5. Extract body (everything after empty line)                            │
+│      └─ body = JSON-RPC request                                            │
+│                                                                              │
+│ Note: Authorization header parsing not implemented in stub                 │
+│       (Would be: headers.get("Authorization") → "Bearer <key>")            │
+│                                                                              │
+│ Current Behavior (STUB):                                                    │
+│   - transport.write_http_request(body.as_bytes())                          │
+│   - Simulated processing (lines 245-248):                                  │
+│     let response_json = format!(                                           │
+│       r#"{{"jsonrpc":"2.0","id":1,"result":{{"status":"ok"...}}}}"#,     │
+│       50u64 // Fake latency                                                 │
+│     );                                                                      │
+│   - transport.read_http_response()                                         │
+│   - write_success_response(socket, response)                               │
+│                                                                              │
+│ ⚠️ NOTE: Full integration would:                                            │
+│   1. Extract api_key from Authorization header                             │
+│   2. Extract client_ip from socket.peer_addr()                             │
+│   3. Call: self.server.handle_request(body, api_key, client_ip, debugger) │
+│   4. Receive full response with authentication processing                  │
+│   5. Format HTTP response headers                                          │
+│   6. Send to client                                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ HTTP RESPONSE: mcp_http_server.rs:275-286                                   │
+│                                                                              │
+│ HTTP/1.1 200 OK                                                             │
+│ Content-Type: application/json                                              │
+│ Content-Length: 125                                                        │
+│ Connection: close                                                          │
+│                                                                              │
+│ {"jsonrpc":"2.0","id":1,"result":{"status":"ok","latency_us":50,"processed":true}}
+│                                                                              │
+│ [socket closes]                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+3. SECURITY VALIDATION FLOW (DETAILED)
+================================================================================
+
+AUTHENTICATION PIPELINE (4-LAYER):
+
+┌─ Request arrives (api_key, client_ip, target_pid, command)                 │
+│                                                                              │
+├─ LAYER 1: API Key Validation [auth_middleware.rs:148-157]                 │
+│   if config.require_api_key {                                              │
+│     let key = api_key.ok_or(MissingApiKey)?;                              │
+│     if key.is_empty() || key.len() < 16 {                                 │
+│       return Err(InvalidApiKey);                                           │
+│     }                                                                       │
+│     // TODO Phase 2: Validate against ApiKeyAuthCapsule                    │
+│   }                                                                         │
+│                                                                              │
+├─ LAYER 2: Client IP Validation [auth_middleware.rs:162]                   │
+│   let ip = client_ip.ok_or(MissingClientIp)?;                             │
+│   // TODO Phase 2: Check against IntrusionDetectorCapsule                 │
+│                                                                              │
+├─ LAYER 3: Command Permission [auth_middleware.rs:169-173]                 │
+│   if !config.allowed_commands.contains(&command) {                         │
+│     return Err(PermissionDenied(format!("Command {:?} not allowed", cmd))); │
+│   }                                                                         │
+│                                                                              │
+├─ LAYER 4: PID Permission [auth_middleware.rs:178-182]                     │
+│   if let Some(ref allowed_pids) = config.allowed_pids {                   │
+│     if target_pid > 0 && !allowed_pids.contains(&target_pid) {            │
+│       return Err(PidNotAllowed(target_pid));                              │
+│     }                                                                       │
+│   }                                                                         │
+│                                                                              │
+├─ BUILD RequestAuthContext                                                  │
+│   ├─ client_id = hash_string(ip)                                           │
+│   ├─ user_id = hash_string(api_key)                                        │
+│   ├─ session_id = Some(SessionId(user_id))                                │
+│   ├─ allowed_commands = config.allowed_commands.clone()                    │
+│   ├─ allowed_pids = config.allowed_pids.clone()                            │
+│   ├─ quota = 10,000 (default)                                              │
+│   ├─ rate_tokens = 100.0 (default)                                         │
+│   ├─ risk_score = 0 (Phase 2: zero-trust policy)                           │
+│   └─ request_id = next unique id                                           │
+│                                                                              │
+└─ Return RequestAuthContext (passed to all tools)
+
+
+PID SECURITY VALIDATION (6-CHECK):
+
+┌─ validate_pid_attach(pid) [security.rs:85-125]                             │
+│                                                                              │
+├─ CHECK 1: Blacklist Protected PIDs [lines 87-89]                           │
+│   const PROTECTED_PIDS: &[i32] = &[0, 1]; // kernel, init                 │
+│   if PROTECTED_PIDS.contains(&pid) {                                       │
+│     return Err(ProtectedProcess(pid));                                     │
+│   }                                                                         │
+│                                                                              │
+├─ CHECK 2: Range Validation [lines 92-94]                                   │
+│   if pid < 0 {                                                              │
+│     return Err(InvalidPid(pid));                                           │
+│   }                                                                         │
+│                                                                              │
+├─ CHECK 3: Process Exists [lines 97-100]                                    │
+│   let proc_path = format!("/proc/{}", pid);                               │
+│   if !Path::new(&proc_path).exists() {                                    │
+│     return Err(ProcessNotFound(pid));                                      │
+│   }                                                                         │
+│                                                                              │
+├─ CHECK 4: UID Matching [lines 103-117]                                     │
+│   let proc_uid = get_process_uid(pid)?;                                   │
+│   let my_uid = unsafe { libc::getuid() };                                 │
+│   if proc_uid != my_uid {                                                  │
+│     if !has_capability(CAP_SYS_PTRACE)? {                                 │
+│       return Err(PermissionDenied {                                        │
+│         pid,                                                                │
+│         reason: "Cannot attach to other user's process"                    │
+│       });                                                                   │
+│     }                                                                       │
+│   }                                                                         │
+│                                                                              │
+├─ CHECK 5: Already Traced [lines 120-122]                                   │
+│   if is_already_traced(pid)? {                                             │
+│     return Err(AlreadyAttached(pid));                                      │
+│   }                                                                         │
+│                                                                              │
+└─ RESULT: Ok(()) → Safe to attach with ptrace
+
+
+4. AUDIT TRAIL STRUCTURE
+================================================================================
+
+AuditLogCapsule (32 KB ring buffer):
+
+┌─ Layout:                                                                    │
+│ ├─ entries: UnsafeCell<[AuditEntry; 512]>  // 512 × 64 bytes = 32,768 B │
+│ ├─ head: AtomicU64                         // Write position (lockfree)   │
+│ └─ padding: [u8; 56]                       // Cache line padding          │
+│                                                                              │
+├─ AuditEntry (64 bytes):                                                    │
+│ ├─ timestamp_ns: u64                       // Absolute timestamp          │
+│ ├─ request_id: u64                         // Unique request identifier   │
+│ ├─ tool_id: u64                            // Tool that was called        │
+│ ├─ user_hash: u64                          // Hashed API key             │
+│ ├─ latency_ns: u64                         // Request latency in ns       │
+│ ├─ success: u64                            // 1 = success, 0 = failure    │
+│ └─ padding: [u8; 16]                       // Cache alignment             │
+│                                                                              │
+├─ Recording (lockfree):                                                     │
+│   let index = head.fetch_add(1, Ordering::Relaxed) & 0x1FF;  // & 511    │
+│   entries[index] = AuditEntry { ... };                                     │
+│                                                                              │
+├─ All Recording Points:                                                     │
+│   ├─ Line 228: Auth failure                → (req.id, 0, 0, false)        │
+│   ├─ Line 351: PID permission denied       → (req.id, 1, 0, false)        │
+│   ├─ Line 359: PID validation failure      → (req.id, 1, 0, false)        │
+│   ├─ Line 382: Tool execution success      → (req.id, tool_id, latency, true) │
+│   └─ Line 288: General request success     → (req.id, tool_id, latency, true) │
+│                                                                              │
+└─ Compliance: Every request logged (auth success/failure, tool execution)
+
+
+5. PERFORMANCE LATENCY BREAKDOWN
+================================================================================
+
+Per-Step Latencies:
+
+  HTTP Parse              ~50μs  [network I/O, unavoidable]
+  JSON-RPC Parse          <1μs   [json parsing]
+  PID Extract             <100ns [JSON array access]
+  Command Convert         <100ns [match statement]
+  ────────────────────────────────────────────
+  AUTHENTICATE            <100ns [4 simple checks]
+    ├─ API key check      <50ns
+    ├─ Client IP check    <20ns
+    ├─ Command check      <20ns
+    └─ PID check          <10ns
+  License Validate        <10ns  [cached FNV hash]
+  Rate Limit              <150ns [token bucket T1]
+  Quota Track             <70ns  [atomic counter]
+  Tool Lookup             <120ns [linear scan 64 tools, string compare]
+  Dispatch                <50ns  [match statement]
+  ────────────────────────────────────────────
+  Tool Execute            VARIABLE [debugger-dependent]
+    └─ PID Validation     <500ns [all 6 checks]
+    └─ ptrace ATTACH      ~5-10μs [kernel syscall]
+  ────────────────────────────────────────────
+  Record Metrics          <10ns  [atomic increment]
+  Audit Log               <50ns  [atomic CAS]
+  Format Response         <1μs   [JSON serialization]
+  ────────────────────────────────────────────
+  
+  TOTAL (no tool):        ~2.5μs [pipeline overhead]
+  TOTAL (with tool):      ~2.5μs + 5-10μs (ptrace) + tool logic
+
+
+6. ERROR HANDLING FLOW
+================================================================================
+
+AUTH FAILURE → Return error JSON-RPC response:
+
+  {
+    "jsonrpc": "2.0",
+    "error": {
+      "code": -32600,  // Invalid request
+      "message": "Authentication required" | "Invalid API key" | ...
+    },
+    "id": <request_id>
+  }
+
+  + Audit: audit_log.record(req.id, 0, 0, false)
+  + Metrics: failed_requests.fetch_add(1)
+
+
+LICENSE FAILURE → Return -32001:
+
+  {
+    "jsonrpc": "2.0",
+    "error": {
+      "code": -32001,
+      "message": "Invalid license"
+    },
+    "id": <request_id>
+  }
+
+
+RATE LIMIT → Return -32002:
+
+  {
+    "jsonrpc": "2.0",
+    "error": {
+      "code": -32002,
+      "message": "Rate limited, wait <wait_ns>ns"
+    },
+    "id": <request_id>
+  }
+
+
+QUOTA EXCEEDED → Return -32003:
+
+  {
+    "jsonrpc": "2.0",
+    "error": {
+      "code": -32003,
+      "message": "Quota exceeded: <reason>"
+    },
+    "id": <request_id>
+  }
+
+
+UNKNOWN TOOL → Return error:
+
+  {
+    "jsonrpc": "2.0",
+    "error": {
+      "code": -32601,
+      "message": "Unknown method: <method>"
+    },
+    "id": <request_id>
+  }
+
+
+TOOL EXECUTION ERROR → Return error with details:
+
+  {
+    "jsonrpc": "2.0",
+    "error": {
+      "code": -32000,
+      "message": "<tool-specific error>"
+    },
+    "id": <request_id>
+  }
+
+  Example (tool_attach):
+  {
+    "jsonrpc": "2.0",
+    "error": {
+      "code": -32000,
+      "message": "Permission denied for PID 1: Cannot attach to protected system process"
+    },
+    "id": <request_id>
+  }
+
+
+SUCCESS RESPONSE:
+
+  {
+    "jsonrpc": "2.0",
+    "result": {
+      "status": "<tool-specific>",
+      "pid": <pid>,
+      ...
+    },
+    "id": <request_id>
+  }
+
+  Example (tool_attach success):
+  {
+    "jsonrpc": "2.0",
+    "result": {
+      "status": "attached",
+      "pid": 12345,
+      "security": "validated",
+      "user_id": 18446744073709551500
+    },
+    "id": 1
+  }
+
+================================================================================
+END OF DIAGRAMS
+================================================================================

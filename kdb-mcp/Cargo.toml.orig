@@ -2,7 +2,6 @@
 members = [
     "atomic_breaker",
     "atomic_cost_tracker",
-    "kdb",
     "atomic_depth_of_market_slice",
     "atomic_event_lockout_map",
     "atomic_execution_bundle",
@@ -22,11 +21,9 @@ members = [
     "atomic_message_queue",
     "atomic_multicast_receiver",
     "atomic_network_gateway",
-    "cross_venue_coordinator", "kiang", "atomic_capsule_map", "atomic_capsule_derive", "atomic_llm_capsule", "kindly-db", "clapi_core", "kindly_compression", "capsule-migrate", "git_coord", "tools/ccpm-installer", "kdb-mcp", "tools/tmux_layout_capsule",
-    "Kindly-Engine",
-    "Kindly_Rub", "kindly-ui", "kdb-api-landing", "logo-processor",
+    "cross_venue_coordinator", "kiang", "atomic_capsule_map", "atomic_capsule_derive", "atomic_llm_capsule", "kindly-db", "clapi_core", "kindly_compression", "capsule-migrate", "git_coord",
 ]
-exclude = ["kindly_hft", "kindly_api", "clippy-capsule-verify", "atomic_hedge_capsule", "atomic_capsule", "clapi_core/src/wasm", "system_responsiveness", "kindly-detect", "ai_image_detector", "kindly_inference", "kindly_dash", "planck-universe", "tools", "tools/migrate_to_derive", "kindly_dedup", "kindly_dedup_stripe", "kindly-web", "kindly-verified", "kindly-verified-web", "kindly-av1"]
+exclude = ["kindly_hft", "kindly_api", "clippy-capsule-verify", "atomic_hedge_capsule", "atomic_capsule", "clapi_core/src/wasm", "system_responsiveness", "kindly-detect", "ai_image_detector", "kindly_inference", "kindly_dash", "planck-universe", "tools", "tools/migrate_to_derive", "kindly_dedup"]
 resolver = "2"
 
 [workspace.lints.rust]
@@ -49,12 +46,11 @@ lto = "fat"
 codegen-units = 1
 debug = false
 strip = true
-# panic = "abort"  # COMMENTED OUT: Prevents test builds (workspace-level setting leaks into member crates)
+panic = "abort"
 
 [profile.bench]
 inherits = "release"
-# NOTE: Benchmark profile inherits from release (no panic setting)
-# Tests use dev profile panic setting (unwind) - see [profile.dev]
+panic = "unwind"
 
 [profile.wasm-dev]
 inherits = "dev"

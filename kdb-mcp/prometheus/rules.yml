@@ -1,0 +1,344 @@
+# Prometheus Alerting Rules - atomic_mcp_server
+# UCE34 Framework: Q10 T1 Atomic metrics, <1s rule evaluation
+# B32 Validated: SLA thresholds based on production benchmarks
+
+groups:
+  # ==========================================================================
+  # SLA Violations (CRITICAL)
+  # ==========================================================================
+  - name: sla_violations
+    interval: 30s # Evaluate every 30s
+    rules:
+      # SLA 1: 99% of requests must complete <100μs
+      - alert: HighLatencySLA
+        expr: |
+          (
+            histogram_quantile(0.99, rate(kdb_request_duration_seconds_bucket[10m]))
+          ) > 0.0001
+        for: 10m
+        labels:
+          severity: critical
+          category: sla
+          impact: customer_experience
+        annotations:
+          summary: "P99 latency exceeds 100μs SLA"
+          description: |
+            P99 latency is {{ $value | humanizeDuration }} (target: <100μs).
+            This violates our 99% latency SLA. Investigate tool execution delays.
+          runbook_url: "https://github.com/yourorg/atomic_mcp_server/wiki/Runbook-HighLatency"
+
+      # SLA 2: Error rate must stay <1%
+      - alert: HighErrorRateSLA
+        expr: |
+          (
+            sum(rate(kdb_requests_total{status="error"}[10m]))
+            /
+            sum(rate(kdb_requests_total[10m]))
+          ) > 0.01
+        for: 10m
+        labels:
+          severity: critical
+          category: sla
+          impact: reliability
+        annotations:
+          summary: "Error rate exceeds 1% SLA"
+          description: |
+            Error rate is {{ $value | humanizePercentage }} (target: <1%).
+            This violates our reliability SLA. Check logs for error patterns.
+          runbook_url: "https://github.com/yourorg/atomic_mcp_server/wiki/Runbook-HighErrors"
+
+      # SLA 3: Availability must be >99.9% (based on health checks)
+      - alert: LowAvailabilitySLA
+        expr: |
+          (
+            1 - (
+              sum(rate(kdb_health_check_failures_total[30m]))
+              /
+              sum(rate(kdb_health_check_total[30m]))
+            )
+          ) < 0.999
+        for: 5m
+        labels:
+          severity: critical
+          category: sla
+          impact: availability
+        annotations:
+          summary: "Availability drops below 99.9% SLA"
+          description: |
+            Availability is {{ $value | humanizePercentage }} (target: >99.9%).
+            Service is experiencing health check failures.
+          runbook_url: "https://github.com/yourorg/atomic_mcp_server/wiki/Runbook-LowAvailability"
+
+  # ==========================================================================
+  # Performance Warnings (WARNING)
+  # ==========================================================================
+  - name: performance_warnings
+    interval: 1m
+    rules:
+      # Warning: P99 latency >10μs (still under SLA but degrading)
+      - alert: ElevatedLatency
+        expr: |
+          (
+            histogram_quantile(0.99, rate(kdb_request_duration_seconds_bucket[5m]))
+          ) > 0.00001
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+          impact: degradation
+        annotations:
+          summary: "P99 latency elevated above 10μs"
+          description: |
+            P99 latency is {{ $value | humanizeDuration }} (target: <10μs, SLA: <100μs).
+            Performance is degrading. Monitor tool execution times.
+          runbook_url: "https://github.com/yourorg/atomic_mcp_server/wiki/Runbook-ElevatedLatency"
+
+      # Warning: Error rate >0.5% (approaching SLA threshold)
+      - alert: ElevatedErrorRate
+        expr: |
+          (
+            sum(rate(kdb_requests_total{status="error"}[5m]))
+            /
+            sum(rate(kdb_requests_total[5m]))
+          ) > 0.005
+        for: 5m
+        labels:
+          severity: warning
+          category: reliability
+          impact: errors
+        annotations:
+          summary: "Error rate elevated above 0.5%"
+          description: |
+            Error rate is {{ $value | humanizePercentage }} (target: <0.5%, SLA: <1%).
+            Approaching SLA threshold. Investigate error causes.
+          runbook_url: "https://github.com/yourorg/atomic_mcp_server/wiki/Runbook-ElevatedErrors"
+
+      # Warning: Request rate spike (>200% of 1h baseline)
+      - alert: RequestRateSpike
+        expr: |
+          (
+            sum(rate(kdb_requests_total[5m]))
+            /
+            sum(rate(kdb_requests_total[1h]) offset 1h)
+          ) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          category: traffic
+          impact: capacity
+        annotations:
+          summary: "Request rate spike detected"
+          description: |
+            Request rate is {{ $value }}× higher than 1h baseline.
+            Possible traffic surge or attack. Monitor resource usage.
+          runbook_url: "https://github.com/yourorg/atomic_mcp_server/wiki/Runbook-RequestSpike"
+
+  # ==========================================================================
+  # Resource Exhaustion (CRITICAL)
+  # ==========================================================================
+  - name: resource_exhaustion
+    interval: 1m
+    rules:
+      # Memory >80% (critical threshold)
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            kdb_memory_bytes{type="used"}
+            /
+            kdb_memory_bytes{type="total"}
+          ) > 0.80
+        for: 5m
+        labels:
+          severity: critical
+          category: resources
+          impact: stability
+        annotations:
+          summary: "Memory usage exceeds 80%"
+          description: |
+            Memory usage is {{ $value | humanizePercentage }} (threshold: 80%).
+            Risk of OOM. Check for memory leaks or increase allocation.
+          runbook_url: "https://github.com/yourorg/atomic_mcp_server/wiki/Runbook-HighMemory"
+
+      # CPU >80% (critical threshold)
+      - alert: HighCPUUsage
+        expr: kdb_cpu_usage_percent > 80
+        for: 5m
+        labels:
+          severity: critical
+          category: resources
+          impact: performance
+        annotations:
+          summary: "CPU usage exceeds 80%"
+          description: |
+            CPU usage is {{ $value }}% (threshold: 80%).
+            Performance degradation likely. Check for hot loops or add capacity.
+          runbook_url: "https://github.com/yourorg/atomic_mcp_server/wiki/Runbook-HighCPU"
+
+      # File descriptors >80% of limit
+      - alert: HighFileDescriptors
+        expr: |
+          (
+            kdb_file_descriptors_open
+            /
+            kdb_file_descriptors_limit
+          ) > 0.80
+        for: 5m
+        labels:
+          severity: critical
+          category: resources
+          impact: stability
+        annotations:
+          summary: "File descriptors exceed 80% of limit"
+          description: |
+            Open FDs: {{ $value | humanizePercentage }} of limit.
+            Risk of "too many open files" error. Check for FD leaks.
+          runbook_url: "https://github.com/yourorg/atomic_mcp_server/wiki/Runbook-HighFDs"
+
+  # ==========================================================================
+  # Security Events (CRITICAL)
+  # ==========================================================================
+  - name: security_events
+    interval: 30s
+    rules:
+      # Authentication failures spike (>10 in 5min)
+      - alert: AuthenticationFailureSpike
+        expr: |
+          sum(increase(kdb_auth_failures_total[5m])) > 10
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+          impact: intrusion
+        annotations:
+          summary: "Authentication failure spike detected"
+          description: |
+            {{ $value }} auth failures in 5min (threshold: >10).
+            Possible brute-force attack. Check auth logs and IPs.
+          runbook_url: "https://github.com/yourorg/atomic_mcp_server/wiki/Runbook-AuthFailures"
+
+      # Intrusion detection events
+      - alert: IntrusionDetected
+        expr: kdb_intrusion_detections_total{severity="high"} > 0
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+          impact: breach
+        annotations:
+          summary: "High-severity intrusion detected"
+          description: |
+            {{ $value }} intrusion detection events (severity: high).
+            Immediate investigation required. Review audit logs.
+          runbook_url: "https://github.com/yourorg/atomic_mcp_server/wiki/Runbook-IntrusionDetection"
+
+      # Blocked IPs increasing (>50 in 1h = potential DDoS)
+      - alert: HighBlockedIPCount
+        expr: |
+          increase(kdb_blocked_ips_count[1h]) > 50
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+          impact: ddos
+        annotations:
+          summary: "High rate of IP blocking"
+          description: |
+            {{ $value }} IPs blocked in 1h (threshold: >50).
+            Possible DDoS or scanning activity. Review firewall logs.
+          runbook_url: "https://github.com/yourorg/atomic_mcp_server/wiki/Runbook-IPBlocking"
+
+  # ==========================================================================
+  # Business Metrics (WARNING)
+  # ==========================================================================
+  - name: business_metrics
+    interval: 5m
+    rules:
+      # Quota violations spike (>10% of requests)
+      - alert: HighQuotaViolations
+        expr: |
+          (
+            sum(rate(kdb_quota_violations_total[10m]))
+            /
+            sum(rate(kdb_requests_total[10m]))
+          ) > 0.10
+        for: 10m
+        labels:
+          severity: warning
+          category: business
+          impact: monetization
+        annotations:
+          summary: "Quota violations exceed 10% of requests"
+          description: |
+            {{ $value | humanizePercentage }} of requests violate quotas.
+            Users may be hitting tier limits. Review quota policies.
+          runbook_url: "https://github.com/yourorg/atomic_mcp_server/wiki/Runbook-QuotaViolations"
+
+      # Active sessions drop >50% (possible service disruption)
+      - alert: ActiveSessionsDrop
+        expr: |
+          (
+            sum(kdb_active_sessions)
+            /
+            sum(kdb_active_sessions offset 1h)
+          ) < 0.50
+        for: 10m
+        labels:
+          severity: warning
+          category: business
+          impact: engagement
+        annotations:
+          summary: "Active sessions dropped by >50%"
+          description: |
+            Active sessions: {{ $value | humanizePercentage }} of 1h baseline.
+            Possible service disruption or user exodus. Investigate.
+          runbook_url: "https://github.com/yourorg/atomic_mcp_server/wiki/Runbook-SessionDrop"
+
+  # ==========================================================================
+  # SLO Burn Rate (ERROR BUDGET)
+  # ==========================================================================
+  - name: slo_burn_rate
+    interval: 1m
+    rules:
+      # Fast burn: Error budget consumed in <6h (critical)
+      - alert: FastErrorBudgetBurn
+        expr: |
+          (
+            1 - (
+              sum(rate(kdb_requests_total{status="success"}[1h]))
+              /
+              sum(rate(kdb_requests_total[1h]))
+            )
+          ) > (0.01 * 6) # 6h worth of error budget
+        for: 5m
+        labels:
+          severity: critical
+          category: slo
+          impact: error_budget
+        annotations:
+          summary: "Error budget burning at fast rate"
+          description: |
+            Error budget will be exhausted in <6h at current rate.
+            Take immediate action to reduce error rate.
+          runbook_url: "https://github.com/yourorg/atomic_mcp_server/wiki/Runbook-ErrorBudget"
+
+      # Slow burn: Error budget consumed in <30d (warning)
+      - alert: SlowErrorBudgetBurn
+        expr: |
+          (
+            1 - (
+              sum(rate(kdb_requests_total{status="success"}[24h]))
+              /
+              sum(rate(kdb_requests_total[24h]))
+            )
+          ) > 0.01 # 1% error rate
+        for: 2h
+        labels:
+          severity: warning
+          category: slo
+          impact: error_budget
+        annotations:
+          summary: "Error budget burning at elevated rate"
+          description: |
+            Error budget consumption is elevated (>1% error rate over 24h).
+            Monitor closely to prevent fast burn.
+          runbook_url: "https://github.com/yourorg/atomic_mcp_server/wiki/Runbook-ErrorBudget"

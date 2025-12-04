@@ -1,0 +1,224 @@
+===============================================================================
+ATOMIC_MCP_SERVER: SECURITY GAPS QUICK REFERENCE (94/100 → 100/100)
+===============================================================================
+
+6 SPECIFIC GAPS PREVENTING 100/100 SCORE
+Total Score Impact: +6 points (2+2+1+1+1+1)
+
+===============================================================================
+GAP #1: HTTP Request Body Size Validation Missing
+===============================================================================
+Severity: CRITICAL (DoS / Memory Exhaustion)
+Score Impact: -2 points
+Current Location: /home/samuel/Primitives/atomic_mcp_server/src/bin/mcp_http_server.rs:162-172
+
+ISSUE: handle_client() allocates fixed 4KB buffer but allows unlimited reads
+ATTACK: Multiple socket.read() calls → unbounded memory allocation → OOM
+
+QUICK FIX CHECKLIST:
+  [ ] Add const MAX_REQUEST_SIZE = 1_048_576 (1 MB)
+  [ ] Add total_received counter in handle_client()
+  [ ] Check: if total_received > MAX_REQUEST_SIZE → reject with 413 error
+  [ ] Add test: test_request_size_exceeded()
+  [ ] Add #ASSUME_HTTP_SIZE_LIMIT tag
+  [ ] Add #VERIFY_BY_TEST tag
+
+Expected Latency Impact: 0ns (early rejection prevents allocation)
+
+===============================================================================
+GAP #2: JSON-RPC Method Whitelist Not Enforced
+===============================================================================
+Severity: HIGH (Command Injection / Path Traversal)
+Score Impact: -2 points
+Current Location: /home/samuel/Primitives/atomic_mcp_server/src/json_rpc.rs:50-76
+
+ISSUE: parse_request() validates JSON-RPC 2.0 but NOT method name
+ATTACK: Send method="../../../../etc/passwd" or "rm -rf /" → arbitrary execution
+
+QUICK FIX CHECKLIST:
+  [ ] Define const ALLOWED_METHODS: &[&str] with 11 safe methods
+  [ ] After jsonrpc validation, add: if !ALLOWED_METHODS.contains(&req.method) → Err
+  [ ] Test: test_method_whitelist_enforced() - valid AND invalid methods
+  [ ] Add #ASSUME_WHITELIST_COMPLETE tag
+  [ ] Add #VERIFY_BY_COMPILE tag (must update const on new methods)
+
+Expected Latency Impact: ~5ns (O(n) binary search on 11 methods)
+
+===============================================================================
+GAP #3: Token Cache Expiry Re-validation Missing
+===============================================================================
+Severity: HIGH (Authentication Bypass / Token Replay)
+Score Impact: -1 point
+Current Location: /home/samuel/Primitives/atomic_mcp_server/src/auth_token.rs:194-240
+
+ISSUE: validate_cached() returns cached SessionId WITHOUT re-checking expiry_unix
+ATTACK: Token expires at 3pm, cache hit at 4pm → STILL accepted (stale token)
+
+QUICK FIX CHECKLIST:
+  [ ] In validate_cached(), BEFORE returning cached SessionId:
+  [ ] Add: if cache_entry.expiry_unix <= now_unix → Err(AuthError::ExpiredToken)
+  [ ] Test: test_cache_hit_with_expired_token() - advance time, retry same token
+  [ ] Verify cache_misses counter increments on stale hit
+  [ ] Add #ASSUME_CACHE_EXPIRY_ALWAYS_CHECKED tag
+  [ ] Add #VERIFY_BY_TEST tag
+
+Expected Latency Impact: ~1ns (single u64 comparison, Relaxed ordering)
+
+===============================================================================
+GAP #4: Missing API Key / Client Authentication
+===============================================================================
+Severity: CRITICAL (Unauthorized Network Access)
+Score Impact: -1 point
+Current Location: /home/samuel/Primitives/atomic_mcp_server/src/http_transport.rs:59-100
+                  /home/samuel/Primitives/atomic_mcp_server/src/bin/mcp_http_server.rs:194-240
+
+ISSUE: handle_rpc() and handle_client() accept ALL requests with no API key
+ATTACK: Anyone with network access can call any debugger tool without auth
+
+QUICK FIX CHECKLIST:
+  [ ] Add fn validate_api_key_constant_time(provided: &str) -> bool
+  [ ] Extract API-Key header from HTTP request
+  [ ] Before processing: if !validate_api_key_constant_time(key) → 401 error
+  [ ] Use constant-time comparison to prevent timing attacks
+  [ ] Test: test_rpc_without_api_key_rejected()
+  [ ] Test: test_rpc_with_invalid_api_key_rejected()
+  [ ] Test: test_rpc_with_valid_api_key_accepted()
+  [ ] Add #ASSUME_API_KEY_REQUIRED tag
+  [ ] Add #VERIFY_BY_TEST tag
+
+Expected Latency Impact: ~500ns (hash + constant-time comparison)
+
+===============================================================================
+GAP #5: Secrets Manager Initialization Not Validated
+===============================================================================
+Severity: MEDIUM (Key Derivation Bypass / Persistence Loss)
+Score Impact: -1 point
+Current Location: /home/samuel/Primitives/atomic_mcp_server/src/secrets_manager.rs:417,527,545
+
+ISSUE: derive_key(), persist_key(), load_keys() all return Err(NotImplemented)
+ATTACK: Derived keys not persistent; next restart loses all key material
+
+QUICK FIX CHECKLIST:
+  [ ] Implement new_with_validation(mmap_path) → checks file exists, permissions
+  [ ] On missing file: Create 16KB zero-filled mmap, set permissions 0o600
+  [ ] Verify file metadata: size >= 16KB, permissions don't include group/other bits
+  [ ] Implement derive_key() using argon2 crate (already in Cargo.toml)
+  [ ] Implement persist_key() to write to mmap with zeroize
+  [ ] Implement load_keys() to read from mmap on startup
+  [ ] Test: test_secrets_file_permissions_0600() - verify mode == 0o600
+  [ ] Add #ASSUME_SECRETS_PERMISSIONS_STRICT tag
+  [ ] Add #VERIFY_BY_TEST tag
+
+Expected Latency Impact: ~10-100ns per request (mmap reads cached in kernel)
+
+===============================================================================
+GAP #6: Audit Log Retention / Rotation Not Implemented
+===============================================================================
+Severity: MEDIUM (Compliance / Audit Trail Loss)
+Score Impact: -1 point
+Current Location: /home/samuel/Primitives/atomic_mcp_server/src/server.rs:82-97
+
+ISSUE: AuditLogCapsule is memory-only ring buffer (512 entries), no rotation
+PROBLEM: Lost on restart; no persistent audit trail for Q34 compliance (SOX/SOC2)
+
+QUICK FIX CHECKLIST:
+  [ ] Add fields: rotation_count, last_rotation_unix, log_file_path to AuditLogCapsule
+  [ ] Implement new_with_path(path: &str) constructor
+  [ ] In record(), check: if entries >= 10K OR time >= 24h → call rotate_log()
+  [ ] Implement rotate_log() → flush ring buffer to timestamped file
+  [ ] Implement append_entries_to_file() → write CSV format: ts,req_id,tool_id,...
+  [ ] Test: test_audit_log_rotation_on_size() - verify backup file created
+  [ ] Add #ASSUME_AUDIT_RETENTION_REQUIRED tag
+  [ ] Add #VERIFY_BY_TEST tag
+
+Expected Latency Impact: 0ns (rotation async in background, not critical path)
+
+===============================================================================
+IMPLEMENTATION ORDER (PRIORITY)
+===============================================================================
+
+CRITICAL (This Week):
+  1. Gap #1: HTTP Size DoS    (prevents memory exhaustion)
+  2. Gap #4: API Key Auth     (prevents unauthorized access)
+  3. Gap #2: Method Whitelist (prevents tool abuse)
+
+HIGH (Week of Nov 20):
+  4. Gap #3: Cache Expiry     (prevents auth bypass)
+  5. Gap #5: Secrets Init     (prevents key loss)
+
+MEDIUM (Week of Nov 27):
+  6. Gap #6: Audit Rotation   (enables compliance)
+
+===============================================================================
+TESTING REQUIREMENTS (T28 FRAMEWORK)
+===============================================================================
+
+Each gap needs 4 test tiers:
+  - Q1-Q7 (Unit): Function correctness, edge cases
+  - Q8-Q14 (Property): Generative testing, invariants
+  - Q15-Q21 (Integration): Multi-module interaction
+  - Q22-Q28 (Production): Load testing, stress, chaos
+
+Example test module structure:
+```rust
+#[cfg(test)]
+mod security_gaps {
+    mod gap_1_http_size_dos {
+        #[test] fn q1_7_unit_max_size_enforced() { }
+        #[test] fn q8_14_property_random_sizes() { }
+        #[test] fn q15_21_integration_tcp_reads() { }
+        #[test] fn q22_28_production_10k_reqs() { }
+    }
+    // ... repeat for gaps 2-6
+}
+```
+
+Total test count: 6 gaps × 4 tiers × 1-3 tests = 24-36 new tests
+
+===============================================================================
+VERIFICATION CHECKLIST (Before 100/100 Claim)
+===============================================================================
+
+Code Quality:
+  [ ] All 6 gaps have concrete fixes with file:line references
+  [ ] Each fix has test cases (unit + property + integration + production)
+  [ ] All tests pass: cargo test --all-features --release
+  [ ] No new clippy warnings: cargo clippy --all-features -- -D warnings
+
+Framework Compliance:
+  [ ] ASSUM: grep -r "#ASSUME" src/ shows all assumptions documented
+  [ ] ASSUM: grep -r "#VERIFY" src/ shows all assumptions tested
+  [ ] UCE34: Q32 (error handling) + Q33 (verification) + Q34 (audit) documented
+  [ ] COCA: No mutex/RwLock in critical paths
+
+Performance:
+  [ ] Benchmarks show no latency regression: cargo bench --all-features
+  [ ] B32 framework validates performance claims (95% CI, 1000+ iterations)
+
+Security:
+  [ ] cargo-audit reports no vulnerabilities
+  [ ] systemd-analyze security mcp-debug.service score >= 8.5/10
+  [ ] OWASP Top 10 coverage: input validation, auth, secrets, logs
+
+Documentation:
+  [ ] SECURITY_HARDENING_ANALYSIS.md updated with all fixes
+  [ ] Each gap has before/after code snippets
+  [ ] Attack vectors documented with test cases
+  [ ] Framework compliance documented for each gap
+
+===============================================================================
+ESTIMATED EFFORT
+===============================================================================
+
+Code Implementation:   8-12 hours (6 gaps × 1.5-2 hours each)
+Test Development:     8-12 hours (24-36 tests × 15-20 min each)
+Documentation:        2-4 hours (README + architecture docs)
+Code Review:          2-4 hours (security-focused peer review)
+─────────────────────────────────────
+TOTAL:                20-32 hours (2.5-4 days for 1-2 developers)
+
+Latency Impact:        +0-500ns per request (all optimizations preserve <10μs SLA)
+
+===============================================================================
+END OF QUICK REFERENCE
+===============================================================================
