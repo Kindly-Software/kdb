@@ -256,6 +256,9 @@ impl DriverArgs {
         if let Some(idx) = &self.replay_index {
             paths.push(idx.clone());
         }
+        if let Some(summary_out) = &self.replay_summary_out {
+            paths.push(summary_out.clone());
+        }
         for p in paths {
             if let Some(parent) = p.parent() {
                 if let Err(err) = fs::create_dir_all(parent) {
