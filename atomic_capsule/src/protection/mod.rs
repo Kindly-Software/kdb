@@ -160,6 +160,36 @@ pub use anomaly_detector_v2::{
     DEFAULT_GMM_THRESHOLD, DEFAULT_TINYML_THRESHOLD, DEFAULT_BURST_THRESHOLD,
 };
 
+// T1 Prometheus Metrics for AnomalyDetectorV2 (behind feature flag)
+#[cfg(feature = "anomaly-v2")]
+pub mod anomaly_v2_metrics;
+#[cfg(feature = "anomaly-v2")]
+pub use anomaly_v2_metrics::{
+    AnomalyV2Metrics, MetricsSnapshot, CheckLatencyHistogram,
+};
+#[cfg(all(feature = "anomaly-v2", feature = "std"))]
+pub use anomaly_v2_metrics::get_global_metrics;
+
+// T0 Configuration System for AnomalyDetectorV2 (behind feature flag)
+#[cfg(feature = "anomaly-v2")]
+pub mod anomaly_v2_config;
+#[cfg(feature = "anomaly-v2")]
+pub use anomaly_v2_config::{
+    AnomalyV2Config, ConfigBuilder, ConfigError,
+    LayersConfig, ProbabilisticLayerConfig, GmmLayerConfig,
+    TinymlLayerConfig, TemporalLayerConfig,
+    TrainingConfig, Ja3DatabaseConfig, MetricsConfig,
+};
+
+// T6 Mixed AnomalyRouter - Shadow mode deployment orchestration (behind feature flag)
+#[cfg(feature = "anomaly-v2")]
+pub mod anomaly_router;
+#[cfg(feature = "anomaly-v2")]
+pub use anomaly_router::{
+    AnomalyRouter, RouterMode, ShadowMetrics, ShadowMetricsSnapshot,
+    DiscrepancyType, DeploymentRecommendation,
+};
+
 use crate::error::AuditError;
 use crate::patterns::dual_atomic::DualAtomicU64;
 use core::sync::atomic::Ordering;

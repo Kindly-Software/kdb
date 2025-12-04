@@ -1,0 +1,216 @@
+# Anomaly Detector V2 Configuration
+# /etc/kindly/anomaly_v2.yaml
+#
+# This file configures the multi-layer ML V2 anomaly detection system.
+# The system uses a cascading detection architecture:
+#   Layer 1: Probabilistic (Bloom + HyperLogLog) - <30ns fast path
+#   Layer 2: GMM (Gaussian Mixture Model) - <20ns statistical
+#   Layer 3: TinyML (Decision Tree Ensemble) - <60ns ML path
+#   Layer 4: Temporal (Sequence Analysis) - <50ns time-series
+#
+# Performance targets:
+#   Fast path (Bloom hit): <30ns (70%+ of checks)
+#   Average latency: <100ns
+#   Full path: <160ns (2% of checks)
+#
+# UCE34 Framework: T6 Mixed (T10+T1+T2+T3+T5)
+# COCA Compliant: 100% lockfree, no mutex/RwLock
+
+version: "1.0"
+
+# ============================================================================
+# Layer Configurations
+# ============================================================================
+
+layers:
+  # --------------------------------------------------------------------------
+  # Layer 1: Probabilistic (Bloom filter + HyperLogLog + CountMinSketch)
+  # --------------------------------------------------------------------------
+  # Fast path detection using probabilistic data structures.
+  # If behavior is "known" (in Bloom filter), returns Normal immediately.
+  # Performance: <30ns
+  probabilistic:
+    # Enable/disable this layer
+    enabled: true
+
+    # Bloom filter size (number of bits)
+    # Larger = lower false positive rate, more memory
+    # 65536 bits = 8KB, ~0.1% FPR at 10K entries
+    bloom_size: 65536
+
+    # HyperLogLog precision (4-18)
+    # Higher = more accurate cardinality estimation, more memory
+    # 14 = 16KB, standard error ~0.8%
+    hyperloglog_precision: 14
+
+    # Count-Min Sketch dimensions for frequency tracking
+    countmin_width: 1024
+    countmin_depth: 4
+
+  # --------------------------------------------------------------------------
+  # Layer 2: GMM (Gaussian Mixture Model)
+  # --------------------------------------------------------------------------
+  # Statistical anomaly detection using Mahalanobis distance.
+  # Behaviors far from learned Gaussian components are anomalous.
+  # Performance: <20ns
+  gmm:
+    enabled: true
+
+    # Anomaly threshold (Mahalanobis distance squared)
+    # 9.0 = 3 sigma (99.7% of normal data within)
+    # Lower = more sensitive (more false positives)
+    # Higher = less sensitive (more false negatives)
+    threshold: 9.0
+
+    # Number of Gaussian components (1-16)
+    # More components = better modeling of complex distributions
+    num_components: 8
+
+    # EMA (Exponential Moving Average) alpha for online learning
+    # 0.1 = slow adaptation, stable
+    # 0.3 = fast adaptation, responsive to changes
+    ema_alpha: 0.1
+
+    # Minimum samples before detection is active
+    min_samples: 100
+
+  # --------------------------------------------------------------------------
+  # Layer 3: TinyML (Decision Tree Ensemble / Isolation Forest)
+  # --------------------------------------------------------------------------
+  # Machine learning-based anomaly detection using decision trees.
+  # Short path lengths indicate anomalies (isolation forest principle).
+  # Performance: <60ns
+  tinyml:
+    enabled: true
+
+    # Anomaly threshold (0.0-1.0)
+    # Normalized path length: shorter paths = more anomalous
+    # 0.6 = moderately sensitive
+    threshold: 0.6
+
+    # Number of decision trees in ensemble
+    # More trees = better accuracy, more computation
+    num_trees: 8
+
+    # Maximum tree depth
+    # Deeper = more complex patterns, risk of overfitting
+    max_depth: 6
+
+    # Contamination rate (expected anomaly ratio)
+    # Used for threshold calibration during training
+    contamination: 0.1
+
+  # --------------------------------------------------------------------------
+  # Layer 4: Temporal (Sequence Analysis)
+  # --------------------------------------------------------------------------
+  # Time-series anomaly detection for burst patterns and timing attacks.
+  # Detects rapid sequences of anomalous behavior.
+  # Performance: <50ns
+  temporal:
+    enabled: true
+
+    # Burst detection threshold (multiplier over baseline)
+    # 3.0 = flag if 3x more events than normal
+    burst_threshold: 3.0
+
+    # Time window for burst detection (milliseconds)
+    window_ms: 1000
+
+    # Decay factor for temporal scoring (0.0-1.0)
+    # Higher = older events weight more
+    decay_factor: 0.95
+
+    # Minimum events required for burst detection
+    min_events: 5
+
+    # Timing anomaly threshold (milliseconds)
+    # Detect suspiciously fast sequences
+    timing_threshold_ms: 100
+
+# ============================================================================
+# Training / Model Configuration
+# ============================================================================
+
+training:
+  # Path to trained model file
+  model_path: "/var/lib/kindly/anomaly_v2/model.bin"
+
+  # Enable automatic model updates from new data
+  auto_update: true
+
+  # Model update interval (seconds)
+  # 3600 = hourly updates
+  update_interval_secs: 3600
+
+  # Path for storing training data
+  # training_data_path: "/var/lib/kindly/anomaly_v2/training/"
+
+  # Minimum samples accumulated before retraining
+  retrain_min_samples: 10000
+
+# ============================================================================
+# JA3 Fingerprint Database
+# ============================================================================
+
+ja3_database:
+  # Enable JA3/JA3S TLS fingerprinting
+  enabled: true
+
+  # Path to JA3 fingerprint database
+  path: "/var/lib/kindly/ja3/database.bin"
+
+  # Database refresh interval (seconds)
+  # 86400 = daily refresh
+  refresh_interval_secs: 86400
+
+  # Maximum database entries
+  max_entries: 100000
+
+  # Enable JA3S (server) fingerprinting
+  enable_ja3s: true
+
+# ============================================================================
+# Metrics / Prometheus Configuration
+# ============================================================================
+
+metrics:
+  # Enable Prometheus metrics export
+  enabled: true
+
+  # Metrics export interval (seconds)
+  # Prometheus typically scrapes every 15s
+  export_interval_secs: 15
+
+  # Histogram bucket boundaries (nanoseconds)
+  # Based on detection path latencies
+  histogram_buckets: [30, 50, 100, 160, 500]
+
+  # Prometheus endpoint path
+  endpoint_path: "/metrics"
+
+  # Enable per-layer detailed metrics
+  per_layer_metrics: true
+
+# ============================================================================
+# Advanced / Tuning
+# ============================================================================
+
+# Uncomment to override defaults for specific use cases
+
+# # High-security mode (more false positives, fewer false negatives)
+# high_security:
+#   gmm_threshold: 4.0      # 2 sigma
+#   tinyml_threshold: 0.4
+#   burst_threshold: 2.0
+
+# # High-throughput mode (fewer false positives, prioritize speed)
+# high_throughput:
+#   gmm_threshold: 16.0     # 4 sigma
+#   tinyml_threshold: 0.8
+#   burst_threshold: 5.0
+
+# # Disable ML layers (probabilistic only)
+# probabilistic_only:
+#   gmm_enabled: false
+#   tinyml_enabled: false
+#   temporal_enabled: false
