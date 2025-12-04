@@ -1,0 +1,93 @@
+[Unit]
+Description=KDB API Server - Kindly Debugger REST API
+Documentation=https://kindly.services/kdb
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=samuel
+Group=samuel
+WorkingDirectory=/home/samuel/Primitives/kdb
+
+# Binary location - built from cargo
+ExecStart=/home/samuel/Primitives/target/release/kdb_api_server
+
+# Restart policy: restart on failure after 5 seconds
+Restart=on-failure
+RestartSec=5s
+StartLimitInterval=300
+StartLimitBurst=5
+
+# Environment variables
+Environment="RUST_LOG=info"
+Environment="KDB_PORT=8090"
+Environment="KDB_BIND=0.0.0.0"
+# API key loaded from environment or secrets file
+# Environment="RAPIDAPI_KEY=your-key-here"
+
+# Resource limits (cgroups v2)
+MemoryMax=2G
+MemoryAccounting=yes
+TasksMax=256
+
+# File descriptor limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Core dump handling (for crash analysis)
+LimitCORE=infinity
+
+# Logging to journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=kdb-api-server
+
+# ============================================================================
+# Security Hardening (systemd 239+)
+# ============================================================================
+
+# No new privileges (prevents privilege escalation via setuid)
+NoNewPrivileges=true
+
+# Temporary files are private (isolated /tmp)
+PrivateTmp=true
+
+# Root filesystem read-only except for specified paths
+ProtectSystem=strict
+
+# Home directory read-only access (needed for assets)
+ProtectHome=read-only
+
+# Writable paths (assets for SPA, logs)
+ReadWritePaths=/home/samuel/Primitives/kdb/assets
+
+# Kernel tuning not allowed
+ProtectKernelTunables=true
+
+# Kernel module loading not allowed
+ProtectKernelModules=true
+
+# Kernel log access not allowed
+ProtectKernelLogs=true
+
+# Cgroup modification not allowed
+ProtectControlGroups=true
+
+# Real-time scheduling not allowed
+RestrictRealtime=true
+
+# Namespace creation not allowed
+RestrictNamespaces=true
+
+# SUID/SGID file creation not allowed
+RestrictSUIDSGID=true
+
+# Personality (process execution domain) locked
+LockPersonality=true
+
+# Address families restricted (IPv4, IPv6, Unix sockets only)
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

@@ -276,7 +276,7 @@ impl PrecomputedHeaders {
 
 /// SecurityHeadersCapsule - T1 Atomic security header injection
 ///
-/// Memory layout (128B cache-aligned):
+/// Memory layout (256B cache-aligned, 4 cache lines):
 /// ```text
 /// Offset  Field                      Size   Notes
 /// 0       hsts                      16     &'static str (ptr + len)
@@ -287,15 +287,17 @@ impl PrecomputedHeaders {
 /// 80      content_type_options      16     &'static str (ptr + len)
 /// 96      xss_protection            16     &'static str (ptr + len)
 /// 112     referrer_policy           16     &'static str (ptr + len)
-/// 128     flags                     8      AtomicU64 (enable flags)
-/// 136     requests_processed        8      AtomicU64 (statistics)
-/// 144     nonces_generated          8      AtomicU64 (statistics)
-/// 152     total_latency_ns          8      AtomicU64 (statistics)
-/// 160     _padding                  32     Pad to 192B (3 cache lines)
+/// 128     csp_policy                16     &'static str (ptr + len) - Phase 2.3: Static CSP
+/// 144     permissions_policy        16     &'static str (ptr + len) - Phase 2.3: Permissions
+/// 160     flags                     8      AtomicU64 (enable flags)
+/// 168     requests_processed        8      AtomicU64 (statistics)
+/// 176     nonces_generated          8      AtomicU64 (statistics)
+/// 184     total_latency_ns          8      AtomicU64 (statistics)
+/// 192     _padding                  64     Pad to 256B (4 cache lines)
 /// ```
 ///
 /// # ASSUM: Cache Alignment
-/// - Layout is 64B aligned for false sharing prevention (192B = 3 cache lines)
+/// - Layout is 64B aligned for false sharing prevention (256B = 4 cache lines)
 /// - AtomicU64 operations are lock-free (verified: cfg_attr)
 /// - Precomputed headers are stored inline as &'static str (no dangling pointers)
 ///
@@ -305,6 +307,11 @@ impl PrecomputedHeaders {
 /// &'static str references directly into the capsule. Since all header strings
 /// are compile-time constants (&'static str), this is safe and eliminates
 /// pointer management complexity.
+///
+/// # Phase 2.3 Enhancement: Static CSP and Permissions-Policy
+/// Added csp_policy and permissions_policy fields to support static CSP
+/// (without nonces) for WASM applications like Leptos. This increases size
+/// from 192B to 256B (still 4 cache lines, optimal for modern CPUs).
 ///
 #[repr(C, align(64))]
 pub struct SecurityHeadersCapsule {
@@ -335,6 +342,21 @@ pub struct SecurityHeadersCapsule {
     /// Precomputed Referrer-Policy header
     referrer_policy: &'static str,
 
+    /// Static CSP policy (Phase 2.3)
+    ///
+    /// # ASSUME_INVARIANT: Policy is static lifetime, never deallocated
+    /// # VERIFY_INVARIANT: Value comes from SecurityHeadersPolicy::csp_policy
+    ///
+    /// When non-empty and enable_csp is true, this static policy is used
+    /// instead of generating nonce-based CSP. Suitable for WASM applications.
+    csp_policy: &'static str,
+
+    /// Permissions-Policy header (Phase 2.3)
+    ///
+    /// # ASSUME_INVARIANT: Policy is static lifetime, never deallocated
+    /// # VERIFY_INVARIANT: Value comes from SecurityHeadersPolicy::permissions_policy
+    permissions_policy: &'static str,
+
     /// Feature flags (enable/disable headers)
     ///
     /// # ASSUME_INVARIANT: Flags don't change during request
@@ -359,8 +381,8 @@ pub struct SecurityHeadersCapsule {
     /// # VERIFY_OVERFLOW: Saturating add prevents overflow
     total_latency_ns: AtomicU64,
 
-    /// Padding to 192B (3 cache lines)
-    _padding: [u8; 32],
+    /// Padding to 256B (4 cache lines)
+    _padding: [u8; 64],
 }
 
 // Verify cache alignment
@@ -369,9 +391,9 @@ const _: () = {
     const ALIGN: usize = mem::align_of::<SecurityHeadersCapsule>();
     // Check alignment is 64B
     assert!(ALIGN == 64, "SecurityHeadersCapsule must have 64-byte alignment");
-    // Check size is exactly 192B (3 cache lines)
-    // 8 * &'static str (16B each) = 128B + 4 * AtomicU64 (8B each) = 32B + 32B padding = 192B
-    assert!(SIZE == 192, "SecurityHeadersCapsule must be 192 bytes");
+    // Check size is exactly 256B (4 cache lines)
+    // 10 * &'static str (16B each) = 160B + 4 * AtomicU64 (8B each) = 32B + 64B padding = 256B
+    assert!(SIZE == 256, "SecurityHeadersCapsule must be 256 bytes");
 };
 
 impl SecurityHeadersCapsule {
@@ -395,6 +417,17 @@ impl SecurityHeadersCapsule {
         // Compute precomputed headers and inline them directly
         let precomputed = PrecomputedHeaders::from_policy(&policy);
 
+        // Encode feature flags in a single AtomicU64 for efficient access
+        // Bit 0: enable_csp (static CSP policy)
+        // Bit 1: enable_permissions_policy
+        let mut flags: u64 = 0;
+        if policy.enable_csp && !policy.csp_policy.is_empty() {
+            flags |= 1 << 0; // Static CSP enabled
+        }
+        if policy.enable_permissions_policy && !policy.permissions_policy.is_empty() {
+            flags |= 1 << 1; // Permissions-Policy enabled
+        }
+
         Self {
             // Inline the &'static str references directly - no pointers needed
             hsts: precomputed.hsts,
@@ -405,11 +438,14 @@ impl SecurityHeadersCapsule {
             content_type_options: precomputed.content_type_options,
             xss_protection: precomputed.xss_protection,
             referrer_policy: precomputed.referrer_policy,
-            flags: AtomicU64::new(0),
+            // Phase 2.3: Store static CSP and Permissions-Policy
+            csp_policy: policy.csp_policy,
+            permissions_policy: policy.permissions_policy,
+            flags: AtomicU64::new(flags),
             requests_processed: AtomicU64::new(0),
             nonces_generated: AtomicU64::new(0),
             total_latency_ns: AtomicU64::new(0),
-            _padding: [0u8; 32],
+            _padding: [0u8; 64],
         }
     }
 
@@ -445,11 +481,11 @@ impl SecurityHeadersCapsule {
     /// let response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html>...</html>";
     /// let with_headers = capsule.inject_headers(response, true);
     /// ```
-    pub fn inject_headers(&self, response: &str, include_csp: bool) -> String {
+    pub fn inject_headers(&self, response: &str, include_nonce_csp: bool) -> String {
         // Find header/body boundary
         let boundary = response.find("\r\n\r\n");
 
-        let mut result = String::with_capacity(response.len() + 512);
+        let mut result = String::with_capacity(response.len() + 1024);
 
         if let Some(boundary_pos) = boundary {
             // Split headers and body
@@ -469,8 +505,19 @@ impl SecurityHeadersCapsule {
             result.push_str(self.xss_protection);
             result.push_str(self.referrer_policy);
 
-            // Generate and inject CSP nonce if enabled
-            if include_csp {
+            // Load flags once (Relaxed ordering - immutable after construction)
+            let flags = self.flags.load(Ordering::Relaxed);
+
+            // Phase 2.3: Inject static CSP policy if enabled (bit 0)
+            // Priority: static CSP > nonce-based CSP
+            // Static CSP is preferred for WASM applications where nonces are impractical
+            if (flags & (1 << 0)) != 0 && !self.csp_policy.is_empty() {
+                // Static CSP policy configured - use it directly
+                result.push_str("Content-Security-Policy: ");
+                result.push_str(self.csp_policy);
+                result.push_str("\r\n");
+            } else if include_nonce_csp {
+                // No static CSP, but nonce-based CSP requested
                 let nonce = self.generate_csp_nonce();
                 result.push_str(&format!(
                     "Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{}'; style-src 'self' 'nonce-{}'\r\n",
@@ -479,6 +526,13 @@ impl SecurityHeadersCapsule {
 
                 // Update nonce counter (Relaxed ordering)
                 let _ = self.nonces_generated.fetch_add(1, Ordering::Relaxed);
+            }
+
+            // Phase 2.3: Inject Permissions-Policy if enabled (bit 1)
+            if (flags & (1 << 1)) != 0 && !self.permissions_policy.is_empty() {
+                result.push_str("Permissions-Policy: ");
+                result.push_str(self.permissions_policy);
+                result.push_str("\r\n");
             }
 
             // Append body
@@ -594,12 +648,15 @@ fn base64_encode(data: &[u8]) -> String {
 impl fmt::Debug for SecurityHeadersCapsule {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (reqs, nonces, latency) = self.stats();
+        let flags = self.flags.load(Ordering::Relaxed);
         f.debug_struct("SecurityHeadersCapsule")
             .field("requests_processed", &reqs)
             .field("nonces_generated", &nonces)
             .field("total_latency_ns", &latency)
+            .field("static_csp_enabled", &((flags & 1) != 0))
+            .field("permissions_policy_enabled", &((flags & 2) != 0))
             .field("align", &64)
-            .field("size", &192)
+            .field("size", &256)
             .finish()
     }
 }
@@ -607,20 +664,24 @@ impl fmt::Debug for SecurityHeadersCapsule {
 impl fmt::Display for SecurityHeadersCapsule {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (reqs, nonces, _latency) = self.stats();
+        let flags = self.flags.load(Ordering::Relaxed);
         write!(
             f,
-            "SecurityHeadersCapsule {{ requests: {}, nonces: {} }}",
-            reqs, nonces
+            "SecurityHeadersCapsule {{ requests: {}, nonces: {}, csp: {}, perm: {} }}",
+            reqs,
+            nonces,
+            (flags & 1) != 0,
+            (flags & 2) != 0
         )
     }
 }
 
 // Verify alignment and size at compile time (using array trick)
-// This ensures SIZE = 192 and ALIGN = 64 at compile time
+// This ensures SIZE = 256 and ALIGN = 64 at compile time (Phase 2.3)
 const _: () = {
     // The following will only compile if the condition is true
-    // If SecurityHeadersCapsule is not 192 bytes, this will fail to compile
-    const SIZE_CHECK: [(); 192] = [(); mem::size_of::<SecurityHeadersCapsule>()];
+    // If SecurityHeadersCapsule is not 256 bytes, this will fail to compile
+    const SIZE_CHECK: [(); 256] = [(); mem::size_of::<SecurityHeadersCapsule>()];
     const ALIGN_CHECK: [(); 64] = [(); mem::align_of::<SecurityHeadersCapsule>()];
 
     let _ = (SIZE_CHECK, ALIGN_CHECK);
@@ -727,5 +788,84 @@ mod tests {
         assert!(!encoded.is_empty());
         // Verify it's valid base64-like output
         assert!(encoded.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_'));
+    }
+
+    // Phase 2.3 Tests: Static CSP and Permissions-Policy
+
+    #[test]
+    fn test_static_csp_injection() {
+        // Test static CSP policy (for WASM applications)
+        let mut policy = SecurityHeadersPolicy::default();
+        policy.enable_csp = true;
+        policy.csp_policy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'";
+
+        let capsule = SecurityHeadersCapsule::new(policy);
+        let response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html></html>";
+
+        let result = capsule.inject_headers(response, false);
+
+        // Static CSP should be present
+        assert!(result.contains("Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'"));
+        // No nonce should be generated
+        assert!(!result.contains("nonce-"));
+        assert_eq!(capsule.stats().1, 0); // Nonce count should be 0
+    }
+
+    #[test]
+    fn test_static_csp_priority_over_nonce() {
+        // Static CSP should take priority over nonce-based CSP
+        let mut policy = SecurityHeadersPolicy::default();
+        policy.enable_csp = true;
+        policy.csp_policy = "default-src 'self'";
+
+        let capsule = SecurityHeadersCapsule::new(policy);
+        let response = "HTTP/1.1 200 OK\r\n\r\n<html></html>";
+
+        // Even with include_nonce_csp=true, static CSP should be used
+        let result = capsule.inject_headers(response, true);
+
+        assert!(result.contains("Content-Security-Policy: default-src 'self'"));
+        assert!(!result.contains("nonce-"));
+    }
+
+    #[test]
+    fn test_permissions_policy_injection() {
+        let mut policy = SecurityHeadersPolicy::default();
+        policy.enable_permissions_policy = true;
+        policy.permissions_policy = "geolocation=(), camera=(), microphone=()";
+
+        let capsule = SecurityHeadersCapsule::new(policy);
+        let response = "HTTP/1.1 200 OK\r\n\r\n<html></html>";
+
+        let result = capsule.inject_headers(response, false);
+
+        assert!(result.contains("Permissions-Policy: geolocation=(), camera=(), microphone=()"));
+    }
+
+    #[test]
+    fn test_combined_csp_and_permissions_policy() {
+        let mut policy = SecurityHeadersPolicy::default();
+        policy.enable_csp = true;
+        policy.csp_policy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'";
+        policy.enable_permissions_policy = true;
+        policy.permissions_policy = "geolocation=(), camera=()";
+
+        let capsule = SecurityHeadersCapsule::new(policy);
+        let response = "HTTP/1.1 200 OK\r\n\r\n<html></html>";
+
+        let result = capsule.inject_headers(response, false);
+
+        // Both headers should be present
+        assert!(result.contains("Content-Security-Policy:"));
+        assert!(result.contains("wasm-unsafe-eval"));
+        assert!(result.contains("Permissions-Policy:"));
+        assert!(result.contains("geolocation=()"));
+    }
+
+    #[test]
+    fn test_capsule_size_256_bytes() {
+        // Verify Phase 2.3 capsule size is 256B (4 cache lines)
+        assert_eq!(std::mem::size_of::<SecurityHeadersCapsule>(), 256);
+        assert_eq!(std::mem::align_of::<SecurityHeadersCapsule>(), 64);
     }
 }
