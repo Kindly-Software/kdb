@@ -106,6 +106,31 @@ name = "heisenbug"
 path = "examples/heisenbug.rs"
 required-features = ["std"]
 
+[[example]]
+name = "buffer_overflow_target"
+path = "examples/buffer_overflow_target.rs"
+required-features = ["std"]
+
+[[example]]
+name = "use_after_free_target"
+path = "examples/use_after_free_target.rs"
+required-features = ["std"]
+
+[[example]]
+name = "signal_storm"
+path = "examples/signal_storm.rs"
+required-features = ["std"]
+
+[[example]]
+name = "anti_debug_target"
+path = "examples/anti_debug_target.rs"
+required-features = ["std"]
+
+[[example]]
+name = "deadlock_circular"
+path = "examples/deadlock_circular.rs"
+required-features = ["std"]
+
 [[bin]]
 name = "kdb-cli"
 path = "src/bin/kdb-cli.rs"
@@ -125,6 +150,16 @@ harness = false
 [[test]]
 name = "production_stress"
 path = "tests/production_stress.rs"
+harness = true
+
+[[test]]
+name = "deadlock_detection"
+path = "tests/deadlock_detection.rs"
+harness = true
+
+[[test]]
+name = "memory_corruption_tests"
+path = "tests/memory_corruption_tests.rs"
 harness = true
 
 [profile.test]
