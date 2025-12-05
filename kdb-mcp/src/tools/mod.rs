@@ -10,6 +10,8 @@
 //! 7. debugger/get_variables - Read memory
 //! 8. debugger/find_similar_bugs - T10 probabilistic
 //! 9. debugger/export_trace - T5 streaming export
+//! 10. debugger/quota_status - Quota tier/limits/usage (T1 Atomic, <70ns)
+//! 11. debugger/license_info - License tier/validation/expiry (T1 Atomic, <10ns)
 //!
 //! Document tools (in document.rs):
 //! 1. xpath_query - XPath XML queries (T6 Mixed)

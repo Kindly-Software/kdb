@@ -16,11 +16,24 @@ atomic_capsule = { version = "0.9", path = "../atomic_capsule", features = ["std
 # Optional: atomic_capsule_derive for automatic verification
 atomic_capsule_derive = { version = "0.9", path = "../atomic_capsule_derive", optional = true }
 
-# CRC64 for hash-chain integrity (Q34 compliance)
+# CRC32/64 for hash-chain integrity (Q34 compliance)
 crc = "3.0"
 
-# JSON serialization for HTTP API
+# Ed25519 signature verification for license validation
+ed25519-dalek = "2.1"
+
+# SHA-2 family cryptographic hash functions (SHA-256, SHA-512)
+sha2 = "0.10"
+
+# Random number generation (for license signing feature)
+rand = { version = "0.8", optional = true }
+
+# Serialization framework
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+
+# Hex encoding/decoding for certificate signatures
+hex = "0.4"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
@@ -53,6 +66,13 @@ derive = ["atomic_capsule_derive"]
 # Property testing (T28 Q8-Q14 compliance)
 property-tests = []
 
+# License signing capability (requires rand crate, admin/testing only)
+# SECURITY: Only enable for license generation servers, never in client binaries
+license-signing = ["rand"]
+
+# Test helpers for setting internal state (for integration tests)
+test-helpers = []
+
 # Platform-specific features (automatically enabled per target OS)
 # See https://github.com/yourorg/kdb/docs/PLATFORM_SUPPORT.md
 linux-ptrace = []      # Linux ptrace debugging (default on Linux)
@@ -80,6 +100,16 @@ required-features = ["std", "simd"]
 name = "register_reader_demo"
 path = "examples/register_reader_demo.rs"
 required-features = ["std"]
+
+[[bin]]
+name = "kdb-cli"
+path = "src/bin/kdb-cli.rs"
+required-features = ["cli"]
+
+[[bin]]
+name = "keygen"
+path = "src/bin/keygen.rs"
+required-features = ["license-signing"]
 
 [[bench]]
 name = "time_travel"

@@ -37,6 +37,8 @@
 //! - `debugger/get_variables` - Read memory
 //! - `debugger/find_similar_bugs` - T10 probabilistic
 //! - `debugger/export_trace` - T5 streaming export
+//! - `debugger/quota_status` - Quota tier/limits/usage (T1 Atomic, <70ns)
+//! - `debugger/license_info` - License tier/validation/expiry (T1 Atomic, <10ns)
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -48,6 +50,7 @@ pub mod types;  // Common types and stubs
 pub mod json_rpc;
 pub mod rate_limiter;
 pub mod quota_tracker;
+pub mod config_loader;  // PID allowlist config file reader
 
 // Document processing (T2+T3 Mixed)
 pub mod document;
@@ -179,6 +182,7 @@ pub use rate_limiter::RateLimiterCapsule;
 pub use quota_tracker::QuotaTrackerCapsule;
 pub use tool_registry::McpToolRegistryCapsule;
 pub use license_validator::LicenseValidatorCapsule;
+pub use config_loader::{PidAllowlistConfig, ConfigError, DEFAULT_CONFIG_PATH, is_pid_allowed_by_config};
 
 // Common types (feature-gated types re-exported directly from types module)
 pub use types::SessionId;

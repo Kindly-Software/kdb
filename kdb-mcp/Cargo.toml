@@ -153,6 +153,7 @@ required-features = ["std", "json-rpc", "runtime", "http-transport", "tool-execu
 [dev-dependencies]
 proptest = "1.4"
 fastrand = "2.0"
+tempfile = "3.10"
 
 # Enable all features for test targets
 [package.metadata.docs.rs]

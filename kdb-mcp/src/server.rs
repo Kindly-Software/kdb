@@ -180,6 +180,10 @@ impl McpServerCapsule {
         let _ = self.tools.register_tool("validate_schema", 11);
         let _ = self.tools.register_tool("cache_stats", 12);
         let _ = self.tools.register_tool("preload_documents", 13);
+
+        // Register quota and license info tools
+        let _ = self.tools.register_tool("debugger/quota_status", 14);
+        let _ = self.tools.register_tool("debugger/license_info", 15);
     }
 
     /// Handle MCP request (<10μs target)
@@ -269,7 +273,7 @@ impl McpServerCapsule {
 
                 // Build tools list from registry with proper schemas
                 let mut tools = Vec::new();
-                for i in 0..13 {
+                for i in 0..15 {
                     let tool_id = i + 1;
                     if let Some(name) = self.get_tool_name(tool_id) {
                         let (description, schema) = self.get_tool_schema(tool_id);
@@ -404,6 +408,8 @@ impl McpServerCapsule {
             7 => self.tool_get_variables(params, auth_ctx, debugger),
             8 => self.tool_find_similar_bugs(params, auth_ctx, debugger),
             9 => self.tool_export_trace(params, auth_ctx, debugger),
+            14 => self.tool_quota_status(auth_ctx),
+            15 => self.tool_license_info(auth_ctx),
             _ => Err(format!("Unknown handler: {}", handler_id)),
         }
     }
@@ -593,6 +599,129 @@ impl McpServerCapsule {
         }))
     }
 
+    /// Get quota status with tier/limits/usage (<70ns)
+    ///
+    /// Returns JSON with:
+    /// - tier: "T1 Atomic" (capsule tier)
+    /// - limits: daily/monthly/total request limits
+    /// - usage: current request counts and bytes processed
+    /// - exceeded_count: number of quota exceeded events
+    #[cfg(feature = "json-rpc")]
+    fn tool_quota_status(
+        &self,
+        _auth_ctx: &crate::RequestAuthContext,
+    ) -> Result<serde_json::Value, String> {
+        let stats = self.quota.get_stats();
+
+        // Calculate remaining quotas
+        let daily_remaining = stats.daily_limit.saturating_sub(stats.daily_requests);
+        let monthly_remaining = stats.monthly_limit.saturating_sub(stats.monthly_requests);
+        let total_remaining = stats.total_limit.saturating_sub(stats.total_requests);
+
+        // Calculate usage percentages
+        let daily_usage_pct = if stats.daily_limit > 0 {
+            (stats.daily_requests as f64 / stats.daily_limit as f64 * 100.0).min(100.0)
+        } else {
+            0.0
+        };
+        let monthly_usage_pct = if stats.monthly_limit > 0 {
+            (stats.monthly_requests as f64 / stats.monthly_limit as f64 * 100.0).min(100.0)
+        } else {
+            0.0
+        };
+
+        Ok(serde_json::json!({
+            "tier": "T1 Atomic",
+            "capsule": "QuotaTrackerCapsule",
+            "latency_ns": "<70",
+            "limits": {
+                "daily": stats.daily_limit,
+                "monthly": stats.monthly_limit,
+                "total": stats.total_limit
+            },
+            "usage": {
+                "daily_requests": stats.daily_requests,
+                "monthly_requests": stats.monthly_requests,
+                "total_requests": stats.total_requests,
+                "bytes_processed": stats.bytes_processed
+            },
+            "remaining": {
+                "daily": daily_remaining,
+                "monthly": monthly_remaining,
+                "total": total_remaining
+            },
+            "usage_percentage": {
+                "daily": format!("{:.2}%", daily_usage_pct),
+                "monthly": format!("{:.2}%", monthly_usage_pct)
+            },
+            "exceeded_count": stats.quota_exceeded
+        }))
+    }
+
+    /// Get license info with tier/validation/expiry (<10ns cached)
+    ///
+    /// Returns JSON with:
+    /// - tier: "T1 Atomic" (capsule tier)
+    /// - is_valid: current license validity
+    /// - expiry_unix: license expiry timestamp
+    /// - validation_stats: success/failure counts
+    #[cfg(feature = "json-rpc")]
+    fn tool_license_info(
+        &self,
+        _auth_ctx: &crate::RequestAuthContext,
+    ) -> Result<serde_json::Value, String> {
+        let stats = self.license.get_stats();
+
+        // Calculate success rate
+        let success_rate = if stats.validation_count > 0 {
+            stats.validation_success as f64 / stats.validation_count as f64 * 100.0
+        } else {
+            0.0
+        };
+
+        // Format expiry time
+        let expiry_status = if stats.expiry_unix == 0 {
+            "not_set".to_string()
+        } else {
+            #[cfg(feature = "std")]
+            {
+                use std::time::SystemTime;
+                let now = SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .map(|d| d.as_secs())
+                    .unwrap_or(0);
+                if stats.expiry_unix > now {
+                    let remaining_secs = stats.expiry_unix - now;
+                    let days = remaining_secs / 86400;
+                    format!("valid ({} days remaining)", days)
+                } else {
+                    "expired".to_string()
+                }
+            }
+            #[cfg(not(feature = "std"))]
+            {
+                "unknown".to_string()
+            }
+        };
+
+        Ok(serde_json::json!({
+            "tier": "T1 Atomic",
+            "capsule": "LicenseValidatorCapsule",
+            "latency_ns": "<10 (cached)",
+            "license": {
+                "is_valid": stats.is_valid,
+                "expiry_unix": stats.expiry_unix,
+                "expiry_status": expiry_status
+            },
+            "validation_stats": {
+                "total_validations": stats.validation_count,
+                "successful": stats.validation_success,
+                "failed": stats.validation_failed,
+                "success_rate": format!("{:.2}%", success_rate)
+            }
+        }))
+    }
+
     // ========================================================================
     // MCP Protocol Helpers
     // ========================================================================
@@ -618,6 +747,8 @@ impl McpServerCapsule {
             11 => Some("validate_schema"),
             12 => Some("cache_stats"),
             13 => Some("preload_documents"),
+            14 => Some("debugger/quota_status"),
+            15 => Some("debugger/license_info"),
             _ => None,
         }
     }
@@ -884,6 +1015,25 @@ impl McpServerCapsule {
                         }
                     },
                     "required": ["urls"],
+                    "additionalProperties": false
+                })
+            ),
+            // Quota and License Tools (14-15)
+            14 => (
+                "T1 Atomic quota status with tier/limits/usage (<70ns)",
+                serde_json::json!({
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
+                    "additionalProperties": false
+                })
+            ),
+            15 => (
+                "T1 Atomic license info with tier/validation/expiry (<10ns cached)",
+                serde_json::json!({
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
                     "additionalProperties": false
                 })
             ),

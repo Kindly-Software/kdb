@@ -1,0 +1,5 @@
+# NEVER commit private keys
+*.hex
+*_private_*
+# Public key can be committed (but embedded version is in license.rs)
+# *.rs
