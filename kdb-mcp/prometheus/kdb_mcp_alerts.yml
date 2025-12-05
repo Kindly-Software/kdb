@@ -1,0 +1,355 @@
+# Prometheus Alerting Rules for kdb-mcp Production Hardening
+# UCE34 Framework: Q34 Audit Compliance, T1 Atomic Metrics
+# B32 Validated: Thresholds based on production benchmarks
+#
+# Deployment: Copy to /etc/prometheus/rules/kdb_mcp_alerts.yml
+# Reload Prometheus: curl -X POST http://localhost:9090/-/reload
+
+---
+groups:
+  # ===========================================================================
+  # kdb-mcp Core Alerts
+  # ===========================================================================
+  - name: kdb_mcp
+    interval: 30s
+    rules:
+      # -------------------------------------------------------------------------
+      # Error Rate Alerts
+      # -------------------------------------------------------------------------
+      - alert: KdbMcpHighErrorRate
+        expr: rate(kdb_mcp_errors_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: critical
+          service: kdb-mcp
+          category: reliability
+        annotations:
+          summary: "kdb-mcp error rate exceeds threshold"
+          description: |
+            Error rate is {{ $value | printf "%.2f" }} errors/sec (threshold: >10/sec).
+            High error rate indicates service degradation or upstream issues.
+          runbook_url: "https://docs.kindly.software/kdb/runbooks/high-error-rate"
+          dashboard_url: "https://grafana.kindly.software/d/kdb-mcp/overview"
+
+      - alert: KdbMcpElevatedErrorRate
+        expr: rate(kdb_mcp_errors_total[5m]) > 5
+        for: 10m
+        labels:
+          severity: warning
+          service: kdb-mcp
+          category: reliability
+        annotations:
+          summary: "kdb-mcp error rate elevated"
+          description: |
+            Error rate is {{ $value | printf "%.2f" }} errors/sec (warning: >5/sec).
+            Monitor closely - approaching critical threshold.
+
+      # -------------------------------------------------------------------------
+      # Rate Limiting Alerts
+      # -------------------------------------------------------------------------
+      - alert: KdbMcpRateLimitExceeded
+        expr: rate(kdb_mcp_rate_limited_total[1m]) > 100
+        for: 2m
+        labels:
+          severity: warning
+          service: kdb-mcp
+          category: traffic
+        annotations:
+          summary: "kdb-mcp rate limiting triggered frequently"
+          description: |
+            Rate limiting triggered {{ $value | printf "%.0f" }} times/min (threshold: >100/min).
+            Possible attack or legitimate traffic surge. Check client distribution.
+          runbook_url: "https://docs.kindly.software/kdb/runbooks/rate-limit-exceeded"
+
+      - alert: KdbMcpRateLimitCritical
+        expr: rate(kdb_mcp_rate_limited_total[1m]) > 500
+        for: 1m
+        labels:
+          severity: critical
+          service: kdb-mcp
+          category: security
+        annotations:
+          summary: "kdb-mcp under potential DDoS attack"
+          description: |
+            Rate limiting triggered {{ $value | printf "%.0f" }} times/min (critical: >500/min).
+            Possible DDoS attack. Consider enabling Cloudflare "Under Attack" mode.
+          runbook_url: "https://docs.kindly.software/kdb/runbooks/ddos-response"
+
+      # -------------------------------------------------------------------------
+      # Latency Alerts
+      # -------------------------------------------------------------------------
+      - alert: KdbMcpHighLatency
+        expr: |
+          histogram_quantile(0.99,
+            rate(kdb_mcp_request_duration_seconds_bucket[5m])
+          ) > 0.0001
+        for: 5m
+        labels:
+          severity: critical
+          service: kdb-mcp
+          category: performance
+        annotations:
+          summary: "kdb-mcp P99 latency exceeds 100μs SLA"
+          description: |
+            P99 latency is {{ $value | humanizeDuration }} (SLA: <100μs).
+            This violates the <10μs RPC latency guarantee.
+          runbook_url: "https://docs.kindly.software/kdb/runbooks/high-latency"
+
+      - alert: KdbMcpElevatedLatency
+        expr: |
+          histogram_quantile(0.99,
+            rate(kdb_mcp_request_duration_seconds_bucket[5m])
+          ) > 0.00001
+        for: 10m
+        labels:
+          severity: warning
+          service: kdb-mcp
+          category: performance
+        annotations:
+          summary: "kdb-mcp P99 latency elevated above 10μs"
+          description: |
+            P99 latency is {{ $value | humanizeDuration }} (target: <10μs).
+            Performance degrading - investigate before SLA breach.
+
+      # -------------------------------------------------------------------------
+      # Authentication Alerts
+      # -------------------------------------------------------------------------
+      - alert: KdbMcpAuthFailureSpike
+        expr: increase(kdb_mcp_auth_failures_total[5m]) > 20
+        for: 2m
+        labels:
+          severity: critical
+          service: kdb-mcp
+          category: security
+        annotations:
+          summary: "Possible brute-force attack on kdb-mcp"
+          description: |
+            {{ $value | printf "%.0f" }} authentication failures in 5min (threshold: >20).
+            Possible brute-force or credential stuffing attack.
+          runbook_url: "https://docs.kindly.software/kdb/runbooks/auth-failures"
+
+      - alert: KdbMcpAuthBypass
+        expr: kdb_mcp_auth_bypass_total > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: kdb-mcp
+          category: security
+        annotations:
+          summary: "Authentication bypass detected!"
+          description: |
+            {{ $value }} requests bypassed authentication.
+            CRITICAL SECURITY EVENT - investigate immediately.
+          runbook_url: "https://docs.kindly.software/kdb/runbooks/auth-bypass"
+
+      # -------------------------------------------------------------------------
+      # License/Quota Alerts
+      # -------------------------------------------------------------------------
+      - alert: KdbMcpLicenseExpiringSoon
+        expr: |
+          (kdb_mcp_license_expiry_timestamp - time()) < 604800
+        for: 1h
+        labels:
+          severity: warning
+          service: kdb-mcp
+          category: business
+        annotations:
+          summary: "kdb-mcp license expiring within 7 days"
+          description: |
+            License expires in {{ $value | humanizeDuration }}.
+            Renew license to avoid service disruption.
+
+      - alert: KdbMcpQuotaExhausted
+        expr: |
+          (
+            sum(rate(kdb_mcp_quota_violations_total[10m]))
+            /
+            sum(rate(kdb_mcp_requests_total[10m]))
+          ) > 0.20
+        for: 10m
+        labels:
+          severity: warning
+          service: kdb-mcp
+          category: business
+        annotations:
+          summary: "High quota violation rate"
+          description: |
+            {{ $value | humanizePercentage }} of requests exceed quotas.
+            Users hitting tier limits - consider upselling or adjusting quotas.
+
+      # -------------------------------------------------------------------------
+      # Connection/Session Alerts
+      # -------------------------------------------------------------------------
+      - alert: KdbMcpHighConnectionCount
+        expr: kdb_mcp_active_connections > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: kdb-mcp
+          category: capacity
+        annotations:
+          summary: "High number of active connections"
+          description: |
+            {{ $value }} active connections (threshold: >1000).
+            May need to scale horizontally or increase connection limits.
+
+      - alert: KdbMcpSessionLeaks
+        expr: |
+          increase(kdb_mcp_sessions_created_total[1h])
+          - increase(kdb_mcp_sessions_destroyed_total[1h]) > 100
+        for: 1h
+        labels:
+          severity: warning
+          service: kdb-mcp
+          category: resources
+        annotations:
+          summary: "Possible session leak detected"
+          description: |
+            Session delta: {{ $value }} (created - destroyed in 1h).
+            Sessions may not be properly cleaned up.
+
+  # ===========================================================================
+  # kdb-mcp Resource Alerts
+  # ===========================================================================
+  - name: kdb_mcp_resources
+    interval: 1m
+    rules:
+      - alert: KdbMcpHighMemoryUsage
+        expr: |
+          (kdb_mcp_memory_bytes / kdb_mcp_memory_limit_bytes) > 0.85
+        for: 5m
+        labels:
+          severity: critical
+          service: kdb-mcp
+          category: resources
+        annotations:
+          summary: "kdb-mcp memory usage exceeds 85%"
+          description: |
+            Memory usage: {{ $value | humanizePercentage }} (threshold: 85%).
+            Risk of OOM. Check for memory leaks or increase allocation.
+
+      - alert: KdbMcpHighCPU
+        expr: kdb_mcp_cpu_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: kdb-mcp
+          category: resources
+        annotations:
+          summary: "kdb-mcp CPU usage exceeds 80%"
+          description: |
+            CPU usage: {{ $value }}% (threshold: 80%).
+            Performance may degrade. Consider scaling or optimization.
+
+      - alert: KdbMcpSnapshotStorageFull
+        expr: |
+          (kdb_mcp_snapshot_storage_used_bytes / kdb_mcp_snapshot_storage_limit_bytes) > 0.90
+        for: 5m
+        labels:
+          severity: warning
+          service: kdb-mcp
+          category: resources
+        annotations:
+          summary: "Snapshot storage approaching limit"
+          description: |
+            Snapshot storage: {{ $value | humanizePercentage }} used.
+            Time-travel functionality may be limited.
+
+  # ===========================================================================
+  # kdb-mcp Availability Alerts
+  # ===========================================================================
+  - name: kdb_mcp_availability
+    interval: 30s
+    rules:
+      - alert: KdbMcpDown
+        expr: up{job="kdb-mcp"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: kdb-mcp
+          category: availability
+        annotations:
+          summary: "kdb-mcp service is DOWN"
+          description: |
+            kdb-mcp service is not responding to scrapes.
+            Immediate investigation required.
+          runbook_url: "https://docs.kindly.software/kdb/runbooks/service-down"
+
+      - alert: KdbMcpHealthCheckFailing
+        expr: kdb_mcp_health_check_success == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: kdb-mcp
+          category: availability
+        annotations:
+          summary: "kdb-mcp health check failing"
+          description: |
+            Health check has been failing for 2+ minutes.
+            Service may be in degraded state.
+
+      - alert: KdbMcpLowAvailability
+        expr: |
+          (
+            1 - (
+              sum(rate(kdb_mcp_requests_total{status="error"}[30m]))
+              /
+              sum(rate(kdb_mcp_requests_total[30m]))
+            )
+          ) < 0.999
+        for: 15m
+        labels:
+          severity: critical
+          service: kdb-mcp
+          category: sla
+        annotations:
+          summary: "kdb-mcp availability below 99.9% SLA"
+          description: |
+            Availability: {{ $value | humanizePercentage }} (SLA: 99.9%).
+            SLA violation imminent or occurring.
+
+  # ===========================================================================
+  # kdb-mcp Intrusion Detection Alerts
+  # ===========================================================================
+  - name: kdb_mcp_security
+    interval: 30s
+    rules:
+      - alert: KdbMcpSuspiciousIP
+        expr: increase(kdb_mcp_blocked_ips_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+          service: kdb-mcp
+          category: security
+        annotations:
+          summary: "Multiple IPs blocked by kdb-mcp"
+          description: |
+            {{ $value | printf "%.0f" }} IPs blocked in 5min.
+            Possible scanning or distributed attack.
+
+      - alert: KdbMcpAnomalyDetected
+        expr: kdb_mcp_anomaly_score > 0.8
+        for: 5m
+        labels:
+          severity: critical
+          service: kdb-mcp
+          category: security
+        annotations:
+          summary: "Anomalous behavior detected"
+          description: |
+            Anomaly score: {{ $value | printf "%.2f" }} (threshold: 0.8).
+            Behavioral anomaly detected - review audit logs.
+
+      - alert: KdbMcpDebugAccessFromUnknownIP
+        expr: |
+          increase(kdb_mcp_debug_access_total{source!~"192.168.*|10.*|127.*"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: kdb-mcp
+          category: security
+        annotations:
+          summary: "Debug API accessed from external IP"
+          description: |
+            Debug API access from non-internal IP detected.
+            Verify if this is authorized access.

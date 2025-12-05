@@ -1,0 +1,260 @@
+# kdb-mcp License Tiers Configuration
+# UCE34 Framework: T1 Atomic License Validation (LicenseValidatorCapsule)
+# Performance: <10ns cached validation, ~50ns fresh validation
+#
+# Deployment: Copy to /etc/kdb-mcp/license_tiers.yaml on production servers
+# or set KDB_MCP_LICENSE_CONFIG environment variable to config path
+#
+# Changes require service restart to take effect.
+
+---
+# =============================================================================
+# License Tier Definitions
+# Each tier defines capabilities, quotas, and rate limits
+# =============================================================================
+tiers:
+  # ---------------------------------------------------------------------------
+  # Free Tier - Limited functionality for evaluation
+  # ---------------------------------------------------------------------------
+  free:
+    name: "Free"
+    description: "Basic debugging for evaluation and personal projects"
+
+    # Session limits
+    max_sessions: 5
+    session_timeout_seconds: 1800  # 30 minutes
+
+    # Breakpoint limits
+    max_breakpoints: 10
+    max_breakpoints_per_file: 5
+    conditional_breakpoints: false
+
+    # Snapshot/Time-travel limits
+    snapshot_capacity: 100
+    max_snapshot_size_bytes: 1048576  # 1 MB
+    time_travel_enabled: false
+
+    # Rate limiting (stricter than default)
+    rate_limit:
+      requests_per_minute: 10
+      burst_tokens: 20
+      snapshot_rate_per_minute: 5
+
+    # Feature flags
+    features:
+      remote_debugging: false
+      multi_process: false
+      symbol_resolution: true
+      memory_inspection: true
+      register_inspection: true
+      stack_unwinding: true
+      simd_acceleration: false
+      audit_trail: false
+
+    # Metrics/Telemetry
+    metrics:
+      prometheus_export: false
+      opentelemetry: false
+
+    # Support
+    support:
+      email: false
+      slack: false
+      priority: "community"
+
+  # ---------------------------------------------------------------------------
+  # Pro Tier - Full functionality for professional developers
+  # ---------------------------------------------------------------------------
+  pro:
+    name: "Pro"
+    description: "Full debugging capabilities for professional development"
+
+    # Session limits
+    max_sessions: 50
+    session_timeout_seconds: 14400  # 4 hours
+
+    # Breakpoint limits
+    max_breakpoints: 100
+    max_breakpoints_per_file: 50
+    conditional_breakpoints: true
+
+    # Snapshot/Time-travel limits
+    snapshot_capacity: 2047  # Max capacity of ReplayEngineCapsule
+    max_snapshot_size_bytes: 10485760  # 10 MB
+    time_travel_enabled: true
+
+    # Rate limiting (generous)
+    rate_limit:
+      requests_per_minute: 100
+      burst_tokens: 200
+      snapshot_rate_per_minute: 30
+
+    # Feature flags
+    features:
+      remote_debugging: true
+      multi_process: true
+      symbol_resolution: true
+      memory_inspection: true
+      register_inspection: true
+      stack_unwinding: true
+      simd_acceleration: true
+      audit_trail: true
+
+    # Metrics/Telemetry
+    metrics:
+      prometheus_export: true
+      opentelemetry: true
+
+    # Support
+    support:
+      email: true
+      slack: false
+      priority: "standard"
+      response_time_hours: 48
+
+  # ---------------------------------------------------------------------------
+  # Enterprise Tier - Unlimited for teams and organizations
+  # ---------------------------------------------------------------------------
+  enterprise:
+    name: "Enterprise"
+    description: "Unlimited debugging for teams with dedicated support"
+
+    # Session limits
+    max_sessions: -1  # Unlimited (-1)
+    session_timeout_seconds: 86400  # 24 hours
+
+    # Breakpoint limits
+    max_breakpoints: -1  # Unlimited
+    max_breakpoints_per_file: -1  # Unlimited
+    conditional_breakpoints: true
+
+    # Snapshot/Time-travel limits
+    snapshot_capacity: 2047  # Hardware limit
+    max_snapshot_size_bytes: 104857600  # 100 MB
+    time_travel_enabled: true
+
+    # Rate limiting (very generous, mostly for abuse prevention)
+    rate_limit:
+      requests_per_minute: 1000
+      burst_tokens: 2000
+      snapshot_rate_per_minute: 100
+
+    # Feature flags
+    features:
+      remote_debugging: true
+      multi_process: true
+      symbol_resolution: true
+      memory_inspection: true
+      register_inspection: true
+      stack_unwinding: true
+      simd_acceleration: true
+      audit_trail: true
+      custom_tools: true  # Register custom debugging tools
+      api_access: true    # Raw API access
+
+    # Metrics/Telemetry
+    metrics:
+      prometheus_export: true
+      opentelemetry: true
+      custom_exporters: true
+
+    # Support
+    support:
+      email: true
+      slack: true
+      phone: true
+      dedicated_account_manager: true
+      priority: "critical"
+      response_time_hours: 4
+
+    # Compliance
+    compliance:
+      soc2: true
+      hipaa: true
+      gdpr: true
+      custom_data_retention: true
+
+# =============================================================================
+# License Key Format
+# Pattern: kdb_{tier}_{random_id}_{checksum}
+# Example: kdb_pro_a1b2c3d4e5f6_7890
+# =============================================================================
+key_format:
+  prefix: "kdb"
+  separator: "_"
+  id_length: 12
+  checksum_algorithm: "crc32"
+
+# =============================================================================
+# License Validation Settings
+# =============================================================================
+validation:
+  # Cache validation results (T1 Atomic, <10ns)
+  cache_enabled: true
+  cache_ttl_seconds: 300  # 5 minutes
+
+  # Grace period after expiry
+  grace_period_days: 7
+
+  # Offline validation
+  offline_mode: true
+  offline_max_days: 30
+
+  # License server (for online validation)
+  server:
+    url: "https://license.kindly.software/api/v1/validate"
+    timeout_ms: 5000
+    retry_count: 3
+
+  # Fallback behavior
+  fallback:
+    on_network_error: "allow"  # allow, deny, degrade
+    on_invalid_key: "deny"
+    on_expired: "degrade"  # Downgrade to free tier
+
+# =============================================================================
+# Quota Enforcement
+# =============================================================================
+quota:
+  # How to handle quota exceeded
+  enforcement:
+    sessions: "reject"      # reject, queue, warn
+    breakpoints: "reject"
+    snapshots: "reject"
+    rate_limit: "429"       # HTTP 429 Too Many Requests
+
+  # Quota reset
+  reset:
+    type: "rolling"  # rolling, calendar
+    period_hours: 24
+
+# =============================================================================
+# Audit & Logging (Q34 Compliance)
+# =============================================================================
+audit:
+  enabled: true
+
+  events:
+    - license_validated
+    - license_expired
+    - quota_exceeded
+    - tier_upgrade
+    - tier_downgrade
+
+  storage:
+    type: "file"  # file, syslog, remote
+    path: "/var/log/kdb-mcp/license_audit.log"
+    rotation:
+      max_size_mb: 100
+      max_files: 10
+      compress: true
+
+# =============================================================================
+# Trial Configuration
+# =============================================================================
+trial:
+  enabled: true
+  tier: "pro"  # Trial gets pro features
+  duration_days: 14
+  max_trials_per_user: 1
+  require_email_verification: true

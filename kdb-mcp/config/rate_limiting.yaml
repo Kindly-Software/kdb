@@ -1,0 +1,203 @@
+# kdb-mcp Rate Limiting Configuration
+# UCE34 Framework: T1 Atomic Token Bucket (RateLimiterCapsule + PerClientRateLimiterCapsule)
+# Performance: <30ns per request (validated via B32 benchmarks)
+#
+# This configuration is loaded at runtime by the kdb-mcp server.
+# Changes require service restart to take effect.
+
+---
+# =============================================================================
+# Global Rate Limiting (RateLimiterCapsule)
+# Applies to all requests before per-client limits
+# =============================================================================
+global:
+  # Burst capacity: maximum tokens in bucket (Q16.16 fixed-point internally)
+  # 1000 requests can be made instantly before throttling
+  burst_tokens: 1000
+
+  # Sustained rate: tokens refilled per second
+  # After burst exhausted, 500 requests/second sustained
+  sustained_tokens_per_second: 500
+
+  # Token cost per request (default: 1)
+  # Higher costs for expensive operations
+  default_cost: 1
+
+  # Metrics exposure
+  metrics:
+    enabled: true
+    prefix: "kdb_mcp_global_rate"
+
+# =============================================================================
+# Per-Client Rate Limiting (PerClientRateLimiterCapsule)
+# Independent token buckets per client ID (IP, API key, session)
+# =============================================================================
+per_client:
+  # Default rate for new clients (tokens per second, Q16.16 internally)
+  default_rate_per_second: 100
+
+  # Default burst capacity per client
+  default_burst_tokens: 200
+
+  # Refill interval (milliseconds)
+  # Lower = more accurate but more CPU overhead
+  refill_interval_ms: 100
+
+  # Client identification strategy
+  client_id_strategy: "ip_address"  # Options: ip_address, api_key, session, x_forwarded_for
+
+  # Cleanup stale clients (inactive for this duration)
+  stale_client_cleanup_ms: 3600000  # 1 hour
+
+  # Maximum tracked clients (memory bound)
+  max_tracked_clients: 100000
+
+  # Metrics
+  metrics:
+    enabled: true
+    prefix: "kdb_mcp_client_rate"
+    per_client_stats: true
+
+# =============================================================================
+# Endpoint-Specific Overrides
+# Higher security endpoints get stricter limits
+# =============================================================================
+endpoints:
+  # Authentication endpoints - strict limits to prevent brute force
+  - pattern: "/api/auth/*"
+    rate_per_second: 10
+    burst_tokens: 20
+    cost: 5  # Each auth attempt costs 5 tokens
+
+  # Debug operations - expensive, limit heavily
+  - pattern: "/api/debug/*"
+    rate_per_second: 50
+    burst_tokens: 100
+    cost: 2
+
+  # Snapshot operations - memory intensive
+  - pattern: "/api/debug/snapshot/*"
+    rate_per_second: 20
+    burst_tokens: 50
+    cost: 10
+
+  # Breakpoint operations - normal limits
+  - pattern: "/api/debug/breakpoint/*"
+    rate_per_second: 100
+    burst_tokens: 200
+    cost: 1
+
+  # Health check - very permissive
+  - pattern: "/health"
+    rate_per_second: 1000
+    burst_tokens: 2000
+    cost: 0  # Free, doesn't consume tokens
+
+  # Metrics endpoint - permissive for monitoring
+  - pattern: "/metrics"
+    rate_per_second: 100
+    burst_tokens: 200
+    cost: 0
+
+# =============================================================================
+# Response Headers (RFC 6585 compliant)
+# =============================================================================
+response_headers:
+  # Include rate limit info in responses
+  enabled: true
+
+  # Header names (standard draft-ietf-httpapi-ratelimit-headers)
+  limit_header: "X-RateLimit-Limit"
+  remaining_header: "X-RateLimit-Remaining"
+  reset_header: "X-RateLimit-Reset"
+  retry_after_header: "Retry-After"
+
+# =============================================================================
+# 429 Response Configuration
+# =============================================================================
+rate_limit_response:
+  # HTTP status code
+  status_code: 429
+
+  # Response body (JSON)
+  body: |
+    {
+      "error": "rate_limit_exceeded",
+      "message": "Too many requests. Please retry after the specified time.",
+      "retry_after_seconds": {{retry_after}}
+    }
+
+  # Additional headers
+  headers:
+    Content-Type: "application/json"
+
+# =============================================================================
+# Bypass Rules (Whitelist)
+# Clients matching these rules bypass rate limiting
+# =============================================================================
+bypass:
+  # Internal monitoring (Prometheus, health checks)
+  - type: "ip_cidr"
+    value: "127.0.0.1/8"
+    reason: "Localhost bypass"
+
+  - type: "ip_cidr"
+    value: "192.168.0.0/16"
+    reason: "Internal network bypass"
+
+  - type: "ip_cidr"
+    value: "10.0.0.0/8"
+    reason: "Private network bypass"
+
+  # Specific API keys (enterprise tier)
+  - type: "header"
+    header_name: "X-API-Key"
+    value_pattern: "^kdb_enterprise_.*"
+    reason: "Enterprise tier bypass"
+
+# =============================================================================
+# Logging & Alerting
+# =============================================================================
+logging:
+  # Log rate limit events
+  enabled: true
+  level: "warn"  # Options: debug, info, warn, error
+
+  # Log format
+  format: "json"  # Options: json, text
+
+  # Fields to include
+  fields:
+    - client_id
+    - endpoint
+    - tokens_remaining
+    - retry_after_ms
+    - timestamp
+
+alerting:
+  # Alert when rate limit triggered
+  enabled: true
+
+  # Prometheus metrics for alerting
+  metrics:
+    - name: "kdb_mcp_rate_limited_total"
+      type: "counter"
+      labels: ["client_id", "endpoint"]
+
+    - name: "kdb_mcp_rate_limit_tokens_remaining"
+      type: "gauge"
+      labels: ["client_id"]
+
+# =============================================================================
+# Graceful Degradation
+# Behavior under extreme load
+# =============================================================================
+degradation:
+  # If rate limiter itself is overloaded
+  fallback_action: "allow"  # Options: allow, deny, challenge
+
+  # Circuit breaker for rate limiter
+  circuit_breaker:
+    enabled: true
+    failure_threshold: 10
+    recovery_timeout_ms: 5000
