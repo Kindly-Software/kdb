@@ -12,7 +12,6 @@ Kindly Debugger brings powerful debugging capabilities directly into your AI cod
 - **Audit Trails** - Cryptographically signed audit logs for compliance (SOX, SOC2, GDPR)
 - **MCP Native** - Seamless integration with Claude Code and other MCP-compatible clients
 - **Secure by Design** - API key authentication with rate limiting
-- **XML Document Tools** - XPath queries and schema validation
 - **Bug Pattern Detection** - Find similar bugs across your codebase
 
 ## Quick Start
@@ -62,10 +61,6 @@ Once configured, you can use natural language commands in Claude Code:
 | **Admin** | `debugger/quota_status` | Check API usage quota |
 | | `debugger/license_info` | Get license information |
 | | `debugger/get_comprehensive_audit` | Get audit trail |
-| **Document** | `xpath_query` | Query XML documents |
-| | `validate_schema` | Validate XML against schema |
-| | `cache_stats` | Get document cache statistics |
-| | `preload_documents` | Preload documents into cache |
 
 ## Documentation
 
