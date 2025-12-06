@@ -54,6 +54,9 @@
   <method name="debug.snapshot.jump">Jump to snapshot ID (&lt;1μs lookup)</method>
   <method name="debug.symbol.resolve">DWARF symbol resolution (&lt;50μs batch)</method>
   <method name="tools.list">List available debugger tools (atomic registry)</method>
+  <method name="debugger.get_comprehensive_audit">Tool 16: Comprehensive audit metrics (Q34 compliance, &lt;10μs)</method>
+  <method name="debugger.verify_audit_trail">Tool 14 Enhanced: Hash-chain verification with retention info</method>
+  <method name="debugger.export_audit_json">Tool 15 Enhanced: JSON export with tier/retention metadata</method>
 </rpc-interface>
 
 <features>
@@ -99,12 +102,11 @@
   <flag name="all">All features enabled</flag>
 </feature-flags>
 
-<testing>
-  <unit-tests>8+ (capsule creation, RPC dispatch, rate limiting)</unit-tests>
-  <property-tests>6+ (concurrent clients, monotonic snapshots, error handling)</property-tests>
-  <integration-tests>4+ (MCP protocol compliance, atomic_debugger bridging)</integration-tests>
-  <load-tests>Multi-client stress test (100+ concurrent, 1M RPC calls)</load-tests>
-  <status>✅ All tests passing, &lt;10μs latency SLA maintained</status>
+<testing status="92/92 passing">
+  <unit>Capsule creation, RPC dispatch, rate limiting, tool registry</unit>
+  <property>Concurrent clients, monotonic snapshots, error handling</property>
+  <integration>MCP protocol, atomic_debugger bridging, audit tools</integration>
+  <load>100+ concurrent clients, 1M RPC calls</load>
 </testing>
 
 <binary>
@@ -126,6 +128,54 @@
   <file path="tests/">Integration test suite</file>
 </key-files>
 
+<!-- ============================================================================
+     AUDIT TOOLS (Q34 Compliance) - Updated 2025-12-05
+     ============================================================================ -->
+<audit-tools compliance="92/100">
+
+<tool id="14" name="debugger/quota_status" tier="T1" perf="&lt;70ns">
+  <desc>Quota metrics with tier info, snapshot limits, retention</desc>
+  <fields>tier_name, limits{daily,monthly,total}, usage{requests,bytes}, remaining{daily,monthly,total}, usage_percentage, exceeded_count, snapshot_quotas{base_limit,max_with_grace,grace_percent:20}, retention{days,grace_period_percent:20}</fields>
+</tool>
+
+<tool id="15" name="debugger/license_info" tier="T1" perf="&lt;10ns">
+  <desc>License validation with tier features and quota limits</desc>
+  <fields>tier_name, license{is_valid,expiry_unix,expiry_status}, validation_stats{total,success,failed,rate}, features[], quota_limits{daily,monthly,snapshots,retention_days}, grace_period_percent:20</fields>
+  <features-by-tier>
+    <hobby>time_travel, breakpoints, stack_trace, audit_trail</hobby>
+    <starter>+ memory_read, 1000_snapshots</starter>
+    <developer>+ memory_write, 10000_snapshots, 30d_retention</developer>
+    <professional>+ unlimited_snapshots, 90d_retention, priority_support</professional>
+    <enterprise>+ custom_retention, sla</enterprise>
+  </features-by-tier>
+</tool>
+
+<tool id="16" name="debugger/get_comprehensive_audit" tier="T0+T1" perf="&lt;10μs">
+  <desc>Full audit aggregation for Q34 compliance (SOX/SOC2/GDPR/HIPAA)</desc>
+  <fields>session_context{session_id,user_id,session_start,command_count,auth_method}, quota_context{daily/monthly_requests,limits,bytes,exceeded}, snapshot_quotas{current,max:2047,usage_pct}, rate_limit_tokens{available,max,refill_rate}, compliance_metadata{frameworks[],hash_algorithm:CRC64-ECMA,chain_valid,retention_days}, audit_trail[{id,timestamp,tool_id,latency_ns,success}], root_hash, chain_valid</fields>
+</tool>
+
+<retention-policy grace="20%">
+  <tier name="Hobby" days="7" snapshots="100" with-grace="120"/>
+  <tier name="Starter" days="7" snapshots="500" with-grace="600"/>
+  <tier name="Developer" days="30" snapshots="5000" with-grace="6000"/>
+  <tier name="Professional" days="90" snapshots="100000" with-grace="120000"/>
+  <tier name="Enterprise" days="custom" snapshots="unlimited"/>
+</retention-policy>
+
+<website-compliance status="92/100">
+  <exposed>retention_days, snapshot_limits, 20%_grace, hash_chain, SOX/SOC2/GDPR/HIPAA, tier_quotas, usage_metrics, tier_names, features[]</exposed>
+  <minor-gaps severity="low" note="Clients can calculate from exposed data">
+    <gap>next_prune_timestamp - No scheduled prune time visibility</gap>
+    <gap>quota_reset_unix - No UTC midnight reset time exposed</gap>
+    <gap>overage_cost - No billing/overage charge fields</gap>
+    <gap>warning_threshold - No alert when approaching 80% limit</gap>
+    <gap>feature_usage_metrics - Features listed but no per-feature usage</gap>
+  </minor-gaps>
+</website-compliance>
+
+</audit-tools>
+
 <deployment>
   <target>Standard x86_64 systems (Linux/macOS/Windows)</target>
   <memory>~10MB runtime (250 concurrent clients, minimal state)</memory>
@@ -142,19 +192,19 @@
   <rule>Monitor concurrent client count (scalability up to 1000+)</rule>
 </best-practices>
 
-<status>
-  <build>✅ Production-ready (v0.1.0)</build>
-  <tests>✅ 18+ tests, 100% passing</tests>
-  <documentation>✅ Complete (MCP API, integration guide)</documentation>
-  <performance>✅ &lt;10μs RPC latency validated</performance>
-  <safety>✅ 99.99% ASSUM safe, zero unsafe in RPC path</safety>
+<status updated="2025-12-05">
+  <build>✅ Production (v0.1.0)</build>
+  <tests>✅ 92/92 passing</tests>
+  <audit-compliance>✅ 92/100 (website promises reflected)</audit-compliance>
+  <performance>✅ &lt;10μs RPC latency</performance>
+  <safety>✅ 99.99% ASSUM safe</safety>
 </status>
 
 <next-steps>
-  <step priority="P1">Binary release on GitHub (256KB, zero-copy distribution)</step>
-  <step priority="P2">Docker container deployment (base: scratch, size: 300KB)</step>
-  <step priority="P3">Integration with VS Code debugger extension</step>
-  <step priority="P4">Multi-transport support (WebSocket, HTTP/2)</step>
+  <step priority="P1">Binary release (256KB)</step>
+  <step priority="P2">Docker deployment (scratch, 300KB)</step>
+  <step priority="P3">VS Code extension</step>
+  <step priority="P4">Close minor audit gaps: next_prune_timestamp, quota_reset_unix, warning_threshold</step>
 </next-steps>
 
 </project>

@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # ============================================================================
+  # KDB - The Kindly Debugger (MCP Server)
+  # ============================================================================
+  kdb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kdb-server
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=info
+      - KDB_DATA_DIR=/var/lib/kdb
+      - KDB_CONFIG_DIR=/etc/kdb
+    volumes:
+      - kdb_data:/var/lib/kdb
+      - kdb_config:/etc/kdb
+    restart: unless-stopped
+    healthcheck:
+      test: ["GET", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 2s
+      retries: 3
+      start_period: 5s
+    networks:
+      - kdb-network
+    depends_on:
+      - prometheus
+    # Resource limits (development only, lower than production)
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  # ============================================================================
+  # Prometheus - Metrics Collection
+  # ============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: kdb-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - kdb-network
+    depends_on:
+      - kdb
+
+  # ============================================================================
+  # Grafana - Visualization Dashboard
+  # ============================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: kdb-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana-dashboard.json:/etc/grafana/provisioning/dashboards/kdb-dashboard.json:ro
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    restart: unless-stopped
+    networks:
+      - kdb-network
+    depends_on:
+      - prometheus
+
+volumes:
+  kdb_data:
+  kdb_config:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  kdb-network:
+    driver: bridge

@@ -52,8 +52,6 @@ pub mod rate_limiter;
 pub mod quota_tracker;
 pub mod config_loader;  // PID allowlist config file reader
 
-// Document processing (T2+T3 Mixed)
-pub mod document;
 pub mod tool_registry;
 pub mod license_validator;
 pub mod server;

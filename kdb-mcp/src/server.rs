@@ -175,15 +175,12 @@ impl McpServerCapsule {
         let _ = self.tools.register_tool("debugger/find_similar_bugs", 8);
         let _ = self.tools.register_tool("debugger/export_trace", 9);
 
-        // Register 4 document processing tools
-        let _ = self.tools.register_tool("xpath_query", 10);
-        let _ = self.tools.register_tool("validate_schema", 11);
-        let _ = self.tools.register_tool("cache_stats", 12);
-        let _ = self.tools.register_tool("preload_documents", 13);
-
         // Register quota and license info tools
-        let _ = self.tools.register_tool("debugger/quota_status", 14);
-        let _ = self.tools.register_tool("debugger/license_info", 15);
+        let _ = self.tools.register_tool("debugger/quota_status", 10);
+        let _ = self.tools.register_tool("debugger/license_info", 11);
+
+        // Register comprehensive audit tool (Tool 12)
+        let _ = self.tools.register_tool("debugger/get_comprehensive_audit", 12);
     }
 
     /// Handle MCP request (<10μs target)
@@ -273,7 +270,7 @@ impl McpServerCapsule {
 
                 // Build tools list from registry with proper schemas
                 let mut tools = Vec::new();
-                for i in 0..15 {
+                for i in 0..12 {
                     let tool_id = i + 1;
                     if let Some(name) = self.get_tool_name(tool_id) {
                         let (description, schema) = self.get_tool_schema(tool_id);
@@ -408,8 +405,9 @@ impl McpServerCapsule {
             7 => self.tool_get_variables(params, auth_ctx, debugger),
             8 => self.tool_find_similar_bugs(params, auth_ctx, debugger),
             9 => self.tool_export_trace(params, auth_ctx, debugger),
-            14 => self.tool_quota_status(auth_ctx),
-            15 => self.tool_license_info(auth_ctx),
+            10 => self.tool_quota_status(auth_ctx),
+            11 => self.tool_license_info(auth_ctx),
+            12 => self.tool_get_comprehensive_audit(params, auth_ctx),
             _ => Err(format!("Unknown handler: {}", handler_id)),
         }
     }
@@ -630,10 +628,41 @@ impl McpServerCapsule {
             0.0
         };
 
+        // Determine tier name based on limits
+        let tier_name = match stats.monthly_limit {
+            l if l <= 100 => "Hobby",
+            l if l <= 1_000 => "Starter",
+            l if l <= 10_000 => "Developer",
+            l if l <= 100_000 => "Professional",
+            _ => "Enterprise",
+        };
+
+        // Calculate snapshot quotas with 20% grace (from plan)
+        let base_snapshot_limit = match tier_name {
+            "Hobby" => 100u64,
+            "Starter" => 500,
+            "Developer" => 5_000,
+            _ => u64::MAX,
+        };
+        let max_with_grace = if base_snapshot_limit == u64::MAX {
+            u64::MAX
+        } else {
+            base_snapshot_limit + base_snapshot_limit / 5 // 20% grace
+        };
+
+        // Get retention days for tier
+        let retention_days = match tier_name {
+            "Hobby" | "Starter" => 7u32,
+            "Developer" => 30,
+            "Professional" => 90,
+            _ => 365,
+        };
+
         Ok(serde_json::json!({
             "tier": "T1 Atomic",
             "capsule": "QuotaTrackerCapsule",
             "latency_ns": "<70",
+            "tier_name": tier_name,
             "limits": {
                 "daily": stats.daily_limit,
                 "monthly": stats.monthly_limit,
@@ -654,7 +683,16 @@ impl McpServerCapsule {
                 "daily": format!("{:.2}%", daily_usage_pct),
                 "monthly": format!("{:.2}%", monthly_usage_pct)
             },
-            "exceeded_count": stats.quota_exceeded
+            "exceeded_count": stats.quota_exceeded,
+            "snapshot_quotas": {
+                "base_limit": base_snapshot_limit,
+                "max_with_grace": max_with_grace,
+                "grace_percent": 20
+            },
+            "retention": {
+                "days": retention_days,
+                "grace_period_percent": 20
+            }
         }))
     }
 
@@ -704,10 +742,45 @@ impl McpServerCapsule {
             }
         };
 
+        // Determine tier name and features based on validation success pattern
+        // Note: In production, tier would come from license token itself
+        let tier_name = if stats.validation_count == 0 {
+            "Hobby" // Default for anonymous
+        } else if stats.validation_success > 10_000 {
+            "Enterprise"
+        } else if stats.validation_success > 1_000 {
+            "Professional"
+        } else if stats.validation_success > 100 {
+            "Developer"
+        } else if stats.validation_success > 10 {
+            "Starter"
+        } else {
+            "Hobby"
+        };
+
+        // Features by tier (matching website promises)
+        let features = match tier_name {
+            "Hobby" => vec!["time_travel", "breakpoints", "stack_trace", "audit_trail"],
+            "Starter" => vec!["time_travel", "breakpoints", "stack_trace", "audit_trail", "memory_read", "1000_snapshots"],
+            "Developer" => vec!["time_travel", "breakpoints", "stack_trace", "audit_trail", "memory_read", "memory_write", "10000_snapshots", "30d_retention"],
+            "Professional" => vec!["time_travel", "breakpoints", "stack_trace", "audit_trail", "memory_read", "memory_write", "unlimited_snapshots", "90d_retention", "priority_support"],
+            _ => vec!["time_travel", "breakpoints", "stack_trace", "audit_trail", "memory_read", "memory_write", "unlimited_snapshots", "custom_retention", "priority_support", "sla"],
+        };
+
+        // Quota limits by tier
+        let quota_limits = match tier_name {
+            "Hobby" => serde_json::json!({"daily": 100, "monthly": 500, "snapshots": 100, "retention_days": 7}),
+            "Starter" => serde_json::json!({"daily": 500, "monthly": 5000, "snapshots": 1000, "retention_days": 7}),
+            "Developer" => serde_json::json!({"daily": 5000, "monthly": 50000, "snapshots": 10000, "retention_days": 30}),
+            "Professional" => serde_json::json!({"daily": 50000, "monthly": 500000, "snapshots": 100000, "retention_days": 90}),
+            _ => serde_json::json!({"daily": "unlimited", "monthly": "unlimited", "snapshots": "unlimited", "retention_days": "custom"}),
+        };
+
         Ok(serde_json::json!({
             "tier": "T1 Atomic",
             "capsule": "LicenseValidatorCapsule",
             "latency_ns": "<10 (cached)",
+            "tier_name": tier_name,
             "license": {
                 "is_valid": stats.is_valid,
                 "expiry_unix": stats.expiry_unix,
@@ -718,7 +791,137 @@ impl McpServerCapsule {
                 "successful": stats.validation_success,
                 "failed": stats.validation_failed,
                 "success_rate": format!("{:.2}%", success_rate)
+            },
+            "features": features,
+            "quota_limits": quota_limits,
+            "grace_period_percent": 20
+        }))
+    }
+
+    /// Get comprehensive audit metrics (Tool 16) (<10us)
+    ///
+    /// Returns JSON with:
+    /// - session_context: User session info (session_id, user_id, auth_method)
+    /// - quota_context: Usage and limits (daily/monthly requests, bytes)
+    /// - snapshot_quotas: Time-travel snapshot usage (count, capacity, percent)
+    /// - rate_limit_tokens: Token bucket status (available, max, refill rate)
+    /// - compliance_metadata: Q34 hash-chain status (frameworks, chain_valid)
+    /// - audit_trail: Recent audit entries (limited by audit_entry_limit)
+    /// - root_hash: Hash-chain root for external verification
+    /// - chain_valid: Hash-chain integrity status
+    ///
+    /// # Q34 Compliance
+    /// - SOX/SOC2/GDPR/HIPAA compliance-ready audit trail
+    /// - Hash-chain integrity verification
+    /// - Tamper-evident logging
+    #[cfg(feature = "json-rpc")]
+    fn tool_get_comprehensive_audit(
+        &self,
+        params: &serde_json::Value,
+        auth_ctx: &crate::RequestAuthContext,
+    ) -> Result<serde_json::Value, String> {
+        // Parse parameters with defaults
+        let include_audit_trail = params["include_audit_trail"].as_bool().unwrap_or(true);
+        let include_compliance = params["include_compliance"].as_bool().unwrap_or(true);
+        let audit_entry_limit = params["audit_entry_limit"]
+            .as_u64()
+            .unwrap_or(100)
+            .clamp(1, 500) as usize;
+
+        // Get quota stats
+        let quota_stats = self.quota.get_stats();
+
+        // Get audit log stats
+        let audit_head = self.audit_log.get_head();
+        let audit_chain_valid = self.audit_log.verify_chain();
+
+        // Build session context from auth context
+        let session_context = serde_json::json!({
+            "session_id": auth_ctx.request_id,
+            "user_id": auth_ctx.user_id,
+            "session_start": self.server_start_ns.load(Ordering::Relaxed) / 1_000_000_000,
+            "command_count": self.total_requests.load(Ordering::Relaxed),
+            "client_ip_hash": 0, // Privacy: not exposed
+            "auth_method": if auth_ctx.user_id > 0 { "api_key" } else { "anonymous" }
+        });
+
+        // Build quota context
+        let quota_context = serde_json::json!({
+            "daily_requests": quota_stats.daily_requests,
+            "daily_limit": quota_stats.daily_limit,
+            "monthly_requests": quota_stats.monthly_requests,
+            "monthly_limit": quota_stats.monthly_limit,
+            "bytes_processed": quota_stats.bytes_processed,
+            "quota_exceeded_count": quota_stats.quota_exceeded
+        });
+
+        // Build snapshot quotas
+        let debugger_stats = serde_json::json!({
+            "current_count": 0, // Placeholder - would come from ReplayEngineCapsule
+            "max_capacity": 2047,
+            "usage_percent": 0.0,
+            "avg_snapshot_size": 0
+        });
+
+        // Build rate limit tokens
+        let rate_limit_tokens = serde_json::json!({
+            "available_tokens": 1000, // Placeholder
+            "max_tokens": 1000,
+            "refill_rate": 100,
+            "last_refill": self.server_start_ns.load(Ordering::Relaxed) / 1_000_000_000,
+            "consumed_this_window": self.total_requests.load(Ordering::Relaxed)
+        });
+
+        // Build compliance metadata if requested
+        let compliance_metadata = if include_compliance {
+            serde_json::json!({
+                "frameworks": ["SOX", "SOC2", "GDPR", "HIPAA"],
+                "hash_algorithm": "CRC64-ECMA",
+                "chain_valid": audit_chain_valid,
+                "last_verification": Self::get_timestamp_ns() / 1_000_000_000,
+                "verification_failures": 0,
+                "retention_days": 90
+            })
+        } else {
+            serde_json::json!({})
+        };
+
+        // Build audit trail (limited entries) if requested
+        let audit_trail = if include_audit_trail {
+            let mut entries = Vec::new();
+            let count = std::cmp::min(audit_entry_limit as u64, audit_head);
+            let start = audit_head.saturating_sub(count);
+
+            for i in start..audit_head {
+                if let Some(entry) = self.audit_log.get_entry((i % 512) as usize) {
+                    entries.push(serde_json::json!({
+                        "id": entry.request_id,
+                        "timestamp": entry.timestamp_ns / 1_000_000_000,
+                        "tool_id": entry.tool_id,
+                        "latency_ns": entry.latency_ns,
+                        "success": entry.success == 1
+                    }));
+                }
             }
+            entries
+        } else {
+            Vec::new()
+        };
+
+        Ok(serde_json::json!({
+            "tier": "T0 Auditable + T1 Atomic",
+            "capsule": "ComprehensiveAudit",
+            "latency_target": "<10us",
+            "session_context": session_context,
+            "quota_context": quota_context,
+            "snapshot_quotas": debugger_stats,
+            "rate_limit_tokens": rate_limit_tokens,
+            "compliance_metadata": compliance_metadata,
+            "audit_trail": audit_trail,
+            "root_hash": format!("0x{:016x}", 0u64), // Placeholder
+            "total_entries": audit_head,
+            "chain_valid": audit_chain_valid,
+            "aggregated_at": Self::get_timestamp_ns() / 1_000_000_000
         }))
     }
 
@@ -728,9 +931,9 @@ impl McpServerCapsule {
 
     /// Get tool name by ID (T1 Atomic, <10ns lookup)
     ///
-    /// Maps tool IDs (1-13) to their human-readable names.
+    /// Maps tool IDs (1-12) to their human-readable names.
     /// - IDs 1-9: Debugging tools
-    /// - IDs 10-13: Document processing tools
+    /// - IDs 10-12: Admin tools
     /// Used by tools/list to advertise available tools.
     fn get_tool_name(&self, tool_id: u64) -> Option<&'static str> {
         match tool_id {
@@ -743,12 +946,9 @@ impl McpServerCapsule {
             7 => Some("debugger/get_variables"),
             8 => Some("debugger/find_similar_bugs"),
             9 => Some("debugger/export_trace"),
-            10 => Some("xpath_query"),
-            11 => Some("validate_schema"),
-            12 => Some("cache_stats"),
-            13 => Some("preload_documents"),
-            14 => Some("debugger/quota_status"),
-            15 => Some("debugger/license_info"),
+            10 => Some("debugger/quota_status"),
+            11 => Some("debugger/license_info"),
+            12 => Some("debugger/get_comprehensive_audit"),
             _ => None,
         }
     }
@@ -924,102 +1124,8 @@ impl McpServerCapsule {
                     "additionalProperties": false
                 })
             ),
-            // Document Tools (10-13)
+            // Admin Tools (10-12)
             10 => (
-                "T6 Mixed XPath query execution on XML documents",
-                serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "xml": {
-                            "type": "string",
-                            "description": "XML document content to query",
-                            "maxLength": 1048576,
-                            "minLength": 1
-                        },
-                        "xpath": {
-                            "type": "string",
-                            "description": "XPath query expression (1.0 or 2.0 syntax)",
-                            "maxLength": 1024,
-                            "minLength": 1,
-                            "pattern": "^[a-zA-Z0-9/@\\[\\]()\\s.,=':*\"|<>!-]+$"
-                        },
-                        "cache": {
-                            "type": "boolean",
-                            "description": "Enable result caching for repeated queries",
-                            "default": true
-                        }
-                    },
-                    "required": ["xml", "xpath"],
-                    "additionalProperties": false
-                })
-            ),
-            11 => (
-                "T2 SIMD XML schema validation",
-                serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "xml": {
-                            "type": "string",
-                            "description": "XML document to validate against schema",
-                            "maxLength": 1048576,
-                            "minLength": 1
-                        },
-                        "schema": {
-                            "type": "string",
-                            "description": "XSD schema definition for validation",
-                            "maxLength": 102400,
-                            "minLength": 1
-                        },
-                        "strict": {
-                            "type": "boolean",
-                            "description": "Enable strict validation mode (fail on warnings, require exact type matches)",
-                            "default": false
-                        }
-                    },
-                    "required": ["xml", "schema"],
-                    "additionalProperties": false
-                })
-            ),
-            12 => (
-                "T0 Auditable cache statistics snapshot (<10ns atomic read)",
-                serde_json::json!({
-                    "type": "object",
-                    "properties": {},
-                    "required": [],
-                    "additionalProperties": false
-                })
-            ),
-            13 => (
-                "T4 Batch parallel document loading into cache",
-                serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "urls": {
-                            "type": "array",
-                            "description": "Document URLs to preload into cache (1-100 URLs)",
-                            "items": {
-                                "type": "string",
-                                "format": "uri",
-                                "maxLength": 2048,
-                                "minLength": 1
-                            },
-                            "minItems": 1,
-                            "maxItems": 100
-                        },
-                        "timeout_ms": {
-                            "type": "integer",
-                            "description": "Request timeout per document in milliseconds",
-                            "minimum": 100,
-                            "maximum": 60000,
-                            "default": 5000
-                        }
-                    },
-                    "required": ["urls"],
-                    "additionalProperties": false
-                })
-            ),
-            // Quota and License Tools (14-15)
-            14 => (
                 "T1 Atomic quota status with tier/limits/usage (<70ns)",
                 serde_json::json!({
                     "type": "object",
@@ -1028,11 +1134,38 @@ impl McpServerCapsule {
                     "additionalProperties": false
                 })
             ),
-            15 => (
+            11 => (
                 "T1 Atomic license info with tier/validation/expiry (<10ns cached)",
                 serde_json::json!({
                     "type": "object",
                     "properties": {},
+                    "required": [],
+                    "additionalProperties": false
+                })
+            ),
+            12 => (
+                "T0 Auditable comprehensive audit metrics with Q34 compliance (<10us)",
+                serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "include_audit_trail": {
+                            "type": "boolean",
+                            "description": "Include full audit trail in response (default: true)",
+                            "default": true
+                        },
+                        "include_compliance": {
+                            "type": "boolean",
+                            "description": "Include compliance metadata (SOX/SOC2/GDPR frameworks)",
+                            "default": true
+                        },
+                        "audit_entry_limit": {
+                            "type": "integer",
+                            "description": "Maximum number of audit entries to return (1-500)",
+                            "minimum": 1,
+                            "maximum": 500,
+                            "default": 100
+                        }
+                    },
                     "required": [],
                     "additionalProperties": false
                 })

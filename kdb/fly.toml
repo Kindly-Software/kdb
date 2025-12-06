@@ -1,0 +1,87 @@
+# Fly.io configuration for KDB - The Kindly Debugger
+# Deploy with: flyctl deploy
+# Monitor with: flyctl logs
+
+app = "kdb-mcp-server"
+primary_region = "sjc"  # San Jose (US West) - closest to development
+
+# Build configuration
+[build]
+  dockerfile = "Dockerfile"
+  # BuildKit cache for faster rebuilds
+  builder = "docker"
+
+# Environment variables
+[env]
+  RUST_LOG = "info"
+  KDB_DATA_DIR = "/var/lib/kdb"
+  KDB_CONFIG_DIR = "/etc/kdb"
+  CARGO_PROFILE_RELEASE_LTO = "fat"
+
+# HTTP Service configuration
+[http_service]
+  # Internal port (matches kdb --port 8080)
+  internal_port = 8080
+
+  # HTTPS enforcement (Let's Encrypt automatic)
+  force_https = true
+
+  # Auto-scaling
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  # Process type
+  processes = ["app"]
+
+# Health check endpoint (Kubernetes-style)
+# Path: /health
+# Response: { "status": "healthy", "version": "0.1.0", ... }
+[[http_service.checks]]
+  grace_period = "5s"      # Wait 5s before first health check
+  interval = "10s"         # Check every 10s
+  method = "GET"
+  timeout = "2s"           # Timeout after 2s
+  path = "/health"
+  protocol = "http"
+
+  # Success/failure thresholds
+  success_threshold = 2    # 2 successful checks = healthy
+  failure_threshold = 3    # 3 failed checks = unhealthy
+
+# Persistent storage for snapshots and crash dumps
+[mounts]
+  source = "kdb_data"
+  destination = "/var/lib/kdb"
+  initial_size = "1gb"
+
+# VM configuration (shared CPU - cost-optimized)
+[[vm]]
+  # Shared CPU (10% guaranteed, burstable up to 100%)
+  cpu_kind = "shared"
+
+  # 1 CPU core
+  cpus = 1
+
+  # 512MB RAM (matches systemd MemoryLimit)
+  memory_mb = 512
+
+  # VM size identifier
+  size = "shared-cpu-1x"
+
+# Metrics & Observability
+[metrics]
+  # Prometheus metrics endpoint
+  # Access at: https://kdb-mcp-server.fly.dev/metrics
+  path = "/metrics"
+  interval = "10s"
+
+# Logging
+[logging]
+  driver = "fly"
+  level = "info"
+
+# Security: Database secrets (optional, for future license validation)
+# Create with: fly secrets set KDB_LICENSE_KEY=...
+# [experimental]
+#   enable_consul = true

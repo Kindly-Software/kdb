@@ -1,0 +1,65 @@
+# Git and version control
+.git
+.gitignore
+.github
+
+# Build artifacts
+target/
+*.rlib
+*.rmeta
+*.so
+*.dylib
+
+# Documentation
+docs/
+*.md
+DEPLOYMENT.md
+README.md
+CLAUDE.md
+
+# Tests and benchmarks (rebuild in container)
+tests/
+benches/
+examples/
+
+# IDE and editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Temporary files
+*.tmp
+*.log
+.env
+.env.local
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Docker
+docker-compose.yml
+Dockerfile
+
+# Development tools
+.cargo/registry
+.cargo/git
+
+# Grafana and monitoring (rebuilt at runtime)
+grafana-dashboard.json
+prometheus.yml
+grafana-datasources.yml
+
+# Deployment scripts
+deploy.sh
+kdb.service
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Package manager files
+Cargo.lock

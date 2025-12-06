@@ -1,6 +1,8 @@
 //! MCP Tools Modules
 //!
-//! Debugging tools (in server.rs):
+//! All 12 tools are implemented in server.rs:
+//!
+//! Debugging tools (1-9):
 //! 1. debugger/attach - Attach to process
 //! 2. debugger/set_breakpoint - Add breakpoint
 //! 3. debugger/continue - Resume execution
@@ -10,23 +12,11 @@
 //! 7. debugger/get_variables - Read memory
 //! 8. debugger/find_similar_bugs - T10 probabilistic
 //! 9. debugger/export_trace - T5 streaming export
+//!
+//! Admin tools (10-12):
 //! 10. debugger/quota_status - Quota tier/limits/usage (T1 Atomic, <70ns)
 //! 11. debugger/license_info - License tier/validation/expiry (T1 Atomic, <10ns)
-//!
-//! Document tools (in document.rs):
-//! 1. xpath_query - XPath XML queries (T6 Mixed)
-//! 2. validate_schema - XML schema validation (T2 SIMD)
-//! 3. cache_stats - Cache statistics (T0 Auditable)
-//! 4. preload_documents - Batch document loading (T4 Batch)
+//! 12. debugger/get_comprehensive_audit - Q34 compliance audit (<10us)
 
-pub mod document;
-
-// Re-export key types for convenience
-pub use document::{
-    XPathQueryToolCapsule, SchemaValidatorToolCapsule, CacheStatsToolCapsule,
-    PreloaderToolCapsule, RequestContextCapsule, ResponseBuilderCapsule,
-    CacheStatsSnapshot,
-};
-
-#[cfg(feature = "tool-executor")]
-pub use document::{register_document_tools, execute_tool};
+// Note: Document tools (xpath_query, validate_schema, cache_stats, preload_documents)
+// have been removed to reduce bloat and focus on core debugging functionality.

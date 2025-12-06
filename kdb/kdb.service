@@ -1,0 +1,94 @@
+[Unit]
+Description=KDB - The Kindly Debugger (MCP Server)
+Documentation=https://github.com/yourorg/kdb
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kdb
+Group=kdb
+WorkingDirectory=/var/lib/kdb
+
+# Binary location and command
+ExecStart=/usr/local/bin/kdb --mcp-server --port 8080 --host 0.0.0.0 --data-dir /var/lib/kdb
+
+# Restart policy: restart on failure after 5 seconds
+Restart=on-failure
+RestartSec=5s
+StartLimitInterval=300
+StartLimitBurst=5
+
+# Resource limits (cgroups v2)
+# 512MB RAM limit (matches Fly.io deployment)
+MemoryLimit=512M
+MemoryAccounting=yes
+
+# 50% CPU quota (prevents CPU exhaustion)
+CPUQuota=50%
+CPUAccounting=yes
+
+# File descriptor limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Core dump handling (for crash analysis)
+LimitCORE=infinity
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=kdb
+
+# ============================================================================
+# Security Hardening (systemd 239+)
+# ============================================================================
+
+# No new privileges (prevents privilege escalation via setuid)
+NoNewPrivileges=true
+
+# Temporary files are private (isolated /tmp)
+PrivateTmp=true
+
+# Root filesystem read-only except for specified paths
+ProtectSystem=strict
+
+# Home directory not accessible
+ProtectHome=true
+
+# Writable paths (data and config directories)
+ReadWritePaths=/var/lib/kdb /etc/kdb
+
+# Kernel tuning not allowed
+ProtectKernelTunables=true
+
+# Kernel module loading not allowed
+ProtectKernelModules=true
+
+# Cgroup modification not allowed
+ProtectControlGroups=true
+
+# Real-time scheduling not allowed
+RestrictRealtime=true
+
+# Namespace creation not allowed
+RestrictNamespaces=true
+
+# Personality (process execution domain) locked
+LockPersonality=true
+
+# Memory cannot be made writable and executable simultaneously
+MemoryDenyWriteExecute=true
+
+# Address families restricted (IPv4, IPv6, Unix sockets only)
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# System call filtering (optional, requires seccomp support)
+# SystemCallFilter=@system-service
+# SystemCallErrorNumber=EPERM
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=kdb
+
+[Install]
+WantedBy=multi-user.target

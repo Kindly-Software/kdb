@@ -25,6 +25,7 @@
 //! 8. GET    /v1/debug/stack           - Get stack trace
 //! 9. GET    /v1/debug/registers       - Read CPU registers
 //! 10. POST  /v1/debug/audit-verify    - Verify Q34 hash-chain
+//! 11. GET   /v1/debug/comprehensive-audit - Comprehensive audit metrics (Q34)
 //!
 //! ## Performance
 //! - <10μs JSON parsing (serde_json)
@@ -1077,6 +1078,65 @@ fn handle_audit_verify(_req: &HttpRequest, state: &Arc<ServerState>) -> HttpResp
     )
 }
 
+/// GET /v1/debug/comprehensive-audit - Comprehensive audit metrics (Q34 compliance)
+///
+/// Returns comprehensive audit trail with session/quota/compliance context.
+/// Performance: <100μs (aggregates 5 capsules)
+fn handle_comprehensive_audit(_req: &HttpRequest, state: &Arc<ServerState>) -> HttpResponse {
+    state.session.increment_requests();
+
+    let (total_requests, total_errors, last_request_time) = state.session.get_stats();
+    let audit_entries = state.audit.head.load(Ordering::Acquire);
+
+    // Verify hash-chain integrity
+    let chain_valid = if audit_entries > 0 {
+        match state.audit.verify_chain(0, std::cmp::min(audit_entries as usize, 1024)) {
+            Ok(v) => v,
+            Err(_) => false,
+        }
+    } else {
+        true
+    };
+
+    let root_hash = state.audit.get_root_hash();
+
+    // Determine tier based on quota (placeholder - would come from license in production)
+    let tier_name = "Hobby";
+    let retention_days = 7u32;
+    let base_snapshot_limit = 100u64;
+    let max_with_grace = base_snapshot_limit + base_snapshot_limit / 5; // 20% grace
+
+    // Calculate uptime
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    // Build comprehensive audit response
+    let response = format!(
+        r#"{{"tier":"T0 Auditable + T1 Atomic","latency_target":"<100us","tier_name":"{}","session_context":{{"total_requests":{},"total_errors":{},"last_request_unix":{},"uptime_secs":{}}},"quota_context":{{"tier_name":"{}","base_snapshot_limit":{},"max_with_grace":{},"grace_percent":20}},"compliance":{{"frameworks":["SOX","SOC2","GDPR","HIPAA"],"hash_algorithm":"CRC64-ECMA","retention_days":{},"chain_valid":{}}},"audit_trail":{{"total_entries":{},"root_hash":"0x{:016x}","chain_valid":{}}},"aggregated_at":{}}}"#,
+        tier_name,
+        total_requests,
+        total_errors,
+        last_request_time / 1_000_000_000,
+        now.saturating_sub(last_request_time / 1_000_000_000),
+        tier_name,
+        base_snapshot_limit,
+        max_with_grace,
+        retention_days,
+        chain_valid,
+        audit_entries,
+        root_hash,
+        chain_valid,
+        now
+    );
+
+    // Audit log
+    let _ = state.audit.log_operation(16, 0, 0);
+
+    HttpResponse::json(200, "OK", response)
+}
+
 fn handle_get_stats(_req: &HttpRequest, state: &Arc<ServerState>) -> HttpResponse {
     let (total_requests, total_errors, _last_request_time) = state.session.get_stats();
     let audit_entries = state.audit.head.load(Ordering::Relaxed);
@@ -1381,6 +1441,7 @@ fn handle_client(mut stream: TcpStream, state: Arc<ServerState>) {
         ("GET", "/v1/debug/stack") => handle_get_stack(&req, &state),
         ("GET", "/v1/debug/registers") => handle_get_registers(&req, &state),
         ("POST", "/v1/debug/audit-verify") => handle_audit_verify(&req, &state),
+        ("GET", "/v1/debug/comprehensive-audit") => handle_comprehensive_audit(&req, &state),
         ("OPTIONS", _) => handle_options(&req, &state),
         _ => {
             state.session.increment_errors();
@@ -1465,6 +1526,7 @@ fn main() {
     println!("  GET    /v1/debug/stack");
     println!("  GET    /v1/debug/registers");
     println!("  POST   /v1/debug/audit-verify");
+    println!("  GET    /v1/debug/comprehensive-audit");
     println!("========================================");
     println!();
 

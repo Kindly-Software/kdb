@@ -1,0 +1,44 @@
+# Prometheus configuration for KDB
+# Scrapes metrics from kdb server and stores them
+
+global:
+  # Evaluation interval for alerting rules
+  evaluation_interval: 15s
+
+  # Scrape interval (how often to collect metrics)
+  scrape_interval: 15s
+
+  # External labels (useful for distributed setups)
+  external_labels:
+    monitor: 'kdb-monitor'
+    environment: 'development'
+
+# Scrape configurations
+scrape_configs:
+  # ========================================================================
+  # Prometheus self-monitoring (optional, useful for debugging)
+  # ========================================================================
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ========================================================================
+  # KDB MCP Server Metrics
+  # ========================================================================
+  - job_name: kdb
+    static_configs:
+      - targets: ['kdb:8080']
+
+    # Metrics path (must match kdb implementation)
+    metrics_path: '/metrics'
+
+    # Scrape interval override for this job (default: 15s from global)
+    scrape_interval: 10s
+
+    # Request timeout
+    scrape_timeout: 5s
+
+    # Label to add to all metrics from this job
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
