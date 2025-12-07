@@ -1,0 +1,78 @@
+# HsmCapsule Configuration for kdb-mcp
+# Real PKCS#11 HSM integration with SoftHSM2/YubiKey/TPM
+
+[hsm]
+# Enable HSM integration (set to false to disable)
+enabled = true
+
+# Path to PKCS#11 library
+# SoftHSM2 (Linux): "/usr/local/lib/softhsm/libsofthsm2.so"
+# YubiKey (Linux): "/usr/lib/x86_64-linux-gnu/libykcs11.so"
+# TPM (Linux): "/usr/lib/x86_64-linux-gnu/libtpm2_pkcs11.so"
+library_path = "/usr/local/lib/softhsm/libsofthsm2.so"
+
+# Token label (SoftHSM2 slot label)
+# Used for slot selection when multiple tokens present
+slot_label = "kdb-license"
+
+# Key label (PKCS#11 CKA_LABEL attribute)
+# Identifies the Ed25519 keypair on the HSM
+key_label = "kdb-license-key-2025"
+
+# PIN authentication
+# IMPORTANT: Do NOT hardcode PIN in production!
+# Use environment variable: export KDB_HSM_PIN="1234"
+# Max 12 characters, numeric recommended for SoftHSM2
+# pin_env_var = "KDB_HSM_PIN"
+
+[hsm.softhsm2]
+# SoftHSM2-specific configuration (kindly-hub: 192.168.0.38)
+# Slot ID: 1455198829 (0x56c7744d hex)
+# Token Label: "kdb-license"
+# Public Key: 81ae0b01e31cf61800f87a1c3b03826b2bff51eae7467ed207d437826b0bac32
+slot_id = 1455198829
+token_label = "kdb-license"
+
+[hsm.yubikey]
+# YubiKey-specific configuration (alternative to SoftHSM2)
+# Requires YubiKey 5 Series with PIV/FIDO2 support
+# Library: "/usr/lib/x86_64-linux-gnu/libykcs11.so"
+enabled = false
+library_path = "/usr/lib/x86_64-linux-gnu/libykcs11.so"
+
+[hsm.tpm]
+# TPM-specific configuration (alternative to SoftHSM2)
+# Requires TPM 2.0 with tpm2-pkcs11 library
+# Library: "/usr/lib/x86_64-linux-gnu/libtpm2_pkcs11.so"
+enabled = false
+library_path = "/usr/lib/x86_64-linux-gnu/libtpm2_pkcs11.so"
+
+[security]
+# Security best practices
+# - PIN MUST be loaded from environment variable (KDB_HSM_PIN)
+# - Never commit PINs to version control
+# - Rotate keys every 90-180 days (key_rotation_days)
+# - Enable audit logging for all HSM operations
+# - Use separate HSM slots for dev/staging/production
+
+# Key rotation policy (days)
+key_rotation_days = 90
+
+# Enable Q34 audit logging for all HSM operations
+audit_hsm_operations = true
+
+# Maximum signature operations per key before rotation warning
+max_signatures_per_key = 1_000_000
+
+[performance]
+# Performance tuning
+# - HSM operations are offline (~100-500ms), NOT on critical request path
+# - State queries are <10ns (atomic reads)
+# - Session management uses PKCS#11 internal locking (CKF_OS_LOCKING_OK)
+
+# Session timeout (seconds)
+session_timeout_seconds = 3600
+
+# Retry policy for transient HSM errors
+max_retry_attempts = 3
+retry_delay_ms = 100
