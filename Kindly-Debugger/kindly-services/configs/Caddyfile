@@ -1,0 +1,62 @@
+# Kindly Services - Main website
+# Phase 2.3: Enhanced Security Headers with CSP for WASM/Leptos
+kindly.services {
+    reverse_proxy localhost:8082
+    encode gzip zstd
+
+    header {
+        # HSTS - HTTP Strict Transport Security
+        # 1 year max-age, includeSubDomains, preload-ready
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+        # Frame protection - prevent clickjacking
+        X-Frame-Options "DENY"
+
+        # Content type sniffing protection
+        X-Content-Type-Options "nosniff"
+
+        # Legacy XSS protection (modern browsers use CSP)
+        X-XSS-Protection "1; mode=block"
+
+        # Referrer policy - control referrer information
+        Referrer-Policy "strict-origin-when-cross-origin"
+
+        # COOP - Cross-Origin-Opener-Policy
+        Cross-Origin-Opener-Policy "same-origin"
+
+        # CORP - Cross-Origin-Resource-Policy
+        Cross-Origin-Resource-Policy "same-origin"
+
+        # Permissions-Policy - restrict browser features
+        # Note: Most security headers are set by the application (SecurityHeadersCapsule)
+        # Caddy provides belt-and-suspenders redundancy
+        Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+
+        # Note: CSP is set by the application with WASM-specific directives
+        # Do NOT set CSP here as it would conflict with application CSP
+        # The application sets: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; ...
+    }
+
+    log {
+        output file /var/log/caddy/kindly-services.log
+    }
+}
+
+# KDB API - Debugger API
+api.kindly.services {
+    reverse_proxy localhost:8090
+    encode gzip
+
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Cross-Origin-Opener-Policy "same-origin"
+        Cross-Origin-Resource-Policy "same-origin"
+    }
+
+    log {
+        output file /var/log/caddy/kdb-api.log
+    }
+}

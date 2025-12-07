@@ -1,0 +1,62 @@
+[Unit]
+Description=KDB-MCP Server Instance %i - Kindly Debugger MCP Protocol (T6 Mixed)
+Documentation=file:///home/samuel/Primitives/kdb-mcp/systemd/SYSTEMD_SERVICE.md
+
+[Service]
+# ============================================================================
+# Socket-Activated Service (per-connection instance)
+# ============================================================================
+# This service is spawned by kdb-mcp.socket for each incoming connection.
+# stdin/stdout are connected to the socket, enabling MCP stdio protocol.
+
+Type=simple
+User=samuel
+Group=samuel
+WorkingDirectory=/home/samuel/mcp_servers/kdb-mcp
+
+# The MCP server reads JSON-RPC from stdin and writes to stdout
+# Socket activation connects stdin/stdout to the network socket
+ExecStart=/home/samuel/mcp_servers/kdb-mcp/bin/kdb-mcp-server
+
+# Standard I/O connected to socket (socket activation)
+StandardInput=socket
+StandardOutput=socket
+StandardError=journal
+
+# ============================================================================
+# Resource Limits (T6 Production Constraints)
+# ============================================================================
+MemoryMax=256M
+TasksMax=16
+LimitNOFILE=1024
+
+# ============================================================================
+# Security Hardening
+# ============================================================================
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/samuel/mcp_servers/kdb-mcp
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+UMask=0077
+
+# ============================================================================
+# Environment
+# ============================================================================
+Environment=RUST_BACKTRACE=1
+Environment=RUST_LOG=info,kdb_mcp=info
+Environment=MCP_DEBUG=1
+
+# ============================================================================
+# Logging
+# ============================================================================
+SyslogIdentifier=kdb-mcp-%i

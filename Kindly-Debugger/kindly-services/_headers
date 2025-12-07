@@ -1,0 +1,42 @@
+# Cloudflare Pages Custom Headers
+# https://developers.cloudflare.com/pages/configuration/headers/
+
+/*
+  # Security Headers
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+
+  # Content Security Policy - Firefox Compatible
+  # Key fixes:
+  # 1. Added fonts.googleapis.com to style-src (required for Google Fonts CSS)
+  # 2. Added fonts.gstatic.com to font-src (required for Google Font files)
+  # 3. Added static.cloudflareinsights.com to script-src (Cloudflare Analytics)
+  # 4. Added cloudflareinsights.com to connect-src (Cloudflare RUM/Analytics)
+  # 5. Added blob: to img-src (for WebGL canvas screenshots if needed)
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-aC0aNIajr1NSQTNSKuki7XukQPInVDhccncWtxeYS+I=' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://api.kindly.services https://cloudflareinsights.com; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+
+# Cache static assets with content hashes
+/*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.wasm
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.png
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.jpg
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.svg
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.woff2
+  Cache-Control: public, max-age=31536000, immutable

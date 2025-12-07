@@ -1,0 +1,28 @@
+# Trunk configuration for kindly-services WASM landing page
+
+[build]
+# Output directory for built artifacts
+dist = "dist"
+# Include hash in output filenames for cache busting
+filehash = true
+# Minify output (disabled - wasm-opt has issues with bulk memory)
+minify = "never"
+# Skip wasm-opt completely (bulk memory operations not supported by older wasm-opt)
+# This is the correct option - no_minification doesn't work
+skip_wasm_opt = true
+
+[serve]
+# Local development server
+address = "127.0.0.1"
+port = 8080
+# Enable hot reloading in development
+open = true
+
+[watch]
+# Watch these directories for changes
+watch = ["src", "index.html"]
+
+[tools]
+# Automatically install wasm-bindgen CLI (exact version)
+wasm_bindgen = "0.2.106"
+

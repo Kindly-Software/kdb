@@ -1,0 +1,3 @@
+#!/bin/bash
+# Wrapper for wasm-opt that enables bulk memory operations
+exec /home/samuel/.cache/trunk/wasm-opt-version_119/bin/wasm-opt.real --enable-bulk-memory --enable-nontrapping-float-to-int "$@"

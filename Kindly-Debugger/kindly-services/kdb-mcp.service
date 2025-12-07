@@ -1,0 +1,91 @@
+[Unit]
+Description=KDB-MCP Server - Kindly Debugger MCP Protocol Interface (T6 Mixed)
+Documentation=file:///home/samuel/Primitives/kdb-mcp/systemd/SYSTEMD_SERVICE.md
+After=network.target
+
+[Service]
+# ============================================================================
+# Basic Service Configuration
+# ============================================================================
+Type=simple
+User=samuel
+Group=samuel
+WorkingDirectory=/home/samuel/mcp_servers/kdb-mcp
+
+# MCP servers typically use stdio for protocol communication
+# For network mode, the binary listens on port 5678
+ExecStart=/home/samuel/mcp_servers/kdb-mcp/bin/kdb-mcp-server
+
+Restart=on-failure
+RestartSec=5s
+
+TimeoutStartSec=30s
+TimeoutStopSec=15s
+
+# ============================================================================
+# Resource Limits (T6 Production Constraints)
+# ============================================================================
+# Memory: 256MB soft, 512MB hard (kdb-mcp is lightweight)
+MemoryHigh=256M
+MemoryMax=512M
+
+# CPU: Allow full usage but with accounting
+CPUAccounting=yes
+
+# Tasks: 64 max (MCP server is typically single-threaded)
+TasksMax=64
+
+# File descriptors: 4096 (sufficient for MCP protocol)
+LimitNOFILE=4096
+
+# ============================================================================
+# Security Hardening (Production-Level)
+# ============================================================================
+# Prevent privilege escalation
+NoNewPrivileges=yes
+
+# Isolated /tmp
+PrivateTmp=yes
+
+# Protect system files
+ProtectSystem=strict
+ProtectHome=read-only
+
+# Allow write to specific directories
+ReadWritePaths=/home/samuel/mcp_servers/kdb-mcp
+
+# Protect kernel resources
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+
+# Network restrictions (allow local network only)
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# Restrict namespaces and realtime
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+
+# Lock personality
+LockPersonality=yes
+
+# UMask for created files
+UMask=0077
+
+# ============================================================================
+# Environment
+# ============================================================================
+Environment=RUST_BACKTRACE=1
+Environment=RUST_LOG=info,kdb_mcp=info,kdb=debug
+
+# ============================================================================
+# Logging
+# ============================================================================
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=kdb-mcp
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,9 @@
+{
+  "kindly-debugger": {
+    "type": "remote",
+    "url": "https://api.kindly.services/mcp",
+    "headers": {
+      "Authorization": "Bearer YOUR_API_KEY_HERE"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+[Unit]
+Description=kindly.video Static File Server
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=samuel
+Group=samuel
+WorkingDirectory=/home/samuel/kindly-video/dist
+ExecStart=/usr/bin/python3 -m http.server 8081
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadOnlyPaths=/
+ReadWritePaths=/home/samuel/kindly-video
+
+[Install]
+WantedBy=multi-user.target

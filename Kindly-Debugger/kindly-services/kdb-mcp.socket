@@ -1,0 +1,23 @@
+[Unit]
+Description=KDB-MCP Server Socket - Kindly Debugger MCP Protocol Interface
+Documentation=file:///home/samuel/Primitives/kdb-mcp/systemd/SYSTEMD_SERVICE.md
+
+[Socket]
+# Listen on TCP port 5678 for MCP connections
+ListenStream=192.168.0.38:5678
+
+# Also listen on localhost for local testing
+ListenStream=127.0.0.1:5678
+
+# Accept connections
+Accept=yes
+
+# Maximum connections
+MaxConnections=64
+
+# Socket options
+KeepAlive=true
+NoDelay=true
+
+[Install]
+WantedBy=sockets.target

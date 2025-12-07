@@ -1,0 +1,9 @@
+tunnel: kindly-video
+credentials-file: /home/samuel/.cloudflared/695ea3eb-a6dd-4d60-aef1-b441e55733d1.json
+
+ingress:
+  - hostname: kindly.video
+    service: http://localhost:8081
+  - hostname: www.kindly.video
+    service: http://localhost:8081
+  - service: http_status:404

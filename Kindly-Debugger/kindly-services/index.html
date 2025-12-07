@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Kindly Debugger - Time-travel debugging for AI workflows. Step backward, step forward, debug as if the bug never existed. MCP-native for Claude Code.">
+    <meta name="keywords" content="debugger, time-travel, audit, compliance, MCP, Claude Code, GDB alternative, AI debugging">
+    <meta name="author" content="Kindly">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Kindly Debugger | Time-Travel Debugging for AI Workflows">
+    <meta property="og:description" content="Time-travel debugging for AI workflows. Debug as if the bug never existed. MCP-native for Claude Code.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://kindly.services">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Kindly Debugger | Time-Travel Debugging for AI Workflows">
+    <meta name="twitter:description" content="Time-travel debugging for AI workflows. Debug as if the bug never existed. MCP-native for Claude Code.">
+
+    <title>Kindly Debugger | Time-Travel Debugging for AI Workflows</title>
+
+    <!-- Favicon - heart with bug crossed out (no bugs!) -->
+    <link rel="icon" type="image/png" href="/navicon.png">
+
+    <!-- Fonts: Inter for body, Space Grotesk for headings -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Build the WASM target (wasm-opt skipped via Trunk.toml) -->
+    <link data-trunk rel="rust" data-target-name="kindly_services" />
+    <link data-trunk rel="copy-file" href="kdb-logo.jpg" />
+    <link data-trunk rel="copy-file" href="kdb-logo-simple.jpg" />
+    <link data-trunk rel="copy-file" href="kdb-navbar-logo.jpg" />
+    <link data-trunk rel="copy-file" href="navicon.png" />
+    <link data-trunk rel="copy-file" href="navbar-logo.png" />
+
+    <style>
+        /* CSS Reset + Base */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            /* Byzantine Royal Purple Spectrum */
+            --purple-50: #faf5ff;
+            --purple-100: #f3e8ff;
+            --purple-200: #e9d5ff;
+            --purple-300: #d8b4fe;
+            --purple-400: #c084fc;
+            --purple-500: #a855f7;
+            --purple-600: #9333ea;
+            --purple-700: #7c3aed;
+            --purple-800: #6b21a8;
+            --purple-900: #581c87;
+            --purple-950: #3b0764;
+
+            /* Byzantine Purple (Primary) */
+            --byzantine: #4B0082;
+            --byzantine-light: #663399;
+            --byzantine-dark: #2D004D;
+
+            /* Gold Spectrum (Accent) */
+            --gold-50: #fffbeb;
+            --gold-100: #fef3c7;
+            --gold-200: #fde68a;
+            --gold-300: #fcd34d;
+            --gold-400: #fbbf24;
+            --gold-500: #f59e0b;
+            --gold-600: #d97706;
+            --gold-primary: #FFD700;
+            --gold-shimmer: linear-gradient(90deg, #FFD700, #FFA500, #FFD700);
+
+            /* Glassmorphism */
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-blur: 20px;
+
+            /* Typography */
+            --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-heading: 'Space Grotesk', sans-serif;
+
+            /* Spacing */
+            --space-xs: 0.25rem;
+            --space-sm: 0.5rem;
+            --space-md: 1rem;
+            --space-lg: 1.5rem;
+            --space-xl: 2rem;
+            --space-2xl: 3rem;
+            --space-3xl: 4rem;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            font-size: 16px;
+            scroll-padding-top: 100px;
+        }
+
+        /* Anchor link scroll offset - accounts for fixed navbar height */
+        section[id], div[id] {
+            scroll-margin-top: 100px;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: linear-gradient(135deg, var(--purple-950) 0%, var(--byzantine-dark) 50%, #0a0014 100%);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* WebGL Canvas Background */
+        #webgl-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            opacity: 0.6;
+        }
+
+        /* Gold Shimmer Animation */
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+
+        .gold-shimmer {
+            background: linear-gradient(
+                90deg,
+                var(--gold-primary) 0%,
+                #fff 25%,
+                var(--gold-primary) 50%,
+                #fff 75%,
+                var(--gold-primary) 100%
+            );
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 3s linear infinite;
+        }
+
+        /* Glassmorphism Card */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: var(--space-xl);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(155, 89, 182, 0.3);
+        }
+
+        /* Feature cards gold hover */
+        .feature-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px) !important;
+            box-shadow: 0 20px 40px rgba(255, 215, 0, 0.3) !important;
+            border-color: rgba(255, 215, 0, 0.5) !important;
+        }
+
+        /* Pricing cards gold hover */
+        .pricing-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease !important;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-8px) !important;
+            box-shadow: 0 20px 40px rgba(255, 215, 0, 0.25) !important;
+            border-color: rgba(255, 215, 0, 0.4) !important;
+        }
+
+        /* Floating particles container */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        /* Responsive container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--space-lg);
+        }
+
+        /* App container - must be above WebGL canvas */
+        #app {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Loading state */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-size: 1.5rem;
+            color: var(--purple-300);
+        }
+
+        .loading::after {
+            content: '';
+            width: 24px;
+            height: 24px;
+            margin-left: 12px;
+            border: 3px solid var(--purple-600);
+            border-top-color: var(--gold-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ========== MOBILE RESPONSIVE ========== */
+
+        /* Tablet and below */
+        @media (max-width: 1024px) {
+            /* Pricing grid: 2 columns */
+            #pricing > div > div:last-child {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 1rem !important;
+            }
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            html {
+                font-size: 14px;
+            }
+
+            /* Navbar mobile */
+            nav {
+                padding: 0.75rem 1rem !important;
+                flex-wrap: wrap;
+            }
+
+            nav > div:last-child {
+                gap: 0.75rem !important;
+            }
+
+            nav a[class="nav-link"] {
+                font-size: 0.875rem !important;
+            }
+
+            nav a[class="cta-btn"] {
+                padding: 0.5rem 1rem !important;
+                font-size: 0.875rem !important;
+            }
+
+            /* Hero mobile */
+            #hero {
+                padding: 6rem 1rem 2rem !important;
+                min-height: auto !important;
+            }
+
+            #hero h1 {
+                font-size: clamp(1.75rem, 6vw, 3rem) !important;
+            }
+
+            #hero > div:first-of-type {
+                padding: 0.4rem 0.75rem !important;
+                font-size: 0.75rem !important;
+            }
+
+            /* CTA buttons stack */
+            #hero > div:nth-of-type(2) {
+                flex-direction: column !important;
+                align-items: center !important;
+            }
+
+            #hero > div:nth-of-type(2) a {
+                width: 100% !important;
+                max-width: 280px !important;
+                justify-content: center !important;
+                padding: 0.875rem 1.5rem !important;
+            }
+
+            /* Stats grid mobile */
+            #hero > div:last-child {
+                gap: 1.5rem !important;
+                margin-top: 2rem !important;
+            }
+
+            #hero > div:last-child > div > div:first-child {
+                font-size: 1.75rem !important;
+            }
+
+            /* Features section mobile */
+            #features {
+                padding: 3rem 1rem !important;
+            }
+
+            #features > div > div:last-child {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+
+            /* Pricing section mobile */
+            #pricing {
+                padding: 3rem 1rem !important;
+            }
+
+            #pricing > div > div:last-child {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+
+            .pricing-card {
+                padding: 1.5rem !important;
+            }
+
+            .pricing-card > div:nth-child(2) {
+                font-size: 2.25rem !important;
+            }
+
+            /* CTA section mobile */
+            #cta {
+                padding: 3rem 1rem !important;
+            }
+
+            #cta > div {
+                padding: 2rem 1.5rem !important;
+                border-radius: 20px !important;
+            }
+
+            #cta > div > div:nth-of-type(2) {
+                flex-direction: column !important;
+            }
+
+            #cta > div > div:nth-of-type(2) a {
+                width: 100% !important;
+                justify-content: center !important;
+            }
+
+            /* Footer mobile */
+            footer > div:first-child {
+                grid-template-columns: 1fr !important;
+                gap: 2rem !important;
+                text-align: center;
+            }
+
+            footer > div:last-child {
+                flex-direction: column !important;
+                gap: 1rem !important;
+                text-align: center;
+            }
+
+            /* Docs page mobile */
+            #docs {
+                padding: 5rem 1rem 2rem !important;
+            }
+
+            #docs > div {
+                padding: 1.5rem !important;
+            }
+        }
+
+        /* Small mobile */
+        @media (max-width: 480px) {
+            nav > div:last-child {
+                width: 100%;
+                justify-content: space-between !important;
+                margin-top: 0.5rem;
+            }
+
+            nav > div:last-child a[class="nav-link"] {
+                display: none;
+            }
+
+            nav > div:last-child a[class="nav-link"]:first-child,
+            nav > div:last-child a[class="cta-btn"] {
+                display: inline-flex !important;
+            }
+
+            #hero > div:last-child {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 1rem !important;
+            }
+        }
+
+        /* ========== ENHANCED MOBILE STYLES ========== */
+
+        /* Touch target minimum 48px */
+        @media (max-width: 768px) {
+            .pricing-card a,
+            footer a,
+            .cta-btn,
+            nav a {
+                min-height: 48px;
+                display: inline-flex;
+                align-items: center;
+            }
+        }
+
+        /* Enterprise card responsive */
+        @media (max-width: 768px) {
+            .enterprise-card {
+                grid-template-columns: 1fr !important;
+                text-align: center;
+                gap: 2rem !important;
+                padding: 2rem 1.5rem !important;
+            }
+
+            .enterprise-card > div {
+                text-align: center;
+            }
+
+            .enterprise-card ul {
+                grid-template-columns: 1fr !important;
+                gap: 0.75rem !important;
+                text-align: left;
+            }
+
+            .enterprise-card li {
+                justify-content: center;
+            }
+        }
+
+        /* Hero logo responsive */
+        @media (max-width: 768px) {
+            .hero-logo {
+                width: 80px !important;
+                height: 80px !important;
+            }
+        }
+
+        /* Improved navbar mobile */
+        @media (max-width: 768px) {
+            nav {
+                padding: 0.75rem 1rem !important;
+            }
+        }
+
+        /* ========== COMPREHENSIVE MOBILE BREAKPOINTS ========== */
+
+        /* Small mobile (480px-640px) - force single column grids */
+        @media (max-width: 640px) {
+            .pricing-grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        /* Ultra-small mobile (320px-480px) */
+        @media (max-width: 480px) {
+            /* Pricing cards - reduce padding */
+            .pricing-card {
+                padding: 1.25rem !important;
+                min-width: 0 !important;
+            }
+
+            /* Enterprise card - full stack */
+            .enterprise-card {
+                grid-template-columns: 1fr !important;
+                gap: 1.5rem !important;
+                padding: 1.5rem !important;
+            }
+
+            .enterprise-card ul {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Feature cards - reduce padding */
+            .feature-card {
+                padding: 1.25rem !important;
+            }
+
+            /* Stats - smaller gap */
+            .stats-container {
+                gap: 1rem !important;
+            }
+
+            /* Price font smaller */
+            .price-amount {
+                font-size: 2rem !important;
+            }
+
+            /* CTA buttons - full width */
+            .hero-cta {
+                width: 100% !important;
+                padding: 0.875rem 1.5rem !important;
+            }
+
+            /* Footer grid */
+            .footer-grid {
+                grid-template-columns: 1fr !important;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="webgl-bg"></canvas>
+    <div id="app" class="loading">Loading kindly.services</div>
+    <noscript>
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #1a0028, #2D004D); color: white; font-family: 'Inter', sans-serif; text-align: center; padding: 2rem;">
+            <h1 style="font-size: 2rem; margin-bottom: 1rem;">Kindly Debugger</h1>
+            <p style="font-size: 1.1rem; max-width: 500px; line-height: 1.6;">
+                This website requires JavaScript and WebAssembly to run.
+                Please enable JavaScript in your browser settings, or try a modern browser like Chrome, Firefox, Safari, or Edge.
+            </p>
+            <p style="margin-top: 2rem; opacity: 0.7;">
+                <a href="https://github.com/kindly-software/kdb" style="color: #FFD700;">View on GitHub →</a>
+            </p>
+        </div>
+    </noscript>
+</body>
+</html>
