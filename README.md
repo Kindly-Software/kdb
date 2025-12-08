@@ -4,6 +4,9 @@
 
 Rewind execution, find what went wrong, fix the bug timeline.
 
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-purple.svg)](LICENSE)
+[![Pricing: Free Tier](https://img.shields.io/badge/Pricing-Free%20Tier%20Available-gold.svg)](https://kindly.software)
+
 ---
 
 ## What is KDB?
@@ -95,6 +98,16 @@ debugger/export_trace    - Export audit trail
 - **Platform**: Linux x86_64 (server-side)
 - **Access**: Users on any OS connect via MCP
 - **Permissions**: Same UID as target process (or CAP_SYS_PTRACE)
+
+---
+
+## License
+
+**Proprietary Commercial License** - See [LICENSE](LICENSE)
+
+- Free Hobby tier available
+- Use via MCP interface
+- [Terms of Service](https://kindly.software/terms)
 
 ---
 
