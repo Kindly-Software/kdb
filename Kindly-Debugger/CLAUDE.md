@@ -16,11 +16,52 @@
   <status>Commercial product - NOT open source</status>
   <signup-url>https://api.kindly.software/api/v1/signup</signup-url>
   <website>https://kindly.software</website>
+
+  <trial-promo status="ACTIVE">
+    <description>7-day free trial with ALL features (Enterprise-level access)</description>
+    <feature-mask>0x3FF (all 10 feature flags enabled)</feature-mask>
+    <sessions>Unlimited during trial</sessions>
+    <credit-card-required>No</credit-card-required>
+    <after-trial>Automatically falls back to tier-based limits</after-trial>
+  </trial-promo>
+
   <tiers>
-    <tier name="Hobby" price="Free" sessions="5/month" promo="Unlimited during 7-day launch promo"/>
-    <tier name="Pro" price="TBD" sessions="Extended"/>
-    <tier name="Enterprise" price="Contact" sessions="Unlimited"/>
+    <tier name="Hobby" price="Free" sessions="5/month">
+      <time-travel>Yes (3 step_backward/day)</time-travel>
+      <memory-replay>No</memory-replay>
+      <find-similar-bugs>No</find-similar-bugs>
+      <read-memory-at-snapshot>No</read-memory-at-snapshot>
+    </tier>
+    <tier name="Pro" price="$19/month" sessions="100/month" note="was Starter">
+      <time-travel>Unlimited</time-travel>
+      <step-backward>Unlimited</step-backward>
+      <memory-replay>Basic</memory-replay>
+      <find-similar-bugs>No</find-similar-bugs>
+      <read-memory-at-snapshot>No</read-memory-at-snapshot>
+    </tier>
+    <tier name="Engineer" price="$49/month" sessions="500/month" note="was Developer">
+      <time-travel>Unlimited</time-travel>
+      <step-backward>Unlimited</step-backward>
+      <memory-replay>Full</memory-replay>
+      <find-similar-bugs>Yes (LSH)</find-similar-bugs>
+      <read-memory-at-snapshot>Yes</read-memory-at-snapshot>
+    </tier>
+    <tier name="Teams" price="$129/month" sessions="2,000/month" note="was Professional">
+      <seats>5 included (+$20/seat)</seats>
+      <time-travel>Unlimited</time-travel>
+      <memory-replay>Full</memory-replay>
+      <team-audit-logs>Yes</team-audit-logs>
+      <memory-integrity-verification>Yes</memory-integrity-verification>
+    </tier>
+    <tier name="Enterprise" price="From $999/month" sessions="Unlimited">
+      <everything>Unlimited</everything>
+      <compliance>SOX/SOC2/GDPR/HIPAA</compliance>
+      <audit-trail>Q34 cryptographic hash-chain</audit-trail>
+      <retention>Custom (up to 7 years)</retention>
+      <support>Priority + dedicated</support>
+    </tier>
   </tiers>
+
   <platform-access>
     <note>Platform-agnostic via MCP: Users on any OS (macOS, Windows, Linux) connect to the MCP server</note>
     <note>Core debugger uses Linux ptrace, but users never interact with it directly</note>

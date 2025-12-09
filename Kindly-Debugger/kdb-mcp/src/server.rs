@@ -23,6 +23,8 @@ use crate::{
 };
 use crate::tier_rate_limiter::TierRateLimiterCapsule;
 use crate::subscription_tier::SubscriptionTier;
+use crate::trial_state::{TrialStateCapsule, EffectiveQuotas};
+use crate::daily_limit::{DailyLimitCapsule, DailyLimitError};
 use kdb::DebuggerCapsule;
 use kdb::session_pool::{
     SessionPoolCapsule, SessionTierType, SessionId, PoolConfig, PoolError,
@@ -160,10 +162,29 @@ pub struct McpServerCapsule {
     pub session_tier_map: SessionTierMapCapsule,
 
     // ========================================================================
-    // Reserved Space (reduced for tier enforcement capsules)
+    // Phase 7: Trial System Capsules (T1 Atomic, <70ns total)
     // ========================================================================
 
-    _reserved: [u8; 112752],
+    /// Trial state tracking (128B, <10ns trial check)
+    /// Derives trial status from license creation timestamp (7-day free trial)
+    /// #ASSUME_LOCKFREE: AtomicU64 counters only
+    /// #VERIFY: Test check_trial_status() for active/expired licenses
+    pub trial_state: TrialStateCapsule,
+
+    /// Daily usage limit tracking (64B, <50ns check)
+    /// Tracks step_backward daily limit (3/day for Hobby tier)
+    /// #ASSUME_LOCKFREE: AtomicU64 with CAS for increment
+    /// #VERIFY: Test check_step_backward() limit enforcement
+    pub daily_limit: DailyLimitCapsule,
+
+    // ========================================================================
+    // Reserved Space (reduced for trial system capsules)
+    // ========================================================================
+
+    // Note: Phase 7 adds TrialStateCapsule (128B) + DailyLimitCapsule (64B) = 192B
+    // Struct has 256-byte alignment, so reduce _reserved to maintain 262400B total
+    // Old _reserved: 112752, new: 112752 - 192 - 256(alignment) = 112304
+    _reserved: [u8; 112304],
 }
 
 /// Simple audit log (32 KB)
@@ -237,7 +258,10 @@ impl McpServerCapsule {
             tier_rate_limiter: TierRateLimiterCapsule::new(),
             snapshot_quota: SnapshotQuotaCapsule::new(),
             session_tier_map: SessionTierMapCapsule::new(),
-            _reserved: [0; 112752],
+            // Initialize Phase 7 trial system capsules
+            trial_state: TrialStateCapsule::new(),
+            daily_limit: DailyLimitCapsule::new(),
+            _reserved: [0; 112304],
         };
 
         // Register tools
@@ -498,7 +522,11 @@ impl McpServerCapsule {
         }
 
         // 7. Route to tool (<120ns)
-        let handle = self.tools.lookup(tool_method)
+        // Normalize tool name: Claude Code sends "debugger_quota_status" (underscore)
+        // but tools are registered as "debugger/quota_status" (slash).
+        // Convert underscore format to slash format for compatibility.
+        let normalized_method = Self::normalize_tool_name(tool_method);
+        let handle = self.tools.lookup(&normalized_method)
             .ok_or_else(|| format!("Unknown method: {}", tool_method))?;
 
         // 8. Execute debug command WITH auth_ctx (variable latency)
@@ -734,6 +762,76 @@ impl McpServerCapsule {
         }
     }
 
+    /// Check tier-based feature permission with explicit mask (<20ns)
+    ///
+    /// Used by Phase 7 trial system to pass effective_mask (0x3FF during trial)
+    /// instead of looking up tier-based mask.
+    #[cfg(feature = "json-rpc")]
+    fn check_tier_feature_with_mask(&self, handler_id: u64, effective_mask: u32) -> Result<(), String> {
+        // Get required feature bit for this tool
+        let required_feature_bit = match Self::get_required_feature(handler_id) {
+            Some(f) => f,
+            None => return Ok(()), // No feature required (admin/access control tools)
+        };
+
+        // Check if the required feature bit is set in the effective mask
+        if (effective_mask & required_feature_bit) == required_feature_bit {
+            Ok(())
+        } else {
+            // Feature not allowed - determine which tier would enable it
+            let required_tier = Self::get_minimum_tier_for_feature_bit(required_feature_bit);
+            Err(format!(
+                "Feature 0x{:x} not available. Upgrade to {:?} or higher, or start a free trial.",
+                required_feature_bit, required_tier
+            ))
+        }
+    }
+
+    /// Get minimum tier required for a feature bit
+    #[cfg(feature = "json-rpc")]
+    fn get_minimum_tier_for_feature_bit(feature_bit: u32) -> SubscriptionTier {
+        // Map feature bits to minimum required tiers based on tier feature masks:
+        // Hobby: 0x0F (bits 0-3: TIME_TRAVEL, BREAKPOINTS, STACK_TRACE, AUDIT_TRAIL)
+        // Pro: 0x3F (bits 0-5: + MEMORY_READ, MEMORY_REPLAY_BASIC)
+        // Engineer: 0x3FF (bits 0-9: + MEMORY_REPLAY_FULL, READ_MEMORY_AT_SNAPSHOT, FIND_SIMILAR_BUGS, SYMBOL_RESOLUTION)
+        // Teams: 0x3FF (same as Engineer)
+        // Enterprise: 0x1FFF (bits 0-12: + PRIORITY_SUPPORT, CUSTOM_RETENTION, DEDICATED_INFRA)
+        if feature_bit & 0x1C00 != 0 {
+            SubscriptionTier::Enterprise // Bits 10-12
+        } else if feature_bit & 0x3C0 != 0 {
+            SubscriptionTier::Engineer // Bits 6-9
+        } else if feature_bit & 0x30 != 0 {
+            SubscriptionTier::Pro // Bits 4-5
+        } else {
+            SubscriptionTier::Hobby // Bits 0-3
+        }
+    }
+
+    /// Check daily step_backward limit for Hobby tier (<50ns)
+    ///
+    /// Hobby tier: 3 step_backward operations per UTC day
+    /// Other tiers: Unlimited
+    #[cfg(feature = "json-rpc")]
+    fn check_daily_step_backward_limit(&self, tier: SubscriptionTier, now_unix_secs: u64) -> Result<(), String> {
+        match self.daily_limit.check_step_backward(tier, now_unix_secs) {
+            Ok(result) => {
+                // Log usage if approaching limit
+                if result.remaining <= 1 && result.limit < u32::MAX {
+                    // Could add X-Daily-Limit-Warning header
+                }
+                Ok(())
+            }
+            Err(DailyLimitError::LimitExceeded { used, limit, retry_after_secs }) => {
+                Err(format!(
+                    "Daily step_backward limit exceeded: {}/{} operations used today. \
+                     Limit resets in {} seconds (midnight UTC). \
+                     Upgrade to Pro or higher for unlimited step_backward.",
+                    used, limit, retry_after_secs
+                ))
+            }
+        }
+    }
+
     #[cfg(feature = "json-rpc")]
     fn dispatch_tool(
         &self,
@@ -752,19 +850,62 @@ impl McpServerCapsule {
         }
 
         // ====================================================================
-        // TIER ENFORCEMENT: Rate limit + Feature + Quota checks (<200ns total)
+        // PHASE 7: TRIAL-AWARE TIER ENFORCEMENT (<270ns total)
         // ====================================================================
+        // Flow:
+        // 1. check_trial_status(license_key, now)       // <10ns
+        // 2. IF trial_active:
+        //      effective_mask = 0x3FF (all features)
+        //      effective_quotas = unlimited
+        //    ELSE:
+        //      effective_mask = tier.feature_mask()
+        //      effective_quotas = tier.quotas()
+        // 3. check_tier_rate_limit(session_id)          // <100ns
+        // 4. check_tier_feature_with_mask(handler_id, effective_mask)  // <20ns
+        // 5. check_daily_limit(handler_id, tier)        // <50ns (step_backward only)
+        // 6. check_snapshot_quota(handler_id, quotas)   // <50ns
+        // ====================================================================
+
         // Extract session_id from auth_ctx for tier lookup
         let session_id = auth_ctx.session_id.map(|s| s.0).unwrap_or(0);
 
-        // 1. Tier rate limit check (<100ns)
+        // Get user's tier from session map (default: Hobby)
+        let tier = self.session_tier_map.get_tier(session_id)
+            .unwrap_or(SubscriptionTier::Hobby);
+
+        // Get current Unix timestamp in seconds
+        let now_unix_secs = Self::get_timestamp_ns() / 1_000_000_000;
+
+        // Step 1: Check trial status from license key (<10ns)
+        let effective_quotas = if let Some(ref license_key) = auth_ctx.license_key {
+            self.trial_state.get_effective_quotas(license_key, tier, now_unix_secs)
+        } else {
+            // No license key - use tier-based quotas
+            EffectiveQuotas::from_tier(tier)
+        };
+
+        // Step 2: Tier rate limit check (<100ns)
+        // Note: Rate limiting applies even during trial (prevents abuse)
         self.check_tier_rate_limit(session_id)?;
 
-        // 2. Feature permission check (<20ns)
-        self.check_tier_feature(handler_id, session_id)?;
+        // Step 3: Feature permission check with effective mask (<20ns)
+        // During trial: 0x3FF (all features enabled)
+        // After trial: tier-based feature mask
+        self.check_tier_feature_with_mask(handler_id, effective_quotas.feature_mask)?;
 
-        // 3. Snapshot quota check for capture tools (<50ns)
-        let enforcement_stage = self.check_snapshot_quota(handler_id, session_id)?;
+        // Step 4: Daily limit check for step_backward (tool ID 5) (<50ns)
+        // Only enforced for Hobby tier when NOT in trial
+        if handler_id == 5 && !effective_quotas.is_trial {
+            self.check_daily_step_backward_limit(tier, now_unix_secs)?;
+        }
+
+        // Step 5: Snapshot quota check for capture tools (<50ns)
+        // Skip quota check during trial (unlimited)
+        let enforcement_stage = if effective_quotas.is_trial {
+            EnforcementStage::Normal
+        } else {
+            self.check_snapshot_quota(handler_id, session_id)?
+        };
 
         // Log warning stage if approaching quota limit
         if matches!(enforcement_stage, EnforcementStage::Warning) {
@@ -2668,6 +2809,39 @@ impl McpServerCapsule {
         {
             0
         }
+    }
+
+    /// Normalize tool name for MCP compatibility.
+    ///
+    /// Claude Code sends tool names with underscores (e.g., `debugger_quota_status`)
+    /// but tools are registered with slashes (e.g., `debugger/quota_status`).
+    /// This function converts the underscore format to slash format.
+    ///
+    /// **Examples**:
+    /// - `debugger_quota_status` -> `debugger/quota_status`
+    /// - `debugger_get_stack_trace` -> `debugger/get_stack_trace`
+    /// - `debugger/quota_status` -> `debugger/quota_status` (already normalized)
+    ///
+    /// **Performance**: O(n) string scan, <100ns for typical tool names
+    #[inline]
+    fn normalize_tool_name(name: &str) -> String {
+        // If already contains slash, assume it's in the correct format
+        if name.contains('/') {
+            return name.to_string();
+        }
+
+        // Find first underscore after "debugger" prefix and convert to slash
+        // Pattern: "debugger_<action>" -> "debugger/<action>"
+        if let Some(pos) = name.find('_') {
+            let (prefix, rest) = name.split_at(pos);
+            // Only convert if prefix is "debugger" (our tool namespace)
+            if prefix == "debugger" {
+                return format!("debugger{}", rest.replacen('_', "/", 1));
+            }
+        }
+
+        // No transformation needed
+        name.to_string()
     }
 
     /// Add rejection jitter to prevent timing attacks (SOTA 2024-2025 defense)

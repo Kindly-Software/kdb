@@ -259,35 +259,38 @@
      ============================================================================ -->
 <pricing-tiers count="5">
   <tier name="Hobby" price="Free" featured="true" promo="true">
-    <snapshots>50/day</snapshots>
-    <sessions>5/month (UNLIMITED during 7-day launch promo)</sessions>
-    <retention>7 days</retention>
-    <features>Time-travel, breakpoints, stack trace, audit trail</features>
+    <sessions>5/month (UNLIMITED during 7-day trial)</sessions>
+    <step-backward>3/day</step-backward>
+    <features>Time-travel, breakpoints, stack traces, audit trail</features>
     <cta>#signup (hash-based signup form)</cta>
   </tier>
-  <tier name="Starter" price="$9.99/mo">
-    <snapshots>1,000/day</snapshots>
-    <sessions>50/month</sessions>
-    <retention>7 days</retention>
-    <features>+ Memory read</features>
+  <tier name="Pro" price="$19/month">
+    <sessions>100/month</sessions>
+    <step-backward>Unlimited</step-backward>
+    <memory-replay>Basic</memory-replay>
+    <features>All Hobby + unlimited time-travel + basic memory replay</features>
   </tier>
-  <tier name="Developer" price="$49.99/mo">
-    <snapshots>10,000/day</snapshots>
+  <tier name="Engineer" price="$49/month">
     <sessions>500/month</sessions>
-    <retention>30 days</retention>
-    <features>+ Memory write</features>
+    <memory-replay>Full</memory-replay>
+    <lsh-search>Yes</lsh-search>
+    <read-memory-at-snapshot>Yes</read-memory-at-snapshot>
+    <features>All Pro + full memory replay + LSH bug similarity search</features>
   </tier>
-  <tier name="Professional" price="$499/mo">
-    <snapshots>100,000/day</snapshots>
-    <sessions>Unlimited</sessions>
-    <retention>90 days</retention>
-    <features>+ Symbol resolution, step backward, priority support</features>
+  <tier name="Teams" price="$129/month">
+    <sessions>2,000/month</sessions>
+    <seats>5 (+$20/seat)</seats>
+    <team-audit-logs>Yes</team-audit-logs>
+    <memory-integrity>Yes</memory-integrity>
+    <features>All Engineer + team collaboration + audit logs</features>
   </tier>
-  <tier name="Enterprise" price="Contact">
-    <snapshots>Unlimited</snapshots>
+  <tier name="Enterprise" price="From $999/month">
     <sessions>Unlimited</sessions>
-    <retention>Custom</retention>
-    <features>+ Custom retention, SLA guarantee</features>
+    <seats>Unlimited</seats>
+    <compliance>SOX/SOC2/GDPR/HIPAA</compliance>
+    <retention>Custom (up to 7 years)</retention>
+    <support>24/7 with SLA</support>
+    <features>All Teams + compliance + unlimited everything + dedicated support</features>
   </tier>
 </pricing-tiers>
 

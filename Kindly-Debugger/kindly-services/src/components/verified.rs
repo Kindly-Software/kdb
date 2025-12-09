@@ -300,6 +300,100 @@ pub fn Verified() -> impl IntoView {
                     </div>
                 </div>
 
+                // MCP Configuration section
+                <div style="
+                    margin-top: 2rem;
+                    padding: 2rem;
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(255, 215, 0, 0.3);
+                    border-radius: 12px;
+                ">
+                    <h3 style="
+                        font-size: 1.25rem;
+                        font-weight: 600;
+                        color: #FFD700;
+                        margin-bottom: 1rem;
+                    ">"Claude Code Setup"</h3>
+                    <p style="color: rgba(255,255,255,0.8); margin-bottom: 1rem;">
+                        "Add this to your Claude Code MCP settings file at "
+                        <code style="color: #FFD700;">"~/.claude.json"</code>
+                    </p>
+                    <pre style="
+                        background: rgba(0, 0, 0, 0.3);
+                        padding: 1.5rem;
+                        border-radius: 8px;
+                        font-family: 'JetBrains Mono', 'Courier New', monospace;
+                        font-size: 0.875rem;
+                        color: #fff;
+                        overflow-x: auto;
+                        margin-bottom: 1rem;
+                        white-space: pre-wrap;
+                    ">
+                        <code>{move || {
+                            let key = license.get();
+                            format!(r#"{{
+  "mcpServers": {{
+    "kdb": {{
+      "transport": "sse",
+      "url": "https://mcp.kindly.software/sse",
+      "headers": {{
+        "X-License-Key": "{}"
+      }}
+    }}
+  }}
+}}"#, key)
+                        }}</code>
+                    </pre>
+                    {
+                        let (config_copied, set_config_copied) = signal(false);
+                        let license_for_copy = license.clone();
+                        let copy_config = move |_| {
+                            let key = license_for_copy.get();
+                            let config = format!(r#"{{
+  "mcpServers": {{
+    "kdb": {{
+      "transport": "sse",
+      "url": "https://mcp.kindly.software/sse",
+      "headers": {{
+        "X-License-Key": "{}"
+      }}
+    }}
+  }}
+}}"#, key);
+                            if let Some(window) = web_sys::window() {
+                                let clipboard = window.navigator().clipboard();
+                                let _ = clipboard.write_text(&config);
+                                set_config_copied.set(true);
+
+                                // Reset after 2 seconds
+                                let set_config_copied_clone = set_config_copied;
+                                let reset_callback = Closure::wrap(Box::new(move || {
+                                    set_config_copied_clone.set(false);
+                                }) as Box<dyn FnMut()>);
+
+                                let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+                                    reset_callback.as_ref().unchecked_ref(),
+                                    2000,
+                                );
+                                std::mem::forget(reset_callback);
+                            }
+                        };
+                        view! {
+                            <button
+                                style="background: rgba(255, 215, 0, 0.2); color: #FFD700; border: 1px solid rgba(255, 215, 0, 0.4); padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600;"
+                                class="copy-btn"
+                                on:click=copy_config
+                            >
+                                {move || if config_copied.get() { "Copied! ✓" } else { "Copy Configuration" }}
+                            </button>
+                        }
+                    }
+
+                    <p style="color: rgba(255,255,255,0.6); font-size: 0.875rem; margin-top: 1rem;">
+                        "Works with Claude Code, Cursor, and any MCP-compatible client"
+                    </p>
+                </div>
+
                 <div style="text-align: center; margin-top: 2rem;">
                     <a href="#docs" style=docs_link_style class="docs-link">
                         "Read the Documentation →"

@@ -11,6 +11,15 @@
 //! - Snapshot quota: <50ns (CAS with 20% grace period)
 //! - Tier updates: <100ns (atomic updates to all limits)
 //!
+//! # Feature Flags (Updated Tier Matrix)
+//!
+//! | Bit | Flag | Tiers |
+//! |-----|------|-------|
+//! | 0-3 | Core (TIME_TRAVEL, BREAKPOINTS, STACK_TRACE, AUDIT_TRAIL) | ALL |
+//! | 4-5 | Memory Read, Basic Replay | Pro+ |
+//! | 6-9 | Full Replay, Historical Memory, LSH Bugs, Symbols | Engineer+ |
+//! | 10-12 | Priority Support, Custom Retention, Dedicated Infra | Enterprise |
+//!
 //! # Example
 //!
 //! ```rust
@@ -20,12 +29,12 @@
 //! let enforcer = TierEnforcementCapsule::new();
 //!
 //! // Set tier and enable enforcement
-//! enforcer.set_tier(SubscriptionTier::Developer);
+//! enforcer.set_tier(SubscriptionTier::Engineer);
 //! enforcer.enable_enforcement();
 //!
 //! // Check feature access
-//! if enforcer.is_feature_allowed(FeatureFlags::MEMORY_WRITE) {
-//!     // Perform memory write
+//! if enforcer.is_feature_allowed(FeatureFlags::MEMORY_REPLAY_FULL) {
+//!     // Perform full memory replay
 //! }
 //!
 //! // Check snapshot quota (with 20% grace)
@@ -39,40 +48,79 @@ use core::sync::atomic::{AtomicU8, AtomicU16, AtomicU32, AtomicU64, Ordering};
 use crate::subscription_tier::SubscriptionTier;
 
 // ============================================================================
-// Feature Flags (Const Bitmasks)
+// Feature Flags (Const Bitmasks) - Updated Tier Matrix
 // ============================================================================
 
 /// Feature flags for tier-based access control
 ///
 /// Each flag is a single bit in a u32 bitmask.
 /// Pre-computed tier masks enable O(1) feature checks.
+///
+/// # Tier Matrix
+///
+/// | Tier | Feature Mask | Bits |
+/// |------|--------------|------|
+/// | Hobby | 0x0F | 0-3 (core debugging) |
+/// | Pro | 0x3F | 0-5 (+ memory read, basic replay) |
+/// | Engineer | 0x3FF | 0-9 (+ full replay, advanced) |
+/// | Teams | 0x3FF | 0-9 (same as Engineer, team sharing elsewhere) |
+/// | Enterprise | 0x1FFF | 0-12 (all features) |
 pub struct FeatureFlags;
 
 impl FeatureFlags {
-    // Core debugging features (bits 0-3) - Available in Hobby tier
+    // Core debugging features (bits 0-3) - ALL TIERS (Hobby+)
+    /// Bidirectional time-travel replay
     pub const TIME_TRAVEL: u32 = 1 << 0;
+    /// Breakpoint management (set, list, remove)
     pub const BREAKPOINTS: u32 = 1 << 1;
+    /// SIMD-accelerated stack trace unwinding
     pub const STACK_TRACE: u32 = 1 << 2;
+    /// Q34 hash-chain audit trail export
     pub const AUDIT_TRAIL: u32 = 1 << 3;
 
-    // Memory access features (bits 4-5) - Starter/Developer+
+    // Memory features (bits 4-6) - TIERED access
+    /// Read process memory (Pro+)
     pub const MEMORY_READ: u32 = 1 << 4;
-    pub const MEMORY_WRITE: u32 = 1 << 5;
+    /// Basic memory replay - snapshot capture (Pro+)
+    pub const MEMORY_REPLAY_BASIC: u32 = 1 << 5;
+    /// Full memory replay - COW tracking, navigation (Engineer+)
+    pub const MEMORY_REPLAY_FULL: u32 = 1 << 6;
 
-    // Advanced features (bits 6-7) - Professional+
-    pub const SYMBOL_RESOLUTION: u32 = 1 << 6;
-    pub const STEP_BACKWARD: u32 = 1 << 7;
+    // Advanced features (bits 7-9) - ENGINEER+ only
+    /// Read memory at historical snapshot (Engineer+)
+    pub const READ_MEMORY_AT_SNAPSHOT: u32 = 1 << 7;
+    /// T10 probabilistic LSH similarity search for bugs (Engineer+)
+    pub const FIND_SIMILAR_BUGS: u32 = 1 << 8;
+    /// DWARF symbol resolution lookup (Engineer+)
+    pub const SYMBOL_RESOLUTION: u32 = 1 << 9;
 
-    // Enterprise features (bits 8-9)
-    pub const PRIORITY_SUPPORT: u32 = 1 << 8;
-    pub const CUSTOM_RETENTION: u32 = 1 << 9;
+    // Enterprise features (bits 10-12)
+    /// Priority support queue access
+    pub const PRIORITY_SUPPORT: u32 = 1 << 10;
+    /// Custom data retention policies
+    pub const CUSTOM_RETENTION: u32 = 1 << 11;
+    /// Dedicated infrastructure allocation
+    pub const DEDICATED_INFRA: u32 = 1 << 12;
 
     // Pre-computed tier masks (for O(1) tier updates)
-    pub const HOBBY_FEATURES: u32 = 0x0F;        // bits 0-3
-    pub const STARTER_FEATURES: u32 = 0x1F;      // bits 0-4
-    pub const DEVELOPER_FEATURES: u32 = 0x3F;    // bits 0-5
-    pub const PROFESSIONAL_FEATURES: u32 = 0xFF; // bits 0-7
-    pub const ENTERPRISE_FEATURES: u32 = 0x3FF;  // bits 0-9
+    /// Hobby: Core debugging only (bits 0-3)
+    pub const HOBBY_FEATURES: u32 = 0x0F;
+    /// Pro: + memory read, basic replay (bits 0-5)
+    pub const PRO_FEATURES: u32 = 0x3F;
+    /// Engineer: + full replay, advanced features (bits 0-9)
+    pub const ENGINEER_FEATURES: u32 = 0x3FF;
+    /// Teams: Same as Engineer (team sharing handled separately)
+    pub const TEAMS_FEATURES: u32 = 0x3FF;
+    /// Enterprise: All features (bits 0-12)
+    pub const ENTERPRISE_FEATURES: u32 = 0x1FFF;
+
+    // Legacy aliases (deprecated, use new names)
+    #[deprecated(since = "0.3.0", note = "Use PRO_FEATURES instead")]
+    pub const STARTER_FEATURES: u32 = Self::PRO_FEATURES;
+    #[deprecated(since = "0.3.0", note = "Use ENGINEER_FEATURES instead")]
+    pub const DEVELOPER_FEATURES: u32 = Self::ENGINEER_FEATURES;
+    #[deprecated(since = "0.3.0", note = "Use TEAMS_FEATURES instead")]
+    pub const PROFESSIONAL_FEATURES: u32 = Self::TEAMS_FEATURES;
 }
 
 // ============================================================================
@@ -158,7 +206,7 @@ pub struct TierEnforcementStats {
 ///
 /// **ASSUM Safety**:
 /// - #ASSUME: Tier enum values 0-4 only (verified: from_u8 check)
-/// - #ASSUME: Feature flags fit in u32 (verified: max bit 9)
+/// - #ASSUME: Feature flags fit in u32 (verified: max bit 12)
 /// - #VERIFY: 20% grace calculation uses saturating arithmetic
 /// - #VERIFY: Snapshot count monotonically increases (no rewind)
 #[repr(C, align(64))]
@@ -339,16 +387,23 @@ impl TierEnforcementCapsule {
     }
 
     /// Determine minimum tier required for a feature
+    ///
+    /// **Tier Mapping**:
+    /// - Hobby (0): bits 0-3 (core debugging)
+    /// - Pro (1): bits 0-5 (+ memory read, basic replay)
+    /// - Engineer (2): bits 0-9 (+ full replay, advanced)
+    /// - Teams (3): bits 0-9 (same as Engineer)
+    /// - Enterprise (4): bits 0-12 (all features)
     #[inline]
     fn min_tier_for_feature(feature: u32) -> u8 {
         if feature & !FeatureFlags::HOBBY_FEATURES == 0 {
             SubscriptionTier::Hobby.as_u8()
-        } else if feature & !FeatureFlags::STARTER_FEATURES == 0 {
-            SubscriptionTier::Starter.as_u8()
-        } else if feature & !FeatureFlags::DEVELOPER_FEATURES == 0 {
-            SubscriptionTier::Developer.as_u8()
-        } else if feature & !FeatureFlags::PROFESSIONAL_FEATURES == 0 {
-            SubscriptionTier::Professional.as_u8()
+        } else if feature & !FeatureFlags::PRO_FEATURES == 0 {
+            SubscriptionTier::Pro.as_u8()
+        } else if feature & !FeatureFlags::ENGINEER_FEATURES == 0 {
+            SubscriptionTier::Engineer.as_u8()
+        } else if feature & !FeatureFlags::TEAMS_FEATURES == 0 {
+            SubscriptionTier::Teams.as_u8()
         } else {
             SubscriptionTier::Enterprise.as_u8()
         }
@@ -512,11 +567,11 @@ mod tests {
     fn test_set_tier_updates_all_limits() {
         let capsule = TierEnforcementCapsule::new();
 
-        capsule.set_tier(SubscriptionTier::Developer);
+        capsule.set_tier(SubscriptionTier::Engineer);
         let stats = capsule.get_stats();
 
-        assert_eq!(stats.tier, SubscriptionTier::Developer);
-        assert_eq!(stats.enabled_features, FeatureFlags::DEVELOPER_FEATURES);
+        assert_eq!(stats.tier, SubscriptionTier::Engineer);
+        assert_eq!(stats.enabled_features, FeatureFlags::ENGINEER_FEATURES);
         assert_eq!(stats.snapshot_limit, 10_000);
         assert_eq!(stats.grace_limit, 12_000); // 10000 + 20%
         assert_eq!(stats.retention_days, 30);
@@ -535,43 +590,57 @@ mod tests {
 
         // Higher tier features (should be denied)
         assert!(!capsule.is_feature_allowed(FeatureFlags::MEMORY_READ));
-        assert!(!capsule.is_feature_allowed(FeatureFlags::MEMORY_WRITE));
+        assert!(!capsule.is_feature_allowed(FeatureFlags::MEMORY_REPLAY_BASIC));
+        assert!(!capsule.is_feature_allowed(FeatureFlags::MEMORY_REPLAY_FULL));
         assert!(!capsule.is_feature_allowed(FeatureFlags::SYMBOL_RESOLUTION));
         assert!(!capsule.is_feature_allowed(FeatureFlags::PRIORITY_SUPPORT));
     }
 
     #[test]
-    fn test_feature_check_starter_tier() {
+    fn test_feature_check_pro_tier() {
         let capsule = TierEnforcementCapsule::new();
-        capsule.set_tier(SubscriptionTier::Starter);
+        capsule.set_tier(SubscriptionTier::Pro);
         capsule.enable_enforcement();
 
-        // Starter tier adds MEMORY_READ
+        // Pro tier adds MEMORY_READ and MEMORY_REPLAY_BASIC
         assert!(capsule.is_feature_allowed(FeatureFlags::MEMORY_READ));
-        assert!(!capsule.is_feature_allowed(FeatureFlags::MEMORY_WRITE));
+        assert!(capsule.is_feature_allowed(FeatureFlags::MEMORY_REPLAY_BASIC));
+        // But not full replay or advanced features
+        assert!(!capsule.is_feature_allowed(FeatureFlags::MEMORY_REPLAY_FULL));
+        assert!(!capsule.is_feature_allowed(FeatureFlags::READ_MEMORY_AT_SNAPSHOT));
+        assert!(!capsule.is_feature_allowed(FeatureFlags::FIND_SIMILAR_BUGS));
     }
 
     #[test]
-    fn test_feature_check_developer_tier() {
+    fn test_feature_check_engineer_tier() {
         let capsule = TierEnforcementCapsule::new();
-        capsule.set_tier(SubscriptionTier::Developer);
+        capsule.set_tier(SubscriptionTier::Engineer);
         capsule.enable_enforcement();
 
-        // Developer tier adds MEMORY_WRITE
+        // Engineer tier has all memory and advanced features
         assert!(capsule.is_feature_allowed(FeatureFlags::MEMORY_READ));
-        assert!(capsule.is_feature_allowed(FeatureFlags::MEMORY_WRITE));
-        assert!(!capsule.is_feature_allowed(FeatureFlags::SYMBOL_RESOLUTION));
-    }
-
-    #[test]
-    fn test_feature_check_professional_tier() {
-        let capsule = TierEnforcementCapsule::new();
-        capsule.set_tier(SubscriptionTier::Professional);
-        capsule.enable_enforcement();
-
-        // Professional tier adds advanced features
+        assert!(capsule.is_feature_allowed(FeatureFlags::MEMORY_REPLAY_BASIC));
+        assert!(capsule.is_feature_allowed(FeatureFlags::MEMORY_REPLAY_FULL));
+        assert!(capsule.is_feature_allowed(FeatureFlags::READ_MEMORY_AT_SNAPSHOT));
+        assert!(capsule.is_feature_allowed(FeatureFlags::FIND_SIMILAR_BUGS));
         assert!(capsule.is_feature_allowed(FeatureFlags::SYMBOL_RESOLUTION));
-        assert!(capsule.is_feature_allowed(FeatureFlags::STEP_BACKWARD));
+        // But not enterprise features
+        assert!(!capsule.is_feature_allowed(FeatureFlags::PRIORITY_SUPPORT));
+        assert!(!capsule.is_feature_allowed(FeatureFlags::CUSTOM_RETENTION));
+        assert!(!capsule.is_feature_allowed(FeatureFlags::DEDICATED_INFRA));
+    }
+
+    #[test]
+    fn test_feature_check_teams_tier() {
+        let capsule = TierEnforcementCapsule::new();
+        capsule.set_tier(SubscriptionTier::Teams);
+        capsule.enable_enforcement();
+
+        // Teams tier has same features as Engineer
+        assert!(capsule.is_feature_allowed(FeatureFlags::MEMORY_REPLAY_FULL));
+        assert!(capsule.is_feature_allowed(FeatureFlags::SYMBOL_RESOLUTION));
+        assert!(capsule.is_feature_allowed(FeatureFlags::FIND_SIMILAR_BUGS));
+        // But not enterprise features
         assert!(!capsule.is_feature_allowed(FeatureFlags::PRIORITY_SUPPORT));
     }
 
@@ -583,19 +652,21 @@ mod tests {
 
         // Enterprise tier has all features
         assert!(capsule.is_feature_allowed(FeatureFlags::TIME_TRAVEL));
-        assert!(capsule.is_feature_allowed(FeatureFlags::MEMORY_WRITE));
+        assert!(capsule.is_feature_allowed(FeatureFlags::MEMORY_REPLAY_FULL));
         assert!(capsule.is_feature_allowed(FeatureFlags::SYMBOL_RESOLUTION));
+        assert!(capsule.is_feature_allowed(FeatureFlags::FIND_SIMILAR_BUGS));
         assert!(capsule.is_feature_allowed(FeatureFlags::PRIORITY_SUPPORT));
         assert!(capsule.is_feature_allowed(FeatureFlags::CUSTOM_RETENTION));
+        assert!(capsule.is_feature_allowed(FeatureFlags::DEDICATED_INFRA));
     }
 
     #[test]
     fn test_require_feature_success() {
         let capsule = TierEnforcementCapsule::new();
-        capsule.set_tier(SubscriptionTier::Developer);
+        capsule.set_tier(SubscriptionTier::Engineer);
         capsule.enable_enforcement();
 
-        let result = capsule.require_feature(FeatureFlags::MEMORY_WRITE, 42);
+        let result = capsule.require_feature(FeatureFlags::MEMORY_REPLAY_FULL, 42);
         assert!(result.is_ok());
     }
 
@@ -605,14 +676,14 @@ mod tests {
         capsule.set_tier(SubscriptionTier::Hobby);
         capsule.enable_enforcement();
 
-        let result = capsule.require_feature(FeatureFlags::MEMORY_WRITE, 42);
+        let result = capsule.require_feature(FeatureFlags::MEMORY_REPLAY_FULL, 42);
         assert!(result.is_err());
 
         match result.unwrap_err() {
             TierEnforcementError::FeatureNotAllowed { feature, current_tier, required_tier } => {
-                assert_eq!(feature, FeatureFlags::MEMORY_WRITE);
+                assert_eq!(feature, FeatureFlags::MEMORY_REPLAY_FULL);
                 assert_eq!(current_tier, SubscriptionTier::Hobby.as_u8());
-                assert_eq!(required_tier, SubscriptionTier::Developer.as_u8());
+                assert_eq!(required_tier, SubscriptionTier::Engineer.as_u8());
             }
             _ => panic!("Expected FeatureNotAllowed error"),
         }
@@ -673,6 +744,7 @@ mod tests {
         // All features should be allowed
         assert!(capsule.is_feature_allowed(FeatureFlags::PRIORITY_SUPPORT));
         assert!(capsule.is_feature_allowed(FeatureFlags::CUSTOM_RETENTION));
+        assert!(capsule.is_feature_allowed(FeatureFlags::DEDICATED_INFRA));
 
         // Snapshots should always succeed
         for _ in 0..200 {
@@ -686,11 +758,11 @@ mod tests {
         capsule.enable_enforcement();
 
         // Start at Hobby
-        assert!(!capsule.is_feature_allowed(FeatureFlags::MEMORY_WRITE));
+        assert!(!capsule.is_feature_allowed(FeatureFlags::MEMORY_REPLAY_FULL));
 
-        // Upgrade to Developer
-        capsule.set_tier(SubscriptionTier::Developer);
-        assert!(capsule.is_feature_allowed(FeatureFlags::MEMORY_WRITE));
+        // Upgrade to Engineer
+        capsule.set_tier(SubscriptionTier::Engineer);
+        assert!(capsule.is_feature_allowed(FeatureFlags::MEMORY_REPLAY_FULL));
 
         // Check limits updated
         let stats = capsule.get_stats();
@@ -701,14 +773,14 @@ mod tests {
     #[test]
     fn test_tier_downgrade() {
         let capsule = TierEnforcementCapsule::new();
-        capsule.set_tier(SubscriptionTier::Professional);
+        capsule.set_tier(SubscriptionTier::Teams);
         capsule.enable_enforcement();
 
-        // Professional has all basic features
+        // Teams has all advanced features
         assert!(capsule.is_feature_allowed(FeatureFlags::SYMBOL_RESOLUTION));
 
-        // Downgrade to Starter
-        capsule.set_tier(SubscriptionTier::Starter);
+        // Downgrade to Pro
+        capsule.set_tier(SubscriptionTier::Pro);
         assert!(!capsule.is_feature_allowed(FeatureFlags::SYMBOL_RESOLUTION));
         assert!(capsule.is_feature_allowed(FeatureFlags::MEMORY_READ));
     }
@@ -740,14 +812,14 @@ mod tests {
         assert_eq!(stats.snapshot_limit, 100);
         assert_eq!(stats.grace_limit, 120);
 
-        // Developer: 10000 + 20% = 12000
-        capsule.set_tier(SubscriptionTier::Developer);
+        // Engineer: 10000 + 20% = 12000
+        capsule.set_tier(SubscriptionTier::Engineer);
         let stats = capsule.get_stats();
         assert_eq!(stats.snapshot_limit, 10_000);
         assert_eq!(stats.grace_limit, 12_000);
 
-        // Professional: 100000 + 20% = 120000
-        capsule.set_tier(SubscriptionTier::Professional);
+        // Teams: 100000 + 20% = 120000
+        capsule.set_tier(SubscriptionTier::Teams);
         let stats = capsule.get_stats();
         assert_eq!(stats.snapshot_limit, 100_000);
         assert_eq!(stats.grace_limit, 120_000);
@@ -759,7 +831,7 @@ mod tests {
         use std::thread;
 
         let capsule = Arc::new(TierEnforcementCapsule::new());
-        capsule.set_tier(SubscriptionTier::Developer); // 10K limit
+        capsule.set_tier(SubscriptionTier::Engineer); // 10K limit
         capsule.enable_enforcement();
 
         let mut handles = vec![];
@@ -785,25 +857,98 @@ mod tests {
 
     #[test]
     fn test_min_tier_for_feature() {
+        // Core features require Hobby
         assert_eq!(
             TierEnforcementCapsule::min_tier_for_feature(FeatureFlags::TIME_TRAVEL),
             SubscriptionTier::Hobby.as_u8()
         );
         assert_eq!(
+            TierEnforcementCapsule::min_tier_for_feature(FeatureFlags::BREAKPOINTS),
+            SubscriptionTier::Hobby.as_u8()
+        );
+
+        // Memory features require Pro
+        assert_eq!(
             TierEnforcementCapsule::min_tier_for_feature(FeatureFlags::MEMORY_READ),
-            SubscriptionTier::Starter.as_u8()
+            SubscriptionTier::Pro.as_u8()
         );
         assert_eq!(
-            TierEnforcementCapsule::min_tier_for_feature(FeatureFlags::MEMORY_WRITE),
-            SubscriptionTier::Developer.as_u8()
+            TierEnforcementCapsule::min_tier_for_feature(FeatureFlags::MEMORY_REPLAY_BASIC),
+            SubscriptionTier::Pro.as_u8()
+        );
+
+        // Advanced features require Engineer
+        assert_eq!(
+            TierEnforcementCapsule::min_tier_for_feature(FeatureFlags::MEMORY_REPLAY_FULL),
+            SubscriptionTier::Engineer.as_u8()
+        );
+        assert_eq!(
+            TierEnforcementCapsule::min_tier_for_feature(FeatureFlags::READ_MEMORY_AT_SNAPSHOT),
+            SubscriptionTier::Engineer.as_u8()
+        );
+        assert_eq!(
+            TierEnforcementCapsule::min_tier_for_feature(FeatureFlags::FIND_SIMILAR_BUGS),
+            SubscriptionTier::Engineer.as_u8()
         );
         assert_eq!(
             TierEnforcementCapsule::min_tier_for_feature(FeatureFlags::SYMBOL_RESOLUTION),
-            SubscriptionTier::Professional.as_u8()
+            SubscriptionTier::Engineer.as_u8()
         );
+
+        // Enterprise features require Enterprise
         assert_eq!(
             TierEnforcementCapsule::min_tier_for_feature(FeatureFlags::PRIORITY_SUPPORT),
             SubscriptionTier::Enterprise.as_u8()
         );
+        assert_eq!(
+            TierEnforcementCapsule::min_tier_for_feature(FeatureFlags::CUSTOM_RETENTION),
+            SubscriptionTier::Enterprise.as_u8()
+        );
+        assert_eq!(
+            TierEnforcementCapsule::min_tier_for_feature(FeatureFlags::DEDICATED_INFRA),
+            SubscriptionTier::Enterprise.as_u8()
+        );
+    }
+
+    #[test]
+    fn test_feature_mask_values() {
+        // Verify the pre-computed feature masks are correct
+        assert_eq!(FeatureFlags::HOBBY_FEATURES, 0x0F);      // bits 0-3
+        assert_eq!(FeatureFlags::PRO_FEATURES, 0x3F);        // bits 0-5
+        assert_eq!(FeatureFlags::ENGINEER_FEATURES, 0x3FF);  // bits 0-9
+        assert_eq!(FeatureFlags::TEAMS_FEATURES, 0x3FF);     // bits 0-9
+        assert_eq!(FeatureFlags::ENTERPRISE_FEATURES, 0x1FFF); // bits 0-12
+    }
+
+    #[test]
+    fn test_new_feature_flags() {
+        // Verify new feature flag bit positions
+        assert_eq!(FeatureFlags::MEMORY_REPLAY_BASIC, 1 << 5);
+        assert_eq!(FeatureFlags::MEMORY_REPLAY_FULL, 1 << 6);
+        assert_eq!(FeatureFlags::READ_MEMORY_AT_SNAPSHOT, 1 << 7);
+        assert_eq!(FeatureFlags::FIND_SIMILAR_BUGS, 1 << 8);
+        assert_eq!(FeatureFlags::SYMBOL_RESOLUTION, 1 << 9);
+        assert_eq!(FeatureFlags::PRIORITY_SUPPORT, 1 << 10);
+        assert_eq!(FeatureFlags::CUSTOM_RETENTION, 1 << 11);
+        assert_eq!(FeatureFlags::DEDICATED_INFRA, 1 << 12);
+    }
+
+    #[test]
+    fn test_tier_feature_progression() {
+        // Verify features accumulate through tiers
+        let hobby_mask = FeatureFlags::HOBBY_FEATURES;
+        let pro_mask = FeatureFlags::PRO_FEATURES;
+        let engineer_mask = FeatureFlags::ENGINEER_FEATURES;
+        let enterprise_mask = FeatureFlags::ENTERPRISE_FEATURES;
+
+        // Each tier should include all features from lower tiers
+        assert_eq!(pro_mask & hobby_mask, hobby_mask);
+        assert_eq!(engineer_mask & pro_mask, pro_mask);
+        assert_eq!(enterprise_mask & engineer_mask, engineer_mask);
+
+        // Higher tiers should have more features
+        assert!(pro_mask > hobby_mask);
+        assert!(engineer_mask > pro_mask);
+        assert!(enterprise_mask > engineer_mask);
     }
 }

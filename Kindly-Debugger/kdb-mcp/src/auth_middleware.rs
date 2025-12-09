@@ -187,7 +187,10 @@ pub fn authenticate_request(
     let client_id = hash_string(ip); // Simple hash of IP
     let user_id = api_key.map(hash_string).unwrap_or(0);
 
-    Ok(RequestAuthContext::new(
+    // Store license key for trial status checking (Phase 7 tier enforcement)
+    let license_key = api_key.map(|k| k.to_string());
+
+    Ok(RequestAuthContext::with_license_key(
         client_id,
         user_id,
         Some(SessionId(user_id)), // Simplified: use user_id as session_id
@@ -197,6 +200,7 @@ pub fn authenticate_request(
         100.0,  // Default rate tokens
         0,      // Low risk score (Phase 2: zero-trust policy)
         generate_request_id(),
+        license_key,
     ))
 }
 
@@ -220,9 +224,23 @@ fn generate_request_id() -> u64 {
     COUNTER.fetch_add(1, Ordering::Relaxed)
 }
 
+/// Normalize tool name: debugger_quota_status -> debugger/quota_status
+/// Claude Code sends underscore format, server expects slash format
+fn normalize_method_name(method: &str) -> String {
+    if method.contains('/') {
+        return method.to_string();
+    }
+    // Convert debugger_quota_status -> debugger/quota_status
+    if method.starts_with("debugger_") {
+        return method.replacen('_', "/", 1);
+    }
+    method.to_string()
+}
+
 /// Map MCP method name to Command
 pub fn method_to_command(method: &str) -> Result<Command, String> {
-    match method {
+    let normalized = normalize_method_name(method);
+    match normalized.as_str() {
         // Core debugging commands
         "debugger/attach" => Ok(Command::Continue), // Attach requires Continue permission
         "debugger/set_breakpoint" => Ok(Command::Breakpoint),

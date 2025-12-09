@@ -378,11 +378,19 @@ Response:
                 <section id="faq" style=section_style>
                     <h2 style=section_title_style>"Frequently Asked Questions"</h2>
 
-                    <h3 style=subsection_title_style>"What's the difference between Hobby, Pro, and Enterprise?"</h3>
+                    <h3 style=subsection_title_style>"What's the difference between tiers?"</h3>
                     <p style=paragraph_style>
-                        "Hobby is free forever with 5 sessions/month (unlimited during our 7-day launch promo). "
-                        "Pro adds unlimited sessions and extended features. Enterprise includes compliance features, "
-                        "dedicated support, and custom integrations for regulated industries."
+                        "KDB offers 5 tiers:"
+                    </p>
+                    <ul style=list_style>
+                        <li style=list_item_style><strong>"Hobby (Free)"</strong>": 5 sessions/month, 3 step_backward/day, basic features"</li>
+                        <li style=list_item_style><strong>"Pro ($19/mo)"</strong>": 100 sessions/month, unlimited time-travel, basic memory replay"</li>
+                        <li style=list_item_style><strong>"Engineer ($49/mo)"</strong>": 500 sessions/month, full memory replay, LSH bug search"</li>
+                        <li style=list_item_style><strong>"Teams ($129/mo)"</strong>": 2,000 sessions/month, 5 seats, team audit logs"</li>
+                        <li style=list_item_style><strong>"Enterprise ($999+/mo)"</strong>": Unlimited sessions, SOX/SOC2/GDPR/HIPAA compliance"</li>
+                    </ul>
+                    <p style=paragraph_style>
+                        "All tiers get a 7-day free trial with full Enterprise features!"
                     </p>
 
                     <h3 style=subsection_title_style>"How does time-travel debugging work?"</h3>

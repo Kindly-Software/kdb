@@ -170,19 +170,21 @@ KDB-HOB-674A3B2C-A1B2C3D4-E5F6A7B8C9D0E1F2
 | `E5F6A7B8C9D0E1F2` | Ed25519 signature (truncated) | 16 chars |
 
 **Tier Codes**:
-- `HOB` - Hobby (5 sessions/month, unlimited during 7-day promo)
-- `STR` - Starter (50 sessions/month, $9/mo)
-- `DEV` - Developer (200 sessions/month, $29/mo)
-- `PRO` - Professional (1000 sessions/month, $79/mo)
-- `ENT` - Enterprise (unlimited, custom pricing)
+- `HOB` - Hobby (5 sessions/month, unlimited during 7-day trial)
+- `PRO` - Pro (100 sessions/month, $19/mo) - was Starter
+- `ENG` - Engineer (500 sessions/month, $49/mo) - was Developer
+- `TEA` - Teams (2,000 sessions/month, $129/mo) - was Professional
+- `ENT` - Enterprise (unlimited, from $999/mo)
 
 ---
 
-## Promotional Period
+## 7-Day Free Trial
 
-**Duration**: 7 days from service launch
-**Benefit**: Hobby tier gets **unlimited sessions** during promo
-**After Promo**: Standard 5 sessions/month limit applies
+**Duration**: 7 days from signup
+**Benefit**: ALL features unlocked (Enterprise-level access: 0x3FF feature mask)
+**Sessions**: Unlimited during trial period
+**Credit Card**: Not required
+**After Trial**: Falls back to tier-based limits (Hobby: 5 sessions/month, 3 step_backward/day)
 
 ### How It Works
 

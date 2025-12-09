@@ -28,7 +28,7 @@ All through natural language. Just ask Claude to debug your code.
 https://kindly.software
 ```
 
-Free Hobby tier available. **Launch promo: unlimited sessions for 7 days.**
+Free Hobby tier available. **7-day trial: ALL features unlocked (Enterprise-level, no credit card).**
 
 ### 2. Add to Claude Code
 
@@ -67,11 +67,16 @@ That's it. Time-travel debugging via conversation.
 
 ## Pricing
 
-| Tier | Price | Sessions |
-|------|-------|----------|
-| **Hobby** | Free | 5/month (unlimited during launch week) |
-| **Pro** | Coming Soon | Extended |
-| **Enterprise** | Contact | Unlimited + Priority Support |
+> **Launch Promo: 7-day free trial with ALL features!** No credit card required.
+> Enterprise-level access (0x3FF feature mask). After trial, falls back to tier limits.
+
+| Tier | Price | Sessions/Month | Key Features |
+|------|-------|----------------|--------------|
+| **Hobby** | Free | 5 | 3 step_backward/day, breakpoints, stack traces |
+| **Pro** (was Starter) | $19/month | 100 | Unlimited time-travel, basic memory replay |
+| **Engineer** (was Developer) | $49/month | 500 | Full memory replay, LSH bug search, read_memory_at_snapshot |
+| **Teams** (was Professional) | $129/month | 2,000 | 5 seats (+$20/seat), team audit logs |
+| **Enterprise** | From $999/month | Unlimited | SOX/SOC2/GDPR/HIPAA, Q34 audit trail, 7-year retention |
 
 ---
 

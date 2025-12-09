@@ -292,9 +292,27 @@ If you didn't sign up for KDB, ignore this email.
             <h3>Getting Started</h3>
             <ol>
                 <li>Install the Claude Code extension</li>
-                <li>Add your license key in settings</li>
+                <li>Add your license key in settings (see MCP config below)</li>
                 <li>Start debugging with AI assistance</li>
             </ol>
+        </div>
+
+        <div style="background-color: #1a1a1a; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #FFD700; margin-top: 0;">MCP Configuration</h3>
+            <p style="color: #ccc; margin-bottom: 10px;">Add this to your <code style="background: #333; padding: 2px 6px; border-radius: 4px;">~/.claude.json</code> file:</p>
+            <pre style="background: #000; padding: 15px; border-radius: 6px; overflow-x: auto; margin: 0;">
+<code style="color: #4ade80; font-family: 'Courier New', monospace; font-size: 12px;">{{
+  "mcpServers": {{
+    "kdb": {{
+      "transport": "sse",
+      "url": "https://mcp.kindly.software/sse",
+      "headers": {{
+        "X-License-Key": "{license_key}"
+      }}
+    }}
+  }}
+}}</code></pre>
+            <p style="color: #999; font-size: 12px; margin-top: 10px; margin-bottom: 0;">Works with Claude Code, Cursor, and any MCP-compatible client</p>
         </div>
 
         <p>

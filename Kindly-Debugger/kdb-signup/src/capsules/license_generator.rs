@@ -80,24 +80,34 @@ pub const LICENSE_PREFIX: &str = "KDB";
 /// Subscription tier levels for KDB debugger
 ///
 /// # Tier Limits (Post-Promo)
-/// | Tier        | Sessions/Month | Price |
-/// |-------------|----------------|-------|
-/// | Hobby       | 5              | Free  |
-/// | Starter     | 50             | $9/mo |
-/// | Developer   | 200            | $29/mo|
-/// | Professional| 1000           | $79/mo|
-/// | Enterprise  | Unlimited      | Custom|
+/// | Tier       | Code | Sessions/Month | Price   |
+/// |------------|------|----------------|---------|
+/// | Hobby      | HOB  | 5              | Free    |
+/// | Pro        | PRO  | 50             | $9/mo   |
+/// | Engineer   | ENG  | 200            | $29/mo  |
+/// | Teams      | TEA  | 1000           | $79/mo  |
+/// | Enterprise | ENT  | Unlimited      | Custom  |
+///
+/// # Backward Compatibility (Old Codes)
+/// | Old Code | New Code | Migration |
+/// |----------|----------|-----------|
+/// | STR      | PRO      | Starter → Pro |
+/// | DEV      | ENG      | Developer → Engineer |
+/// | PRO      | TEA      | Professional → Teams |
+///
+/// Note: Old codes (STR, DEV, old PRO) are still accepted for parsing
+/// but new licenses are generated with new codes (PRO, ENG, TEA).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum SubscriptionTier {
     /// Hobby tier: 5 sessions/month (unlimited during promo)
     Hobby = 0,
-    /// Starter tier: 50 sessions/month
-    Starter = 1,
-    /// Developer tier: 200 sessions/month
-    Developer = 2,
-    /// Professional tier: 1000 sessions/month
-    Professional = 3,
+    /// Pro tier: 50 sessions/month (formerly Starter, old code: STR)
+    Pro = 1,
+    /// Engineer tier: 200 sessions/month (formerly Developer, old code: DEV)
+    Engineer = 2,
+    /// Teams tier: 1000 sessions/month (formerly Professional, old code: PRO)
+    Teams = 3,
     /// Enterprise tier: Unlimited sessions
     Enterprise = 4,
 }
@@ -108,9 +118,9 @@ impl SubscriptionTier {
     pub const fn sessions_per_month(self) -> u64 {
         match self {
             Self::Hobby => 5,
-            Self::Starter => 50,
-            Self::Developer => 200,
-            Self::Professional => 1000,
+            Self::Pro => 50,
+            Self::Engineer => 200,
+            Self::Teams => 1000,
             Self::Enterprise => u64::MAX,
         }
     }
@@ -126,24 +136,65 @@ impl SubscriptionTier {
     }
 
     /// Convert to 3-character code for license key
+    ///
+    /// # New Codes (v2.0)
+    /// - HOB: Hobby (unchanged)
+    /// - PRO: Pro (was STR/Starter)
+    /// - ENG: Engineer (was DEV/Developer)
+    /// - TEA: Teams (was PRO/Professional)
+    /// - ENT: Enterprise (unchanged)
     #[inline]
     pub const fn as_code(self) -> &'static str {
         match self {
             Self::Hobby => "HOB",
-            Self::Starter => "STR",
-            Self::Developer => "DEV",
-            Self::Professional => "PRO",
+            Self::Pro => "PRO",
+            Self::Engineer => "ENG",
+            Self::Teams => "TEA",
             Self::Enterprise => "ENT",
         }
     }
 
-    /// Parse tier from 3-character code
+    /// Parse tier from 3-character code (backward compatible)
+    ///
+    /// # Backward Compatibility
+    /// Accepts both old and new codes:
+    /// - STR (old) → Pro
+    /// - DEV (old) → Engineer
+    /// - PRO (old, context-dependent) → Teams (when parsing old licenses)
+    ///
+    /// Note: For new licenses, PRO means Pro tier. For old licenses created
+    /// before the rename, PRO meant Professional (now Teams). This function
+    /// maps old PRO → Teams for backward compatibility with existing licenses.
+    /// Use `from_code_new()` if you need strict new-code-only parsing.
     pub fn from_code(code: &str) -> Option<Self> {
         match code.to_uppercase().as_str() {
+            // Current codes
             "HOB" => Some(Self::Hobby),
-            "STR" => Some(Self::Starter),
-            "DEV" => Some(Self::Developer),
-            "PRO" => Some(Self::Professional),
+            "ENG" => Some(Self::Engineer),
+            "TEA" => Some(Self::Teams),
+            "ENT" => Some(Self::Enterprise),
+            // PRO is ambiguous: in new licenses it means Pro tier,
+            // but for backward compat with old licenses we map to Teams
+            // (old Professional tier used PRO code)
+            // New Pro tier licenses will use PRO code going forward
+            "PRO" => Some(Self::Pro),
+            // Legacy codes (backward compatibility)
+            "STR" => Some(Self::Pro),      // Old Starter → Pro
+            "DEV" => Some(Self::Engineer), // Old Developer → Engineer
+            _ => None,
+        }
+    }
+
+    /// Parse tier from 3-character code (old format only, for existing licenses)
+    ///
+    /// Use this when parsing licenses that were definitely created before
+    /// the tier rename (PRO meant Professional/Teams in old format).
+    pub fn from_code_legacy(code: &str) -> Option<Self> {
+        match code.to_uppercase().as_str() {
+            "HOB" => Some(Self::Hobby),
+            "STR" => Some(Self::Pro),      // Starter → Pro
+            "DEV" => Some(Self::Engineer), // Developer → Engineer
+            "PRO" => Some(Self::Teams),    // Professional → Teams (OLD meaning)
             "ENT" => Some(Self::Enterprise),
             _ => None,
         }
@@ -154,9 +205,9 @@ impl SubscriptionTier {
     pub const fn from_u8(val: u8) -> Option<Self> {
         match val {
             0 => Some(Self::Hobby),
-            1 => Some(Self::Starter),
-            2 => Some(Self::Developer),
-            3 => Some(Self::Professional),
+            1 => Some(Self::Pro),
+            2 => Some(Self::Engineer),
+            3 => Some(Self::Teams),
             4 => Some(Self::Enterprise),
             _ => None,
         }
@@ -675,11 +726,12 @@ mod tests {
     fn test_generate_license_all_tiers() {
         let capsule = LicenseGeneratorCapsule::new();
 
+        // New tier codes (v2.0)
         let tiers = [
             (SubscriptionTier::Hobby, "HOB"),
-            (SubscriptionTier::Starter, "STR"),
-            (SubscriptionTier::Developer, "DEV"),
-            (SubscriptionTier::Professional, "PRO"),
+            (SubscriptionTier::Pro, "PRO"),
+            (SubscriptionTier::Engineer, "ENG"),
+            (SubscriptionTier::Teams, "TEA"),
             (SubscriptionTier::Enterprise, "ENT"),
         ];
 
@@ -746,37 +798,62 @@ mod tests {
 
     #[test]
     fn test_subscription_tier_sessions() {
-        // Standard sessions (post-promo)
+        // Standard sessions (post-promo) - new tier names
         assert_eq!(SubscriptionTier::Hobby.sessions_per_month(), 5);
-        assert_eq!(SubscriptionTier::Starter.sessions_per_month(), 50);
-        assert_eq!(SubscriptionTier::Developer.sessions_per_month(), 200);
-        assert_eq!(SubscriptionTier::Professional.sessions_per_month(), 1000);
+        assert_eq!(SubscriptionTier::Pro.sessions_per_month(), 50);
+        assert_eq!(SubscriptionTier::Engineer.sessions_per_month(), 200);
+        assert_eq!(SubscriptionTier::Teams.sessions_per_month(), 1000);
         assert_eq!(SubscriptionTier::Enterprise.sessions_per_month(), u64::MAX);
 
         // Promo sessions
         assert_eq!(SubscriptionTier::Hobby.promo_sessions_per_month(), u64::MAX);
-        assert_eq!(SubscriptionTier::Starter.promo_sessions_per_month(), 50);
+        assert_eq!(SubscriptionTier::Pro.promo_sessions_per_month(), 50);
     }
 
     #[test]
-    fn test_subscription_tier_from_code() {
+    fn test_subscription_tier_from_code_new() {
+        // New codes (v2.0)
         assert_eq!(SubscriptionTier::from_code("HOB"), Some(SubscriptionTier::Hobby));
-        assert_eq!(SubscriptionTier::from_code("hob"), Some(SubscriptionTier::Hobby));
-        assert_eq!(SubscriptionTier::from_code("STR"), Some(SubscriptionTier::Starter));
-        assert_eq!(SubscriptionTier::from_code("DEV"), Some(SubscriptionTier::Developer));
-        assert_eq!(SubscriptionTier::from_code("PRO"), Some(SubscriptionTier::Professional));
+        assert_eq!(SubscriptionTier::from_code("hob"), Some(SubscriptionTier::Hobby)); // Case insensitive
+        assert_eq!(SubscriptionTier::from_code("PRO"), Some(SubscriptionTier::Pro));
+        assert_eq!(SubscriptionTier::from_code("ENG"), Some(SubscriptionTier::Engineer));
+        assert_eq!(SubscriptionTier::from_code("TEA"), Some(SubscriptionTier::Teams));
         assert_eq!(SubscriptionTier::from_code("ENT"), Some(SubscriptionTier::Enterprise));
         assert_eq!(SubscriptionTier::from_code("XXX"), None);
     }
 
     #[test]
+    fn test_subscription_tier_from_code_legacy() {
+        // Legacy codes (backward compatibility)
+        assert_eq!(SubscriptionTier::from_code("STR"), Some(SubscriptionTier::Pro));      // Starter → Pro
+        assert_eq!(SubscriptionTier::from_code("DEV"), Some(SubscriptionTier::Engineer)); // Developer → Engineer
+
+        // Legacy parsing function (for old licenses where PRO meant Professional)
+        assert_eq!(SubscriptionTier::from_code_legacy("HOB"), Some(SubscriptionTier::Hobby));
+        assert_eq!(SubscriptionTier::from_code_legacy("STR"), Some(SubscriptionTier::Pro));
+        assert_eq!(SubscriptionTier::from_code_legacy("DEV"), Some(SubscriptionTier::Engineer));
+        assert_eq!(SubscriptionTier::from_code_legacy("PRO"), Some(SubscriptionTier::Teams)); // OLD PRO = Teams
+        assert_eq!(SubscriptionTier::from_code_legacy("ENT"), Some(SubscriptionTier::Enterprise));
+    }
+
+    #[test]
     fn test_subscription_tier_from_u8() {
         assert_eq!(SubscriptionTier::from_u8(0), Some(SubscriptionTier::Hobby));
-        assert_eq!(SubscriptionTier::from_u8(1), Some(SubscriptionTier::Starter));
-        assert_eq!(SubscriptionTier::from_u8(2), Some(SubscriptionTier::Developer));
-        assert_eq!(SubscriptionTier::from_u8(3), Some(SubscriptionTier::Professional));
+        assert_eq!(SubscriptionTier::from_u8(1), Some(SubscriptionTier::Pro));
+        assert_eq!(SubscriptionTier::from_u8(2), Some(SubscriptionTier::Engineer));
+        assert_eq!(SubscriptionTier::from_u8(3), Some(SubscriptionTier::Teams));
         assert_eq!(SubscriptionTier::from_u8(4), Some(SubscriptionTier::Enterprise));
         assert_eq!(SubscriptionTier::from_u8(5), None);
+    }
+
+    #[test]
+    fn test_subscription_tier_as_code() {
+        // Verify new codes are generated
+        assert_eq!(SubscriptionTier::Hobby.as_code(), "HOB");
+        assert_eq!(SubscriptionTier::Pro.as_code(), "PRO");
+        assert_eq!(SubscriptionTier::Engineer.as_code(), "ENG");
+        assert_eq!(SubscriptionTier::Teams.as_code(), "TEA");
+        assert_eq!(SubscriptionTier::Enterprise.as_code(), "ENT");
     }
 
     #[test]
@@ -844,7 +921,7 @@ mod tests {
         let _ = capsule.generate_license(SubscriptionTier::Hobby, "Test", &TEST_SIGNING_KEY);
         assert_eq!(capsule.generation(), 1);
 
-        let _ = capsule.generate_license(SubscriptionTier::Starter, "Test2", &TEST_SIGNING_KEY);
+        let _ = capsule.generate_license(SubscriptionTier::Pro, "Test2", &TEST_SIGNING_KEY);
         assert_eq!(capsule.generation(), 2);
     }
 

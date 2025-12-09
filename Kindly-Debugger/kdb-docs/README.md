@@ -103,15 +103,32 @@ Find similar bugs across your codebase by analyzing execution patterns and memor
 
 ## Pricing
 
+> **Launch Promo: 7-day free trial with ALL features!** No credit card required.
+> Enterprise-level access (0x3FF feature mask). After trial, falls back to tier limits.
+
 Visit [kindly.software](https://kindly.software) for pricing and signup:
 
-| Tier | Price | Sessions | Features |
-|------|-------|----------|----------|
-| **Hobby** | Free | 5/month* | Time-travel, breakpoints, stack traces, audit trails |
-| **Pro** | Coming Soon | Extended | All Hobby features + memory write, symbol resolution |
-| **Enterprise** | Contact | Unlimited | All features + priority support, custom SLA, on-prem option |
+| Tier | Price | Sessions/Month | Features |
+|------|-------|----------------|----------|
+| **Hobby** | Free | 5 | 3 step_backward/day, breakpoints, stack traces, audit trails |
+| **Pro** (was Starter) | $19/month | 100 | Unlimited time-travel, basic memory replay |
+| **Engineer** (was Developer) | $49/month | 500 | Full memory replay, LSH bug search, read_memory_at_snapshot |
+| **Teams** (was Professional) | $129/month | 2,000 | 5 seats (+$20/seat), team audit logs |
+| **Enterprise** | From $999/month | Unlimited | SOX/SOC2/GDPR/HIPAA, Q34 audit trail, 7-year retention |
 
-*During the 7-day launch promotional period, Hobby tier users get **unlimited sessions**.
+### Feature Comparison
+
+| Feature | Hobby | Pro | Engineer | Teams | Enterprise |
+|---------|-------|-----|----------|-------|------------|
+| Time-travel | Yes | Yes | Yes | Yes | Yes |
+| step_backward | 3/day | Unlimited | Unlimited | Unlimited | Unlimited |
+| Memory replay | No | Basic | Full | Full | Full |
+| read_memory_at_snapshot | No | No | Yes | Yes | Yes |
+| find_similar_bugs (LSH) | No | No | Yes | Yes | Yes |
+| Team seats | - | - | - | 5 (+$20/seat) | Unlimited |
+| Compliance (SOX/SOC2/GDPR/HIPAA) | No | No | No | No | Yes |
+
+**14-day money-back guarantee** on all paid plans.
 
 **Sign up now**: https://api.kindly.software/api/v1/signup
 

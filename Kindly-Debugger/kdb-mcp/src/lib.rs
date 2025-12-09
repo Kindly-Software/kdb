@@ -89,6 +89,13 @@ pub mod snapshot_quota;  // T1 Atomic snapshot quota enforcement (256B)
 pub mod session_tier_map;  // T1 Atomic session to tier mapping (64KB)
 pub mod idempotency_cache;  // T1 Atomic request deduplication cache (16KB)
 pub mod sse_session;  // T1 Atomic SSE session state management (256B)
+pub mod session_channel_registry;  // T1 Atomic session channel registry (T6 Mixed orchestration)
+pub mod daily_limit;  // T1 Atomic daily usage tracking (64B, Hobby tier step_backward limit)
+pub mod monthly_quota;  // T1 Atomic monthly session tracking (128B, auto-reset at month boundary)
+pub mod trial_state;  // T1 Atomic trial period tracking (128B, 7-day trial with all features)
+
+#[cfg(feature = "session-persistence")]
+pub mod session_persistence;  // T1 Atomic + T9 Persistent session persistence (capsule_cache integration)
 
 // ============================================================================
 // T28 Deterministic Testing Framework (Q8-Q14 Property Tests)
@@ -280,6 +287,44 @@ pub use sse_session::{
     SessionSnapshot as SseSessionSnapshot,
     SOCKET_NOT_CONNECTED,
     DEFAULT_RATE_LIMIT_TOKENS,
+};
+
+// Session channel registry types (session_channel_registry)
+pub use session_channel_registry::{
+    SessionChannelRegistryCapsule,
+    ChannelState,
+    SseMessage,
+    RegistryError,
+    RegistryStats,
+    MAX_CHANNELS as MAX_CHANNEL_SLOTS,
+};
+
+// Daily limit types (daily_limit) - Hobby tier step_backward enforcement
+pub use daily_limit::{
+    DailyLimitCapsule,
+    DailyLimitResult,
+    DailyLimitError,
+    DailyLimitStats,
+};
+
+// Monthly quota types (monthly_quota) - Monthly session tracking with auto-reset
+pub use monthly_quota::{
+    MonthlyQuotaCapsule,
+    SessionStartResult,
+    MonthlyQuotaError,
+    MonthlyQuotaStats,
+    unix_to_month,
+    next_month_start_unix,
+};
+
+// Session persistence types (session_persistence) - uses simple TCP client to capsule_cache
+#[cfg(feature = "session-persistence")]
+pub use session_persistence::{
+    SessionPersistenceCapsule,
+    ConnectionState,
+    SessionMetadata,
+    PersistenceError,
+    PersistenceStats,
 };
 
 // Re-export Command from access_control if available

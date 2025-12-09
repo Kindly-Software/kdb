@@ -37,57 +37,72 @@ HOB-2025-12-14-a1b2c3d4...
 
 Keep your license key secure and never commit it to version control.
 
-## Step 2: Configure Claude Code
+## Step 2: Install the MCP Bridge
 
-Add kindly-debugger to your MCP servers configuration.
+The KDB bridge is a lightweight binary that connects Claude Code to the KDB debugger via HTTP.
 
-### Configuration File Location
+### Download and Install
 
-- **Linux/macOS**: `~/.config/claude-code/mcp_servers.json`
-- **Windows**: `%APPDATA%\claude-code\mcp_servers.json`
+```bash
+# Download the bridge (choose your platform)
+curl -L https://github.com/kindly-software/kdb/releases/latest/download/kdb-mcp-bridge-linux -o ~/bin/kdb-mcp-bridge
+chmod +x ~/bin/kdb-mcp-bridge
 
-### Add the Configuration
+# Or via npm (installs automatically)
+npm install -g @kindly-software-inc/kdb-bridge
+```
 
-Edit the configuration file and add the kindly-debugger entry:
+### Configure Claude Code
+
+Edit your Claude Code configuration:
+
+- **File location**: `~/.claude.json`
+
+Add the KDB MCP server:
 
 ```json
 {
-  "kindly-debugger": {
-    "type": "remote",
-    "url": "https://api.kindly.software/mcp",
-    "headers": {
-      "Authorization": "Bearer YOUR_API_KEY_HERE"
+  "mcpServers": {
+    "kdb": {
+      "type": "stdio",
+      "command": "/home/your-username/bin/kdb-mcp-bridge",
+      "env": {
+        "KDB_LICENSE_KEY": "YOUR_LICENSE_KEY_HERE"
+      }
     }
   }
 }
 ```
 
-Replace `YOUR_API_KEY_HERE` with your actual API key.
+Replace:
+- `/home/your-username/bin/kdb-mcp-bridge` with the actual path to the bridge binary
+- `YOUR_LICENSE_KEY_HERE` with your license key from Step 1
 
 ### Verify Configuration
 
-Restart Claude Code and verify the connection:
+Restart Claude Code (or run `/mcp` to reconnect) and verify:
 
 ```
-Claude: Can you check my kindly-debugger connection?
+Claude: Can you check my kdb connection?
 ```
 
-You should see a confirmation that kindly-debugger tools are available.
+You should see confirmation that kdb tools are available.
 
 ## Step 3: Test the Connection
 
 Verify your setup with a simple quota check:
 
 ```
-Claude: Check my kindly-debugger quota status
+Claude: Check my kdb quota status
 ```
 
 Expected response:
-```
-Quota Status:
-  Plan: [Your Plan]
-  Used: X / Y requests
-  Remaining: Z requests
+```json
+{
+  "tier_name": "Hobby",
+  "remaining": {"daily": 4, "monthly": 4},
+  "usage": {"daily_requests": 1, "monthly_requests": 1}
+}
 ```
 
 ## Step 4: Your First Debugging Session
@@ -105,7 +120,7 @@ Note the PID (process ID) that's printed.
 ### Attach to the Process
 
 ```
-Claude: Attach kindly-debugger to process [PID]
+Claude: Attach kdb to process [PID]
 ```
 
 ### Set a Breakpoint
@@ -207,11 +222,12 @@ For different environments (dev/staging/prod), use separate API keys:
 
 ## Troubleshooting
 
-### "Connection refused" Error
+### "Connection refused" or "502 Bad Gateway"
 
-- Verify your license key is correct
-- Check your internet connection
-- Ensure the service URL is `https://api.kindly.software/mcp`
+- Verify the bridge binary is installed and executable
+- Check your license key is correct in the config
+- Ensure the bridge can reach `https://mcp.kindly.software/mcp`
+- Test manually: `echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | KDB_LICENSE_KEY=your_key /path/to/kdb-mcp-bridge`
 
 ### "Permission denied" when attaching
 

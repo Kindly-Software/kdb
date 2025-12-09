@@ -72,6 +72,10 @@ pub struct RequestAuthContext {
 
     /// Request metadata (for audit logging)
     pub request_id: u64,
+
+    /// License key for trial status checking (Phase 7 tier enforcement)
+    /// Format: KDB-{TIER}-{timestamp_hex}-{org_hash}-{signature}
+    pub license_key: Option<String>,
 }
 
 impl RequestAuthContext {
@@ -99,6 +103,36 @@ impl RequestAuthContext {
             auth_timestamp_ns: Self::current_timestamp_ns(),
             risk_score,
             request_id,
+            license_key: None,
+        }
+    }
+
+    /// Create new request authentication context with license key
+    #[allow(clippy::too_many_arguments)]
+    pub fn with_license_key(
+        client_id: u64,
+        user_id: u64,
+        session_id: Option<SessionId>,
+        allowed_commands: Vec<Command>,
+        allowed_pids: Option<Vec<u32>>,
+        quota_remaining: u64,
+        rate_tokens_remaining: f32,
+        risk_score: u32,
+        request_id: u64,
+        license_key: Option<String>,
+    ) -> Self {
+        Self {
+            client_id,
+            user_id,
+            session_id,
+            allowed_commands,
+            allowed_pids,
+            quota_remaining,
+            rate_tokens_remaining,
+            auth_timestamp_ns: Self::current_timestamp_ns(),
+            risk_score,
+            request_id,
+            license_key,
         }
     }
 
@@ -154,6 +188,7 @@ impl RequestAuthContext {
             auth_timestamp_ns: Self::current_timestamp_ns(),
             risk_score: 0, // Low risk
             request_id: 1,
+            license_key: None,
         }
     }
 
@@ -171,6 +206,7 @@ impl RequestAuthContext {
             auth_timestamp_ns: Self::current_timestamp_ns(),
             risk_score: 128, // Medium risk (Q8.8 50%)
             request_id: 2,
+            license_key: None,
         }
     }
 }

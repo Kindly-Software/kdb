@@ -22,11 +22,37 @@
 
 <commercial-model>
   <status>Commercial product with tiered licensing</status>
+
+  <trial-promo status="ACTIVE">
+    <description>7-day free trial with ALL features (Enterprise-level access: 0x3FF)</description>
+    <sessions>Unlimited during trial</sessions>
+    <credit-card>Not required</credit-card>
+    <after-trial>Falls back to tier-based limits</after-trial>
+  </trial-promo>
+
   <tiers>
-    <tier name="Hobby" price="Free" sessions="5/month" promo="Unlimited during 7-day launch period"/>
-    <tier name="Pro" price="Coming Soon" sessions="Extended"/>
-    <tier name="Enterprise" price="Contact" sessions="Unlimited" features="Priority support, custom SLA"/>
+    <tier name="Hobby" price="Free" sessions="5/month">
+      <features>Time-travel (3 step_backward/day), breakpoints, stack traces, audit trail</features>
+      <limitations>No memory replay, no LSH bug search, no read_memory_at_snapshot</limitations>
+    </tier>
+    <tier name="Pro" price="$19/month" sessions="100/month" note="was Starter">
+      <features>Unlimited time-travel, unlimited step_backward, basic memory replay</features>
+      <limitations>No LSH bug search, no read_memory_at_snapshot</limitations>
+    </tier>
+    <tier name="Engineer" price="$49/month" sessions="500/month" note="was Developer">
+      <features>Full memory replay, LSH bug search (find_similar_bugs), read_memory_at_snapshot</features>
+      <all-debugging-tools>Yes</all-debugging-tools>
+    </tier>
+    <tier name="Teams" price="$129/month" sessions="2,000/month" note="was Professional">
+      <features>Same as Engineer + 5 seats (+$20/seat), team audit logs, memory integrity verification</features>
+    </tier>
+    <tier name="Enterprise" price="From $999/month" sessions="Unlimited">
+      <features>Everything unlimited, SOX/SOC2/GDPR/HIPAA compliance, Q34 cryptographic audit trail</features>
+      <retention>Custom (up to 7 years)</retention>
+      <support>Priority + dedicated</support>
+    </tier>
   </tiers>
+
   <platform-support>
     <note>Users on ANY OS (macOS, Windows, Linux) connect via MCP clients</note>
     <note>AI assistants (Claude Code, Cursor, etc.) handle the MCP protocol</note>
@@ -148,25 +174,83 @@
   <total-latency>&lt;200ns per request</total-latency>
 
   <subscription-tiers>
-    <tier name="Hobby" value="0" rpm="60" burst="10" snapshots="100" retention="7d" features="0x0F"/>
-    <tier name="Starter" value="1" rpm="300" burst="30" snapshots="1000" retention="7d" features="0x1F"/>
-    <tier name="Developer" value="2" rpm="1000" burst="100" snapshots="10000" retention="30d" features="0x3F"/>
-    <tier name="Professional" value="3" rpm="5000" burst="500" snapshots="100000" retention="90d" features="0xFF"/>
-    <tier name="Enterprise" value="4" rpm="MAX" burst="MAX" snapshots="MAX" retention="365d" features="0x3FF"/>
+    <tier name="Hobby" value="0" rpm="60" burst="10" sessions="5/month" snapshots="100" retention="7d" features="0x0F">
+      <step-backward-limit>3/day</step-backward-limit>
+      <memory-replay>disabled</memory-replay>
+    </tier>
+    <tier name="Pro" value="1" rpm="300" burst="30" sessions="100/month" snapshots="1000" retention="7d" features="0x1F" note="was Starter">
+      <step-backward>unlimited</step-backward>
+      <memory-replay>basic</memory-replay>
+    </tier>
+    <tier name="Engineer" value="2" rpm="1000" burst="100" sessions="500/month" snapshots="10000" retention="30d" features="0x3F" note="was Developer">
+      <memory-replay>full</memory-replay>
+      <find-similar-bugs>enabled (LSH)</find-similar-bugs>
+      <read-memory-at-snapshot>enabled</read-memory-at-snapshot>
+    </tier>
+    <tier name="Teams" value="3" rpm="5000" burst="500" sessions="2000/month" snapshots="100000" retention="90d" features="0xFF" note="was Professional">
+      <seats>5 (+$20/seat)</seats>
+      <team-audit-logs>enabled</team-audit-logs>
+      <memory-integrity-verification>enabled</memory-integrity-verification>
+    </tier>
+    <tier name="Enterprise" value="4" rpm="MAX" burst="MAX" sessions="unlimited" snapshots="MAX" retention="365d+" features="0x3FF">
+      <compliance>SOX/SOC2/GDPR/HIPAA</compliance>
+      <audit-trail>Q34 cryptographic hash-chain</audit-trail>
+      <retention>custom (up to 7 years)</retention>
+    </tier>
   </subscription-tiers>
+
+  <trial-period status="ACTIVE">
+    <duration>7 days</duration>
+    <feature-level>Enterprise (0x3FF - all features)</feature-level>
+    <sessions>Unlimited</sessions>
+    <credit-card-required>No</credit-card-required>
+  </trial-period>
 
   <feature-flags>
     <flag bit="0" name="TIME_TRAVEL" tiers="all">Bidirectional replay</flag>
     <flag bit="1" name="BREAKPOINTS" tiers="all">Breakpoint management</flag>
     <flag bit="2" name="STACK_TRACE" tiers="all">Stack unwinding</flag>
     <flag bit="3" name="AUDIT_TRAIL" tiers="all">Export audit traces</flag>
-    <flag bit="4" name="MEMORY_READ" tiers="Starter+">Read process memory</flag>
-    <flag bit="5" name="MEMORY_WRITE" tiers="Developer+">Write process memory</flag>
-    <flag bit="6" name="SYMBOL_RESOLUTION" tiers="Professional+">DWARF symbol lookup</flag>
-    <flag bit="7" name="STEP_BACKWARD" tiers="Professional+">Time-travel backward</flag>
+    <flag bit="4" name="MEMORY_READ" tiers="Pro+">Read process memory</flag>
+    <flag bit="5" name="MEMORY_WRITE" tiers="Engineer+">Write process memory</flag>
+    <flag bit="6" name="SYMBOL_RESOLUTION" tiers="Teams+">DWARF symbol lookup</flag>
+    <flag bit="7" name="STEP_BACKWARD_UNLIMITED" tiers="Pro+">Unlimited time-travel backward (Hobby: 3/day)</flag>
     <flag bit="8" name="PRIORITY_SUPPORT" tiers="Enterprise">Priority support queue</flag>
-    <flag bit="9" name="CUSTOM_RETENTION" tiers="Enterprise">Custom retention policies</flag>
+    <flag bit="9" name="CUSTOM_RETENTION" tiers="Enterprise">Custom retention policies (up to 7 years)</flag>
   </feature-flags>
+
+  <tier-specific-limits>
+    <hobby>
+      <step-backward>3 per day</step-backward>
+      <memory-replay>disabled</memory-replay>
+      <find-similar-bugs>disabled</find-similar-bugs>
+      <read-memory-at-snapshot>disabled</read-memory-at-snapshot>
+    </hobby>
+    <pro note="was Starter">
+      <step-backward>unlimited</step-backward>
+      <memory-replay>basic</memory-replay>
+      <find-similar-bugs>disabled</find-similar-bugs>
+      <read-memory-at-snapshot>disabled</read-memory-at-snapshot>
+    </pro>
+    <engineer note="was Developer">
+      <step-backward>unlimited</step-backward>
+      <memory-replay>full</memory-replay>
+      <find-similar-bugs>enabled (LSH probabilistic search)</find-similar-bugs>
+      <read-memory-at-snapshot>enabled</read-memory-at-snapshot>
+    </engineer>
+    <teams note="was Professional">
+      <all-features>same as Engineer</all-features>
+      <seats>5 included (+$20/additional seat)</seats>
+      <team-audit-logs>enabled</team-audit-logs>
+      <memory-integrity-verification>enabled</memory-integrity-verification>
+    </teams>
+    <enterprise>
+      <everything>unlimited</everything>
+      <compliance>SOX/SOC2/GDPR/HIPAA</compliance>
+      <audit-trail>Q34 cryptographic hash-chain</audit-trail>
+      <retention>custom (up to 7 years)</retention>
+    </enterprise>
+  </tier-specific-limits>
 
   <enforcement-stages>
     <stage name="Normal" range="0-80%" action="Allowed"/>
