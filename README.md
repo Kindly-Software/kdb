@@ -39,11 +39,20 @@ Free Hobby tier available. **Launch promo: unlimited sessions for 7 days.**
 {
   "mcpServers": {
     "kdb": {
-      "command": "kdb-mcp",
-      "args": ["--license", "YOUR_LICENSE_KEY"]
+      "transport": "sse",
+      "url": "https://mcp.kindly.software/sse",
+      "headers": {
+        "X-License-Key": "YOUR_LICENSE_KEY"
+      }
     }
   }
 }
+```
+
+**Or install via npm:**
+
+```bash
+npm install -g @kindly-software-inc/kdb
 ```
 
 ### 3. Debug
