@@ -437,7 +437,7 @@ fn default_security_policy() -> SecurityHeadersPolicy {
         csp_policy: "default-src 'self'; \
                     script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline' https://static.cloudflareinsights.com; \
                     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; \
-                    connect-src 'self' https://api.kindly.services https://cloudflareinsights.com; \
+                    connect-src 'self' https://api.kindly.software https://cloudflareinsights.com; \
                     img-src 'self' data: blob:; \
                     font-src 'self' https://fonts.gstatic.com; \
                     object-src 'none'; \

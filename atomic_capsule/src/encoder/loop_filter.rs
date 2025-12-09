@@ -21,7 +21,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 T2 SIMD tier, Q12 Ultrathink research (AV1 spec), Q34 audit trails
-//! - **COCA**: 100% lockfree (zero mutex/RwLock), atomic coordination only
+//! - **Chaos**: 100% lockfree (zero mutex/RwLock), atomic coordination only
 //! - **ASSUM**: 99.99% safe (all assumptions documented, SIMD bounds, fixed-point math)
 //! - **B32**: Fair baseline (rav1e, conservative 2-5× speedup)
 //! - **T28**: 28 tests (unit/property/integration/production)

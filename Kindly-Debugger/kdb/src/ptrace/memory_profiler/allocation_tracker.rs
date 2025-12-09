@@ -35,7 +35,7 @@
 //!
 //! # Framework Compliance
 //! ✅ UCE34: Q10 T1 tier selection, Q33 #[derive(ComputationalCapsule)], Q34 audit-ready
-//! ✅ COCA: 100% lockfree (zero mutex/RwLock), atomic operations only
+//! ✅ Chaos: 100% lockfree (zero mutex/RwLock), atomic operations only
 //! ✅ ASSUM: 99.99%+ safe (all unsafe documented)
 //! ✅ B32: Fair benchmarking vs traditional malloc tracking
 //! ✅ T28: Comprehensive testing (unit + property + integration)

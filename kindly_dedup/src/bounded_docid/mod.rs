@@ -59,7 +59,7 @@
 //! - **ASSUM**: 99.99% safe (module privacy enforces invariants)
 //! - **B32**: Zero-cost abstraction (sizeof(DocumentId) == sizeof(usize))
 //! - **T28**: Comprehensive tests (unit/property/integration)
-//! - **COCA**: 100% safe Rust (no unsafe code)
+//! - **Chaos**: 100% safe Rust (no unsafe code)
 
 mod allocator;
 mod document_id;

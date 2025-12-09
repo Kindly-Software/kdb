@@ -1,0 +1,129 @@
+[package]
+name = "kindly_inference"
+version = "0.1.0"
+edition = "2021"
+authors = ["Samuel <samuel@kindly.ai>"]
+description = "LLM inference primitives with computational capsule architecture"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+# Core dependencies (always required)
+atomic_capsule_derive = { path = "../atomic_capsule_derive" }
+thiserror = "2.0"
+serde_json = "1.0"
+
+# Foundation capsules (lockfree primitives) - DEFAULT dependency for inference infrastructure
+# #ASSUME_ATOMIC_CAPSULE: atomic_capsule provides T1-T6 tier infrastructure for inference primitives
+# #VERIFY_ATOMIC_CAPSULE: UCE34 Q13-Q15 (Resources/Dependencies/Scaling) satisfied by atomic_capsule
+#
+# Default features enabled:
+# - std: Standard library (required for inference workloads)
+# - stable-fallback: Stable Rust compatibility (nightly optional)
+# - derive: Automatic verification via #[derive(ComputationalCapsule)]
+# - inference-quantization: T3 fixed-point quantization (Q8/Q16, 5-10× speedup)
+atomic_capsule = { path = "../atomic_capsule", version = "0.9.0", features = ["std"] }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+tokio = { version = "1.40", features = ["rt-multi-thread", "time", "macros"] }
+futures = "0.3"
+proptest = "1.5"
+# B32 benchmarking support (fair baselines, realistic workloads)
+atomic_capsule = { path = "../atomic_capsule", version = "0.9.0" }
+
+[features]
+# Base features (stable Rust compatible)
+default = []
+portable_simd = ["atomic_capsule/portable_simd"]  # Enable SIMD capsules (requires nightly)
+nightly = ["portable_simd"]  # Nightly Rust feature gate
+
+# ============================================================================
+# Inference Feature Hierarchy (atomic_capsule integration)
+# ============================================================================
+#
+# **IMPL-2 V3.1**: Nightly-first, tier-maximization, innovation-stacking
+#
+# Tier Mapping:
+# - T2 (SIMD): f32x8 matmul, vectorized attention (2-19× proven)
+# - T3 (Fixed-Point): INT8/INT16 quantization, deterministic rounding (5-10×)
+# - T4 (Batch): Rayon parallel batch processing (10-100×)
+# - T5 (Streaming): Incremental attention computation (O(1) latency)
+# - T6 (Mixed): Full-tier compound (T2+T3+T4+T5, 10-50× breakthrough)
+#
+# Feature Strategy:
+# - inference-base: T3 quantization only (stable Rust, minimal deps)
+# - inference-simd: T2+T3 (nightly, SIMD matmul + quantization)
+# - inference-batch: T2+T3+T4 (nightly, parallel batch processing)
+# - inference-full: T2+T3+T4+T5 (nightly, all tiers, 10-50× compound)
+#
+# Usage:
+# - Stable: cargo build (T3 quantization only)
+# - Nightly: cargo +nightly build --features inference-full (all tiers)
+
+# Inference Base (T3): Fixed-point quantization only (stable Rust compatible)
+# - QuantizationCapsule with Q8/Q16 deterministic rounding
+# - 5-10× speedup vs f32 operations
+# - Zero nightly dependencies
+inference-base = ["atomic_capsule/inference-quantization"]
+
+# Inference SIMD (T2+T3): Vectorized matmul + quantization (nightly required)
+# - SIMDMatMulCapsule with f32x8 vectorization
+# - QuantizationCapsule with SIMD acceleration
+# - 4-8× matmul, 5-10× quantization (compound 20-80×)
+inference-simd = ["nightly", "atomic_capsule/inference-matmul", "atomic_capsule/inference-quantization"]
+
+# Inference Batch (T2+T3+T4): Parallel batch processing (nightly required)
+# - inference-simd + Rayon parallel batching
+# - 10-100× batch throughput
+inference-batch = ["inference-simd", "atomic_capsule/inference-matmul"]
+
+# Inference Full (T2+T3+T4+T5): All tiers, 10-50× compound speedup (nightly required)
+# - inference-batch + T5 streaming attention
+# - FlashAttentionCapsule with incremental computation
+# - Full-tier integration for breakthrough performance
+inference-full = ["inference-batch", "atomic_capsule/inference-all"]
+
+# Custom AVX2 SIMD (experimental, nightly)
+# - Hand-written AVX2 intrinsics for specialized workloads
+# - Use when portable_simd is insufficient (rare)
+avx2-simd = ["nightly"]
+
+# ============================================================================
+# L3 Distributed Cache Features (Phase 2)
+# ============================================================================
+#
+# Distributed cache enhancements for L3 inference caching
+# - Histogram: P50/P95/P99/P999 latency metrics (50× vs mutex)
+# - SIMD Hash: 2-8× multi-field hashing (4+ field threshold)
+# - Quorum Reads: 2/3 replica consistency (production-grade)
+
+# L3 P2: Distributed cache enhancements (Phase 2 features)
+distributed-l3-p2 = ["histogram", "simd-hash", "quorum-reads"]
+
+# Sub-features (granular control)
+histogram = ["atomic_capsule/histogram"]        # HistogramCapsule (P50/P95/P99 metrics, 50× speedup)
+histogram-simd = ["histogram", "atomic_capsule/histogram-simd", "nightly"]  # SIMD percentiles (8-way parallel)
+simd-hash = ["atomic_capsule/simd-hashing", "nightly"]  # SIMD multi-field hashing (2-8× speedup)
+quorum-reads = []  # Quorum consistency (2/3 replica agreement) - implemented in kindly_inference
+
+[[bench]]
+name = "inference_primitives_bench"
+harness = false
+required-features = ["portable_simd"]
+
+[[bench]]
+name = "distributed_l3_p2_bench"
+harness = false
+
+[[bench]]
+name = "quantization_avx2_bench"
+harness = false
+required-features = ["nightly"]
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+
+[profile.bench]
+inherits = "release"

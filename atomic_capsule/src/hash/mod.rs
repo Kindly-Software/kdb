@@ -23,6 +23,10 @@ pub mod simd_hash_capsule;
 #[cfg(feature = "portable_simd")]
 pub mod murmur3_simd;
 
+// Universal hash capsule (xxHash3 for excellent distribution)
+#[cfg(feature = "std")]
+pub mod universal_hash;
+
 // Re-export commonly used items
 pub use atomic::{AtomicHash256, AtomicHash64};
 pub use const_capsule::ConstHashCapsule;
@@ -49,3 +53,7 @@ pub use simd_hash_capsule::{scalar_hash_single, simd_hash_8_keys, SimdHashCapsul
 // P2.4: SIMD MurmurHash3 exports
 #[cfg(feature = "portable_simd")]
 pub use murmur3_simd::{murmur3_hash_scalar, murmur3_hash_simd_x4, murmur3_hash_simd_x8};
+
+// Universal hash capsule exports (xxHash3)
+#[cfg(feature = "std")]
+pub use universal_hash::UniversalHashCapsule;

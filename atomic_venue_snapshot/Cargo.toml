@@ -1,0 +1,33 @@
+[package]
+name = "atomic_venue_snapshot"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.76"
+authors = ["Samuel <maintainer@example.com>"]
+description = "Atomic 128-bit venue snapshot capsule (AVS-128)"
+license = "Apache-2.0 OR MIT"
+repository = "https://example.com/atomic_venue_snapshot"
+keywords = ["atomic", "market-data", "fixed-point", "lock-free"]
+categories = ["concurrency", "data-structures", "finance"]
+readme = "README.md"
+
+[features]
+default = []
+std = []
+network = []
+
+[dependencies]
+portable-atomic = { workspace = true, default-features = false }
+atomic_breaker = { path = "../atomic_breaker", default-features = false, features = ["standard64"] }
+
+[dev-dependencies]
+proptest = "1.4"
+criterion = { workspace = true, default-features = false }
+csv = "1.3"
+serde = { workspace = true }
+serde_json = "1.0"
+atomic_depth_of_market_slice = { path = "../atomic_depth_of_market_slice" }
+
+[[bench]]
+name = "publish"
+harness = false

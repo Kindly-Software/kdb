@@ -204,7 +204,12 @@ pub mod primitives;
 pub mod composite;
 
 // Tier 7: Heterogeneous GPU Acceleration (Phase 5: GPU Foundation)
-#[cfg(any(feature = "gpu-cuda", feature = "gpu-rocm", feature = "gpu-all"))]
+#[cfg(any(
+    feature = "gpu-cuda",
+    feature = "gpu-rocm",
+    feature = "gpu-all",
+    feature = "gpu-hybrid-dispatch"
+))]
 pub mod gpu;
 
 #[cfg(feature = "portable_simd")]
@@ -316,7 +321,12 @@ pub mod mmap;
 pub mod mcp;
 
 // Phase 2: Inference Primitives - T2+T3+T4+T5 compound inference capsules (nightly-first)
-#[cfg(feature = "inference-primitives")]
+#[cfg(any(
+    feature = "inference-primitives",
+    feature = "inference-vector-quant",
+    feature = "inference-bpe-tokenizer",
+    feature = "inference-ternary-matmul"
+))]
 pub mod inference;
 
 // Tier 10: Probabilistic Computational Capsules (LSH + MinHash)
@@ -338,6 +348,11 @@ pub mod tui;
 // Re-export TUI capsules for convenience (requires std)
 #[cfg(feature = "std")]
 pub use tui::{RenderBufferCapsule, AuditLogCapsule, FileNavigatorCapsule, ScreenStateCapsule, TerminalCapabilityCapsule};
+
+// T6+T7: Terminal Rendering Module - GPU-accelerated terminal emulator (kindly_term foundation)
+// Features: terminal-gpu (T7 GPU rendering), terminal-widgets (T1 widget capsules), terminal-style (T1 styling)
+#[cfg(feature = "terminal-gpu")]
+pub mod terminal;
 
 // T8: Network Capsules - Distributed coordination (requires std + tokio)
 #[cfg(all(feature = "std", feature = "network"))]
@@ -367,6 +382,10 @@ pub mod websocket;
 #[cfg(feature = "tls")]
 pub mod tls;
 
+// T5 Streaming: Container muxers (WebM/MP4/MKV) - gated by mux-* features
+#[cfg(any(feature = "mux-mp4", feature = "mux-mkv", feature = "mux-webm", feature = "mux-fmp4"))]
+pub mod mux;
+
 // Phase 3: Data Protection Capsules - T6 Mixed (T0+T1+T9) (requires std)
 #[cfg(feature = "std")]
 pub mod protection;
@@ -379,12 +398,17 @@ pub mod daemon;
 #[cfg(feature = "std")]
 pub mod cli;
 
+// T0+T1+T5: Logging Capsules - Zero-dependency Chaos-compliant logging (<50ns overhead)
+#[cfg(feature = "logging")]
+pub mod logging;
+
 // Shell Module - Universal shell alias management (T6 Mixed: T0+T1+T9)
 #[cfg(all(feature = "std", feature = "queue-bounded"))]
 pub mod shell;
 
 // AV1 Encoder Module - Video encoding capsules (T1 Atomic, T2 SIMD, etc.)
-#[cfg(feature = "std")]
+// Gate behind `encoder` so consumers that don't need AV1 avoid pulling the full module.
+#[cfg(all(feature = "std", feature = "encoder"))]
 pub mod encoder;
 
 // Phase 3 Compression Primitives (T2/T3/T4/T6 multi-tier capsules)

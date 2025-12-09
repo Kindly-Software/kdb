@@ -1,0 +1,50 @@
+error: Padding fields have incorrect total size
+       Expected: 56 bytes (to reach total size = 64)
+       Got: 48 bytes
+       Current total: 56 bytes
+       Non-padding fields: 8 bytes
+
+       Fix: Adjust padding field(s) to total 56 bytes
+
+       For 1 padding field(s), one common pattern is:
+       _padding: [u8; 56]
+  --> tests/compile_fail/rc_field_not_send.rs:19:15
+   |
+19 |     _padding: [u8; 48],
+   |               ^^^^^^^^
+
+error[E0277]: `Rc<u64>` cannot be sent between threads safely
+  --> tests/compile_fail/rc_field_not_send.rs:27:19
+   |
+27 |     assert_send::<BadCapsuleWithRc>();  // ❌ Should fail
+   |                   ^^^^^^^^^^^^^^^^ `Rc<u64>` cannot be sent between threads safely
+   |
+   = help: within `BadCapsuleWithRc`, the trait `Send` is not implemented for `Rc<u64>`
+note: required because it appears within the type `BadCapsuleWithRc`
+  --> tests/compile_fail/rc_field_not_send.rs:17:8
+   |
+17 | struct BadCapsuleWithRc {
+   |        ^^^^^^^^^^^^^^^^
+note: required by a bound in `assert_send`
+  --> tests/compile_fail/rc_field_not_send.rs:24:23
+   |
+24 |     fn assert_send<T: Send>() {}
+   |                       ^^^^ required by this bound in `assert_send`
+
+error[E0277]: `Rc<u64>` cannot be shared between threads safely
+  --> tests/compile_fail/rc_field_not_send.rs:28:19
+   |
+28 |     assert_sync::<BadCapsuleWithRc>();  // ❌ Should fail
+   |                   ^^^^^^^^^^^^^^^^ `Rc<u64>` cannot be shared between threads safely
+   |
+   = help: within `BadCapsuleWithRc`, the trait `Sync` is not implemented for `Rc<u64>`
+note: required because it appears within the type `BadCapsuleWithRc`
+  --> tests/compile_fail/rc_field_not_send.rs:17:8
+   |
+17 | struct BadCapsuleWithRc {
+   |        ^^^^^^^^^^^^^^^^
+note: required by a bound in `assert_sync`
+  --> tests/compile_fail/rc_field_not_send.rs:25:23
+   |
+25 |     fn assert_sync<T: Sync>() {}
+   |                       ^^^^ required by this bound in `assert_sync`

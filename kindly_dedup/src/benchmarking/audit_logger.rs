@@ -174,7 +174,7 @@ pub struct AccuracyMetrics {
 impl BenchmarkAuditEntry {
     /// Serialize to JSON using JsonWriterCapsule
     pub fn to_json(&self) -> JsonWriterResult<String> {
-        let mut writer = JsonWriterCapsule::new();
+        let writer = JsonWriterCapsule::new();
 
         writer.start_object()?;
 
@@ -242,7 +242,7 @@ impl BenchmarkAuditEntry {
 impl BenchmarkConfig {
     /// Serialize to JSON
     pub fn to_json(&self) -> JsonWriterResult<String> {
-        let mut writer = JsonWriterCapsule::new();
+        let writer = JsonWriterCapsule::new();
 
         writer.start_object()?;
 
@@ -280,7 +280,7 @@ impl BenchmarkConfig {
 impl BenchmarkResult {
     /// Serialize to JSON
     pub fn to_json(&self) -> JsonWriterResult<String> {
-        let mut writer = JsonWriterCapsule::new();
+        let writer = JsonWriterCapsule::new();
 
         writer.start_object()?;
 
@@ -329,7 +329,7 @@ impl BenchmarkResult {
 impl AccuracyMetrics {
     /// Serialize to JSON
     pub fn to_json(&self) -> JsonWriterResult<String> {
-        let mut writer = JsonWriterCapsule::new();
+        let writer = JsonWriterCapsule::new();
 
         writer.start_object()?;
 

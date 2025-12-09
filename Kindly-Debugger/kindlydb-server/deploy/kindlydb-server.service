@@ -1,0 +1,36 @@
+[Unit]
+Description=KindlyDB HTTP Server - User and Audit Storage for kdb-signup
+Documentation=https://kindly.software
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kdb
+Group=kdb
+WorkingDirectory=/opt/kindlydb
+ExecStart=/opt/kindlydb/kindlydb-server
+Restart=always
+RestartSec=5
+
+# Environment
+Environment=PORT=8082
+Environment=RUST_LOG=kindlydb_server=info,tower_http=warn
+
+# Resource limits
+LimitNOFILE=65536
+LimitMEMLOCK=infinity
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/opt/kindlydb
+
+# Performance
+CPUSchedulingPolicy=fifo
+CPUSchedulingPriority=50
+
+[Install]
+WantedBy=multi-user.target

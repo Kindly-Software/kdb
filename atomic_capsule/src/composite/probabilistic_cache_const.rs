@@ -2,7 +2,7 @@
 //!
 //! **Tier**: T6 Mixed (T1 Atomic + T4 Batch eviction + T10 Bloom filter)
 //! **Category**: High-performance in-memory caching with false-positive pre-filtering
-//! **Framework**: UCE34 Q10-Q34, COCA (100% lockfree), ASSUM (99.99% safe), B32 (30-80× compound)
+//! **Framework**: UCE34 Q10-Q34, Chaos (100% lockfree), ASSUM (99.99% safe), B32 (30-80× compound)
 //!
 //! ## Purpose
 //!
@@ -155,7 +155,7 @@ where
 /// ProbabilisticCacheConst - Compile-time cache with simple probabilistic pre-filter
 ///
 /// **Tier**: T6 Mixed (T1 Atomic + T4 Batch + T10 Probabilistic)
-/// **Framework**: UCE34, COCA (100% lockfree), ASSUM (99.99% safe)
+/// **Framework**: UCE34, Chaos (100% lockfree), ASSUM (99.99% safe)
 ///
 /// # Const Generic Parameters
 ///

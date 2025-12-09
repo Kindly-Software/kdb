@@ -63,7 +63,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 T1 Atomic tier, Q33 lockfree verification, Q34 audit trails
-//! - **COCA**: 100% lockfree (zero mutex/RwLock), cache-aligned (128B)
+//! - **Chaos**: 100% lockfree (zero mutex/RwLock), cache-aligned (128B)
 //! - **ASSUM**: 99.99% safe (all 6+ assumptions documented and verified)
 //! - **B32**: Fair baseline (naive mutable struct), <50ns targets validated
 //! - **T28**: 28 tests (unit/property/integration/production tiers)

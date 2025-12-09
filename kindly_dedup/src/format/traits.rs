@@ -1,7 +1,6 @@
 //! Core format reader traits and types
 
 use crate::format::FormatError;
-use std::io::Read;
 use std::sync::atomic::AtomicU64;
 use std::sync::Arc;
 

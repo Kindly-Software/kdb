@@ -2,7 +2,7 @@
 
 **Version**: 1.0.0
 **Status**: Production Ready
-**Framework**: UCE34 Q1-Q34, COCA, B32, T28, I20, ASSUM
+**Framework**: UCE34 Q1-Q34, Chaos, B32, T28, I20, ASSUM
 **Performance Target**: <500ns latency (P50), <1μs latency (P99)
 **Tier**: T6 Mixed (orchestrates T0+T1+T8+T10 capsules)
 
@@ -712,7 +712,7 @@ Throughput: 1,333,333 auth/sec (target: >10K/sec) ✓
 ## References
 
 - **UCE34 Framework**: Systematic discovery, Q1-Q34 framework
-- **COCA (Computational Capsule)**: Core architecture pattern
+- **Chaos (Computational Capsule)**: Core architecture pattern
 - **B32 Framework**: Benchmarking and performance validation
 - **T28 Framework**: Comprehensive testing (4 tiers, 28 questions)
 - **I20 Framework**: Integration validation (20 questions)

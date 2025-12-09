@@ -22,7 +22,9 @@
 //! - `#ASSUME_LOCKFREE_ONLY`: All operations use atomic primitives
 //! - `#ASSUME_GENERATION_COUNTER`: Generation counters prevent stale responses
 
-use atomic_capsule::network::{format_error, format_response, parse_request, JsonRpcCapsule, JsonRpcErrorCode};
+use atomic_capsule::network::{
+    format_error, format_response, parse_request, JsonRpcCapsule, JsonRpcErrorCode,
+};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use std::sync::Arc;
 use std::thread;
@@ -95,7 +97,12 @@ fn bench_format_error_invalid_params(c: &mut Criterion) {
         b.iter(|| {
             let mut buf = [0u8; 256];
             let id = black_box(42u64);
-            format_error(id, JsonRpcErrorCode::InvalidParams, "Missing 'to' field", &mut buf)
+            format_error(
+                id,
+                JsonRpcErrorCode::InvalidParams,
+                "Missing 'to' field",
+                &mut buf,
+            )
         })
     });
 }
@@ -253,7 +260,10 @@ fn stress_test_lockfree() {
     println!("Total operations: {}", total_ops);
     println!("Elapsed time: {:.3}s", elapsed.as_secs_f64());
     println!("Operations per second: {:.0}", ops_per_sec);
-    println!("Per-operation latency: {:.2}μs", elapsed.as_micros() as f64 / total_ops as f64);
+    println!(
+        "Per-operation latency: {:.2}μs",
+        elapsed.as_micros() as f64 / total_ops as f64
+    );
 }
 
 // === Criterion Group ===

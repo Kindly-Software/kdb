@@ -64,7 +64,7 @@ use std::sync::Arc;
 
 // #ASSUME: portable_simd types are available on target platform
 #[cfg(all(target_arch = "x86_64", feature = "nightly"))]
-use std::simd::{Simd, SimdPartialEq};
+use std::simd::prelude::*;
 
 /// Statistics for parser performance tracking
 #[repr(C, align(32))]

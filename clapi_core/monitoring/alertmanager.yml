@@ -1,0 +1,104 @@
+# AlertManager Configuration for clapi_core
+# Routes alerts to PagerDuty (critical) and Slack (warning)
+
+global:
+  # Global SMTP settings for email alerts
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@clapi.example.com'
+  smtp_auth_username: 'alerts@clapi.example.com'
+  smtp_auth_password: 'YOUR_SMTP_PASSWORD'
+
+  # PagerDuty service key
+  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+
+# Alert routing tree
+route:
+  receiver: 'pagerduty'
+  group_by: ['alertname', 'component']
+  group_wait: 10s
+  group_interval: 5m
+  repeat_interval: 12h
+
+  # Route by severity
+  routes:
+    # Critical alerts → PagerDuty (immediate)
+    - match:
+        severity: critical
+      receiver: 'pagerduty'
+      group_wait: 0s  # Immediate notification
+      repeat_interval: 5m  # Re-notify every 5 minutes
+      continue: true  # Also send to email
+
+    # Critical alerts → Email (backup)
+    - match:
+        severity: critical
+      receiver: 'email'
+      group_wait: 30s
+
+    # Warning alerts → Slack
+    - match:
+        severity: warning
+      receiver: 'slack'
+      group_wait: 5m
+      repeat_interval: 1h
+
+# Alert receivers
+receivers:
+  # PagerDuty (critical alerts)
+  - name: 'pagerduty'
+    pagerduty_configs:
+      - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+        description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+        severity: 'critical'
+        details:
+          component: '{{ .GroupLabels.component }}'
+          description: '{{ .CommonAnnotations.description }}'
+          runbook: '{{ .CommonAnnotations.runbook }}'
+          firing_count: '{{ len .Alerts.Firing }}'
+
+  # Slack (warning alerts)
+  - name: 'slack'
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#clapi-alerts'
+        username: 'clapi_core Alerting'
+        icon_emoji: ':warning:'
+        title: '{{ .GroupLabels.alertname }}'
+        text: |
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Component:* {{ .GroupLabels.component }}
+          *Runbook:* {{ .CommonAnnotations.runbook }}
+          *Firing Alerts:* {{ len .Alerts.Firing }}
+        send_resolved: true
+
+  # Email (backup for critical)
+  - name: 'email'
+    email_configs:
+      - to: 'oncall@clapi.example.com'
+        from: 'alerts@clapi.example.com'
+        headers:
+          Subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>Critical Alert: {{ .GroupLabels.alertname }}</h2>
+          <p><b>Summary:</b> {{ .CommonAnnotations.summary }}</p>
+          <p><b>Description:</b> {{ .CommonAnnotations.description }}</p>
+          <p><b>Component:</b> {{ .GroupLabels.component }}</p>
+          <p><b>Runbook:</b> <a href="{{ .CommonAnnotations.runbook }}">{{ .CommonAnnotations.runbook }}</a></p>
+          <p><b>Firing Count:</b> {{ len .Alerts.Firing }}</p>
+
+# Inhibition rules (suppress lower priority alerts)
+inhibit_rules:
+  # If ServiceDown is firing, suppress all other alerts for that service
+  - source_match:
+      alertname: 'ServiceDown'
+    target_match:
+      component: 'system'
+    equal: ['job']
+
+  # If AllCircuitsOpen is firing, suppress SomeCircuitsOpen
+  - source_match:
+      alertname: 'AllCircuitsOpen'
+    target_match:
+      alertname: 'SomeCircuitsOpen'
+    equal: ['job']

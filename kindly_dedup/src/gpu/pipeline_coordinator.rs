@@ -34,7 +34,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: T7 Heterogeneous tier (CPU-GPU coordination)
-//! - **COCA**: 100% lockfree phase transitions via CAS
+//! - **Chaos**: 100% lockfree phase transitions via CAS
 //! - **ASSUM**: Buffer bounds checking, safe swapping, phase validation
 //! - **B32**: Transfer overhead + overlap efficiency benchmarks
 //! - **T28**: Phase transition tests, concurrent access tests
@@ -113,7 +113,7 @@ impl<T: Clone + Default> DoubleBuffer<T> {
     ///
     /// Atomically swaps active/inactive buffers.
     ///
-    /// # COCA Compliance
+    /// # Chaos Compliance
     ///
     /// Uses lockfree atomic XOR (no mutex/RwLock).
     pub fn swap(&self) {
@@ -170,7 +170,7 @@ impl<T: Clone + Default> DoubleBuffer<T> {
 /// └── _padding: [u8; N]      (cache line alignment)
 /// ```
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 ///
 /// - Cache-aligned to 64 bytes for optimal performance
 /// - Uses AtomicU64 for generation counter (lockfree audit updates)
@@ -311,7 +311,7 @@ impl GpuBatch {
 
     /// Set generation (Q34 audit)
     ///
-    /// # COCA Compliance
+    /// # Chaos Compliance
     ///
     /// Uses atomic store for lockfree updates.
     pub fn set_generation(&self, gen: u64) {
@@ -320,7 +320,7 @@ impl GpuBatch {
 
     /// Get generation (Q34 audit)
     ///
-    /// # COCA Compliance
+    /// # Chaos Compliance
     ///
     /// Uses atomic load for lockfree reads.
     pub fn generation(&self) -> u64 {
@@ -719,7 +719,7 @@ impl AsyncPipelineState {
 /// └── overlap_time_ns: AtomicU64 (metrics)
 /// ```
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 ///
 /// 100% lockfree - uses CAS for phase transitions, no Mutex/RwLock.
 /// Buffer access is protected by phase state machine (only one accessor at a time).
@@ -840,7 +840,7 @@ impl AsyncPipelineCoordinator {
     /// - `true`: Transition succeeded
     /// - `false`: Current phase doesn't match `from`
     ///
-    /// # COCA Compliance
+    /// # Chaos Compliance
     ///
     /// Uses CAS loop for lockfree phase transitions.
     pub fn transition(&self, from: PipelinePhase, to: PipelinePhase) -> bool {
@@ -874,7 +874,7 @@ impl AsyncPipelineCoordinator {
     /// Switches active buffer index (0 -> 1 or 1 -> 0).
     /// Should be called after GPU finishes processing.
     ///
-    /// # COCA Compliance
+    /// # Chaos Compliance
     ///
     /// Uses CAS loop for lockfree buffer swap.
     pub fn swap_buffers(&self) {

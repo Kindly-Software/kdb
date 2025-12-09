@@ -171,7 +171,7 @@
         </test>
         <test id="q28" name="Framework Compliance">
           <status>PASS</status>
-          <frameworks>UCE34, COCA, ASSUM, B32, T28, I20</frameworks>
+          <frameworks>UCE34, Chaos, ASSUM, B32, T28, I20</frameworks>
           <coverage>All 6 frameworks validated</coverage>
         </test>
       </tests>

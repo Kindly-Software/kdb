@@ -7,7 +7,7 @@
 // - Q33: Verification (#[derive(ComputationalCapsule)] for lockfree coordination)
 // - Q34: Audit trail (device utilization, load balancing metrics)
 //
-// COCA Compliance: T1 Atomic (lockfree coordination) + T7 GPU (massive parallelism)
+// Chaos Compliance: T1 Atomic (lockfree coordination) + T7 GPU (massive parallelism)
 // ASSUM Safety: 99.99%+
 // - #ASSUME_DEVICE_COUNT_STABLE: GPU device count doesn't change at runtime
 // - #ASSUME_DEVICE_AFFINITY: Each capsule bound to specific GPU device

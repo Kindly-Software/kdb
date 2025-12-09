@@ -2,7 +2,7 @@
 
 **Date**: 2025-11-15
 **Status**: Production Ready
-**Framework**: UCE34 + COCA + T1 Atomic + B32
+**Framework**: UCE34 + Chaos + T1 Atomic + B32
 **Performance Target**: <100ns URI parsing, <1μs resource read
 **Safety Target**: 99.99% ASSUM verified
 
@@ -496,12 +496,12 @@ fn test_initialize_advertises_resources() {
 - Type-safe JSON serialization (serde_json)
 - Result<T, String> error propagation
 
-**Q33 (Verification)**: COCA-Ready
+**Q33 (Verification)**: Chaos-Ready
 - All operations atomic (<1μs)
 - No heap allocation in hot path
 - Zero async/await (synchronous dispatch)
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 
 - **Architecture**: McpServerCapsule coordinates 5 sub-capsules (JsonRpc, License, RateLimit, Quota, Tools)
 - **Lockfree**: 100% - AtomicU64 only for metrics
@@ -654,7 +654,7 @@ Enables:
 - [x] Error handling with JSON-RPC codes
 - [x] Initialize capability advertisement
 - [x] Comprehensive test suite (15+ tests)
-- [x] Framework compliance (UCE34, COCA, B32, T28, I20)
+- [x] Framework compliance (UCE34, Chaos, B32, T28, I20)
 - [x] Performance validation (<1μs target)
 - [x] ASSUM safety documentation
 - [x] This documentation
@@ -712,7 +712,7 @@ This implementation provides production-ready MCP 2.0 Resources support for `ato
 - ✅ **Zero unsafe code** in resource path
 - ✅ **99.99% safety** (all assumptions verified)
 - ✅ **15+ comprehensive tests** (100% passing)
-- ✅ **Full framework compliance** (UCE34, COCA, B32, T28, I20)
+- ✅ **Full framework compliance** (UCE34, Chaos, B32, T28, I20)
 
 Ready for immediate deployment in Week 1 of the KDB AI-Only roadmap.
 

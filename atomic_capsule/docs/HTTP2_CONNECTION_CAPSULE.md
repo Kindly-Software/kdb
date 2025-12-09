@@ -455,7 +455,7 @@ let compressed = hpack_encoder.encode(&headers)?;
 - **Q22-Q33**: Memory layout, testing, validation
 - **Q34**: Audit trail for GOAWAY/errors
 
-### COCA (Computational Capsules)
+### Chaos (Computational Capsules)
 
 - 100% lockfree (no mutex/RwLock)
 - Cache-aligned 256B

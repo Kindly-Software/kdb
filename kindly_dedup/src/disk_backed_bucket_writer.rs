@@ -9,7 +9,7 @@
 //! **T9 Persistent** (mmap, disk storage) + **T1 Atomic** (lockfree coordination)
 //! - Persistent: Buckets stored on disk, crash-recoverable
 //! - Atomic: Offset tracking via AtomicU64, generation counter for crash detection
-//! - Zero mutex/RwLock (COCA mandate)
+//! - Zero mutex/RwLock (Chaos mandate)
 //!
 //! # Disk Format (Per Bucket)
 //!
@@ -94,11 +94,11 @@ pub fn compute_crc64(data: &[u8]) -> u64 {
 
 /// Disk-backed LSH bucket writer capsule
 ///
-/// # COCA Architecture
+/// # Chaos Architecture
 ///
 /// **Cache alignment**: 64 bytes (HotTier) to prevent false sharing
 /// **Coordination**: AtomicU64 offset + generation counter (lockfree)
-/// **No mutex/RwLock**: Pure atomic operations (COCA mandate)
+/// **No mutex/RwLock**: Pure atomic operations (Chaos mandate)
 ///
 /// # Verification (Q33)
 ///

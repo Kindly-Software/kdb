@@ -189,7 +189,7 @@ All components follow UCE34 Q1-Q34 systematic discovery:
 - **Q33**: Validation - `#[derive(ComputationalCapsule)]` compile-time verification
 - **Q34**: Auditability - Persistent history with Q34 compliance
 
-### COCA Principles (100% Lockfree)
+### Chaos Principles (100% Lockfree)
 
 **Mandatory Patterns**:
 - Cache-aligned capsules (64B/128B/256B)
@@ -254,7 +254,7 @@ cargo test recent_files::tests
 
 **Framework Compliance**:
 - ✅ UCE34 Q1-Q34 (complete analysis in each component)
-- ✅ COCA 100% lockfree (3 atomic capsules, zero mutex/RwLock)
+- ✅ Chaos 100% lockfree (3 atomic capsules, zero mutex/RwLock)
 - ✅ ASSUM 99.99% safe (all assumptions documented with `#ASSUME/#VERIFY`)
 - ✅ T28 Testing (unit tests in all components)
 - ✅ I20 Integration (ready for immediate deployment)
@@ -275,4 +275,4 @@ cargo test recent_files::tests
 **Version**: Phase 2.4.1 (TUI Components Complete)
 **Date**: 2025-10-30
 **Author**: Architecture Expert + TUI Components Expert
-**Framework**: UCE34 T1 (Atomic) + COCA (100% lockfree)
+**Framework**: UCE34 T1 (Atomic) + Chaos (100% lockfree)

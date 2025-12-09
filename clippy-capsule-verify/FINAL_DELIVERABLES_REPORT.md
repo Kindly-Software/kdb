@@ -9,13 +9,13 @@
 
 ## Executive Summary
 
-Successfully implemented comprehensive CI/CD automation for COCA (Computational Capsule) compliance enforcement with:
+Successfully implemented comprehensive CI/CD automation for Chaos (Computational Capsule) compliance enforcement with:
 
 - **One-command setup**: `./scripts/setup-ci.sh` configures everything
 - **Multi-platform support**: GitHub Actions, GitLab CI, local git hooks
 - **Fast execution**: Pre-commit <8s, pre-push <35s, CI/CD <25s (warm)
 - **Production-ready**: All syntax validated, permissions set, documentation complete
-- **Framework compliant**: UCE34, COCA, B32, ASSUM, I20
+- **Framework compliant**: UCE34, Chaos, B32, ASSUM, I20
 
 **Total deliverables**: 7 files, 2,775 lines, ~124KB
 
@@ -204,7 +204,7 @@ chmod +x .git/hooks/commit-msg
 - Customization guide (lint levels, hooks, disabling)
 - Migration workflow (6 phases)
 - Command reference (setup, clippy, audit)
-- Framework compliance (UCE34, COCA, B32, ASSUM, I20)
+- Framework compliance (UCE34, Chaos, B32, ASSUM, I20)
 - Success metrics
 - References
 
@@ -284,7 +284,7 @@ All features validated:
 - **Q33 (Lockfree)**: ✅ P0.1 (mutex) + P0.4 (atomic) enforced
 - **Q34 (Auditability)**: ✅ Commit-msg tags + CI/CD artifacts (30d)
 
-### COCA ✅
+### Chaos ✅
 
 - **100% lockfree**: ✅ P0.1 (mutex violation) DENY
 - **Cache-aligned**: ✅ P0.2 (alignment violation) DENY
@@ -301,7 +301,7 @@ All features validated:
 ### ASSUM ✅
 
 - **Safety enforcement**: ✅ P0 lints prevent unsafe patterns
-- **Verification**: ✅ Lints verify COCA assumptions
+- **Verification**: ✅ Lints verify Chaos assumptions
 - **99.5%+ safety**: ✅ Enforced via DENY-level P0
 
 ### I20 ✅
@@ -519,7 +519,7 @@ git push origin main
 - **XML summary**: `CI_CD_AUTOMATION_SUMMARY.xml`
 
 **External references**:
-- COCA foundation: `/home/samuel/Docs/The Computational Capsule.md`
+- Chaos foundation: `/home/samuel/Docs/The Computational Capsule.md`
 - UCE34 framework: `/home/samuel/CLAUDE.md`
 - Integration guide: `CI_CD_INTEGRATION_GUIDE.xml`
 

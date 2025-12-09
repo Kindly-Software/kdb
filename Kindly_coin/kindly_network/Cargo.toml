@@ -1,0 +1,56 @@
+[package]
+name = "kindly_network"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+description = "Lockfree P2P network layer for Kindly Coin using atomic capsule architecture"
+
+[dependencies]
+# Atomic capsule foundation
+atomic_capsule = { workspace = true }
+atomic_capsule_map = { workspace = true }
+atomic_breaker = { path = "../../atomic_breaker", version = "0.1" }
+
+# Internal dependencies
+kindly_core = { workspace = true }
+
+# Cryptography
+ed25519-dalek = { workspace = true }
+sha3 = { workspace = true }
+blake3 = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+bincode = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
+
+# Networking (stub for Phase 1, full integration in Phase 2)
+libp2p = { workspace = true }
+
+# Error handling
+thiserror = "1.0"
+
+# Logging
+tracing = { workspace = true }
+
+[dev-dependencies]
+# Testing
+proptest = { workspace = true }
+criterion = { workspace = true }
+tokio-test = "0.4"
+
+[features]
+default = ["std"]
+std = []
+nightly = []
+
+[[bench]]
+name = "network_bench"
+harness = false

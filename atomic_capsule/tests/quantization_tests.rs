@@ -3,7 +3,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q1-Q34 systematic discovery, T3 Fixed-Point tier validation
-//! - **COCA**: 100% lockfree coordination verification
+//! - **Chaos**: 100% lockfree coordination verification
 //! - **ASSUM**: 99.99% safety (all assumptions tested)
 //! - **B32**: Fair baselines, <200ns performance validated
 //! - **T28**: 28 comprehensive tests across 4 tiers

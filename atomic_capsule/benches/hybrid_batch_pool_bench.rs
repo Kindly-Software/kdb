@@ -10,10 +10,13 @@
 //! - Scaling: Linear to 256 threads (95%+ efficiency)
 
 use atomic_capsule::parallel::HybridBatchPool;
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput, PlotConfiguration, AxisScale};
+use criterion::{
+    black_box, criterion_group, criterion_main, AxisScale, BenchmarkId, Criterion,
+    PlotConfiguration, Throughput,
+};
+use std::collections::VecDeque;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
-use std::collections::VecDeque;
 use std::time::Instant;
 
 // ============================================================================
@@ -23,7 +26,7 @@ use std::time::Instant;
 /// Baseline task execution using Mutex (simulating current behavior)
 fn bench_mutex_baseline(c: &mut Criterion) {
     let mut group = c.benchmark_group("baseline_mutex");
-    group.sample_size(1000);  // B32: 1000+ iterations
+    group.sample_size(1000); // B32: 1000+ iterations
     group.plot_config(PlotConfiguration::default().summary_scale(AxisScale::Logarithmic));
 
     for num_threads in [1, 4, 8, 16, 32, 50] {
@@ -90,7 +93,7 @@ fn bench_mutex_baseline(c: &mut Criterion) {
 /// HybridBatchPool execution (optimized pattern)
 fn bench_hybrid_batch_pool(c: &mut Criterion) {
     let mut group = c.benchmark_group("hybrid_batch_pool");
-    group.sample_size(1000);  // B32: 1000+ iterations
+    group.sample_size(1000); // B32: 1000+ iterations
     group.plot_config(PlotConfiguration::default().summary_scale(AxisScale::Logarithmic));
 
     for num_threads in [1, 4, 8, 16, 32, 50] {
@@ -141,7 +144,7 @@ fn bench_hybrid_batch_pool(c: &mut Criterion) {
 /// Direct latency comparison at the canonical workload
 fn bench_1600_tasks_50_threads_comparison(c: &mut Criterion) {
     let mut group = c.benchmark_group("1600_tasks_50_threads");
-    group.sample_size(1000);  // B32: 1000+ iterations for 95% CI
+    group.sample_size(1000); // B32: 1000+ iterations for 95% CI
     group.measurement_time(std::time::Duration::from_secs(30));
 
     // BASELINE: Mutex
@@ -232,7 +235,7 @@ fn bench_1600_tasks_50_threads_comparison(c: &mut Criterion) {
 /// Benchmark varying task counts (100, 1000, 1600, 10000)
 fn bench_task_count_variation(c: &mut Criterion) {
     let mut group = c.benchmark_group("task_count_variation");
-    group.sample_size(500);  // Reduced for larger workloads
+    group.sample_size(500); // Reduced for larger workloads
     group.plot_config(PlotConfiguration::default().summary_scale(AxisScale::Logarithmic));
 
     for task_count in [100, 1000, 1600, 10000] {
@@ -334,7 +337,10 @@ fn measure_latency_percentiles() {
     println!("P99.9: {:.2} μs", p99_9);
     println!("Min:   {:.2} μs", latencies[0]);
     println!("Max:   {:.2} μs", latencies[999]);
-    println!("Mean:  {:.2} μs", latencies.iter().sum::<f64>() / latencies.len() as f64);
+    println!(
+        "Mean:  {:.2} μs",
+        latencies.iter().sum::<f64>() / latencies.len() as f64
+    );
 }
 
 // ============================================================================

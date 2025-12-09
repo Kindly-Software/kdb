@@ -32,7 +32,7 @@
 //! | Page reconstruction | less than 1ms | Delta chain + cache |
 //! | Memory read at snapshot | less than 2ms | Reconstruct + copy |
 //!
-//! # COCA Compliance
+//! # Chaos Compliance
 //!
 //! - 100% lockfree (atomic operations only)
 //! - Cache-aligned orchestrator (256B alignment)

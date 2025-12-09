@@ -29,9 +29,7 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 
 #[cfg(feature = "quantum-multi-qubit")]
-use atomic_capsule::quantum_pure::{
-    LayerwiseParallelCapsule, QuantumGateCapsule, QuantumState,
-};
+use atomic_capsule::quantum_pure::{LayerwiseParallelCapsule, QuantumGateCapsule, QuantumState};
 
 #[cfg(feature = "quantum-multi-qubit")]
 fn benchmark_build_layers(c: &mut Criterion) {
@@ -44,17 +42,13 @@ fn benchmark_build_layers(c: &mut Criterion) {
             .map(|i| QuantumGateCapsule::hadamard(i % 10))
             .collect();
 
-        group.bench_with_input(
-            BenchmarkId::from_parameter(num_gates),
-            num_gates,
-            |b, _| {
-                let capsule = LayerwiseParallelCapsule::new();
-                b.iter(|| {
-                    let layers = capsule.build_layers(black_box(&gates)).unwrap();
-                    black_box(layers);
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::from_parameter(num_gates), num_gates, |b, _| {
+            let capsule = LayerwiseParallelCapsule::new();
+            b.iter(|| {
+                let layers = capsule.build_layers(black_box(&gates)).unwrap();
+                black_box(layers);
+            });
+        });
     }
 
     group.finish();
@@ -71,19 +65,15 @@ fn benchmark_sequential_execution(c: &mut Criterion) {
             .map(|i| QuantumGateCapsule::hadamard(i % 8))
             .collect();
 
-        group.bench_with_input(
-            BenchmarkId::from_parameter(num_gates),
-            num_gates,
-            |b, _| {
-                b.iter(|| {
-                    let mut state = QuantumState::new(8).unwrap();
-                    for gate in &gates {
-                        state.apply_gate(black_box(gate)).unwrap();
-                    }
-                    black_box(state);
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::from_parameter(num_gates), num_gates, |b, _| {
+            b.iter(|| {
+                let mut state = QuantumState::new(8).unwrap();
+                for gate in &gates {
+                    state.apply_gate(black_box(gate)).unwrap();
+                }
+                black_box(state);
+            });
+        });
     }
 
     group.finish();
@@ -100,22 +90,18 @@ fn benchmark_layered_execution(c: &mut Criterion) {
             .map(|i| QuantumGateCapsule::hadamard(i % 8))
             .collect();
 
-        group.bench_with_input(
-            BenchmarkId::from_parameter(num_gates),
-            num_gates,
-            |b, _| {
-                let capsule = LayerwiseParallelCapsule::new();
-                let layers = capsule.build_layers(&gates).unwrap();
+        group.bench_with_input(BenchmarkId::from_parameter(num_gates), num_gates, |b, _| {
+            let capsule = LayerwiseParallelCapsule::new();
+            let layers = capsule.build_layers(&gates).unwrap();
 
-                b.iter(|| {
-                    let mut state = QuantumState::new(8).unwrap();
-                    capsule
-                        .execute_layers(black_box(&layers), |gate| state.apply_gate(gate))
-                        .unwrap();
-                    black_box(state);
-                });
-            },
-        );
+            b.iter(|| {
+                let mut state = QuantumState::new(8).unwrap();
+                capsule
+                    .execute_layers(black_box(&layers), |gate| state.apply_gate(gate))
+                    .unwrap();
+                black_box(state);
+            });
+        });
     }
 
     group.finish();

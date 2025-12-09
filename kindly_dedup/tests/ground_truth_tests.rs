@@ -17,7 +17,7 @@
 //! - **UCE34**: Q33 verification, Q34 auditability
 //! - **ASSUM**: 99.99% safe (zero unsafe code)
 //! - **B32**: Fair baselines, realistic performance budgets
-//! - **COCA**: 100% lockfree primitives
+//! - **Chaos**: 100% lockfree primitives
 
 use kindly_dedup::benchmarking::ground_truth::{
     Document, ExactJaccardComputer, GroundTruth, GroundTruthStrategy, TokenCacheCapsule, UniversalGroundTruthGenerator,

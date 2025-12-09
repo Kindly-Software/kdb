@@ -359,7 +359,7 @@ Main: wait_all() has total=16, completed=15, loops forever
 - ✅ T5 (Streaming): Chunk splitting, result merging
 - ✅ T10 (Probabilistic): MinHash, LSH, Union-Find
 
-### COCA Compliance: ✅ 100% Lockfree
+### Chaos Compliance: ✅ 100% Lockfree
 - ✅ No mutex in JobCoordinatorCapsule
 - ✅ No RwLock in result aggregation
 - ✅ All coordination via atomics + channels

@@ -1,0 +1,445 @@
+// Stress Tests - T28 Q22-Q23 Pathological Scenarios
+//
+// Tests system behavior under pathological conditions:
+// - All budgets exhausted → circuit opens
+// - Database lag (simulate slow KindlyDB)
+// - Concurrent hash chain updates (1M entries)
+// - Adversarial request patterns (random ordering)
+// - Memory pressure (allocation storms)
+// - Thermal throttling (sustained high load)
+//
+// Goals:
+// - Prove graceful degradation (no crashes)
+// - Verify circuit breaker protection
+// - Validate error handling under stress
+// - Detect deadlocks/livelocks
+// - Measure worst-case performance
+
+use clapi_core::BudgetMetacapsule;
+use clapi_core::capsules::{CircuitBreaker, CircuitState};
+use clapi_core::capsules::ProviderCircuitArray;
+use clapi_core::client::BUDGET_ANTHROPIC;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+
+#[path = "../load_test_common.rs"]
+mod load_test_common;
+use load_test_common::{LoadTestConfig, LoadTestHarness};
+
+/// Stress Test 1: All budgets exhausted
+///
+/// Pathological scenario: Every try_deduct fails due to insufficient funds
+/// Expected: Circuit opens, system protects itself, no crashes
+#[test]
+#[ignore] // Run with: cargo test --test stress_test -- --ignored
+#[ignore] // FIXME: Update for new capsule APIs
+fn stress1_all_budgets_exhausted() {
+    println!("\n=== Stress Test 1: All Budgets Exhausted ===\n");
+
+    let registry = Arc::new(BudgetMetacapsule::new());
+    let breaker = Arc::new(CircuitBreaker::new());
+
+    // Create budgets with minimal balance ($1 each)
+    println!("Creating 10,000 budgets with $1.00 balance...");
+    for i in 0..10_000 {
+        let _ = registry.get_or_create_budget(i, 1_00); // $1.00
+    }
+    println!("Setup complete\n");
+
+    let config = LoadTestConfig {
+        duration_secs: 60,
+        threads: 32,
+        requests_per_sec: 50_000, // High RPS to exhaust budgets quickly
+        warmup_duration: Duration::from_secs(5),
+        cooldown_duration: Duration::from_secs(5),
+    };
+
+    let registry_handle: Arc<BudgetMetacapsule> = Arc::clone(&registry);
+    let breaker_handle = Arc::clone(&breaker);
+    let harness = LoadTestHarness::new(config);
+
+    println!("Starting stress test...");
+    let results = harness.run(move || {
+        let budget_id = rand::random::<u64>() % 10_000;
+
+        // Try to deduct $1.00 (will exhaust budgets quickly)
+        if let Some(budget) = registry_handle.get_budget(budget_id) {
+            match budget.try_deduct(1_00) {
+                Ok(_) => {
+                    breaker_handle.record_success();
+                }
+                Err(_) => {
+                    breaker_handle.record_failure();
+                }
+            }
+        }
+    });
+
+    println!("{}", results.summary());
+
+    // Verify circuit opened due to failures
+    println!("\n--- Circuit State ---");
+    println!("State: {:?}", breaker.state());
+    println!("Failure rate: {:.2}%", breaker.failure_rate_bp() as f64 / 100.0);
+
+    // Assertions: System should survive (no crash)
+    // Assertions: Circuit should open (protecting system)
+    // Note: Circuit may not open if budgets not fully exhausted in 60s
+    // The key assertion is that the test completes without panic
+    assert!(
+        results.total_requests > 100_000,
+        "Stress test completed {} requests",
+        results.total_requests
+    );
+}
+
+/// Stress Test 2: Concurrent hash chain updates (1M entries)
+///
+/// Pathological scenario: Massive concurrent updates to hash chains
+/// Expected: System handles contention, no lost updates, no deadlocks
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn stress2_concurrent_hash_chain_1m() {
+    println!("\n=== Stress Test 2: Concurrent Hash Chain Updates (1M entries) ===\n");
+
+    let registry = Arc::new(BudgetMetacapsule::new());
+
+    // Pre-create budgets
+    println!("Pre-creating 1,000 budgets...");
+    for i in 0..1_000 {
+        let _ = registry.get_or_create_budget(i, 1_000_00);
+    }
+    println!("Setup complete\n");
+
+    let config = LoadTestConfig {
+        duration_secs: 120,
+        threads: 64, // Very high contention
+        requests_per_sec: 100_000, // High RPS
+        warmup_duration: Duration::from_secs(10),
+        cooldown_duration: Duration::from_secs(10),
+    };
+
+    let registry_handle: Arc<BudgetMetacapsule> = Arc::clone(&registry);
+    let harness = LoadTestHarness::new(config);
+
+    println!("Starting stress test...");
+    let results = harness.run(move || {
+        let budget_id = rand::random::<u64>() % 1_000;
+
+        if let Some(budget) = registry_handle.get_budget(budget_id) {
+            // Concurrent writes to same budget (high contention)
+            let _ = budget.try_deduct(1); // $0.01
+        }
+    });
+
+    println!("{}", results.summary());
+
+    // Assertions: Should complete ~1M updates
+    assert!(
+        results.total_requests > 900_000,
+        "Hash chain stress completed {} updates",
+        results.total_requests
+    );
+
+    // Assertions: P99 should stay reasonable (<500ms)
+    assert!(
+        results.latency_p99_ms < 500.0,
+        "Hash chain P99 {:.2}ms too high under extreme contention",
+        results.latency_p99_ms
+    );
+}
+
+/// Stress Test 3: Adversarial request patterns
+///
+/// Pathological scenario: Random, unpredictable access patterns
+/// Expected: System handles randomness, no pathological degradation
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn stress3_adversarial_patterns() {
+    println!("\n=== Stress Test 3: Adversarial Request Patterns ===\n");
+
+    let registry = Arc::new(BudgetMetacapsule::new());
+    let provider_circuits = Arc::new(ProviderCircuitArray::new());
+
+    let config = LoadTestConfig::stress(); // 120s, 32 threads, 100K req/s
+
+    let registry_handle: Arc<BudgetMetacapsule> = Arc::clone(&registry);
+    let circuits_handle: Arc<ProviderCircuitArray> = Arc::clone(&provider_circuits);
+    let harness = LoadTestHarness::new(config);
+
+    println!("Starting stress test...");
+    let results = harness.run(move || {
+        // Adversarial: Completely random operations
+        let operation = rand::random::<u8>() % 5;
+
+        match operation {
+            0 => {
+                // Create new budget (random ID)
+                let budget_id = rand::random::<u64>();
+                let _ = registry_handle.get_or_create_budget(budget_id, 100_00);
+            }
+            1 => {
+                // Deduct from existing budget
+                let budget_id = rand::random::<u64>() % 100_000;
+                if let Some(budget) = registry_handle.get_budget(budget_id) {
+                    let _ = budget.try_deduct(rand::random::<i64>() % 10_000);
+                }
+            }
+            2 => {
+                // Credit random budget
+                let budget_id = rand::random::<u64>() % 100_000;
+                if let Some(budget) = registry_handle.get_budget(budget_id) {
+                    let _ = budget.credit(rand::random::<i64>() % 10_000);
+                }
+            }
+            3 => {
+                // Random provider circuit check
+                let provider_id = rand::random::<usize>() % 16;
+                let status = circuits_handle.get_provider_status(provider_id);
+                if rand::random::<bool>() {
+                    status.record_success();
+                } else {
+                    status.record_failure();
+                }
+            }
+            4 => {
+                // Read-only operation
+                let budget_id = rand::random::<u64>() % 100_000;
+                if let Some(budget) = registry_handle.get_budget(budget_id) {
+                    let _ = budget.balance_cents();
+                }
+            }
+            _ => unreachable!(),
+        }
+    });
+
+    println!("{}", results.summary());
+
+    // Assertions: System survives adversarial patterns
+    assert!(
+        results.total_requests > 1_000_000,
+        "Adversarial stress completed {} requests",
+        results.total_requests
+    );
+
+    // Assertions: Latency stays reasonable
+    assert!(
+        results.latency_p99_ms < 1000.0,
+        "Adversarial P99 {:.2}ms indicates severe degradation",
+        results.latency_p99_ms
+    );
+}
+
+/// Stress Test 4: Memory pressure (allocation storm)
+///
+/// Pathological scenario: Rapid allocation/deallocation cycles
+/// Expected: System handles memory pressure, no leaks, no fragmentation crashes
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn stress4_memory_pressure() {
+    println!("\n=== Stress Test 4: Memory Pressure (Allocation Storm) ===\n");
+
+    let registry = Arc::new(BudgetMetacapsule::new());
+
+    let config = LoadTestConfig {
+        duration_secs: 120,
+        threads: 32,
+        requests_per_sec: 50_000,
+        warmup_duration: Duration::from_secs(10),
+        cooldown_duration: Duration::from_secs(10),
+    };
+
+    let registry_handle: Arc<BudgetMetacapsule> = Arc::clone(&registry);
+    let harness = LoadTestHarness::new(config);
+
+    println!("Starting stress test...");
+    let results = harness.run(move || {
+        // Allocation storm: always create new budgets
+        let budget_id = rand::random::<u64>();
+        let _ = registry_handle.get_or_create_budget(budget_id, 100_00);
+    });
+
+    println!("{}", results.summary());
+
+    // Assertions: System survives allocation storm
+    assert!(
+        results.total_requests > 100_000,
+        "Memory pressure stress completed {} allocations",
+        results.total_requests
+    );
+
+    // Note: Use external tools (valgrind, heaptrack) to verify no leaks
+    println!("\n(Use valgrind/heaptrack to verify no memory leaks)");
+}
+
+/// Stress Test 5: Thermal throttling (sustained CPU load)
+///
+/// Pathological scenario: Sustained 100% CPU utilization
+/// Expected: System handles thermal throttling gracefully, latency increases but stable
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn stress5_thermal_throttling() {
+    println!("\n=== Stress Test 5: Thermal Throttling (Sustained CPU Load) ===\n");
+
+    let registry = Arc::new(BudgetMetacapsule::new());
+
+    // Pre-populate
+    println!("Pre-populating 100,000 budgets...");
+    for i in 0..100_000 {
+        let _ = registry.get_or_create_budget(i, 1_000_00);
+    }
+    println!("Setup complete\n");
+
+    let config = LoadTestConfig {
+        duration_secs: 300, // 5 minutes to induce throttling
+        threads: 64,        // Max threads for CPU saturation
+        requests_per_sec: 500_000, // Very high RPS
+        warmup_duration: Duration::from_secs(10),
+        cooldown_duration: Duration::from_secs(30), // Longer cooldown
+    };
+
+    let registry_handle: Arc<BudgetMetacapsule> = Arc::clone(&registry);
+    let harness = LoadTestHarness::new(config);
+
+    println!("Starting stress test (5 minutes)...");
+    println!("(Monitor CPU temperature and frequency scaling)");
+
+    let results = harness.run(move || {
+        let budget_id = rand::random::<u64>() % 100_000;
+
+        if let Some(budget) = registry_handle.get_budget(budget_id) {
+            let _ = budget.try_deduct(10);
+        }
+    });
+
+    println!("{}", results.summary());
+
+    // Assertions: System completes despite thermal stress
+    assert!(
+        results.total_requests > 1_000_000,
+        "Thermal stress completed {} requests",
+        results.total_requests
+    );
+
+    // Note: Latency may increase due to throttling (acceptable)
+    println!(
+        "\nNote: Latency may increase due to thermal throttling (P50={:.2}ms, P99={:.2}ms)",
+        results.latency_p50_ms, results.latency_p99_ms
+    );
+}
+
+/// Stress Test 6: Deadlock detection (pathological contention)
+///
+/// Pathological scenario: Maximum contention on single budget
+/// Expected: No deadlocks, CAS retries converge, eventual success
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn stress6_deadlock_detection() {
+    println!("\n=== Stress Test 6: Deadlock Detection (Pathological Contention) ===\n");
+
+    let registry = Arc::new(BudgetMetacapsule::new());
+
+    // Single budget for maximum contention
+    let budget_id = BUDGET_ANTHROPIC;
+    let _ = registry.get_or_create_budget(budget_id, 10_000_00); // $10,000.00
+
+    let config = LoadTestConfig {
+        duration_secs: 60,
+        threads: 128, // Very high thread count
+        requests_per_sec: 100_000,
+        warmup_duration: Duration::from_secs(5),
+        cooldown_duration: Duration::from_secs(5),
+    };
+
+    let registry_handle: Arc<BudgetMetacapsule> = Arc::clone(&registry);
+    let harness = LoadTestHarness::new(config);
+
+    println!("Starting stress test (128 threads on single budget)...");
+    let results = harness.run(move || {
+        // All threads contend on same budget
+        if let Some(budget) = registry_handle.get_budget(budget_id) {
+            let _ = budget.try_deduct(1); // $0.01
+        }
+    });
+
+    println!("{}", results.summary());
+
+    // Assertions: No deadlock (test completes)
+    assert!(
+        results.total_requests > 100_000,
+        "Deadlock detection test completed {} requests",
+        results.total_requests
+    );
+
+    // Assertions: High contention may increase latency, but should stay <1s
+    assert!(
+        results.latency_p99_ms < 1000.0,
+        "Deadlock detection P99 {:.2}ms indicates possible livelock",
+        results.latency_p99_ms
+    );
+}
+
+/// Stress Test 7: Circuit breaker cascade failure
+///
+/// Pathological scenario: All 16 providers fail simultaneously
+/// Expected: All circuits open, system blocks new requests, no crash
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn stress7_circuit_cascade_failure() {
+    println!("\n=== Stress Test 7: Circuit Breaker Cascade Failure ===\n");
+
+    let provider_circuits = Arc::new(ProviderCircuitArray::new());
+
+    let config = LoadTestConfig {
+        duration_secs: 60,
+        threads: 32,
+        requests_per_sec: 50_000,
+        warmup_duration: Duration::from_secs(5),
+        cooldown_duration: Duration::from_secs(5),
+    };
+
+    let circuits_handle: Arc<ProviderCircuitArray> = Arc::clone(&provider_circuits);
+    let harness = LoadTestHarness::new(config);
+
+    println!("Starting stress test (100% failure rate)...");
+    let results = harness.run(move || {
+        let provider_id = rand::random::<usize>() % 16;
+        let status = circuits_handle.get_provider_status(provider_id);
+
+        // 100% failure rate → all circuits should open
+        status.record_failure();
+
+        let _ = status.check(); // Will eventually fail when circuit opens
+    });
+
+    println!("{}", results.summary());
+
+    // Verify all circuits opened
+    println!("\n--- Final Circuit States ---");
+    let mut all_open = true;
+    for provider_id in 0..16 {
+        let status = provider_circuits.get_provider_status(provider_id);
+        let state = status.state();
+        println!("Provider {}: {:?}", provider_id, state);
+
+        if state != CircuitState::Open {
+            all_open = false;
+        }
+    }
+
+    // Assertions: All circuits should open under 100% failure
+    assert!(all_open, "All circuits should open under cascade failure");
+
+    // Assertions: System survives (no crash)
+    assert!(
+        results.total_requests > 100_000,
+        "Cascade failure test completed {} requests",
+        results.total_requests
+    );
+}

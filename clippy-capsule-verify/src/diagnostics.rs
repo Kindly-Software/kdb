@@ -7,7 +7,7 @@
 //! 1. **Clarity**: Developers should understand the problem immediately
 //! 2. **Actionability**: Every error includes specific fix suggestions
 //! 3. **Performance**: Include real-world metrics (not exaggerated claims)
-//! 4. **Documentation**: Link to relevant COCA patterns and frameworks
+//! 4. **Documentation**: Link to relevant Chaos patterns and frameworks
 //! 5. **Consistency**: Uniform formatting across all 9 lints
 
 /// Format a performance speedup comparison with honest metrics
@@ -389,13 +389,13 @@ pub fn format_false_sharing_impact(
     lines
 }
 
-/// Format COCA compliance reference
+/// Format Chaos compliance reference
 ///
 /// Links to relevant framework documentation
-pub fn format_coca_compliance_ref() -> Vec<String> {
+pub fn format_chaos_compliance_ref() -> Vec<String> {
     vec![
         "".to_string(),
-        "COCA Framework References:".to_string(),
+        "Chaos Framework References:".to_string(),
         "  - Computational Capsule.md § Cache-Aligned Padding (philosophy)".to_string(),
         "  - The Atomic Capsule.md § DualAtomicU64 pattern (practical patterns)".to_string(),
         "  - UCE34_TIER_REFERENCE.md § T1 Tier Padding Rules (tier-specific requirements)".to_string(),
@@ -406,7 +406,7 @@ pub fn format_coca_compliance_ref() -> Vec<String> {
 
 /// Get common documentation references
 ///
-/// Returns standard documentation paths for COCA framework
+/// Returns standard documentation paths for Chaos framework
 pub fn get_doc_references() -> Vec<(&'static str, &'static str)> {
     vec![
         (
@@ -415,7 +415,7 @@ pub fn get_doc_references() -> Vec<(&'static str, &'static str)> {
         ),
         (
             "/home/samuel/Docs/The Computational Capsule.md",
-            "COCA philosophy and principles",
+            "Chaos philosophy and principles",
         ),
         (
             "/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md",
@@ -519,7 +519,7 @@ pub fn format_verification_importance_p10() -> Vec<String> {
 
 /// Format P1.0 UCE34 Q33 framework reference
 ///
-/// Links to canonical COCA verification documentation
+/// Links to canonical Chaos verification documentation
 pub fn format_uce34_q33_reference_p10() -> Vec<String> {
     vec![
         "".to_string(),
@@ -536,7 +536,7 @@ pub fn format_uce34_q33_reference_p10() -> Vec<String> {
         "  3. Verify struct layout is cache-aligned (64B/128B/256B preferred)".to_string(),
         "".to_string(),
         "References:".to_string(),
-        "  ├─ /home/samuel/Docs/The Computational Capsule.md (COCA philosophy)".to_string(),
+        "  ├─ /home/samuel/Docs/The Computational Capsule.md (Chaos philosophy)".to_string(),
         "  ├─ /home/samuel/CLAUDE.md § UCE34 framework (Q1-Q34 comprehensive)".to_string(),
         "  ├─ /home/samuel/Primitives/Docs/KEY_INNOVATIONS.md (verification patterns)".to_string(),
         "  └─ /home/samuel/Primitives/atomic_capsule/CLAUDE.md (110+ examples)".to_string(),

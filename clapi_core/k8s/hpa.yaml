@@ -1,0 +1,169 @@
+# Horizontal Pod Autoscaler for clapi_core (P3-E11)
+#
+# Auto-scales clapi StatefulSet based on CPU and memory utilization
+#
+# Features:
+# - Min replicas: 3 (high availability)
+# - Max replicas: 10 (cost optimization)
+# - CPU target: 70% (optimal performance)
+# - Memory target: 80% (prevent OOM)
+#
+# Usage:
+#   kubectl apply -f k8s/hpa.yaml
+#   kubectl get hpa clapi-hpa
+#   kubectl describe hpa clapi-hpa
+#
+# Metrics:
+#   kubectl get hpa clapi-hpa --watch
+#
+# Documentation: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: clapi-hpa
+  namespace: default
+  labels:
+    app: clapi
+    component: autoscaling
+    tier: backend
+    version: v0.4.9
+  annotations:
+    # Scaling behavior configuration
+    autoscaling.alpha.kubernetes.io/conditions: |
+      - type: ScalingActive
+        status: "True"
+        reason: ValidMetricsFound
+    # B32 performance targets
+    clapi.dev/target-latency-p99: "500ms"
+    clapi.dev/target-throughput: "3000req/s"
+
+spec:
+  # Target workload
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: clapi
+
+  # Replica bounds
+  minReplicas: 3
+  maxReplicas: 10
+
+  # Scaling metrics
+  metrics:
+    # CPU-based scaling (primary metric)
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70  # Scale up when CPU >70%
+
+    # Memory-based scaling (secondary metric)
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80  # Scale up when memory >80%
+
+  # Scaling behavior (fine-tuned for stability)
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60  # Wait 60s before scaling up
+      policies:
+        # Scale up by 1 pod every 60 seconds (conservative)
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+        # Or scale up by 10% every 60 seconds (whichever is larger)
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+      selectPolicy: Max  # Use the policy that scales up more aggressively
+
+    scaleDown:
+      stabilizationWindowSeconds: 300  # Wait 5 minutes before scaling down
+      policies:
+        # Scale down by 1 pod every 120 seconds (conservative)
+        - type: Pods
+          value: 1
+          periodSeconds: 120
+        # Or scale down by 5% every 120 seconds (whichever is smaller)
+        - type: Percent
+          value: 5
+          periodSeconds: 120
+      selectPolicy: Min  # Use the policy that scales down more conservatively
+
+---
+
+# ServiceMonitor for Prometheus Operator (optional)
+# Enables automatic service discovery for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: clapi-servicemonitor
+  namespace: default
+  labels:
+    app: clapi
+    component: monitoring
+    tier: backend
+
+spec:
+  selector:
+    matchLabels:
+      app: clapi
+
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      scheme: http
+
+      # Relabeling rules
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+        - sourceLabels: [__meta_kubernetes_pod_label_version]
+          targetLabel: version
+
+      # Metric relabeling
+      metricRelabelings:
+        # Drop metrics with high cardinality
+        - sourceLabels: [__name__]
+          regex: 'clapi_internal_.*'
+          action: drop
+
+---
+
+# Notes on HPA Configuration
+#
+# 1. Metrics Server Required:
+#    kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+#
+# 2. Verify Metrics Availability:
+#    kubectl top nodes
+#    kubectl top pods
+#
+# 3. Monitor HPA Events:
+#    kubectl get events --field-selector involvedObject.name=clapi-hpa --watch
+#
+# 4. Tuning Recommendations:
+#    - CPU target: 70% (default, optimal for most workloads)
+#    - Memory target: 80% (prevent OOM kills)
+#    - Scale-up period: 60s (balance responsiveness vs stability)
+#    - Scale-down period: 300s (prevent thrashing)
+#
+# 5. Custom Metrics (Optional):
+#    Add custom metrics from Prometheus Adapter:
+#    - clapi_latency_p99_ns (target: <500ms)
+#    - clapi_circuit_breaker_state (target: 0=closed)
+#    - clapi_response_cache_hit_rate_percent (target: >80%)
+#
+# 6. Cost Optimization:
+#    - Min replicas: 3 (high availability, $150/month @ $50/pod)
+#    - Max replicas: 10 (peak load, $500/month)
+#    - Typical steady-state: 3-5 replicas ($150-$250/month)

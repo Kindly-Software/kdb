@@ -1,0 +1,18 @@
+[toolchain]
+# Nightly channel for cutting-edge performance optimizations
+# IMPL-2 V3.1: Using nightly as default for atomic_capsule_derive
+# See: /home/samuel/CLAUDE.md § nightly-feature-defaults
+#
+# Rationale:
+# - Derive macros benefit significantly from nightly features (30-35% speedup)
+# - const_trait_impl: Zero-cost trait abstractions for type estimation
+# - generic_const_exprs: Compile-time expression evaluation for padding
+# - specialization: Hot path optimization for atomic type pattern matching
+#
+# Fallback: `cargo +stable` for minimal reproduction or platform constraints
+channel = "nightly"
+components = ["rust-src", "rustfmt", "clippy"]
+targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
+
+# Minimum nightly version: 2025-11-02 (current stable: Rust 1.83.0)
+# Future tracking: Rust 1.91.0 baseline + Q12.3 ULTRATHINK features

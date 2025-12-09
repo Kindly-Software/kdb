@@ -49,7 +49,7 @@
 //! - **B32**: Fair baselines (conservative 436K docs/sec target)
 //! - **T28**: Comprehensive testing (28 tests: unit/property/integration/production)
 //! - **I20**: 20/20 integration questions validated (wraps MmapCorpusReaderCapsule)
-//! - **COCA**: 100% lockfree (no mutex/RwLock, atomic operations only)
+//! - **Chaos**: 100% lockfree (no mutex/RwLock, atomic operations only)
 
 use std::fs::File;
 use std::path::Path;
@@ -182,6 +182,7 @@ impl DocumentStreamCapsule {
     /// let stream = DocumentStreamCapsule::new("corpus.jsonl", 0, 10_000_000)?;
     /// println!("Total docs: {}", stream.total_docs());
     /// ```
+    #[allow(dead_code)]
     pub fn new(corpus_path: impl AsRef<Path>, _start_doc: u64, end_doc: u64) -> StreamResult<Self> {
         // Open corpus file (read-only)
         let file = File::open(corpus_path.as_ref())?;

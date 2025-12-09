@@ -1,7 +1,7 @@
 //! kindly-verified: Forensic-Grade AI Image Detection System
 //!
 //! **Version**: 0.2.9 (Phase 2.9 - Production Ready)
-//! **Framework**: UCE34 Systematic Discovery + COCA Computational Capsules
+//! **Framework**: UCE34 Systematic Discovery + Chaos Computational Capsules
 //! **Architecture**: T6 Mixed Multi-Tier Composite (T1 + T2 + T3 + T4 + T10)
 //!
 //! **Trade Secret**: [TRADE SECRET] - Proprietary detection algorithms

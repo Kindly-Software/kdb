@@ -1,0 +1,8 @@
+error: Capsule size must be non-zero
+       Help: Remove size = 0 or specify actual size
+ --> tests/compile_fail/size_zero.rs:6:1
+  |
+6 | / #[capsule(alignment = 64, size = 0)]  // Invalid! Must be non-zero
+7 | | #[repr(C, align(64))]
+8 | | struct ZeroSize;
+  | |________________^

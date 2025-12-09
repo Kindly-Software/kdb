@@ -116,7 +116,7 @@ Plus 25 more primitives (readers, zero-copy views, specialized formats).
 - Q33: 100% lockfree (zero mutex/RwLock)
 - Q34: Audit trails (hash-chained, tamper-evident)
 
-### ✅ COCA (Computational Capsule Architecture)
+### ✅ Chaos (Computational Capsule Architecture)
 - 100% atomic_capsule primitives (35 serialization capsules)
 - Zero external serialization dependencies
 - Cache-aligned (64B/128B/256B)

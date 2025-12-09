@@ -3,7 +3,7 @@
 **Implementation Status**: ✅ PRODUCTION READY
 **Date**: 2025-11-13
 **Tier**: T3 Fixed-Point (2-10× speedup, deterministic)
-**Framework**: UCE34 (Q1-Q34), ASSUM (99.99%), B32, T28, I20, COCA
+**Framework**: UCE34 (Q1-Q34), ASSUM (99.99%), B32, T28, I20, Chaos
 
 ## Overview
 
@@ -358,7 +358,7 @@ if !config.is_valid() {
 - **Q11-Q15 (Safety)**: 100% safe, no unsafe code
 - **Q16-Q20 (Validation)**: 25 tests validate all paths
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 
 - **100% Lockfree**: No mutex, RwLock, or async primitives
 - **Cache-Aligned**: 128B WarmTier alignment
@@ -400,7 +400,7 @@ if !config.is_valid() {
 - [x] **B32**: Fair benchmarking, deterministic results
 - [x] **T28**: Comprehensive test coverage across 4 tiers
 - [x] **I20**: Integration validation complete
-- [x] **COCA**: 100% lockfree, cache-aligned, deterministic
+- [x] **Chaos**: 100% lockfree, cache-aligned, deterministic
 
 ### Code Quality ✓
 
@@ -422,7 +422,7 @@ if !config.is_valid() {
 
 ### Framework Documentation
 
-- `/home/samuel/Docs/The Computational Capsule.md` - COCA foundations
+- `/home/samuel/Docs/The Computational Capsule.md` - Chaos foundations
 - `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md` - T3 fixed-point theory
 - `UCE34_FRAMEWORK.md` - Systematic discovery (Q1-Q34)
 - `ATOMIC_CAPSULE.md` - v0.6.0 atomic capsule config
@@ -441,7 +441,7 @@ ConfigurationCapsule provides production-ready, deterministic configuration mana
 - ✅ 128B WarmTier alignment
 - ✅ 25 comprehensive tests (Unit/Property/Integration/Production)
 - ✅ 100% lockfree, zero unsafe code
-- ✅ Full framework compliance (UCE34, ASSUM, B32, T28, I20, COCA)
+- ✅ Full framework compliance (UCE34, ASSUM, B32, T28, I20, Chaos)
 - ✅ Standalone verification (compiles, tests pass)
 
 **Status**: Production Ready

@@ -660,7 +660,7 @@ Flag files persist across runs (intentional, not leaked).
 - ✅ **B32**: Fair benchmarking (<20ns tamper detection overhead)
 - ✅ **T28**: Comprehensive testing (unit/property/integration/production)
 - ✅ **I20**: Integration validated (20/20 questions answered)
-- ✅ **COCA**: 100% lockfree (computational capsules only)
+- ✅ **Chaos**: 100% lockfree (computational capsules only)
 
 ### Production Readiness
 

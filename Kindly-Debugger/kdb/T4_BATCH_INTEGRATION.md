@@ -210,7 +210,7 @@ println!("Stack unwinding: {} active threads, {} total frames",
 - **T4 Parallel**: ~5μs (16 threads in parallel)
 - **Compound Speedup**: 8-16× (T2 × T4)
 
-## COCA Compliance
+## Chaos Compliance
 
 ### Q10-Q12: Tier Selection
 - **Q10**: T4 Batch tier (parallel batch processing)

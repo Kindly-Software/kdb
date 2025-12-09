@@ -1,0 +1,486 @@
+// OAuth + Payment Load Tests - T28 Q22 Production Stress Testing
+//
+// Validates OAuth and Payment performance under production load:
+// - OAuth Scenario: Session creation (1K/sec), verification (<50ns target), refresh (10K/sec)
+// - Payment Scenario: Recording (5K/sec), confirmation (<100ns target), refunds (1K/sec)
+//
+// Performance Targets (from CLAUDE.md):
+// - OAuth verification: <50ns (100M ops/sec throughput)
+// - Payment confirmation: <100ns
+// - Idempotency validation: <100ns (duplicate webhook handling)
+
+use clapi_core::auth::{OAuthSessionCapsule, OAuthState};
+use clapi_core::capsules::{PaymentCapsule256, PaymentStatus};
+use clapi_core::client::BUDGET_ANTHROPIC;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+
+#[path = "../load_test_common.rs"]
+mod load_test_common;
+use load_test_common::{LoadTestConfig, LoadTestHarness};
+
+/// OAuth Scenario 1: Session creation load test
+///
+/// Target: 1K sessions/sec concurrent creation
+/// Measurement: Session creation latency
+#[test]
+#[ignore] // Run with: cargo test --test oauth_payment_load_test -- --ignored
+#[ignore] // FIXME: Update for new capsule APIs
+fn oauth_scenario1_session_creation() {
+    println!("\n=== OAuth Scenario 1: Session Creation (1K/sec) ===\n");
+
+    let sessions = Arc::new(dashmap::DashMap::<u64, OAuthSessionCapsule>::new());
+
+    let config = LoadTestConfig {
+        duration_secs: 60,
+        threads: 8,
+        requests_per_sec: 1_000, // 1K sessions/sec
+        warmup_duration: Duration::from_secs(5),
+        cooldown_duration: Duration::from_secs(3),
+    };
+
+    let sessions_handle = Arc::clone(&sessions);
+    let harness = LoadTestHarness::new(config);
+
+    let results = harness.run(move || {
+        let session_id = rand::random::<u64>();
+        let user_id = rand::random::<u64>();
+        let access_token = format!("token_{}", session_id);
+        let refresh_token = format!("refresh_{}", session_id);
+        let expires_in_secs = 3600; // 1 hour
+
+        let session = OAuthSessionCapsule::new_active(
+            user_id,
+            &access_token,
+            &refresh_token,
+            expires_in_secs,
+        );
+
+        sessions_handle.insert(session_id, session);
+    });
+
+    println!("{}", results.summary());
+
+    // Assertions: <10ms p50 target for session creation
+    assert!(
+        results.meets_p50_target(),
+        "Session creation P50 {:.2}ms exceeds 10ms target",
+        results.latency_p50_ms
+    );
+
+    // Assertions: Throughput should be ≥1K/sec
+    assert!(
+        results.throughput_rps >= 900.0, // Allow 10% variance
+        "Throughput {:.0} req/s below 1K target",
+        results.throughput_rps
+    );
+
+    println!("Created {} sessions", sessions.len());
+}
+
+/// OAuth Scenario 2: Token verification load test
+///
+/// Target: <50ns verification (100M ops/sec throughput)
+/// Measurement: Token verification latency under heavy load
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn oauth_scenario2_token_verification() {
+    println!("\n=== OAuth Scenario 2: Token Verification (<50ns target) ===\n");
+
+    // Pre-populate sessions
+    let sessions = Arc::new(dashmap::DashMap::<u64, OAuthSessionCapsule>::new());
+
+    println!("Pre-populating 10,000 sessions...");
+    for i in 0..10_000 {
+        let session_id = i;
+        let user_id = i;
+        let access_token = format!("token_{}", i);
+        let refresh_token = format!("refresh_{}", i);
+        let expires_in_secs = 3600;
+
+        let session = OAuthSessionCapsule::new_active(
+            user_id,
+            &access_token,
+            &refresh_token,
+            expires_in_secs,
+        );
+
+        sessions.insert(session_id, session);
+    }
+    println!("Pre-population complete\n");
+
+    let thread_counts = vec![1, 8, 16, 32];
+
+    for threads in thread_counts {
+        println!("\n--- Testing with {} threads ---", threads);
+
+        let config = LoadTestConfig {
+            duration_secs: 60,
+            threads,
+            requests_per_sec: 100_000, // Very high RPS for verification test
+            warmup_duration: Duration::from_secs(10),
+            cooldown_duration: Duration::from_secs(5),
+        };
+
+        let sessions_handle = Arc::clone(&sessions);
+        let harness = LoadTestHarness::new(config);
+
+        let results = harness.run(move || {
+            let session_id = rand::random::<u64>() % 10_000;
+
+            if let Some(session) = sessions_handle.get(&session_id) {
+                // Verify token (hot path)
+                let _ = session.is_active();
+            }
+        });
+
+        println!("{}", results.summary());
+
+        // Assertions: <1ms p50 target (actual <50ns hard to measure due to overhead)
+        assert!(
+            results.latency_p50_ms < 1.0,
+            "Verification P50 {:.2}ms too high ({}T)",
+            results.latency_p50_ms,
+            threads
+        );
+
+        // Assertions: Very high throughput (>50K req/s)
+        assert!(
+            results.throughput_rps > 50_000.0,
+            "Throughput {:.0} req/s too low ({}T)",
+            results.throughput_rps,
+            threads
+        );
+    }
+}
+
+/// OAuth Scenario 3: Token refresh load test
+///
+/// Target: 10K refreshes/sec
+/// Measurement: Token refresh latency
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn oauth_scenario3_token_refresh() {
+    println!("\n=== OAuth Scenario 3: Token Refresh (10K/sec) ===\n");
+
+    // Pre-populate sessions
+    let sessions = Arc::new(dashmap::DashMap::<u64, OAuthSessionCapsule>::new());
+
+    println!("Pre-populating 10,000 sessions...");
+    for i in 0..10_000 {
+        let session_id = i;
+        let user_id = i;
+        let access_token = format!("token_{}", i);
+        let refresh_token = format!("refresh_{}", i);
+        let expires_in_secs = 3600;
+
+        let session = OAuthSessionCapsule::new_active(
+            user_id,
+            &access_token,
+            &refresh_token,
+            expires_in_secs,
+        );
+
+        sessions.insert(session_id, session);
+    }
+    println!("Pre-population complete\n");
+
+    let config = LoadTestConfig {
+        duration_secs: 60,
+        threads: 16,
+        requests_per_sec: 10_000,
+        warmup_duration: Duration::from_secs(10),
+        cooldown_duration: Duration::from_secs(5),
+    };
+
+    let sessions_handle = Arc::clone(&sessions);
+    let harness = LoadTestHarness::new(config);
+
+    let results = harness.run(move || {
+        let session_id = rand::random::<u64>() % 10_000;
+
+        if let Some(mut session) = sessions_handle.get_mut(&session_id) {
+            let new_access_token = format!("new_token_{}", rand::random::<u64>());
+            let new_refresh_token = format!("new_refresh_{}", rand::random::<u64>());
+            let expires_in_secs = 3600;
+
+            let _ = session.refresh(&new_access_token, &new_refresh_token, expires_in_secs);
+        }
+    });
+
+    println!("{}", results.summary());
+
+    // Assertions: <10ms p50 target
+    assert!(
+        results.meets_p50_target(),
+        "Token refresh P50 {:.2}ms exceeds 10ms target",
+        results.latency_p50_ms
+    );
+
+    // Assertions: Throughput ≥10K/sec
+    assert!(
+        results.throughput_rps >= 9_000.0,
+        "Throughput {:.0} req/s below 10K target",
+        results.throughput_rps
+    );
+}
+
+/// Payment Scenario 1: Payment recording load test
+///
+/// Target: 5K payments/sec
+/// Measurement: Payment recording latency
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn payment_scenario1_payment_recording() {
+    println!("\n=== Payment Scenario 1: Payment Recording (5K/sec) ===\n");
+
+    let payments = Arc::new(dashmap::DashMap::<u64, PaymentCapsule256>::new());
+
+    let config = LoadTestConfig {
+        duration_secs: 60,
+        threads: 8,
+        requests_per_sec: 5_000,
+        warmup_duration: Duration::from_secs(5),
+        cooldown_duration: Duration::from_secs(3),
+    };
+
+    let payments_handle = Arc::clone(&payments);
+    let harness = LoadTestHarness::new(config);
+
+    let results = harness.run(move || {
+        let payment_id = rand::random::<u64>();
+        let user_id = rand::random::<u64>();
+        let amount_cents = 10_00; // $10.00
+        let stripe_intent_id = format!("pi_{}", payment_id);
+
+        let payment = PaymentCapsule256::new_pending(
+            user_id,
+            BUDGET_ANTHROPIC,
+            amount_cents,
+            &stripe_intent_id,
+        );
+
+        payments_handle.insert(payment_id, payment);
+    });
+
+    println!("{}", results.summary());
+
+    // Assertions: <10ms p50 target
+    assert!(
+        results.meets_p50_target(),
+        "Payment recording P50 {:.2}ms exceeds 10ms target",
+        results.latency_p50_ms
+    );
+
+    // Assertions: Throughput ≥5K/sec
+    assert!(
+        results.throughput_rps >= 4_500.0,
+        "Throughput {:.0} req/s below 5K target",
+        results.throughput_rps
+    );
+
+    println!("Recorded {} payments", payments.len());
+}
+
+/// Payment Scenario 2: Payment confirmation load test
+///
+/// Target: <100ns confirmation
+/// Measurement: Payment status update latency
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn payment_scenario2_payment_confirmation() {
+    println!("\n=== Payment Scenario 2: Payment Confirmation (<100ns target) ===\n");
+
+    // Pre-populate pending payments
+    let payments = Arc::new(dashmap::DashMap::<u64, PaymentCapsule256>::new());
+
+    println!("Pre-populating 10,000 pending payments...");
+    for i in 0..10_000 {
+        let payment_id = i;
+        let user_id = i;
+        let amount_cents = 10_00;
+        let stripe_intent_id = format!("pi_{}", i);
+
+        let payment = PaymentCapsule256::new_pending(
+            user_id,
+            BUDGET_ANTHROPIC,
+            amount_cents,
+            &stripe_intent_id,
+        );
+
+        payments.insert(payment_id, payment);
+    }
+    println!("Pre-population complete\n");
+
+    let config = LoadTestConfig {
+        duration_secs: 60,
+        threads: 16,
+        requests_per_sec: 50_000, // High RPS for confirmation test
+        warmup_duration: Duration::from_secs(10),
+        cooldown_duration: Duration::from_secs(5),
+    };
+
+    let payments_handle = Arc::clone(&payments);
+    let harness = LoadTestHarness::new(config);
+
+    let results = harness.run(move || {
+        let payment_id = rand::random::<u64>() % 10_000;
+
+        if let Some(mut payment) = payments_handle.get_mut(&payment_id) {
+            // Confirm payment (hot path)
+            let _ = payment.confirm_payment();
+        }
+    });
+
+    println!("{}", results.summary());
+
+    // Assertions: <1ms p50 target (actual <100ns hard to measure)
+    assert!(
+        results.latency_p50_ms < 1.0,
+        "Confirmation P50 {:.2}ms too high",
+        results.latency_p50_ms
+    );
+
+    // Assertions: Very high throughput
+    assert!(
+        results.throughput_rps > 30_000.0,
+        "Throughput {:.0} req/s too low",
+        results.throughput_rps
+    );
+}
+
+/// Payment Scenario 3: Refund processing load test
+///
+/// Target: 1K refunds/sec
+/// Measurement: Refund processing latency
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn payment_scenario3_refund_processing() {
+    println!("\n=== Payment Scenario 3: Refund Processing (1K/sec) ===\n");
+
+    // Pre-populate confirmed payments
+    let payments = Arc::new(dashmap::DashMap::<u64, PaymentCapsule256>::new());
+
+    println!("Pre-populating 10,000 confirmed payments...");
+    for i in 0..10_000 {
+        let payment_id = i;
+        let user_id = i;
+        let amount_cents = 10_00;
+        let stripe_intent_id = format!("pi_{}", i);
+
+        let mut payment = PaymentCapsule256::new_pending(
+            user_id,
+            BUDGET_ANTHROPIC,
+            amount_cents,
+            &stripe_intent_id,
+        );
+
+        payment.confirm_payment();
+        payments.insert(payment_id, payment);
+    }
+    println!("Pre-population complete\n");
+
+    let config = LoadTestConfig {
+        duration_secs: 60,
+        threads: 8,
+        requests_per_sec: 1_000,
+        warmup_duration: Duration::from_secs(5),
+        cooldown_duration: Duration::from_secs(3),
+    };
+
+    let payments_handle = Arc::clone(&payments);
+    let harness = LoadTestHarness::new(config);
+
+    let results = harness.run(move || {
+        let payment_id = rand::random::<u64>() % 10_000;
+
+        if let Some(mut payment) = payments_handle.get_mut(&payment_id) {
+            // Process refund
+            let _ = payment.refund();
+        }
+    });
+
+    println!("{}", results.summary());
+
+    // Assertions: <10ms p50 target
+    assert!(
+        results.meets_p50_target(),
+        "Refund P50 {:.2}ms exceeds 10ms target",
+        results.latency_p50_ms
+    );
+
+    // Assertions: Throughput ≥1K/sec
+    assert!(
+        results.throughput_rps >= 900.0,
+        "Throughput {:.0} req/s below 1K target",
+        results.throughput_rps
+    );
+}
+
+/// Payment Scenario 4: Idempotency validation (duplicate webhook handling)
+///
+/// Target: <100ns idempotency check
+/// Measurement: Duplicate detection latency
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn payment_scenario4_idempotency() {
+    println!("\n=== Payment Scenario 4: Idempotency Validation (<100ns target) ===\n");
+
+    // Pre-populate payments
+    let payments = Arc::new(dashmap::DashMap::<String, u64>::new()); // Stripe ID → payment hash
+
+    println!("Pre-populating 10,000 payment IDs...");
+    for i in 0..10_000 {
+        let stripe_intent_id = format!("pi_{}", i);
+        let payment_hash = rand::random::<u64>();
+        payments.insert(stripe_intent_id, payment_hash);
+    }
+    println!("Pre-population complete\n");
+
+    let config = LoadTestConfig {
+        duration_secs: 60,
+        threads: 16,
+        requests_per_sec: 100_000, // Very high RPS for idempotency test
+        warmup_duration: Duration::from_secs(10),
+        cooldown_duration: Duration::from_secs(5),
+    };
+
+    let payments_handle = Arc::clone(&payments);
+    let harness = LoadTestHarness::new(config);
+
+    let results = harness.run(move || {
+        // 50% duplicate, 50% new
+        let is_duplicate = rand::random::<bool>();
+
+        let stripe_intent_id = if is_duplicate {
+            format!("pi_{}", rand::random::<u64>() % 10_000)
+        } else {
+            format!("pi_new_{}", rand::random::<u64>())
+        };
+
+        // Idempotency check (hot path)
+        let _ = payments_handle.contains_key(&stripe_intent_id);
+    });
+
+    println!("{}", results.summary());
+
+    // Assertions: <1ms p50 target (actual <100ns hard to measure)
+    assert!(
+        results.latency_p50_ms < 1.0,
+        "Idempotency check P50 {:.2}ms too high",
+        results.latency_p50_ms
+    );
+
+    // Assertions: Very high throughput
+    assert!(
+        results.throughput_rps > 50_000.0,
+        "Throughput {:.0} req/s too low",
+        results.throughput_rps
+    );
+}

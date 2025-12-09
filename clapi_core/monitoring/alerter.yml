@@ -1,0 +1,227 @@
+# Alert Rules for clapi_core
+# Defines 15 alerts (10 critical, 5 warning)
+
+groups:
+  # ============================================================================
+  # CRITICAL ALERTS (10)
+  # ============================================================================
+
+  - name: critical_latency
+    interval: 10s
+    rules:
+      # Alert 1: P50 latency exceeds 15ms (target <10ms)
+      - alert: ProxyLatencyP50Exceeded
+        expr: histogram_quantile(0.50, rate(clapi_proxy_latency_ns_bucket[1m])) > 15000000
+        for: 1m
+        labels:
+          severity: critical
+          component: proxy
+        annotations:
+          summary: "Proxy P50 latency exceeds 15ms"
+          description: "P50 latency is {{ $value | humanizeDuration }}, target <10ms"
+          runbook: "playbooks/latency_spike_playbook.md"
+
+      # Alert 2: P99 latency exceeds 200ms (target <100ms)
+      - alert: ProxyLatencyP99Exceeded
+        expr: histogram_quantile(0.99, rate(clapi_proxy_latency_ns_bucket[1m])) > 200000000
+        for: 1m
+        labels:
+          severity: critical
+          component: proxy
+        annotations:
+          summary: "Proxy P99 latency exceeds 200ms"
+          description: "P99 latency is {{ $value | humanizeDuration }}, target <100ms"
+          runbook: "playbooks/latency_spike_playbook.md"
+
+  - name: critical_circuit_breaker
+    interval: 5s
+    rules:
+      # Alert 3: All 16 providers circuit open
+      - alert: AllCircuitsOpen
+        expr: count(clapi_circuit_state == 2) >= 16
+        for: 30s
+        labels:
+          severity: critical
+          component: circuit_breaker
+        annotations:
+          summary: "All provider circuits are open"
+          description: "All 16 providers have circuit breakers open - service degraded"
+          runbook: "playbooks/all_circuits_open_playbook.md"
+
+  - name: critical_errors
+    interval: 10s
+    rules:
+      # Alert 4: Error rate >5%
+      - alert: HighErrorRate
+        expr: (rate(clapi_proxy_errors_total[1m]) / rate(clapi_proxy_requests_total[1m])) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          component: proxy
+        annotations:
+          summary: "Error rate exceeds 5%"
+          description: "Current error rate: {{ $value | humanizePercentage }}"
+          runbook: "playbooks/high_error_rate_playbook.md"
+
+  - name: critical_oauth
+    interval: 10s
+    rules:
+      # Alert 5: OAuth failure rate >10%
+      - alert: OAuthFailureRate
+        expr: (rate(clapi_oauth_verification_failures_total[1m]) / rate(clapi_oauth_sessions_total[1m])) > 0.10
+        for: 1m
+        labels:
+          severity: critical
+          component: oauth
+        annotations:
+          summary: "OAuth failure rate exceeds 10%"
+          description: "Current OAuth failure rate: {{ $value | humanizePercentage }}"
+          runbook: "playbooks/oauth_failure_playbook.md"
+
+  - name: critical_payments
+    interval: 10s
+    rules:
+      # Alert 6: Payment failure rate >5%
+      - alert: PaymentFailureRate
+        expr: (rate(clapi_payments_failed_total[1m]) / rate(clapi_payments_recorded_total[1m])) > 0.05
+        for: 1m
+        labels:
+          severity: critical
+          component: payments
+        annotations:
+          summary: "Payment failure rate exceeds 5%"
+          description: "Current payment failure rate: {{ $value | humanizePercentage }}"
+          runbook: "playbooks/payment_failure_playbook.md"
+
+  - name: critical_budget
+    interval: 10s
+    rules:
+      # Alert 7: Budget exhaustion rate >50%
+      - alert: BudgetExhaustionRate
+        expr: (clapi_budget_exhausted_count / clapi_budget_active_count) > 0.50
+        for: 5m
+        labels:
+          severity: critical
+          component: budget
+        annotations:
+          summary: "Budget exhaustion rate exceeds 50%"
+          description: "{{ $value | humanizePercentage }} of budgets exhausted"
+          runbook: "playbooks/budget_exhaustion_playbook.md"
+
+  - name: critical_system
+    interval: 10s
+    rules:
+      # Alert 8: Memory leak detected (>100MB/hour growth)
+      - alert: MemoryLeak
+        expr: rate(clapi_memory_bytes[1h]) > 104857600  # 100MB in bytes
+        for: 1h
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Memory leak detected"
+          description: "Memory growing {{ $value | humanize1024 }}/hour"
+          runbook: "playbooks/memory_leak_playbook.md"
+
+      # Alert 9: High CPU usage sustained
+      - alert: HighCPUUsage
+        expr: clapi_cpu_usage_percent > 90
+        for: 5m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "CPU usage exceeds 90%"
+          description: "Current CPU usage: {{ $value }}%"
+          runbook: "playbooks/cpu_saturation_playbook.md"
+
+      # Alert 10: Service down (no metrics)
+      - alert: ServiceDown
+        expr: up{job="clapi_core"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "clapi_core service is down"
+          description: "No metrics received for >1 minute"
+          runbook: "playbooks/service_down_playbook.md"
+
+  # ============================================================================
+  # WARNING ALERTS (5)
+  # ============================================================================
+
+  - name: warning_latency
+    interval: 10s
+    rules:
+      # Alert 11: P50 latency trending up >20%
+      - alert: ProxyLatencyP50Trending
+        expr: (histogram_quantile(0.50, rate(clapi_proxy_latency_ns_bucket[5m])) - histogram_quantile(0.50, rate(clapi_proxy_latency_ns_bucket[10m]) offset 10m)) / histogram_quantile(0.50, rate(clapi_proxy_latency_ns_bucket[10m]) offset 10m) > 0.20
+        for: 5m
+        labels:
+          severity: warning
+          component: proxy
+        annotations:
+          summary: "P50 latency trending up >20%"
+          description: "Latency increase: {{ $value | humanizePercentage }}"
+          runbook: "playbooks/latency_spike_playbook.md"
+
+  - name: warning_circuit_breaker
+    interval: 10s
+    rules:
+      # Alert 12: >5 providers circuit open
+      - alert: SomeCircuitsOpen
+        expr: count(clapi_circuit_state == 2) > 5
+        for: 2m
+        labels:
+          severity: warning
+          component: circuit_breaker
+        annotations:
+          summary: "Multiple provider circuits open"
+          description: "{{ $value }} providers have circuit breakers open"
+          runbook: "playbooks/circuit_open_playbook.md"
+
+  - name: warning_budget
+    interval: 10s
+    rules:
+      # Alert 13: Moderate budget exhaustion (>25%)
+      - alert: ModerateBudgetExhaustion
+        expr: (clapi_budget_exhausted_count / clapi_budget_active_count) > 0.25
+        for: 10m
+        labels:
+          severity: warning
+          component: budget
+        annotations:
+          summary: "Moderate budget exhaustion detected"
+          description: "{{ $value | humanizePercentage }} of budgets exhausted"
+          runbook: "playbooks/budget_exhaustion_playbook.md"
+
+  - name: warning_contention
+    interval: 10s
+    rules:
+      # Alert 14: High CAS retry rate (>10%)
+      - alert: HighContention
+        expr: (rate(clapi_budget_cas_retries_total[1m]) / rate(clapi_budget_deductions_total[1m])) > 0.10
+        for: 5m
+        labels:
+          severity: warning
+          component: budget
+        annotations:
+          summary: "High CAS retry rate detected"
+          description: "CAS retry rate: {{ $value | humanizePercentage }}"
+          runbook: "playbooks/high_contention_playbook.md"
+
+  - name: warning_thermal
+    interval: 30s
+    rules:
+      # Alert 15: CPU thermal throttling detected
+      - alert: ThermalThrottling
+        expr: node_cpu_frequency_hertz < node_cpu_frequency_max_hertz * 0.9
+        for: 2m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "CPU thermal throttling detected"
+          description: "CPU frequency reduced to {{ $value | humanize }}Hz"
+          runbook: "playbooks/cpu_saturation_playbook.md"

@@ -1,0 +1,10 @@
+Machine learning is a subset of artificial intelligence that focuses on the development of algorithms.
+Deep learning neural networks have revolutionized computer vision and natural language processing tasks.
+Machine learning is a subset of artificial intelligence that focuses on the development of algorithms.
+Data science combines statistics programming and domain expertise to extract insights from data.
+Deep learning neural networks have revolutionized computer vision and natural language processing tasks.
+Reinforcement learning enables agents to learn optimal behaviors through trial and error interactions.
+Natural language processing uses computational linguistics to enable computers to understand human language.
+Computer vision algorithms can detect objects faces and scenes in images and videos.
+Data science combines statistics programming and domain expertise to extract insights from data.
+Transfer learning allows models trained on one task to be adapted for related tasks efficiently.

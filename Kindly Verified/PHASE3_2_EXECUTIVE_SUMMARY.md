@@ -160,7 +160,7 @@
 | Framework | Compliance | Status |
 |-----------|------------|--------|
 | **UCE34** (Q1-Q34) | ✅ Complete | Systematic discovery, tier selection (T1+T3), profiling-first (Q10) |
-| **COCA** | ✅ 100% Lockfree | Zero mutex/RwLock, 128B alignment, generation counters |
+| **Chaos** | ✅ 100% Lockfree | Zero mutex/RwLock, 128B alignment, generation counters |
 | **ASSUM** | ✅ 99.99% Safe | All assumptions documented + verified, zero unsafe in fast paths |
 | **B32** | ✅ Fair Benchmarking | 1000+ iterations, 95% CI, realistic baselines (not strawman) |
 | **T28** | ✅ 4-Tier Testing | 130+ tests (40 unit, 30 property, 35 integration, 25 production) |
@@ -181,7 +181,7 @@
 - ✅ Code quality: 0 errors, 0 warnings (`cargo clippy`)
 - ✅ Test pass rate: **100%** (130+ tests)
 - ✅ Memory overhead: **+2MB** (52MB total, <100MB budget)
-- ✅ Framework compliance: **100%** (UCE34 + COCA + ASSUM + B32 + T28 + I20 + Q34)
+- ✅ Framework compliance: **100%** (UCE34 + Chaos + ASSUM + B32 + T28 + I20 + Q34)
 
 ---
 
@@ -226,7 +226,7 @@
 
 Phase 3.2 ensemble fusion strategy achieves **90%+ natural detection** (vs 75% Phase 3.1 baseline = 20% improvement) while preserving **95%+ AI detection** through a novel multi-tier fusion architecture with adaptive weighting.
 
-**Production Ready**: 5-day implementation timeline with daily checkpoints, rollback triggers, and 100% framework compliance (UCE34 + COCA + ASSUM + B32 + T28 + I20 + Q34).
+**Production Ready**: 5-day implementation timeline with daily checkpoints, rollback triggers, and 100% framework compliance (UCE34 + Chaos + ASSUM + B32 + T28 + I20 + Q34).
 
 **Key Breakthrough**: Early exit (Tier 1-2) handles 30-50% of verdicts with 50% latency reduction, while ensemble (Tier 3) provides robust fallback for ambiguous cases—best of both worlds.
 

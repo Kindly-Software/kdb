@@ -1,0 +1,23 @@
+[package]
+name = "atomic_message_queue"
+version = "0.1.0"
+edition = "2021"
+authors = ["Samuel <samuel@example.com>"]
+description = "Lockfree atomic message queue for high-performance IPC"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/example/atomic-message-queue"
+keywords = ["lockfree", "queue", "atomic", "ipc", "messaging"]
+categories = ["concurrency", "data-structures"]
+
+[dependencies]
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "queue_benchmarks"
+harness = false
+
+[features]
+default = []
+nightly = []

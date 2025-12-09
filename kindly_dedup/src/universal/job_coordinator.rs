@@ -1,5 +1,10 @@
 //! # JobCoordinatorCapsule (T1 Atomic + T4 Batch)
 //!
+//! # Clippy Suppressions
+//! - `missing_docs`: Internal types have self-documenting names
+
+#![allow(missing_docs)]
+
 //! **Version**: 1.0.0
 //! **Date**: 2025-11-22
 //! **Tier**: T1 (Atomic) + T4 (Batch)
@@ -29,7 +34,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q1-Q34 complete (T1+T4 tier selection, Q34 audit trails)
-//! - **COCA**: 100% lockfree (no mutex/RwLock, cache-aligned)
+//! - **Chaos**: 100% lockfree (no mutex/RwLock, cache-aligned)
 //! - **ASSUM**: 99.99% safe (all assumptions documented and verified)
 //! - **B32**: Fair baselines (sequential UniversalDedupPipeline × N)
 //! - **T28**: Comprehensive testing (unit/property/integration/production)
@@ -42,7 +47,6 @@
 //! - `#VERIFY_LOCKFREE_COORDINATION`: grep 0 mutex in implementation
 
 use std::sync::atomic::{AtomicU64, AtomicU8, Ordering};
-use std::sync::Arc;
 use thiserror::Error;
 
 /// ChunkDescriptor - Zero-copy corpus chunk (just indices)

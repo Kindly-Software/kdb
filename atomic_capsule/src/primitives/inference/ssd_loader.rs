@@ -65,7 +65,7 @@
 //! # Ok::<(), SsdLoaderError>(())
 //! ```
 //!
-//! ## COCA Compliance
+//! ## Chaos Compliance
 //!
 //! - **Lockfree**: 100% atomic operations (NO mutex/RwLock)
 //! - **Cache-aligned**: 256B structure (4× 64B cache lines)
@@ -178,7 +178,7 @@ pub struct SsdLoaderSnapshot {
 /// - Batch (8 blocks): <5μs (target <500μs on NVMe)
 /// - Bandwidth: N/A mock (target ~7GB/s PCIe 4.0)
 ///
-/// **COCA Compliance**:
+/// **Chaos Compliance**:
 /// - 100% lockfree (atomic operations only)
 /// - Cache-aligned 256B (4× 64B cache lines)
 /// - Generation counters for ABA prevention
@@ -551,7 +551,7 @@ impl SsdLoaderCapsule {
     }
 }
 
-// COCA Compliance: Verify capsule properties
+// Chaos Compliance: Verify capsule properties
 crate::verify_capsule_properties!(
     SsdLoaderCapsule,
     256,  // size

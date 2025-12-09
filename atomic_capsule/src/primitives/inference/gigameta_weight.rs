@@ -425,7 +425,7 @@ impl Default for WeightBlock {
 /// - **Q33**: Compile-time size/alignment verification
 /// - **Q34**: FNV-1a hash chain for block integrity, SHA-256 model verification
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 ///
 /// - 100% lockfree (NO mutex, NO RwLock)
 /// - DualAtomicU64 pattern for state/metrics

@@ -718,7 +718,7 @@ systemctl show -p CPUQuota mcp-debug.service
 - **Q33**: Verification via `#[derive(ComputationalCapsule)]` on core capsules
 - **Q34**: Audit trail via systemd journal (structured logging)
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 
 - **100% Lockfree**: Service state machine is kernel-enforced (atomic transitions)
 - **Cache-Aligned**: Systemd uses SMP-safe cgroup updates
@@ -933,7 +933,7 @@ This systemd service provides production-ready deployment for the atomic_mcp_ser
 - **Scalability**: Multi-instance support with 4 independent servers
 - **Observability**: Full systemd journal integration and logging
 - **Performance**: <10μs RPC latency, 50% CPU quota, 512MB memory limit
-- **Compliance**: UCE34 (Q10-Q34), COCA, ASSUM (99.99%), B32, T28, I20
+- **Compliance**: UCE34 (Q10-Q34), Chaos, ASSUM (99.99%), B32, T28, I20
 
 For questions or issues, consult the troubleshooting guide or run `./systemd/validate_systemd.sh` for comprehensive validation.
 

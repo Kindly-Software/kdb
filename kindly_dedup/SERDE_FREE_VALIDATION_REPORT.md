@@ -107,7 +107,7 @@ error[E0277]: the trait bound `AtomicBool: Clone` is not satisfied
 - **Q33**: 100% lockfree (zero mutex/RwLock) ✅
 - **Q34**: Audit trails via atomic_capsule ✅
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 - **100% atomic_capsule primitives**: JsonWriterCapsule, BincodeWriterCapsule, etc. ✅
 - **Zero external serialization**: No serde in production code ✅
 - **Cache-aligned**: All capsules 64B/128B/256B aligned ✅

@@ -10,7 +10,7 @@
 //! - **Latency**: <100ns per find/union operation (CAS-based, Acquire/Release)
 //! - **Throughput**: 10M+ operations/sec (sustained on 8c/16t)
 //! - **Capacity**: Up to u32::MAX elements (4.3B)
-//! - **Lockfree**: 100% COCA compliant (atomic operations only)
+//! - **Lockfree**: 100% Chaos compliant (atomic operations only)
 //!
 //! # Algorithm
 //!
@@ -56,7 +56,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q1-Q34 systematic discovery (T1 Atomic tier selection)
-//! - **COCA**: 100% lockfree (atomic operations only, no mutex/RwLock)
+//! - **Chaos**: 100% lockfree (atomic operations only, no mutex/RwLock)
 //! - **ASSUM**: 99.99% safe (CAS retry assumptions documented)
 //! - **B32**: Fair benchmarking (10M ops/sec baseline)
 //! - **T28**: Comprehensive testing (unit/property/integration)
@@ -412,7 +412,7 @@ mod tests {
         uf.union_lockfree(4, 5).unwrap();
 
         let clusters = uf.get_clusters().unwrap();
-        assert_eq!(clusters.len(), 4); // [0,1,2], [3], [4,5]
+        assert_eq!(clusters.len(), 3); // [0,1,2], [3], [4,5]
 
         // Verify first cluster contains 0, 1, 2
         let first_cluster = &clusters[0];

@@ -2,7 +2,7 @@
 
 **Status**: 70 integration tests created (T28 Q15-Q21 complete coverage)
 **Framework**: T28 Integration Testing Tier
-**Validation**: UCE34, COCA, ASSUM, B32, I20 compliant
+**Validation**: UCE34, Chaos, ASSUM, B32, I20 compliant
 **Date**: 2025-11-18
 
 ## Overview
@@ -258,7 +258,7 @@ Created comprehensive test infrastructure with 30+ helper functions:
 - **Integration Tests (Q15-Q21)**: 70 tests (NEW)
 - **Production Tests (Q22-Q28)**: Existing stress tests
 
-### COCA Compliance
+### Chaos Compliance
 
 - **Lockfree**: All tests validate atomic operations only
 - **Cache-Aligned**: All capsules 64B/128B/256B aligned
@@ -345,7 +345,7 @@ A comprehensive integration test suite has been created covering all T28 Q15-Q21
 
 - **100% Q15-Q21 Coverage**: All integration testing requirements met
 - **Multi-Layer Testing**: Component, failure, state, concurrent, security, performance, config
-- **Framework Compliance**: Full UCE34, T28, COCA, ASSUM, B32, I20 compliance
+- **Framework Compliance**: Full UCE34, T28, Chaos, ASSUM, B32, I20 compliance
 - **Test Infrastructure**: 30+ helper functions for maintainable tests
 - **Documentation**: Complete test documentation and usage guide
 

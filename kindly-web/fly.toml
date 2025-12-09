@@ -1,0 +1,26 @@
+# fly.toml - kindly.software website
+app = "kindly-software-website"
+primary_region = "ord"  # Chicago (matches existing deployment)
+
+# Build configuration
+[build]
+  dockerfile = "Dockerfile"
+
+# HTTP service configuration
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+# Machine configuration
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+  cpus = 1

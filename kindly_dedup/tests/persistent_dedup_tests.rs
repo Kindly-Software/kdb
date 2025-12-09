@@ -15,7 +15,7 @@
 //! - **UCE34**: Q1-Q34 (T9 Persistent + T10 Probabilistic)
 //! - **ASSUM**: Safety assumption verification (generation counters, crash recovery)
 //! - **B32**: Performance validation (<4 GB memory, 10K+ docs/sec)
-//! - **COCA**: 100% lockfree (atomic operations only)
+//! - **Chaos**: 100% lockfree (atomic operations only)
 
 #[cfg(feature = "std")]
 mod persistent_dedup_tests {

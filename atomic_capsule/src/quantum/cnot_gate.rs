@@ -54,7 +54,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 T2 SIMD tier, Q33 verification, Q34 audit trails
-//! - **COCA**: 100% lockfree atomics, 256B cache-aligned
+//! - **Chaos**: 100% lockfree atomics, 256B cache-aligned
 //! - **ASSUM**: 99.99% safe, all assumptions documented
 //! - **B32**: Fair scalar baseline, 95% CI, 1000+ iterations
 //! - **T28**: 28 comprehensive tests (unit/property/integration/production)
@@ -141,6 +141,7 @@ use local_error::{QuantumError, QuantumResult};
 /// - #VERIFY_ALIGNMENT: assert_eq!(size_of::<CNOTGateCapsule>(), 256)
 #[repr(C, align(256))]
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
+#[cfg_attr(feature = "derive", capsule(alignment = 256))]
 pub struct CNOTGateCapsule {
     /// Control qubit index (0-based)
     control_qubit: AtomicU32,

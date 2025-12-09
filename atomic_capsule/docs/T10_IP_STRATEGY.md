@@ -466,7 +466,7 @@
 
 **✅ No Time Limit** (vs 20-year patent expiration)
 - Trade secrets last indefinitely if kept confidential
-- Example: Coca-Cola formula (130+ years), Google PageRank (25+ years before publication)
+- Example: Chaos-Cola formula (130+ years), Google PageRank (25+ years before publication)
 
 **✅ No Disclosure Requirement** (vs patent publication)
 - Patents require public disclosure (competitors learn your approach)

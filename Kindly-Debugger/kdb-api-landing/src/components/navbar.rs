@@ -83,7 +83,7 @@ pub fn Navbar() -> impl IntoView {
             <div style=nav_links_style>
                 <a href="#stats" style=link_style.clone() class="nav-link">"Stats"</a>
                 <a href="#endpoints" style=link_style.clone() class="nav-link">"Endpoints"</a>
-                <a href="https://kindly.services" style=link_style.clone() class="nav-link" target="_blank">"Docs"</a>
+                <a href="https://kindly.software" style=link_style.clone() class="nav-link" target="_blank">"Docs"</a>
             </div>
         </nav>
     }

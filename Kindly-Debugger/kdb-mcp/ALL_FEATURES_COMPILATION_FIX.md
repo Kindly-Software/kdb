@@ -3,7 +3,7 @@
 **Date**: 2025-11-18
 **Status**: ✅ **SUCCESS** - 0 errors with `cargo check --all-features`
 **Time**: 10 minutes
-**Framework**: UCE34 Q31 (Simplicity), COCA (Zero changes to capsules), ASSUM (No unsafe modifications)
+**Framework**: UCE34 Q31 (Simplicity), Chaos (Zero changes to capsules), ASSUM (No unsafe modifications)
 
 ## Mission
 
@@ -138,7 +138,7 @@ $ cargo check --all-features 2>&1 | grep "^error" | wc -l
 ✅ Clear documentation of changes
 ✅ Zero breaking changes to existing APIs
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 ✅ Zero changes to capsule implementations
 ✅ Lockfree guarantees preserved (no mutex/RwLock added)
 ✅ Cache alignment unchanged

@@ -3,7 +3,7 @@
 **Date**: 2025-11-23
 **Status**: ✅ COMPLETE
 **Project**: clippy-capsule-verify (P2.1 Memory Ordering Enhancement)
-**Framework**: UCE34 (Q10 Tier Selection) + COCA (100% Lockfree) + ASSUM (Safety) + B32 (Performance)
+**Framework**: UCE34 (Q10 Tier Selection) + Chaos (100% Lockfree) + ASSUM (Safety) + B32 (Performance)
 
 ---
 
@@ -38,7 +38,7 @@ The core lint implementation has been significantly enhanced with comprehensive 
 - **File Size**: 442 lines (original ~275 lines)
 - **Enhancement**: ~167 lines added to diagnostic function
 - **Compilation**: ✅ No errors, no warnings
-- **Framework**: UCE34 (Q10 context), COCA (100% lockfree), ASSUM (safety), B32 (performance)
+- **Framework**: UCE34 (Q10 context), Chaos (100% lockfree), ASSUM (safety), B32 (performance)
 
 ### Key Enhancements
 
@@ -60,7 +60,7 @@ The core lint implementation has been significantly enhanced with comprehensive 
 
 4. **Framework Integration** (8 lines)
    - UCE34 Q10: Tier selection context
-   - COCA: 100% lockfree mandate
+   - Chaos: 100% lockfree mandate
    - ASSUM: Safety verification
    - B32: Performance standards
 
@@ -130,7 +130,7 @@ Complete documentation of the enhanced error messages, including before/after co
 **Features**:
 ✅ Before/after comparison (code blocks)
 ✅ Decision tree diagram
-✅ Framework alignment (UCE34/COCA/ASSUM/B32)
+✅ Framework alignment (UCE34/Chaos/ASSUM/B32)
 ✅ Real-world examples
 ✅ Performance metrics
 ✅ Exception handling guidance
@@ -142,7 +142,7 @@ Complete documentation of the enhanced error messages, including before/after co
 3. **Before/After Comparison** - Visual improvements
 4. **Operation-Specific Examples** - Real code samples
 5. **Memory Ordering Decision Tree** - Flowchart guidance
-6. **Framework Integration** - UCE34/COCA/ASSUM/B32 alignment
+6. **Framework Integration** - UCE34/Chaos/ASSUM/B32 alignment
 7. **Implementation Details** - Technical specifications
 8. **Testing** - Coverage details
 9. **Quick Reference Card** - Developer cheat sheet
@@ -217,9 +217,9 @@ The enhanced lint validates **Q10a-Q10c** (Capsule Foundation):
 
 **Integration**: Developers can select appropriate tier (T1-T11) only with correct memory ordering.
 
-### COCA (100% Lockfree Mandate)
+### Chaos (100% Lockfree Mandate)
 
-Memory ordering is critical for COCA compliance:
+Memory ordering is critical for Chaos compliance:
 
 - ✅ 100% lockfree design (no mutex/RwLock)
 - ✅ Correct memory ordering for synchronization
@@ -274,7 +274,7 @@ impl ConfigCapsule {
 CRITICAL: Relaxed ordering provides NO synchronization:
   ❌ Loads may see stale values (no happens-before edge)
   ❌ Stores may be reordered arbitrarily by CPU/compiler
-  ❌ Breaks COCA SeqCst/SWeMR lockfree guarantee
+  ❌ Breaks Chaos SeqCst/SWeMR lockfree guarantee
   ❌ Causes subtle data races and 3-10× latency spikes
 
 PERFORMANCE IMPACT:
@@ -349,7 +349,7 @@ fn increment_requests(&self) {
 | **Clippy** | 0 warnings | 0 warnings | ✅ Pass |
 | **Test Coverage** | 100% | 11/11 (100%) | ✅ Pass |
 | **Documentation** | Complete | ~1,835 lines | ✅ Pass |
-| **Framework Refs** | 4 (UCE34/COCA/ASSUM/B32) | All 4 | ✅ Pass |
+| **Framework Refs** | 4 (UCE34/Chaos/ASSUM/B32) | All 4 | ✅ Pass |
 
 ### Performance Impact
 
@@ -422,7 +422,7 @@ All enhanced diagnostics will appear automatically.
 - **Quick Reference**: `MEMORY_ORDERING_QUICK_FIX.txt`
 
 ### Framework Documentation
-- **COCA**: `/home/samuel/Docs/The Computational Capsule.md`
+- **Chaos**: `/home/samuel/Docs/The Computational Capsule.md`
 - **Atomic Patterns**: `/home/samuel/Docs/The Atomic Capsule.md`
 - **UCE34**: `/home/samuel/CLAUDE.md` (Section: Mandatory Capsule Architecture)
 - **ASSUM**: `/home/samuel/CLAUDE.md` (Section: ASSUM Framework)
@@ -439,7 +439,7 @@ All enhanced diagnostics will appear automatically.
 **Enhancement**: P2.1 CAPSULE_MEMORY_ORDERING - Comprehensive Error Messages
 **Status**: ✅ COMPLETE & VALIDATED
 **Date**: 2025-11-23
-**Framework Compliance**: ✅ UCE34 (Q10 context) + COCA (100% lockfree) + ASSUM (safety) + B32 (performance)
+**Framework Compliance**: ✅ UCE34 (Q10 context) + Chaos (100% lockfree) + ASSUM (safety) + B32 (performance)
 
 ### Verification Summary
 

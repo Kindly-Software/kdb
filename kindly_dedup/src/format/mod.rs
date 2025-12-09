@@ -49,6 +49,8 @@
 //! - **Atomic**: <5ns progress increment/read
 //! - **Cache-Aligned**: ProgressTrackerCapsule fits in single 64-byte cache line
 
+#![allow(missing_docs)]
+
 pub mod buffer_pool;
 pub mod error;
 pub mod loader;
@@ -79,6 +81,9 @@ pub mod streaming_buffer;
 // T6 Mixed (T4+T5) batch streaming loading (2-4× speedup, solves 38% bottleneck)
 pub mod batch_streaming_loader;
 
+// T5 Streaming: O(1) memory file iterator for JSONL/JSON corpus files
+pub mod streaming_file_iterator;
+
 // T4 Batch parallel loading (feature-gated for rayon dependency)
 // DISABLED: Reverted JSON optimization, parallel_loader removed
 // #[cfg(feature = "parallel-dedup")]
@@ -99,6 +104,7 @@ pub use progress::ProgressTrackerCapsule;
 pub use registry::FormatRegistryCapsule;
 pub use traits::{Document, FormatReaderCapsule};
 pub use streaming_buffer::{StreamingBufferCapsule, StreamingBufferError, BufferStats, DEFAULT_CAPACITY};
+pub use streaming_file_iterator::StreamingFileIterator;
 pub use utf8_validator::{Utf8ValidatorCapsule, Utf8Error, ValidatorStats};
 
 #[cfg(feature = "format-json")]

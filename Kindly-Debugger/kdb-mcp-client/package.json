@@ -1,0 +1,39 @@
+{
+  "name": "@kindly-software-inc/kdb",
+  "version": "1.0.1",
+  "description": "MCP client for KDB - The AI Time-Travel Debugger",
+  "main": "index.js",
+  "type": "module",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "debugger",
+    "time-travel",
+    "ai",
+    "claude",
+    "cursor"
+  ],
+  "author": "Kindly Software <support@kindly.software>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kindly-software/kdb"
+  },
+  "homepage": "https://kindly.software",
+  "bugs": {
+    "url": "https://github.com/kindly-software/kdb/issues"
+  },
+  "mcpName": "kindly-software-inc/kdb",
+  "mcp": {
+    "name": "kdb",
+    "description": "AI-powered time-travel debugger with bidirectional execution replay",
+    "transport": {
+      "type": "sse",
+      "url": "https://mcp.kindly.software/sse"
+    },
+    "authentication": {
+      "type": "api-key",
+      "header": "X-License-Key"
+    }
+  }
+}

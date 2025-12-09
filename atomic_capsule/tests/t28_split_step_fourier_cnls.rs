@@ -1338,6 +1338,6 @@ fn test_t28_comprehensive_coverage_summary() {
     println!("- B32: Fair benchmarking (see benches/phase4_2_cnls_bench.rs)");
     println!("- T28: Comprehensive testing (this file)");
     println!("- I20: Integration validation (Q20 test)");
-    println!("- COCA: 100% lockfree (no mutex/RwLock)");
+    println!("- Chaos: 100% lockfree (no mutex/RwLock)");
     println!("\nStatus: READY for Phase 4.2 Week 4 hypothesis testing");
 }

@@ -79,7 +79,6 @@
 //! - No hash chaining needed (batch processing is stateless, deterministic)
 
 use atomic_capsule::probabilistic::MinHashSignatureCapsule;
-use atomic_capsule_derive::ComputationalCapsule;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 // Parallel processing via atomic_capsule::parallel (100% lockfree, 1.5-2× speedup)

@@ -2,6 +2,13 @@
 //!
 //! **UCE34 Tier**: T1 Atomic (interior mutability via AtomicU32, DualAtomicU64)
 //!
+//! # Clippy Suppressions
+//! - `unsafe_code`: Mmap operations require unsafe for raw pointer manipulation (ASSUM verified)
+//! - `missing_docs`: Internal error variants and type aliases have self-documenting names
+
+#![allow(unsafe_code)]
+#![allow(missing_docs)]
+//!
 //! ## Performance (B32 Target)
 //! - Insert (fast path): <100ns (single CAS)
 //! - Insert (retry path): <500ns (max 10 retries)
@@ -125,6 +132,7 @@ pub type LshResult<T> = Result<T, LshError>;
 /// - `#ASSUME_256B_ALIGNMENT`: 256 bytes prevents false sharing (4 cache lines)
 /// - `#VERIFY_256B_ALIGNMENT`: const assertions below
 #[repr(C, align(256))]
+#[allow(missing_docs)]
 struct LshHeader {
     magic: u64,
     num_buckets: u64,
@@ -255,6 +263,8 @@ impl LockfreeMmapLshBucketCapsule {
             .open(path.as_ref())?;
         file.set_len(total_size as u64)?;
 
+        // SAFETY: Mmap is exclusive to this function, no aliasing possible
+        #[allow(unsafe_code)]
         let mut mmap = unsafe { MmapOptions::new().len(total_size).map_mut(&file)? };
 
         // Initialize header

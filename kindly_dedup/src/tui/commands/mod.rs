@@ -9,7 +9,7 @@
 //! - /help: Interactive help system
 //!
 //! **design**: Container modules coordinating DedupPipeline + components
-//! **Framework Compliance**: UCE34 (Q1-Q34), COCA (100% lockfree primitives)
+//! **Framework Compliance**: UCE34 (Q1-Q34), Chaos (100% lockfree primitives)
 
 pub mod benchmark;
 pub mod dedup;

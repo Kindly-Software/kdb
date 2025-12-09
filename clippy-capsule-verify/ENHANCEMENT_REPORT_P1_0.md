@@ -12,7 +12,7 @@ Enhanced P1.0 `MISSING_CAPSULE_VERIFICATION` error messages to provide comprehen
 2. **ASCII Diagrams** - Visual comparison of verified vs unverified capsules
 3. **Why Verification Matters** - Real-world impact analysis (false sharing, alignment bugs, size mismatches)
 4. **Fix Suggestions** - Two approaches with code examples
-5. **UCE34 Q33 Reference** - Links to canonical COCA framework documentation
+5. **UCE34 Q33 Reference** - Links to canonical Chaos framework documentation
 
 ## Requirements Met
 
@@ -202,7 +202,7 @@ warning: capsule struct `UnverifiedCapsule` is missing compile-time verification
    = note:   3. Verify struct layout is cache-aligned (64B/128B/256B preferred)
    = note:
    = note: References:
-   = note:   ├─ /home/samuel/Docs/The Computational Capsule.md (COCA philosophy)
+   = note:   ├─ /home/samuel/Docs/The Computational Capsule.md (Chaos philosophy)
    = note:   ├─ /home/samuel/CLAUDE.md § UCE34 framework (Q1-Q34 comprehensive)
    = note:   ├─ /home/samuel/Primitives/Docs/KEY_INNOVATIONS.md (verification patterns)
    = note:   └─ /home/samuel/Primitives/atomic_capsule/CLAUDE.md (110+ examples)
@@ -259,7 +259,7 @@ warning: capsule struct `UnverifiedCapsule` is missing compile-time verification
 - ✓ Automatic (derive macro recommended)
 - ✓ Canonical documentation links
 
-**COCA (Computational Capsule)**
+**Chaos (Computational Capsule)**
 - ✓ Promotes lockfree design
 - ✓ Emphasizes cache alignment
 - ✓ Highlights type safety benefits

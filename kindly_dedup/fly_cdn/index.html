@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kindly Dedup - Binary Distribution</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #4A148C 0%, #7B1FA2 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .badges {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .badge-icon {
+            font-size: 1.2rem;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .stat {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #FFD700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .download-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .download-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #4A148C;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin: 0.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+        }
+
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+
+        .features {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .features h3 {
+            margin-bottom: 1rem;
+            color: #FFD700;
+        }
+
+        .features ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .features li {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .features li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #FFD700;
+            font-weight: bold;
+        }
+
+        .footer {
+            margin-top: 2rem;
+            text-align: center;
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+
+        a {
+            color: #FFD700;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Kindly Dedup</h1>
+        <p class="tagline">LLM Dataset Deduplication - Built with Kindness 💜</p>
+
+        <div class="badges">
+            <div class="badge">
+                <span class="badge-icon">🦀</span>
+                <span>100% Rust</span>
+            </div>
+            <div class="badge">
+                <span class="badge-icon">🎯</span>
+                <span>100% Deterministic</span>
+            </div>
+            <div class="badge">
+                <span class="badge-icon">🔒</span>
+                <span>100% Lockfree</span>
+            </div>
+            <div class="badge">
+                <span class="badge-icon">✅</span>
+                <span>SOX/SOC2/GDPR/HIPAA</span>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value">60K</div>
+                <div class="stat-label">docs/sec</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">38×</div>
+                <div class="stat-label">vs Python</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">85%+</div>
+                <div class="stat-label">F1 Score</div>
+            </div>
+        </div>
+
+        <div class="download-section">
+            <h2>Download v2.0.0</h2>
+            <p style="margin: 1rem 0;">Production-ready binary with cryptographic audit trails and enterprise compliance</p>
+
+            <a href="https://github.com/kindly-ai/kindly_dedup/releases/download/v2.0.0/kindly_dedup-linux-x86_64" class="download-btn">
+                📦 Linux x86_64
+            </a>
+
+            <div class="code-block">
+# Quick Install
+curl -O https://dedup.kindly.software/latest/kindly_dedup-linux-x86_64
+chmod +x kindly_dedup-linux-x86_64
+./kindly_dedup-linux-x86_64 --version
+
+# Verify signature (recommended)
+curl -O https://dedup.kindly.software/latest/kindly_dedup-linux-x86_64.asc
+gpg --verify kindly_dedup-linux-x86_64.asc kindly_dedup-linux-x86_64
+            </div>
+        </div>
+
+        <div class="features">
+            <h3>✨ What Makes It Different</h3>
+            <ul>
+                <li><strong>Deterministic</strong> - Bit-for-bit reproducible results across platforms</li>
+                <li><strong>Maintenance-free</strong> - 100% lockfree architecture, zero race conditions</li>
+                <li><strong>Enterprise-ready</strong> - Hash-chained audit trails for compliance</li>
+                <li><strong>Reliable</strong> - Zero panics, comprehensive error handling</li>
+                <li><strong>Honest</strong> - Performance claims validated with rigorous benchmarking</li>
+                <li><strong>Pure Rust</strong> - Memory-safe, no garbage collection pauses</li>
+            </ul>
+        </div>
+
+        <div style="background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 1.5rem; margin: 2rem 0;">
+            <h3 style="margin-bottom: 1rem; color: #FFD700;">🚀 Performance Highlights</h3>
+            <ul style="list-style: none; padding: 0;">
+                <li style="margin: 0.5rem 0;">• Process 60,000 documents per second (single-threaded)</li>
+                <li style="margin: 0.5rem 0;">• 38× faster than Python datasketch baseline</li>
+                <li style="margin: 0.5rem 0;">• Sub-17μs latency per document</li>
+                <li style="margin: 0.5rem 0;">• 85%+ duplicate detection accuracy (F1 score)</li>
+                <li style="margin: 0.5rem 0;">• Deterministic results guaranteed across runs</li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            <p>Built with advanced lockfree algorithms • Technology made with kindness</p>
+            <p><a href="https://kindly.software">kindly.software</a> • Byzantine Purple & Gold 💜✨</p>
+        </div>
+    </div>
+</body>
+</html>

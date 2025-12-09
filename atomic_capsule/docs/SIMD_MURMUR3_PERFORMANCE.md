@@ -290,4 +290,4 @@ for batch in 0..16 {
 
 ---
 
-**Framework Compliance**: UCE34 ✓ | ASSUM ✓ | B32 ✓ | T28 ✓ | I20 ✓ | COCA ✓ (100% lockfree, zero unsafe)
+**Framework Compliance**: UCE34 ✓ | ASSUM ✓ | B32 ✓ | T28 ✓ | I20 ✓ | Chaos ✓ (100% lockfree, zero unsafe)

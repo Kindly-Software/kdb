@@ -32,11 +32,6 @@
 //! Enable with `--features debug-logging` to include logging support.
 //! Without the feature, all log operations compile to nothing (zero overhead).
 
-use std::sync::Arc;
-use std::fs::File;
-use std::io::Write;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
 
 /// Lockfree debug logger using AsyncLogCapsule (or stub when not available)
 ///

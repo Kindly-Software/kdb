@@ -121,7 +121,7 @@ DerivedKey: 64 bytes (32-byte aligned)
 - ✅ Hash-chain integrity for rotation history
 - ✅ Compliance: SOX (audit trail), SOC2 (secrets isolation), GDPR (encrypted storage)
 
-### COCA (100% Computational Capsule)
+### Chaos (100% Computational Capsule)
 - ✅ SecretsManagerCapsule (T1 Atomic + T9 Persistent)
 - ✅ DerivedKey (T0 Auditable, hash-chain ready)
 - ✅ KeyId enum (type-safe key selection)
@@ -429,7 +429,7 @@ Cargo.toml
 - ✅ Q33: Verification (#[repr(C, align(128))] enforced)
 - ✅ Q34: Auditability (log rotations, hash-chain ready)
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 - ✅ 100% lockfree (no mutex/RwLock)
 - ✅ 128-byte cache-aligned
 - ✅ T1 Atomic + T9 Persistent tiers
@@ -536,7 +536,7 @@ Total:                  510ns (SLA: <1μs) ✅
 ## References
 
 - **UCE34 Framework**: UCE34_FRAMEWORK.md
-- **COCA Architecture**: Computational Capsule.md
+- **Chaos Architecture**: Computational Capsule.md
 - **B32 Benchmarking**: shared/shared-components.xml (performance claims)
 - **T28 Testing**: t28.xml (4-tier testing strategy)
 - **Argon2id**: https://github.com/RustCrypto/argon2

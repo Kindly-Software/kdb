@@ -8,7 +8,7 @@
 **Version**: 1.0.0
 **Date**: 2025-10-24
 **Author**: atomic_capsule Research Team
-**Framework Compliance**: UCE34 (Q1-Q34), COCA (Computational Capsule Architecture)
+**Framework Compliance**: UCE34 (Q1-Q34), Chaos (Computational Capsule Architecture)
 **Status**: Production-Ready Design
 
 ---
@@ -42,7 +42,7 @@ This document contains confidential and proprietary information regarding breakt
 3. [UCE34 Q1-Q9: Problem Definition & Context](#uce34-q1-q9-problem-definition--context)
 4. [UCE34 Q10-Q12: Circuit Breaker as T1 Capsule](#uce34-q10-q12-circuit-breaker-as-t1-capsule)
 5. [UCE34 Q13-Q15: Critical Trade Secrets](#uce34-q13-q15-critical-trade-secrets)
-6. [COCA Patterns for Anti-Reverse-Engineering](#coca-patterns-for-anti-reverse-engineering)
+6. [Chaos Patterns for Anti-Reverse-Engineering](#coca-patterns-for-anti-reverse-engineering)
 7. [The Circular Dependency Trap](#the-circular-dependency-trap)
 
 ### Part 2: Implementation & Attack Scenarios (WEAPONIZED_CIRCUIT_BREAKER_PART2.md)
@@ -148,7 +148,7 @@ To understand product, must analyze it
 - Q13-Q27: Implementation, trade secrets, weaponization
 - Q28-Q34: Performance validation (B32), legal compliance, auditability
 
-**COCA Patterns**:
+**Chaos Patterns**:
 - DualAtomicU64 for state + generation counter
 - 128B cache alignment for isolation
 - Generation counters for TOCTOU prevention
@@ -1145,7 +1145,7 @@ fn check_library_injection(&self) -> Result<(), TamperError> {
 
 ---
 
-## COCA Patterns for Anti-Reverse-Engineering
+## Chaos Patterns for Anti-Reverse-Engineering
 
 ### DualAtomicU64 for Meta-State
 
@@ -1518,7 +1518,7 @@ struct DualAtomicU64 {
 
 **HOW TO INNOVATE they DON'T get**:
 - UCE34 framework (Q1-Q34 systematic discovery)
-- COCA principles (computational capsule architecture)
+- Chaos principles (computational capsule architecture)
 - B32 benchmarking (honest measurement methodology)
 - ASSUM safety framework (assumption validation)
 - Tier selection logic (Q10: which tier transforms problem?)
@@ -1572,7 +1572,7 @@ struct DualAtomicU64 {
 - UCE34 Q1-Q9: Problem definition, threat model, constraints
 - UCE34 Q10-Q12: T1 tier design, 9.8ns performance, Rust advantages
 - UCE34 Q13-Q15: Critical trade secrets, structural unremovability, multi-layer detection
-- COCA patterns: DualAtomicU64, cache alignment, generation counters, atomic-only
+- Chaos patterns: DualAtomicU64, cache alignment, generation counters, atomic-only
 - Circular dependency trap: Why nation-state actors are defeated
 
 **Key insights**:

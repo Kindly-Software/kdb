@@ -14,14 +14,18 @@ The Model Context Protocol is a standard for connecting AI assistants to externa
 
 ### Which platforms are supported?
 
-- **Target debugging**: Linux x86_64 (macOS and Windows planned)
-- **Clients**: Any MCP-compatible client (Claude Code, etc.)
+**Platform-Agnostic via MCP**:
+- **Your computer**: macOS, Windows, or Linux - any platform that runs an MCP client
+- **AI assistants**: Claude Code, Cursor, or any MCP-compatible client
+- **Debugging server**: Linux x86_64 (runs server-side, you never interact directly)
+
+The key insight: you debug through your AI assistant using natural language. The actual ptrace operations happen on a Linux server. Your operating system doesn't matter.
 
 ## Setup
 
 ### How do I get an API key?
 
-Visit [kindly.services](https://kindly.services), create an account, and generate a key from the dashboard.
+Visit [kindly.software](https://kindly.software), create an account, and generate a key from the dashboard.
 
 ### Where do I put the configuration file?
 
@@ -44,7 +48,7 @@ kindly-debugger records execution snapshots as your program runs. You can step b
 
 ### What's the limit on execution history?
 
-History depth depends on your plan tier. Check your plan details at [kindly.services](https://kindly.services).
+History depth depends on your plan tier. Check your plan details at [kindly.software](https://kindly.software).
 
 ### Can I debug remote processes?
 
@@ -66,21 +70,34 @@ Yes. Audit trails are cryptographically signed and suitable for compliance requi
 
 ### How do I revoke a compromised API key?
 
-Go to **Dashboard** > **API Keys** in [kindly.services](https://kindly.services) and click **Revoke** on the compromised key.
+Go to **Dashboard** > **API Keys** in [kindly.software](https://kindly.software) and click **Revoke** on the compromised key.
 
 ## Pricing & Limits
 
+### What are the pricing tiers?
+
+| Tier | Price | Sessions/Month | Features |
+|------|-------|----------------|----------|
+| **Hobby** | Free | 5* | Time-travel, breakpoints, stack traces, audit trails |
+| **Pro** | Coming Soon | Extended | All Hobby + memory write, symbol resolution |
+| **Enterprise** | Contact | Unlimited | All features + priority support, custom SLA |
+
+*During the 7-day launch promo, Hobby tier gets **unlimited sessions**.
+
 ### Is there a free tier?
 
-Yes. The free tier includes limited API requests per month for evaluation purposes.
+Yes! The Hobby tier is free with 5 sessions per month. During our launch promotional period (7 days from signup), you get unlimited sessions to try everything out.
 
 ### What happens when I hit my quota?
 
-API requests will return a quota exceeded error. You can upgrade your plan or wait for the monthly reset.
+API requests will return a quota exceeded error. You can:
+- Upgrade to Pro or Enterprise
+- Wait for the monthly reset
+- Contact sales@kindly.software for custom arrangements
 
 ### How do I check my usage?
 
-Use the `debugger/quota_status` tool or check the dashboard at [kindly.services](https://kindly.services).
+Use the `debugger/quota_status` tool or check the dashboard at [kindly.software](https://kindly.software).
 
 ## Troubleshooting
 

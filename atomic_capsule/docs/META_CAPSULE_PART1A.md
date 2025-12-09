@@ -4,7 +4,7 @@
 **Status**: CONFIDENTIAL - INTERNAL USE ONLY
 **Version**: 1.0
 **Date**: 2025-10-24
-**Framework**: UCE34 (Q1-Q9) + COCA + ASSUM + B32
+**Framework**: UCE34 (Q1-Q9) + Chaos + ASSUM + B32
 **Series**: Meta-Capsule Part 1A of 4 (Foundation)
 
 ---

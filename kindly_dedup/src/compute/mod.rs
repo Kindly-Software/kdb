@@ -16,7 +16,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q1-Q34 complete (T2+T4 tier selection, Q33 verification, Q34 optional audit)
-//! - **COCA**: 100% lockfree (AtomicU64 coordination, no mutex/RwLock)
+//! - **Chaos**: 100% lockfree (AtomicU64 coordination, no mutex/RwLock)
 //! - **ASSUM**: 99.99% safe (zero unsafe in hot paths, all assumptions documented)
 //! - **B32**: Fair baselines (scalar MinHash, 7.1× SIMD proven, 95% CI)
 //! - **T28**: Comprehensive testing (28 tests: unit/property/integration/production)

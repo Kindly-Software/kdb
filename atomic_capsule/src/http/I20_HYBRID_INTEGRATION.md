@@ -608,7 +608,7 @@ fn rollback_to_pure_simd() {
 - **T28**: Unit tests + property tests (10,000+ cases)
 - **B32**: Fair baselines, 95% CI, honest claims (28-70× speedup)
 - **I20**: All 20 questions answered (I20-Capsule simplified)
-- **COCA**: 100% lockfree (pure functions, no atomics)
+- **Chaos**: 100% lockfree (pure functions, no atomics)
 
 ### Risk Assessment
 

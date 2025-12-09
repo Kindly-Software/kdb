@@ -1,0 +1,297 @@
+warning: user-defined alias `bench` is ignored, because it is shadowed by a built-in command
+   Compiling kindly_inference v0.1.0 (/home/samuel/Primitives/kindly_inference)
+warning: unused import: `i32x8`
+   --> src/primitives/inference.rs:383:32
+    |
+383 |         use std::simd::{f32x8, i32x8, num::SimdInt, StdFloat};
+    |                                ^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `num::SimdInt`
+   --> src/primitives/inference.rs:383:39
+    |
+383 |         use std::simd::{f32x8, i32x8, num::SimdInt, StdFloat};
+    |                                       ^^^^^^^^^^^^
+
+warning: method `forward_scalar` is never used
+   --> src/primitives/inference.rs:107:8
+    |
+ 80 | impl SIMDMatMulCapsule {
+    | ---------------------- method in this implementation
+...
+107 |     fn forward_scalar(&self, input: &[f32]) -> Vec<f32> {
+    |        ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `num_heads` is never read
+   --> src/primitives/inference.rs:176:5
+    |
+175 | pub struct FlashAttentionCapsule {
+    |            --------------------- field in this struct
+176 |     num_heads: usize,
+    |     ^^^^^^^^^
+    |
+    = note: `FlashAttentionCapsule` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: method `forward_standard` is never used
+   --> src/primitives/inference.rs:211:8
+    |
+181 | impl FlashAttentionCapsule {
+    | -------------------------- method in this implementation
+...
+211 |     fn forward_standard(&self, query: &[f32], key: &[f32], value: &[f32], seq_len: usize) -> Vec<f32> {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: fields `zero_point` and `bits` are never read
+   --> src/primitives/inference.rs:332:5
+    |
+330 | pub struct QuantizationCapsule {
+    |            ------------------- fields in this struct
+331 |     scale: f32,
+332 |     zero_point: i8,
+    |     ^^^^^^^^^^
+333 |     bits: u8,
+    |     ^^^^
+    |
+    = note: `QuantizationCapsule` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: field `virtual_nodes_per_node` is never read
+   --> src/kv_cache/distributed_l3.rs:917:5
+    |
+915 | pub struct ConsistentHashRing {
+    |            ------------------ field in this struct
+916 |     /// Virtual nodes per physical node (128 recommended)
+917 |     virtual_nodes_per_node: usize,
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `ConsistentHashRing` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: `kindly_inference` (lib) generated 7 warnings (run `cargo fix --lib -p kindly_inference` to apply 1 suggestion)
+    Finished `bench` profile [optimized] target(s) in 8.31s
+     Running benches/inference_primitives_bench.rs (target/release/deps/inference_primitives_bench-afe2fd73d4b7c02b)
+Gnuplot not found, using plotters backend
+Benchmarking quantization/f32_baseline/4096
+Benchmarking quantization/f32_baseline/4096: Warming up for 3.0000 s
+Benchmarking quantization/f32_baseline/4096: Collecting 1000 samples in estimated 5.0296 s (17M iterations)
+Benchmarking quantization/f32_baseline/4096: Analyzing
+quantization/f32_baseline/4096
+                        time:   [380.36 ns 382.79 ns 385.24 ns]
+                        thrpt:  [10.632 Gelem/s 10.700 Gelem/s 10.769 Gelem/s]
+                 change:
+                        time:   [-73.847% -73.088% -72.341%] (p = 0.00 < 0.05)
+                        thrpt:  [+261.55% +271.58% +282.36%]
+                        Performance has improved.
+Found 9 outliers among 1000 measurements (0.90%)
+  8 (0.80%) high mild
+  1 (0.10%) high severe
+Benchmarking quantization/int8_capsule_roundtrip/4096
+Benchmarking quantization/int8_capsule_roundtrip/4096: Warming up for 3.0000 s
+Benchmarking quantization/int8_capsule_roundtrip/4096: Collecting 1000 samples in estimated 7.7694 s (1.0M iterations)
+Benchmarking quantization/int8_capsule_roundtrip/4096: Analyzing
+quantization/int8_capsule_roundtrip/4096
+                        time:   [7.5919 µs 7.6597 µs 7.7301 µs]
+                        thrpt:  [529.88 Melem/s 534.75 Melem/s 539.52 Melem/s]
+                 change:
+                        time:   [-73.083% -71.923% -70.704%] (p = 0.00 < 0.05)
+                        thrpt:  [+241.34% +256.17% +271.51%]
+                        Performance has improved.
+Found 32 outliers among 1000 measurements (3.20%)
+  23 (2.30%) high mild
+  9 (0.90%) high severe
+Benchmarking quantization/int8_capsule_quantize/4096
+Benchmarking quantization/int8_capsule_quantize/4096: Warming up for 3.0000 s
+Benchmarking quantization/int8_capsule_quantize/4096: Collecting 1000 samples in estimated 7.0571 s (1.0M iterations)
+Benchmarking quantization/int8_capsule_quantize/4096: Analyzing
+quantization/int8_capsule_quantize/4096
+                        time:   [7.0472 µs 7.1258 µs 7.2093 µs]
+                        thrpt:  [568.15 Melem/s 574.82 Melem/s 581.22 Melem/s]
+                 change:
+                        time:   [-61.892% -60.848% -59.802%] (p = 0.00 < 0.05)
+                        thrpt:  [+148.77% +155.42% +162.41%]
+                        Performance has improved.
+Found 101 outliers among 1000 measurements (10.10%)
+  18 (1.80%) high mild
+  83 (8.30%) high severe
+Benchmarking quantization/int8_simd_quantize/4096
+Benchmarking quantization/int8_simd_quantize/4096: Warming up for 3.0000 s
+
+Warning: Unable to complete 1000 samples in 5.0s. You may wish to increase target time to 5.2s, enable flat sampling, or reduce sample count to 690.
+Benchmarking quantization/int8_simd_quantize/4096: Collecting 1000 samples in estimated 5.2200 s (500k iterations)
+Benchmarking quantization/int8_simd_quantize/4096: Analyzing
+quantization/int8_simd_quantize/4096
+                        time:   [10.220 µs 10.323 µs 10.431 µs]
+                        thrpt:  [392.69 Melem/s 396.80 Melem/s 400.78 Melem/s]
+Found 48 outliers among 1000 measurements (4.80%)
+  35 (3.50%) high mild
+  13 (1.30%) high severe
+Benchmarking quantization/int8_simd_roundtrip/4096
+Benchmarking quantization/int8_simd_roundtrip/4096: Warming up for 3.0000 s
+
+Warning: Unable to complete 1000 samples in 5.0s. You may wish to increase target time to 5.9s, enable flat sampling, or reduce sample count to 650.
+Benchmarking quantization/int8_simd_roundtrip/4096: Collecting 1000 samples in estimated 5.8812 s (500k iterations)
+Benchmarking quantization/int8_simd_roundtrip/4096: Analyzing
+quantization/int8_simd_roundtrip/4096
+                        time:   [11.320 µs 11.447 µs 11.582 µs]
+                        thrpt:  [353.66 Melem/s 357.81 Melem/s 361.84 Melem/s]
+Found 64 outliers among 1000 measurements (6.40%)
+  33 (3.30%) high mild
+  31 (3.10%) high severe
+Benchmarking quantization/int8_simd_dequantize/4096
+Benchmarking quantization/int8_simd_dequantize/4096: Warming up for 3.0000 s
+Benchmarking quantization/int8_simd_dequantize/4096: Collecting 1000 samples in estimated 5.0349 s (5.5M iterations)
+Benchmarking quantization/int8_simd_dequantize/4096: Analyzing
+quantization/int8_simd_dequantize/4096
+                        time:   [862.89 ns 868.53 ns 874.28 ns]
+                        thrpt:  [4.6850 Gelem/s 4.7160 Gelem/s 4.7468 Gelem/s]
+Found 7 outliers among 1000 measurements (0.70%)
+  7 (0.70%) high mild
+Benchmarking quantization/f32_baseline/8192
+Benchmarking quantization/f32_baseline/8192: Warming up for 3.0000 s
+Benchmarking quantization/f32_baseline/8192: Collecting 1000 samples in estimated 5.3963 s (5.0M iterations)
+Benchmarking quantization/f32_baseline/8192: Analyzing
+quantization/f32_baseline/8192
+                        time:   [1.0430 µs 1.0516 µs 1.0605 µs]
+                        thrpt:  [7.7249 Gelem/s 7.7897 Gelem/s 7.8546 Gelem/s]
+                 change:
+                        time:   [-43.786% -42.753% -41.725%] (p = 0.00 < 0.05)
+                        thrpt:  [+71.601% +74.680% +77.891%]
+                        Performance has improved.
+Found 34 outliers among 1000 measurements (3.40%)
+  29 (2.90%) high mild
+  5 (0.50%) high severe
+Benchmarking quantization/int8_capsule_roundtrip/8192
+Benchmarking quantization/int8_capsule_roundtrip/8192: Warming up for 3.0000 s
+
+Warning: Unable to complete 1000 samples in 5.0s. You may wish to increase target time to 7.8s, enable flat sampling, or reduce sample count to 560.
+Benchmarking quantization/int8_capsule_roundtrip/8192: Collecting 1000 samples in estimated 7.8327 s (500k iterations)
+Benchmarking quantization/int8_capsule_roundtrip/8192: Analyzing
+quantization/int8_capsule_roundtrip/8192
+                        time:   [15.445 µs 15.570 µs 15.700 µs]
+                        thrpt:  [521.79 Melem/s 526.15 Melem/s 530.39 Melem/s]
+                 change:
+                        time:   [-45.869% -44.793% -43.657%] (p = 0.00 < 0.05)
+                        thrpt:  [+77.484% +81.136% +84.736%]
+                        Performance has improved.
+Found 51 outliers among 1000 measurements (5.10%)
+  35 (3.50%) high mild
+  16 (1.60%) high severe
+Benchmarking quantization/int8_capsule_quantize/8192
+Benchmarking quantization/int8_capsule_quantize/8192: Warming up for 3.0000 s
+
+Warning: Unable to complete 1000 samples in 5.0s. You may wish to increase target time to 7.3s, enable flat sampling, or reduce sample count to 580.
+Benchmarking quantization/int8_capsule_quantize/8192: Collecting 1000 samples in estimated 7.2503 s (500k iterations)
+Benchmarking quantization/int8_capsule_quantize/8192: Analyzing
+quantization/int8_capsule_quantize/8192
+                        time:   [14.542 µs 14.704 µs 14.878 µs]
+                        thrpt:  [550.59 Melem/s 557.14 Melem/s 563.34 Melem/s]
+                 change:
+                        time:   [-67.188% -66.817% -66.452%] (p = 0.00 < 0.05)
+                        thrpt:  [+198.08% +201.36% +204.77%]
+                        Performance has improved.
+Found 28 outliers among 1000 measurements (2.80%)
+  11 (1.10%) high mild
+  17 (1.70%) high severe
+Benchmarking quantization/int8_simd_quantize/8192
+Benchmarking quantization/int8_simd_quantize/8192: Warming up for 3.0000 s
+Benchmarking quantization/int8_simd_quantize/8192: Collecting 1000 samples in estimated 5.0044 s (242k iterations)
+Benchmarking quantization/int8_simd_quantize/8192: Analyzing
+quantization/int8_simd_quantize/8192
+                        time:   [20.617 µs 20.751 µs 20.888 µs]
+                        thrpt:  [392.20 Melem/s 394.78 Melem/s 397.34 Melem/s]
+Found 15 outliers among 1000 measurements (1.50%)
+  13 (1.30%) high mild
+  2 (0.20%) high severe
+Benchmarking quantization/int8_simd_roundtrip/8192
+Benchmarking quantization/int8_simd_roundtrip/8192: Warming up for 3.0000 s
+Benchmarking quantization/int8_simd_roundtrip/8192: Collecting 1000 samples in estimated 5.0162 s (218k iterations)
+Benchmarking quantization/int8_simd_roundtrip/8192: Analyzing
+quantization/int8_simd_roundtrip/8192
+                        time:   [23.223 µs 23.384 µs 23.548 µs]
+                        thrpt:  [347.89 Melem/s 350.33 Melem/s 352.75 Melem/s]
+Found 14 outliers among 1000 measurements (1.40%)
+  13 (1.30%) high mild
+  1 (0.10%) high severe
+Benchmarking quantization/int8_simd_dequantize/8192
+Benchmarking quantization/int8_simd_dequantize/8192: Warming up for 3.0000 s
+Benchmarking quantization/int8_simd_dequantize/8192: Collecting 1000 samples in estimated 5.0214 s (2.5M iterations)
+Benchmarking quantization/int8_simd_dequantize/8192: Analyzing
+quantization/int8_simd_dequantize/8192
+                        time:   [1.9130 µs 1.9350 µs 1.9572 µs]
+                        thrpt:  [4.1856 Gelem/s 4.2336 Gelem/s 4.2823 Gelem/s]
+Found 43 outliers among 1000 measurements (4.30%)
+  41 (4.10%) high mild
+  2 (0.20%) high severe
+Benchmarking quantization/f32_baseline/16384
+Benchmarking quantization/f32_baseline/16384: Warming up for 3.0000 s
+Benchmarking quantization/f32_baseline/16384: Collecting 1000 samples in estimated 5.4571 s (2.5M iterations)
+Benchmarking quantization/f32_baseline/16384: Analyzing
+quantization/f32_baseline/16384
+                        time:   [2.0702 µs 2.0907 µs 2.1114 µs]
+                        thrpt:  [7.7599 Gelem/s 7.8365 Gelem/s 7.9141 Gelem/s]
+                 change:
+                        time:   [-41.409% -40.653% -39.912%] (p = 0.00 < 0.05)
+                        thrpt:  [+66.421% +68.501% +70.673%]
+                        Performance has improved.
+Found 15 outliers among 1000 measurements (1.50%)
+  13 (1.30%) high mild
+  2 (0.20%) high severe
+Benchmarking quantization/int8_capsule_roundtrip/16384
+Benchmarking quantization/int8_capsule_roundtrip/16384: Warming up for 3.0000 s
+Benchmarking quantization/int8_capsule_roundtrip/16384: Collecting 1000 samples in estimated 5.0220 s (155k iterations)
+Benchmarking quantization/int8_capsule_roundtrip/16384: Analyzing
+quantization/int8_capsule_roundtrip/16384
+                        time:   [31.389 µs 31.622 µs 31.864 µs]
+                        thrpt:  [514.19 Melem/s 518.12 Melem/s 521.97 Melem/s]
+                 change:
+                        time:   [-43.494% -42.311% -41.087%] (p = 0.00 < 0.05)
+                        thrpt:  [+69.743% +73.342% +76.973%]
+                        Performance has improved.
+Found 69 outliers among 1000 measurements (6.90%)
+  42 (4.20%) high mild
+  27 (2.70%) high severe
+Benchmarking quantization/int8_capsule_quantize/16384
+Benchmarking quantization/int8_capsule_quantize/16384: Warming up for 3.0000 s
+Benchmarking quantization/int8_capsule_quantize/16384: Collecting 1000 samples in estimated 5.0241 s (169k iterations)
+Benchmarking quantization/int8_capsule_quantize/16384: Analyzing
+quantization/int8_capsule_quantize/16384
+                        time:   [29.857 µs 30.179 µs 30.517 µs]
+                        thrpt:  [536.88 Melem/s 542.89 Melem/s 548.76 Melem/s]
+                 change:
+                        time:   [-53.630% -52.093% -50.475%] (p = 0.00 < 0.05)
+                        thrpt:  [+101.92% +108.74% +115.66%]
+                        Performance has improved.
+Found 44 outliers among 1000 measurements (4.40%)
+  23 (2.30%) high mild
+  21 (2.10%) high severe
+Benchmarking quantization/int8_simd_quantize/16384
+Benchmarking quantization/int8_simd_quantize/16384: Warming up for 3.0000 s
+Benchmarking quantization/int8_simd_quantize/16384: Collecting 1000 samples in estimated 5.0107 s (116k iterations)
+Benchmarking quantization/int8_simd_quantize/16384: Analyzing
+quantization/int8_simd_quantize/16384
+                        time:   [44.312 µs 44.713 µs 45.123 µs]
+                        thrpt:  [363.10 Melem/s 366.43 Melem/s 369.74 Melem/s]
+Found 56 outliers among 1000 measurements (5.60%)
+  30 (3.00%) high mild
+  26 (2.60%) high severe
+Benchmarking quantization/int8_simd_roundtrip/16384
+Benchmarking quantization/int8_simd_roundtrip/16384: Warming up for 3.0000 s
+Benchmarking quantization/int8_simd_roundtrip/16384: Collecting 1000 samples in estimated 5.0153 s (102k iterations)
+Benchmarking quantization/int8_simd_roundtrip/16384: Analyzing
+quantization/int8_simd_roundtrip/16384
+                        time:   [46.363 µs 46.632 µs 46.906 µs]
+                        thrpt:  [349.29 Melem/s 351.34 Melem/s 353.38 Melem/s]
+Found 22 outliers among 1000 measurements (2.20%)
+  15 (1.50%) high mild
+  7 (0.70%) high severe
+Benchmarking quantization/int8_simd_dequantize/16384
+Benchmarking quantization/int8_simd_dequantize/16384: Warming up for 3.0000 s
+Benchmarking quantization/int8_simd_dequantize/16384: Collecting 1000 samples in estimated 5.3091 s (1.5M iterations)
+Benchmarking quantization/int8_simd_dequantize/16384: Analyzing
+quantization/int8_simd_dequantize/16384
+                        time:   [3.2232 µs 3.2470 µs 3.2711 µs]
+                        thrpt:  [5.0088 Gelem/s 5.0459 Gelem/s 5.0832 Gelem/s]
+Found 29 outliers among 1000 measurements (2.90%)
+  29 (2.90%) high mild
+

@@ -66,7 +66,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 T5 Streaming, Q33 verification, Q34 audit trails
-//! - **COCA**: 100% computational capsule (Container Capsule pattern)
+//! - **Chaos**: 100% computational capsule (Container Capsule pattern)
 //! - **ASSUM**: 99.99% safe (all assumptions documented)
 //! - **B32**: Fair benchmarking (30-100K docs/sec validated)
 //! - **T28**: 36 comprehensive tests (unit/property/integration/production)

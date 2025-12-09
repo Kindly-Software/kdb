@@ -1,6 +1,6 @@
 //! # CoarseBucketCapsule - Hierarchical LSH Coarse Bucket (T1+T10)
 //!
-//! **COCA-compliant hierarchical bucket for fine-grained LSH bucketing**
+//! **Chaos-compliant hierarchical bucket for fine-grained LSH bucketing**
 //!
 //! ## Architecture
 //!
@@ -25,7 +25,7 @@
 //! Offset 44-63:  _padding: [u8; 20] - cache alignment
 //! ```
 //!
-//! ## COCA Compliance
+//! ## Chaos Compliance
 //!
 //! - **100% Lockfree**: No mutex/RwLock, only Arc + Atomics
 //! - **Cache-Aligned**: 64-byte alignment prevents false sharing
@@ -46,7 +46,7 @@ use std::sync::Arc; // Use DocId from pipeline (usize)
 
 /// Coarse bucket containing fine sub-buckets (T1+T10)
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 /// - `#[repr(C, align(64))]` enforces cache-line alignment
 /// - All fields are either immutable (bucket_id, docs, fine_buckets) or atomic (statistics)
 /// - No Mutex, RwLock, or other blocking synchronization
@@ -90,9 +90,9 @@ pub struct CoarseBucketCapsule {
 
     /// Padding to 64 bytes (cache-line alignment)
     /// Layout: (usize, u64)=16 + Arc=8 + Arc=8 + AtomicU64=8 + AtomicU32=4 = 44 bytes
-    /// Plus 8 bytes of compiler padding + 12 bytes explicit padding = 64 bytes total
+    /// Required padding: 64 - 44 = 20 bytes
     /// Prevents false sharing with adjacent structures
-    _padding: [u8; 4],
+    _padding: [u8; 20],
 }
 
 // Verify compile-time layout and alignment at runtime
@@ -131,7 +131,7 @@ impl CoarseBucketCapsule {
             fine_buckets: Arc::new(ConcurrentMapCapsuleV2::new()),
             total_docs: AtomicU64::new(0),
             num_sub_buckets: AtomicU32::new(0),
-            _padding: [0u8; 4],
+            _padding: [0u8; 20],
         })
     }
 
@@ -372,7 +372,7 @@ mod tests {
         assert!(bucket.num_sub_buckets() > 0);
     }
 
-    /// Test COCA alignment requirement
+    /// Test Chaos alignment requirement
     #[test]
     fn test_cache_alignment() {
         assert_eq!(std::mem::align_of::<CoarseBucketCapsule>(), 64);

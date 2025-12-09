@@ -2,7 +2,7 @@
 
 **Date**: 2025-11-23
 **Status**: ✅ COMPLETE & VALIDATED
-**Framework**: UCE34 (Tier Selection Context) + COCA (100% Lockfree Mandate) + ASSUM Safety
+**Framework**: UCE34 (Tier Selection Context) + Chaos (100% Lockfree Mandate) + ASSUM Safety
 
 ---
 
@@ -13,7 +13,7 @@ Successfully enhanced the P2.1 CAPSULE_MEMORY_ORDERING lint with comprehensive e
 - **Memory Ordering Cheat Sheet** - Quick reference for all atomic operations
 - **Performance Metrics** - Quantified improvements (5-20% typical)
 - **Operation-Specific Fixes** - Exact code examples for each operation
-- **Framework Compliance** - UCE34/COCA/ASSUM/B32 integration
+- **Framework Compliance** - UCE34/Chaos/ASSUM/B32 integration
 - **Decision Guidance** - When to use each ordering, when exceptions apply
 
 ---
@@ -80,7 +80,7 @@ Successfully enhanced the P2.1 CAPSULE_MEMORY_ORDERING lint with comprehensive e
 
 6. Framework Compliance (lines 311-318)
    - UCE34 Q10 reference
-   - COCA mandate reference
+   - Chaos mandate reference
    - ASSUM safety reference
    - B32 performance reference
    - 8 lines
@@ -185,7 +185,7 @@ count.fetch_add(1, Ordering::AcqRel)  // Atomic update with sync
 - Q10b: Amdahl's Law analysis shows 5-20% gains
 - Q10c: Tier choice assumes correct synchronization
 
-**COCA Mandate**
+**Chaos Mandate**
 - 100% lockfree (no mutex/RwLock)
 - Lockfree correctness depends on memory ordering
 - Scatter
@@ -326,7 +326,7 @@ Enhanced lint verifies:
 - **Q33 (Verification)**: Compile-time detection, <20ms overhead
 - **ASSUM (Safety)**: All assumptions verified, no runtime cost
 - **B32 (Performance)**: Realistic improvement metrics (5-20%)
-- **COCA (Lockfree)**: Correct ordering for 100% lockfree guarantee
+- **Chaos (Lockfree)**: Correct ordering for 100% lockfree guarantee
 
 ---
 
@@ -363,7 +363,7 @@ Enhanced lint verifies:
 | Documentation | Complete | Complete | ✅ Pass |
 | Test Coverage | 100% operations | 11/11 cases | ✅ Pass |
 | Clippy Warnings | 0 | 0 | ✅ Pass |
-| Framework Refs | UCE34+COCA+ASSUM+B32 | All 4 | ✅ Pass |
+| Framework Refs | UCE34+Chaos+ASSUM+B32 | All 4 | ✅ Pass |
 | Performance Context | Quantified | 5-20% | ✅ Pass |
 | Operation Coverage | All 5 | All 5 | ✅ Pass |
 
@@ -406,7 +406,7 @@ Enhanced lint verifies:
 
 - **Enhanced File**: `/home/samuel/Primitives/clippy-capsule-verify/src/memory_ordering_violation.rs`
 - **Comprehensive Guide**: `/home/samuel/Primitives/clippy-capsule-verify/P2.1_ENHANCED_ERROR_MESSAGES.md`
-- **Framework**: `/home/samuel/CLAUDE.md` (COCA Mandate, UCE34 Q10, ASSUM, B32)
+- **Framework**: `/home/samuel/CLAUDE.md` (Chaos Mandate, UCE34 Q10, ASSUM, B32)
 - **Atomic Patterns**: `/home/samuel/Docs/The Atomic Capsule.md`
 - **Test File**: `/home/samuel/Primitives/clippy-capsule-verify/tests/memory_ordering_test.rs`
 
@@ -417,6 +417,6 @@ Enhanced lint verifies:
 **Enhancement**: P2.1 CAPSULE_MEMORY_ORDERING - Error Message Enhancement
 **Status**: ✅ COMPLETE & VALIDATED
 **Date**: 2025-11-23
-**Framework Compliance**: UCE34 (Q10 context) + COCA (100% lockfree) + ASSUM (safety) + B32 (performance)
+**Framework Compliance**: UCE34 (Q10 context) + Chaos (100% lockfree) + ASSUM (safety) + B32 (performance)
 
 All deliverables complete. Ready for deployment.

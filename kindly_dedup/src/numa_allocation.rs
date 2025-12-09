@@ -69,7 +69,7 @@
 //! - **ASSUM**: 99.99% safe (advisory operations only, zero unsafe data races)
 //! - **B32**: Fair baselines (10-15% NUMA latency gain, 5% TLB improvement)
 //! - **T28**: Comprehensive testing (detection, allocation, huge pages)
-//! - **COCA**: 100% lockfree (no mutex/RwLock, pure allocation)
+//! - **Chaos**: 100% lockfree (no mutex/RwLock, pure allocation)
 
 use std::error::Error;
 use std::fmt;

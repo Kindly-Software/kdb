@@ -4,7 +4,7 @@
 
 **Performance**: 2-40× speedup vs mutex-based VecDeque
 
-**Framework Compliance**: UCE34 (Q1-Q34), COCA (100% lockfree), ASSUM (99.9% safe), B32 (fair baselines), T28 (13 tests), I20 (20/20)
+**Framework Compliance**: UCE34 (Q1-Q34), Chaos (100% lockfree), ASSUM (99.9% safe), B32 (fair baselines), T28 (13 tests), I20 (20/20)
 
 ---
 
@@ -531,7 +531,7 @@ while let Some(log_batch) = capsule.consume(1000) {
 | Framework | Status | Evidence |
 |-----------|--------|----------|
 | **UCE34 (Q1-Q34)** | ✅ COMPLETE | All 34 questions answered, tier selection documented |
-| **COCA (100% lockfree)** | ✅ VERIFIED | Zero mutex/RwLock, 100% atomic operations |
+| **Chaos (100% lockfree)** | ✅ VERIFIED | Zero mutex/RwLock, 100% atomic operations |
 | **ASSUM (99.9% safe)** | ✅ VERIFIED | 8 assumptions documented + verified |
 | **B32 (fair baselines)** | ✅ COMPLIANT | Mutex VecDeque baseline, 1000+ iterations, 95% CI |
 | **T28 (13 tests)** | ✅ PASSING | 7 unit + 3 property + 1 integration + 2 production |
@@ -591,7 +591,7 @@ while let Some(log_batch) = capsule.consume(1000) {
 2. **T5 Streaming Ring Buffer**: O(1) incremental output with zero-copy consumption
 3. **T1 Atomic Coordination**: 100% lockfree, <20ns push, <500ns flush, <10ns consume
 
-**Framework Compliance**: 100% (UCE34, COCA, ASSUM, B32, T28, I20)
+**Framework Compliance**: 100% (UCE34, Chaos, ASSUM, B32, T28, I20)
 
 **Use Cases**: kindly_dedup (10-15× total speedup), JSON parsing (20×), log aggregation (80×), analytics (5×)
 

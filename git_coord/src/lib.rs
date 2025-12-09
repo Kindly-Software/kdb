@@ -74,7 +74,7 @@
 //! - ASSUM: 99.99% safe (all assumptions documented)
 //! - T28: Comprehensive testing (unit, property, integration, production)
 //! - B32: Fair baselines, reproducible benchmarks
-//! - COCA: 100% lockfree, cache-aligned, generation counters
+//! - Chaos: 100% lockfree, cache-aligned, generation counters
 
 #![deny(missing_docs)]
 #![warn(clippy::all)]

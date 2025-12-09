@@ -36,6 +36,7 @@ const MAX_BATCHES: usize = 100;
 /// Replaces unbounded VecDeque<TokenBatch> with fixed-size ring buffer.
 /// Auto-evicts oldest batch when full to maintain O(1) memory guarantee.
 #[repr(C, align(128))]
+#[allow(dead_code)]
 pub struct BoundedTokenQueueCapsule {
     /// Ring buffer storage (100 slots max)
     slots: Box<[MaybeUninit<Option<Arc<TokenBatch>>>; MAX_BATCHES]>,
@@ -226,10 +227,11 @@ mod tests {
 
         // Push 150 batches (should evict first 50)
         for i in 0..150 {
+            // Create valid TokenBatch: 1 doc with 1 token
             let batch = TokenBatch::new(
                 vec![i],
-                vec![],
-                vec![0, 1],
+                vec![Arc::from("token")], // Need 1 token for offset [0, 1]
+                vec![0, 1],               // offsets[0]=0, offsets[1]=1 (range 0..1)
                 i as u64,
             ).unwrap();
             queue.push(batch);
@@ -260,10 +262,11 @@ mod tests {
 
         // Push many items
         for i in 0..1000 {
+            // Create valid TokenBatch: 1 doc with 1 token
             let batch = TokenBatch::new(
                 vec![i],
-                vec![],
-                vec![0, 1],
+                vec![Arc::from("token")], // Need 1 token for offset [0, 1]
+                vec![0, 1],               // offsets[0]=0, offsets[1]=1 (range 0..1)
                 i as u64,
             ).unwrap();
             queue.push(batch);

@@ -12,7 +12,7 @@
 //!
 //! ## Framework Compliance
 //! - **UCE34**: Q10 T6 Mixed tier, Q33 lockfree verification, Q34 audit trails
-//! - **COCA**: 100% lockfree (zero mutex/RwLock), cache-aligned (512B), generation counters
+//! - **Chaos**: 100% lockfree (zero mutex/RwLock), cache-aligned (512B), generation counters
 //! - **ASSUM**: 99.99% safe, all assumptions documented
 //! - **B32**: Fair baselines (traditional mutex 500-1000ns → 10-20× speedup)
 //! - **T28**: Comprehensive testing (unit/property/integration/production)

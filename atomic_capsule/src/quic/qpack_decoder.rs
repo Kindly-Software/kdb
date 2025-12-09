@@ -41,7 +41,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 T2+T4 tier selection (SIMD + Batch composition)
-//! - **COCA**: 100% lockfree (atomic state, no mutex/RwLock)
+//! - **Chaos**: 100% lockfree (atomic state, no mutex/RwLock)
 //! - **ASSUM**: 99.99% safe (index bounds, generation counters)
 //! - **B32**: Fair benchmarks (scalar baseline vs SIMD)
 //! - **T28**: Comprehensive testing (unit/property/integration/production)

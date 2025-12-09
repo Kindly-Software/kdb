@@ -169,7 +169,7 @@ Complete hash chain:
 
 All examples demonstrate:
 
-### COCA (Computational Capsule) Architecture
+### Chaos (Computational Capsule) Architecture
 - Tier 3 (Fixed-Point): Deterministic arithmetic for financial data
 - Tier 1 (Atomic): Lockfree coordination
 - Cache-aligned structures: 64B, 128B, 256B

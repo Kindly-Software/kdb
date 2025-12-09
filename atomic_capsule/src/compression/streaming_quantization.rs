@@ -30,7 +30,7 @@
 //! - Memory pressure: 2× during training (f64 + u8)
 //! - Amortized cost: O(1) per weight update
 //!
-//! # COCA Principles Applied
+//! # Chaos Principles Applied
 //! - **256-byte alignment**: Ring buffer for cache efficiency
 //! - **100% lockfree**: Atomic queue, zero mutex
 //! - **Zero-copy**: In-place quantization where possible

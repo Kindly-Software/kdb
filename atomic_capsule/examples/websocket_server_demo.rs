@@ -401,7 +401,7 @@ fn main() {
     println!("╔═══════════════════════════════════════════════════════════════╗");
     println!("║  WebSocket Server Capsule Demo (RFC 6455 Compliant)           ║");
     println!("║  Tier: T8 (Network) + T1 (Atomic) + T4 (Batch) + T5 (Stream)  ║");
-    println!("║  Framework: UCE34, COCA, ASSUM, B32, T28, I20                 ║");
+    println!("║  Framework: UCE34, Chaos, ASSUM, B32, T28, I20                 ║");
     println!("╚═══════════════════════════════════════════════════════════════╝");
 
     let examples: Vec<(&str, fn() -> Result<(), ServerError>)> = vec![

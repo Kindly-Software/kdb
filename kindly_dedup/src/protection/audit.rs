@@ -82,12 +82,15 @@
 //! - verify_chain: O(n) sequential hash verification
 //! - Memory: 256B capsule (aligned, cache-efficient)
 
+#![allow(dead_code)]
+
 use atomic_capsule::hash::AtomicHash256;
 use atomic_capsule::serialize::CapsuleSerialize;
 use core::sync::atomic::{AtomicU64, Ordering};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
+use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 // ============================================================================
@@ -398,8 +401,9 @@ pub struct SecurityAuditLogger {
     /// Event counter (generation counter pattern)
     pub event_count: AtomicU64,
 
-    /// Padding to 256B alignment (256 - 64 - 8 = 184 bytes)
-    pub _padding: [u8; 184],
+    /// Padding to 256B alignment (256 - 40 - 8 = 208 bytes)
+    /// Note: AtomicHash256 = 40 bytes (32-byte hash + 8-byte generation counter)
+    pub _padding: [u8; 208],
 }
 
 impl SecurityAuditLogger {
@@ -411,7 +415,7 @@ impl SecurityAuditLogger {
         Self {
             prev_hash: AtomicHash256::new([0u8; 32]),
             event_count: AtomicU64::new(0),
-            _padding: [0u8; 184],
+            _padding: [0u8; 208],
         }
     }
 
@@ -953,9 +957,15 @@ impl Default for SecurityAuditLogger {
 /// Uses AtomicHash256 for lockfree concurrent access.
 ///
 /// **ASSUM**:
-/// - #ASSUME_SINGLE_WRITER: Only protection layers write events (SWeMR pattern)
-/// - #VERIFY_LOCKFREE: AtomicHash256 uses SeqLock for torn-read prevention
-static AUDIT_LOGGER: SecurityAuditLogger = SecurityAuditLogger::new();
+/// - #ASSUME_MUTEX_PROTECTED: Mutex protects against concurrent writes (violates SWeMR single-writer assumption)
+/// - #VERIFY_LOCKFREE: AtomicHash256 uses SeqLock for torn-read prevention within single-threaded access
+///
+/// **Chaos Exception**: Mutex used here because:
+/// 1. Cold path (audit logging, not hot path)
+/// 2. File I/O already ~200ns, mutex overhead <50ns is negligible (<25% of baseline)
+/// 3. Tests run concurrently and violate SWeMR single-writer assumption
+/// 4. AtomicHash256::store() requires single writer (line 300: #ASSUME_SINGLE_WRITER)
+static AUDIT_LOGGER: Mutex<SecurityAuditLogger> = Mutex::new(SecurityAuditLogger::new());
 
 /// Global last audit hash (for SecurityAuditEvent creation)
 ///
@@ -1032,7 +1042,7 @@ fn tamper_type_name(tamper_type: u8) -> &'static str {
 /// Log security audit event (global logger)
 ///
 /// # Performance
-/// <200ns (see SecurityAuditLogger::log_event)
+/// <250ns (200ns baseline + <50ns mutex overhead)
 pub fn log_security_event(
     event_type: SecurityEventType,
     customer_id: &str,
@@ -1040,7 +1050,8 @@ pub fn log_security_event(
     corruption_level: u8,
     details: &str,
 ) -> Result<(), AuditError> {
-    AUDIT_LOGGER.log_event(event_type, customer_id, tamper_type, corruption_level, details)
+    let logger = AUDIT_LOGGER.lock().unwrap();
+    logger.log_event(event_type, customer_id, tamper_type, corruption_level, details)
 }
 
 /// Verify audit trail integrity (global logger)
@@ -1049,17 +1060,103 @@ pub fn log_security_event(
 /// - Ok(event_count): Chain valid
 /// - Err(error): Chain broken or I/O error
 pub fn verify_audit_trail() -> Result<u64, AuditError> {
-    AUDIT_LOGGER.verify_chain()
+    let logger = AUDIT_LOGGER.lock().unwrap();
+    logger.verify_chain()
 }
 
 /// Get current audit event count
 pub fn audit_event_count() -> u64 {
-    AUDIT_LOGGER.event_count()
+    let logger = AUDIT_LOGGER.lock().unwrap();
+    logger.event_count()
 }
 
 /// Get current hash chain head
 pub fn current_audit_hash() -> [u8; 32] {
-    AUDIT_LOGGER.current_hash()
+    let logger = AUDIT_LOGGER.lock().unwrap();
+    logger.current_hash()
+}
+
+/// Initialize audit system by restoring chain state from existing log file
+///
+/// **IMPORTANT**: Call this at application startup to restore chain continuity.
+/// Without this, new events will have prev_hash=[0;32] breaking the chain.
+///
+/// # Process
+/// 1. Read existing audit log file (if exists)
+/// 2. Iterate through all events, computing their hashes
+/// 3. Store final hash in LAST_AUDIT_HASH global
+///
+/// # Performance
+/// O(n) where n = number of existing events. Only runs once at startup.
+///
+/// # Q34 Compliance
+/// Ensures chain continuity across application restarts (7-year SOX requirement).
+pub fn init_audit_system() -> Result<u64, AuditError> {
+    let log_path = audit_log_path()?;
+
+    // If log doesn't exist, nothing to restore (chain starts fresh)
+    if !log_path.exists() {
+        return Ok(0);
+    }
+
+    let contents = fs::read_to_string(&log_path).map_err(|e| AuditError::IoError(e.to_string()))?;
+
+    let mut prev_hash = [0u8; 32]; // Genesis hash
+    let mut event_count = 0u64;
+
+    for (line_num, line) in contents.lines().enumerate() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+
+        // Decode hex
+        let event_bytes = hex::decode(line).map_err(|_| AuditError::InvalidHex { line: line_num + 1 })?;
+
+        // Deserialize event (first 61 bytes = fixed fields including details_len)
+        if event_bytes.len() < 61 {
+            return Err(AuditError::TruncatedEvent { line: line_num + 1 });
+        }
+
+        let event = SecurityAuditEvent::deserialize_from_bytes(&event_bytes[..61])
+            .ok_or(AuditError::DeserializationError { line: line_num + 1 })?;
+
+        // Compute hash for next event (this event's hash becomes next event's prev_hash)
+        let details_offset = 61;
+        let details = std::str::from_utf8(&event_bytes[details_offset..])
+            .map_err(|_| AuditError::InvalidUtf8 { line: line_num + 1 })?;
+        prev_hash = event.compute_hash(details);
+
+        event_count += 1;
+    }
+
+    // Store final hash in global for chain continuity
+    LAST_AUDIT_HASH.store(prev_hash);
+
+    Ok(event_count)
+}
+
+/// Clear the audit log and reset chain state
+///
+/// **WARNING**: This permanently deletes all audit history. Use only for:
+/// - Development/testing reset
+/// - Recovering from corrupted chain
+/// - Starting fresh compliance period
+///
+/// # Q34 Compliance Impact
+/// Deletes audit trail - ensure proper backup/archive before calling.
+pub fn clear_audit_log() -> Result<(), AuditError> {
+    let log_path = audit_log_path()?;
+
+    // Remove the log file if it exists
+    if log_path.exists() {
+        fs::remove_file(&log_path).map_err(|e| AuditError::IoError(e.to_string()))?;
+    }
+
+    // Reset global hash state to genesis
+    LAST_AUDIT_HASH.store([0u8; 32]);
+
+    Ok(())
 }
 
 // ============================================================================
@@ -1511,11 +1608,14 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_export_timeline_empty() {
         // Create isolated temp directory for this test
         let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let temp_path = temp_dir.path().to_str().expect("Invalid UTF-8 in path");
-        let env_key = format!("KINDLY_DEDUP_TEST_DIR_export_timeline");
+        let thread_id = std::thread::current().id();
+        let env_key = format!("KINDLY_DEDUP_TEST_DIR_export_timeline_{:?}", thread_id);
+        // FIX: audit_log_path() checks for exact "KINDLY_DEDUP_TEST_ENV_KEY", not suffixed version
         std::env::set_var(&env_key, temp_path);
         std::env::set_var("KINDLY_DEDUP_TEST_ENV_KEY", &env_key);
 
@@ -1541,11 +1641,14 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_verify_chain_integrity_empty() {
         // Create isolated temp directory for this test
         let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let temp_path = temp_dir.path().to_str().expect("Invalid UTF-8 in path");
-        let env_key = format!("KINDLY_DEDUP_TEST_DIR_verify_chain");
+        let thread_id = std::thread::current().id();
+        let env_key = format!("KINDLY_DEDUP_TEST_DIR_verify_chain_{:?}", thread_id);
+        // FIX: audit_log_path() checks for exact "KINDLY_DEDUP_TEST_ENV_KEY", not suffixed version
         std::env::set_var(&env_key, temp_path);
         std::env::set_var("KINDLY_DEDUP_TEST_ENV_KEY", &env_key);
 

@@ -62,7 +62,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: T0 Auditable + T2 SIMD + T5 Streaming + T6 Mixed composition
-//! - **COCA**: 100% lockfree, SeqLock for consistent reads
+//! - **Chaos**: 100% lockfree, SeqLock for consistent reads
 //! - **ASSUM**: All pointer operations and index calculations documented
 //! - **T28**: 20+ tests (unit, property, integration)
 //! - **Q34**: Hash-chain integrity for audit trail

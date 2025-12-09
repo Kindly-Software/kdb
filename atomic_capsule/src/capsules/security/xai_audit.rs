@@ -14,7 +14,7 @@
 // - Hash-Chain Verify: <1μs (FNV-1a chain verification)
 // - Query by ID: <100ns (direct index lookup)
 //
-// Framework Compliance: UCE34 (Q1-Q34), COCA (100% lockfree), ASSUM (99.99%), B32, T28, I20
+// Framework Compliance: UCE34 (Q1-Q34), Chaos (100% lockfree), ASSUM (99.99%), B32, T28, I20
 //
 // Research Foundation (2024-2025):
 // - SHAP (SHapley Additive exPlanations): Lundberg & Lee, NeurIPS 2017

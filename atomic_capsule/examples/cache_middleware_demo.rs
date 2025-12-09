@@ -7,7 +7,7 @@
 //! - Bandwidth savings tracking
 //! - 304 Not Modified response generation
 //!
-//! **Framework**: UCE34 (Q1-Q34), COCA (100% lockfree), B32 (fair benchmarking)
+//! **Framework**: UCE34 (Q1-Q34), Chaos (100% lockfree), B32 (fair benchmarking)
 //!
 //! **Performance Target**: 50% bandwidth reduction via 304 responses
 //! **Latency Target**: <100ns ETag check + <1μs 304 response generation

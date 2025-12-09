@@ -3,7 +3,7 @@
 **Version**: 1.0.0
 **Date**: 2025-11-21
 **Tier**: T7 Heterogeneous (FPGA Hardware Acceleration)
-**Framework**: UCE34, COCA (100% lockfree), ASSUM, B32, T28, I20
+**Framework**: UCE34, Chaos (100% lockfree), ASSUM, B32, T28, I20
 
 ---
 
@@ -1161,6 +1161,6 @@ impl FpgaPerformanceMetrics {
 
 **Performance Monitoring**: T0 Auditable metrics (latency histogram, throughput, error counters)
 
-**Framework Compliance**: UCE34 (T7 Heterogeneous), COCA (100% lockfree host coordination), ASSUM (99.99% safe, !Send/!Sync enforced), B32 (fair baselines), T28 (comprehensive testing)
+**Framework Compliance**: UCE34 (T7 Heterogeneous), Chaos (100% lockfree host coordination), ASSUM (99.99% safe, !Send/!Sync enforced), B32 (fair baselines), T28 (comprehensive testing)
 
 **Next Steps**: Proceed to hardware pipeline design (FPGA_PIPELINE_DESIGN.md) for HDL kernel implementation.

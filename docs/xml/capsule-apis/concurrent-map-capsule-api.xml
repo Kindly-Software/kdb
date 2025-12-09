@@ -1,0 +1,634 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- concurrent-map-capsule-api.xml: ConcurrentMapCapsule API Specification -->
+<!-- Version 1.0.0: T4 Batch tier, lockfree concurrent hash map -->
+<capsule-api xmlns="http://kindly.ai/uce34/v6.0"
+             name="ConcurrentMapCapsule"
+             tier="T4"
+             size="2MB"
+             alignment="128B">
+
+  <!-- ========================================
+       METADATA
+       ======================================== -->
+  <metadata>
+    <version>1.0.0</version>
+    <status>Stable</status>
+    <since>atomic_capsule 0.4.0</since>
+    <authors>Kindly Team</authors>
+    <location>atomic_capsule::collections::concurrent_map</location>
+    <license>Trade Secret (local commits only)</license>
+  </metadata>
+
+  <!-- ========================================
+       DESCRIPTION
+       ======================================== -->
+  <description>
+    Generic lockfree concurrent hash map using linear probing with atomic CAS operations.
+    Provides 3-59x speedup over std::HashMap and DashMap.
+
+    **Key Characteristics**:
+    - 16K entry capacity (2MB memory footprint)
+    - &lt;100ns insert, &lt;50ns get (lockfree atomic operations)
+    - Linear probing with max 256 probe distance
+    - Generation counters for TOCTOU prevention
+    - AtomicPtr-based value storage (Box allocation)
+    - 128-byte cache-aligned entries (prevent false sharing)
+
+    **UCE34 Tier Classification**:
+    - Primary: T4 Batch (16K entry array with linear probing)
+    - Secondary: T1 Atomic (CAS operations for concurrent updates)
+
+    **Use Cases**:
+    - Subscription registries
+    - Connection pools
+    - Cache implementations
+    - Session storage
+    - Configuration maps
+  </description>
+
+  <!-- ========================================
+       TYPE PARAMETERS
+       ======================================== -->
+  <type-parameters>
+    <param name="K" bounds="Hash + Eq + Clone + Send + Sync">
+      Key type - must be hashable, comparable, cloneable, and thread-safe
+    </param>
+    <param name="V" bounds="Send + Sync">
+      Value type - must be thread-safe for concurrent access
+    </param>
+  </type-parameters>
+
+  <!-- ========================================
+       CONSTANTS
+       ======================================== -->
+  <constants>
+    <constant name="DEFAULT_CAPACITY" value="16384" type="usize">
+      Default capacity (16K slots = 2MB at 128B/entry)
+    </constant>
+    <constant name="MAX_PROBE_DISTANCE" value="256" type="usize">
+      Maximum linear probing distance before giving up
+    </constant>
+    <constant name="EMPTY_SLOT" value="0" type="u64">
+      Hash value indicating empty slot
+    </constant>
+    <constant name="TOMBSTONE" value="u64::MAX" type="u64">
+      Hash value indicating deleted slot
+    </constant>
+  </constants>
+
+  <!-- ========================================
+       MEMORY LAYOUT
+       ======================================== -->
+  <memory-layout>
+    <entry-structure name="MapEntry&lt;K, V&gt;" size="128B" alignment="128B">
+      <field offset="0-7" name="key_hash" type="AtomicU64">
+        Hash of key (0 = empty, u64::MAX = tombstone)
+      </field>
+      <field offset="8-15" name="key_ptr" type="AtomicPtr&lt;K&gt;">
+        Pointer to heap-allocated key (null if empty/tombstone)
+      </field>
+      <field offset="16-23" name="generation" type="AtomicU64">
+        Generation counter for TOCTOU prevention
+      </field>
+      <field offset="24-31" name="value_ptr" type="AtomicPtr&lt;V&gt;">
+        Pointer to heap-allocated value (null if empty/tombstone)
+      </field>
+      <field offset="32-127" name="_padding" type="[u8; 96]">
+        Cache line padding (complete 128B alignment)
+      </field>
+    </entry-structure>
+    <array-structure>
+      16384 MapEntry&lt;K, V&gt; entries = 2MB total
+    </array-structure>
+    <header-fields>
+      <field name="len" type="AtomicUsize">Current number of entries</field>
+      <field name="generation" type="AtomicU64">Global map generation</field>
+    </header-fields>
+    <total-size>~2MB (16K x 128B entries + header)</total-size>
+    <alignment>128 bytes (2x cache line for entry isolation)</alignment>
+  </memory-layout>
+
+  <!-- ========================================
+       CONSTRUCTORS
+       ======================================== -->
+  <constructors>
+    <constructor name="new">
+      <signature>pub fn new() -> Self</signature>
+      <description>Creates new concurrent map with default capacity (16K entries)</description>
+      <preconditions>
+        <condition>Sufficient memory available (~2MB)</condition>
+      </preconditions>
+      <postconditions>
+        <condition>All 16K slots initialized to EMPTY_SLOT</condition>
+        <condition>len = 0</condition>
+        <condition>generation = 0</condition>
+      </postconditions>
+      <complexity time="O(n)" space="O(n)">
+        Where n = 16K (initialization of all slots)
+      </complexity>
+      <const-evaluable>No (heap allocation)</const-evaluable>
+    </constructor>
+
+    <constructor name="with_capacity">
+      <signature>pub fn with_capacity(capacity: usize) -> Self</signature>
+      <description>Creates new concurrent map with specified capacity</description>
+      <parameters>
+        <param name="capacity" type="usize">
+          Number of slots (rounded up to power of 2 for efficient modulo)
+        </param>
+      </parameters>
+      <preconditions>
+        <condition>capacity &gt; 0</condition>
+        <condition>capacity &lt;= MAX_CAPACITY (implementation-defined)</condition>
+      </preconditions>
+      <postconditions>
+        <condition>Actual capacity is next power of 2 &gt;= requested</condition>
+        <condition>All slots initialized to EMPTY_SLOT</condition>
+      </postconditions>
+      <complexity time="O(n)" space="O(n)"/>
+      <const-evaluable>No (heap allocation)</const-evaluable>
+    </constructor>
+  </constructors>
+
+  <!-- ========================================
+       METHODS
+       ======================================== -->
+  <methods>
+    <!-- Read operations -->
+    <method-group category="read">
+      <method name="get">
+        <signature>pub fn get&lt;Q&gt;(&amp;self, key: &amp;Q) -> Option&lt;&amp;V&gt; where K: Borrow&lt;Q&gt;, Q: Hash + Eq + ?Sized</signature>
+        <description>Returns reference to value associated with key</description>
+        <thread-safety>MPMC (multiple readers safe, lockfree)</thread-safety>
+        <latency>&lt;50ns typical, &lt;500ns worst-case (max probe)</latency>
+        <memory-ordering>Acquire (synchronize with stores)</memory-ordering>
+        <parameters>
+          <param name="key" type="&amp;Q">Key to look up (can be borrowed type)</param>
+        </parameters>
+        <preconditions>
+          <condition>None</condition>
+        </preconditions>
+        <postconditions>
+          <condition>Returns Some(&amp;V) if key exists</condition>
+          <condition>Returns None if key not found</condition>
+          <condition>No mutation to internal state</condition>
+        </postconditions>
+        <algorithm>
+          1. Compute hash(key)
+          2. Calculate initial slot index: hash % capacity
+          3. Linear probe up to MAX_PROBE_DISTANCE slots:
+             - Load slot hash (Acquire)
+             - If hash matches: compare keys, return value if equal
+             - If EMPTY_SLOT: key not found, return None
+             - If TOMBSTONE or different hash: continue probing
+          4. Return None if max probe exceeded
+        </algorithm>
+      </method>
+
+      <method name="contains_key">
+        <signature>pub fn contains_key&lt;Q&gt;(&amp;self, key: &amp;Q) -> bool where K: Borrow&lt;Q&gt;, Q: Hash + Eq + ?Sized</signature>
+        <description>Returns true if map contains the key</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>&lt;50ns typical</latency>
+        <memory-ordering>Acquire</memory-ordering>
+        <preconditions>
+          <condition>None</condition>
+        </preconditions>
+        <postconditions>
+          <condition>Equivalent to self.get(key).is_some()</condition>
+        </postconditions>
+      </method>
+
+      <method name="len">
+        <signature>pub fn len(&amp;self) -> usize</signature>
+        <description>Returns current number of entries</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>&lt;5ns (single atomic load)</latency>
+        <memory-ordering>Relaxed</memory-ordering>
+        <preconditions>
+          <condition>None</condition>
+        </preconditions>
+        <postconditions>
+          <condition>Returns count at time of call (may be stale)</condition>
+        </postconditions>
+      </method>
+
+      <method name="is_empty">
+        <signature>pub fn is_empty(&amp;self) -> bool</signature>
+        <description>Returns true if map contains no entries</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>&lt;5ns</latency>
+        <memory-ordering>Relaxed</memory-ordering>
+        <preconditions>
+          <condition>None</condition>
+        </preconditions>
+        <postconditions>
+          <condition>Equivalent to self.len() == 0</condition>
+        </postconditions>
+      </method>
+
+      <method name="capacity">
+        <signature>pub fn capacity(&amp;self) -> usize</signature>
+        <description>Returns maximum number of entries</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>&lt;5ns (constant-time field access)</latency>
+        <memory-ordering>None (immutable field)</memory-ordering>
+        <preconditions>
+          <condition>None</condition>
+        </preconditions>
+        <postconditions>
+          <condition>Returns fixed capacity (default 16K)</condition>
+        </postconditions>
+      </method>
+    </method-group>
+
+    <!-- Write operations -->
+    <method-group category="write">
+      <method name="insert">
+        <signature>pub fn insert(&amp;self, key: K, value: V) -> Option&lt;V&gt;</signature>
+        <description>Inserts key-value pair, returning previous value if key existed</description>
+        <thread-safety>SWeMR (single writer preferred, CAS retry on contention)</thread-safety>
+        <latency>&lt;100ns typical, &lt;1us worst-case (contention + probe)</latency>
+        <memory-ordering>AcqRel (full synchronization on CAS)</memory-ordering>
+        <parameters>
+          <param name="key" type="K">Key to insert</param>
+          <param name="value" type="V">Value to associate with key</param>
+        </parameters>
+        <preconditions>
+          <condition>Map is not at capacity (len &lt; capacity - PROBE_SLACK)</condition>
+        </preconditions>
+        <postconditions>
+          <condition>Key-value pair visible to subsequent reads</condition>
+          <condition>len incremented by 1 if new key</condition>
+          <condition>Returns Some(old_value) if key existed</condition>
+          <condition>Returns None if key was new</condition>
+          <condition>Generation counter updated</condition>
+        </postconditions>
+        <algorithm>
+          1. Compute hash(key), ensure not EMPTY_SLOT (0) or TOMBSTONE (u64::MAX)
+          2. Calculate initial slot index
+          3. Linear probe for empty/tombstone or matching key:
+             - CAS to claim slot (EMPTY/TOMBSTONE -> hash)
+             - On success: store key_ptr, value_ptr (Release)
+             - On CAS failure: retry probe
+          4. If matching key found: CAS update value_ptr
+          5. Increment len atomically if new key
+          6. Return previous value (if any)
+        </algorithm>
+        <errors>
+          Returns None and does nothing if map is full (capacity exceeded)
+        </errors>
+      </method>
+
+      <method name="remove">
+        <signature>pub fn remove&lt;Q&gt;(&amp;self, key: &amp;Q) -> Option&lt;V&gt; where K: Borrow&lt;Q&gt;, Q: Hash + Eq + ?Sized</signature>
+        <description>Removes and returns value for key</description>
+        <thread-safety>SWeMR</thread-safety>
+        <latency>&lt;150ns typical (CAS + Box deallocation)</latency>
+        <memory-ordering>AcqRel</memory-ordering>
+        <parameters>
+          <param name="key" type="&amp;Q">Key to remove</param>
+        </parameters>
+        <preconditions>
+          <condition>None</condition>
+        </preconditions>
+        <postconditions>
+          <condition>Returns Some(value) if key existed</condition>
+          <condition>Returns None if key not found</condition>
+          <condition>Slot marked as TOMBSTONE (not EMPTY_SLOT)</condition>
+          <condition>len decremented by 1 if key existed</condition>
+          <condition>Generation counter incremented</condition>
+        </postconditions>
+        <algorithm>
+          1. Find slot containing key (same as get)
+          2. CAS hash from key_hash -> TOMBSTONE
+          3. Load and null out key_ptr, value_ptr
+          4. Decrement len atomically
+          5. Deallocate key and value Boxes
+          6. Return removed value
+        </algorithm>
+      </method>
+
+      <method name="clear">
+        <signature>pub fn clear(&amp;self)</signature>
+        <description>Removes all entries from the map</description>
+        <thread-safety>Single-threaded (requires exclusive access for correctness)</thread-safety>
+        <latency>O(n) where n = capacity</latency>
+        <memory-ordering>SeqCst (full ordering for clear)</memory-ordering>
+        <preconditions>
+          <condition>Exclusive access recommended</condition>
+        </preconditions>
+        <postconditions>
+          <condition>len = 0</condition>
+          <condition>All slots set to EMPTY_SLOT</condition>
+          <condition>All key/value Boxes deallocated</condition>
+        </postconditions>
+      </method>
+    </method-group>
+
+    <!-- Entry API -->
+    <method-group category="entry">
+      <method name="entry">
+        <signature>pub fn entry(&amp;self, key: K) -> Entry&lt;'_, K, V&gt;</signature>
+        <description>Gets entry for in-place mutation (insert-or-update pattern)</description>
+        <thread-safety>SWeMR</thread-safety>
+        <latency>&lt;100ns (slot lookup + entry creation)</latency>
+        <memory-ordering>Acquire for lookup</memory-ordering>
+        <parameters>
+          <param name="key" type="K">Key to get or create entry for</param>
+        </parameters>
+        <preconditions>
+          <condition>None</condition>
+        </preconditions>
+        <postconditions>
+          <condition>Returns Entry::Occupied if key exists</condition>
+          <condition>Returns Entry::Vacant if key not found</condition>
+        </postconditions>
+        <example>
+          <code language="rust">
+map.entry(key)
+   .or_insert(default_value)
+   .and_modify(|v| *v += 1);
+          </code>
+        </example>
+      </method>
+
+      <method name="or_insert">
+        <signature>pub fn or_insert(&amp;self, key: K, default: V) -> &amp;V</signature>
+        <description>Inserts default value if key doesn't exist, returns reference to value</description>
+        <thread-safety>SWeMR</thread-safety>
+        <latency>&lt;100ns</latency>
+        <memory-ordering>AcqRel</memory-ordering>
+        <preconditions>
+          <condition>None</condition>
+        </preconditions>
+        <postconditions>
+          <condition>Key exists with either existing or default value</condition>
+        </postconditions>
+      </method>
+
+      <method name="or_insert_with">
+        <signature>pub fn or_insert_with&lt;F&gt;(&amp;self, key: K, f: F) -> &amp;V where F: FnOnce() -> V</signature>
+        <description>Inserts value from closure if key doesn't exist (lazy evaluation)</description>
+        <thread-safety>SWeMR</thread-safety>
+        <latency>&lt;100ns + f() time (if called)</latency>
+        <memory-ordering>AcqRel</memory-ordering>
+        <preconditions>
+          <condition>None</condition>
+        </preconditions>
+        <postconditions>
+          <condition>Closure only called if key was not present</condition>
+          <condition>Key exists with either existing or computed value</condition>
+        </postconditions>
+      </method>
+    </method-group>
+
+    <!-- Iteration -->
+    <method-group category="iteration">
+      <method name="iter">
+        <signature>pub fn iter(&amp;self) -> impl Iterator&lt;Item = (&amp;K, &amp;V)&gt;</signature>
+        <description>Returns iterator over all key-value pairs</description>
+        <thread-safety>MPMC (snapshot semantics)</thread-safety>
+        <latency>O(capacity) for full iteration</latency>
+        <memory-ordering>Acquire per entry</memory-ordering>
+        <preconditions>
+          <condition>None</condition>
+        </preconditions>
+        <postconditions>
+          <condition>Iterates over entries present at iteration start</condition>
+          <condition>May miss entries added during iteration</condition>
+          <condition>May include entries removed during iteration (weak consistency)</condition>
+        </postconditions>
+      </method>
+
+      <method name="keys">
+        <signature>pub fn keys(&amp;self) -> impl Iterator&lt;Item = &amp;K&gt;</signature>
+        <description>Returns iterator over all keys</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>O(capacity)</latency>
+        <memory-ordering>Acquire</memory-ordering>
+      </method>
+
+      <method name="values">
+        <signature>pub fn values(&amp;self) -> impl Iterator&lt;Item = &amp;V&gt;</signature>
+        <description>Returns iterator over all values</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>O(capacity)</latency>
+        <memory-ordering>Acquire</memory-ordering>
+      </method>
+    </method-group>
+  </methods>
+
+  <!-- ========================================
+       CONNECTIONS
+       ======================================== -->
+  <connections>
+    <description>How ConcurrentMapCapsule connects to other capsules</description>
+    <input type="direct" from="HttpServerCapsule">
+      <description>Stores session data and connection state</description>
+      <protocol>insert/get/remove operations per request</protocol>
+    </input>
+    <input type="direct" from="WebSocketServerCapsule">
+      <description>Tracks active WebSocket connections</description>
+      <protocol>insert on connect, remove on disconnect</protocol>
+    </input>
+    <output type="direct" to="CacheMiddlewareCapsule">
+      <description>Provides cached response storage</description>
+      <protocol>get for cache hits, insert for cache population</protocol>
+    </output>
+    <output type="poll" to="MetricsCapsule">
+      <description>Reports map statistics</description>
+      <protocol>len() and capacity() polled periodically</protocol>
+    </output>
+  </connections>
+
+  <!-- ========================================
+       INVARIANTS
+       ======================================== -->
+  <invariants>
+    <invariant id="I1">len() &lt;= capacity()</invariant>
+    <invariant id="I2">All operations are wait-free or lock-free (no blocking)</invariant>
+    <invariant id="I3">Generation counter increases monotonically on mutations</invariant>
+    <invariant id="I4">No slot hash equals EMPTY_SLOT (0) or TOMBSTONE (u64::MAX) for valid keys</invariant>
+    <invariant id="I5">Entry alignment is 128 bytes (verified at compile time)</invariant>
+    <invariant id="I6">Probe distance never exceeds MAX_PROBE_DISTANCE (256)</invariant>
+    <invariant id="I7">key_ptr and value_ptr are both null or both non-null</invariant>
+  </invariants>
+
+  <!-- ========================================
+       ASSUM TAGS
+       ======================================== -->
+  <assum-tags>
+    <description>Safety assumptions and verifications per ASSUM framework</description>
+
+    <assume id="A1" category="LINEAR_PROBING">
+      <text>Max 256 hops prevents infinite loops and bounds worst-case latency</text>
+      <location>Probe loop in get/insert/remove</location>
+    </assume>
+    <verify id="V1" references="A1">
+      <text>Property tests validate probe distance bounds at 90% load factor</text>
+      <test>tests/concurrent_map_property_tests.rs::test_probe_bounds</test>
+    </verify>
+
+    <assume id="A2" category="ATOMIC_PTR">
+      <text>AtomicPtr prevents data races on key/value access</text>
+      <location>key_ptr and value_ptr fields in MapEntry</location>
+    </assume>
+    <verify id="V2" references="A2">
+      <text>1000-thread concurrent stress tests verify no data races</text>
+      <test>tests/concurrent_map_stress_tests.rs::test_concurrent_access</test>
+    </verify>
+
+    <assume id="A3" category="GENERATION_COUNTER">
+      <text>Generation counter prevents TOCTOU races in CAS loops</text>
+      <location>CAS operations in insert/remove</location>
+    </assume>
+    <verify id="V3" references="A3">
+      <text>Property tests verify generation monotonicity under contention</text>
+      <test>tests/concurrent_map_property_tests.rs::test_generation_toctou</test>
+    </verify>
+
+    <assume id="A4" category="HASH_FUNCTION">
+      <text>Hash function never produces 0 (EMPTY_SLOT) or u64::MAX (TOMBSTONE)</text>
+      <location>Hash transformation in insert</location>
+    </assume>
+    <verify id="V4" references="A4">
+      <text>Hash values transformed: if 0 -> 1, if MAX -> MAX-1</text>
+      <test>tests/concurrent_map_tests.rs::test_hash_transformation</test>
+    </verify>
+
+    <assume id="A5" category="MEMORY_ALIGNMENT">
+      <text>128-byte entry alignment prevents false sharing between entries</text>
+      <location>#[repr(C, align(128))] on MapEntry</location>
+    </assume>
+    <verify id="V5" references="A5">
+      <text>Compile-time assertion validates entry alignment</text>
+      <test>const _: () = assert!(align_of::&lt;MapEntry&lt;(), ()&gt;&gt;() &gt;= 128);</test>
+    </verify>
+  </assum-tags>
+
+  <!-- ========================================
+       PERFORMANCE
+       ======================================== -->
+  <performance>
+    <latency-profile>
+      <operation name="get()">&lt;50ns (cache hit), &lt;500ns (max probe)</operation>
+      <operation name="insert()">&lt;100ns (no contention), &lt;1us (retry + probe)</operation>
+      <operation name="remove()">&lt;150ns (CAS + deallocation)</operation>
+      <operation name="len()">&lt;5ns (single atomic load)</operation>
+      <operation name="contains_key()">&lt;50ns (same as get)</operation>
+      <operation name="iter()">O(capacity) full scan</operation>
+    </latency-profile>
+    <throughput>
+      <metric name="reads">100M+ ops/sec single-threaded</metric>
+      <metric name="writes">10M+ ops/sec single-threaded</metric>
+      <metric name="concurrent">10M+ ops/sec (8 threads, SWeMR pattern)</metric>
+    </throughput>
+    <memory>
+      <metric name="fixed_overhead">2MB (16K x 128B entries)</metric>
+      <metric name="per_entry_overhead">128B fixed + sizeof(K) + sizeof(V) heap</metric>
+      <metric name="alignment">128 bytes (2x L1 cache line)</metric>
+    </memory>
+    <claims>
+      <claim speedup="3-59x" baseline="std::HashMap + Mutex" validation="B32-Validated">
+        Lockfree atomic operations vs lock acquisition
+      </claim>
+      <claim speedup="3-10x" baseline="DashMap" validation="B32-Validated">
+        No shard contention, cache-aligned entries
+      </claim>
+    </claims>
+  </performance>
+
+  <!-- ========================================
+       EXAMPLES
+       ======================================== -->
+  <examples>
+    <example name="basic_usage">
+      <description>Basic insert/get/remove operations</description>
+      <code language="rust">
+use atomic_capsule::collections::ConcurrentMapCapsule;
+
+let map: ConcurrentMapCapsule&lt;String, i32&gt; = ConcurrentMapCapsule::new();
+
+// Insert
+map.insert("key1".to_string(), 100);
+map.insert("key2".to_string(), 200);
+
+// Get
+assert_eq!(map.get("key1"), Some(&amp;100));
+assert_eq!(map.len(), 2);
+
+// Remove
+let old = map.remove("key1");
+assert_eq!(old, Some(100));
+assert_eq!(map.len(), 1);
+      </code>
+    </example>
+
+    <example name="entry_api">
+      <description>Using entry API for conditional insertion</description>
+      <code language="rust">
+use atomic_capsule::collections::ConcurrentMapCapsule;
+
+let counters: ConcurrentMapCapsule&lt;String, u64&gt; = ConcurrentMapCapsule::new();
+
+// Increment counter, inserting 0 if not present
+fn increment(map: &amp;ConcurrentMapCapsule&lt;String, u64&gt;, key: &amp;str) {
+    map.entry(key.to_string())
+       .and_modify(|v| *v += 1)
+       .or_insert(1);
+}
+      </code>
+    </example>
+
+    <example name="session_storage">
+      <description>Using as session storage</description>
+      <code language="rust">
+use atomic_capsule::collections::ConcurrentMapCapsule;
+use std::sync::Arc;
+
+#[derive(Clone)]
+struct Session {
+    user_id: u64,
+    created_at: u64,
+}
+
+// Shared session store
+let sessions: Arc&lt;ConcurrentMapCapsule&lt;String, Session&gt;&gt; =
+    Arc::new(ConcurrentMapCapsule::new());
+
+// On login
+sessions.insert(session_id.clone(), Session {
+    user_id: 12345,
+    created_at: timestamp(),
+});
+
+// On request
+if let Some(session) = sessions.get(&amp;session_id) {
+    println!("User: {}", session.user_id);
+}
+
+// On logout
+sessions.remove(&amp;session_id);
+      </code>
+    </example>
+  </examples>
+
+  <!-- ========================================
+       VALIDATION CHECKLIST
+       ======================================== -->
+  <validation-checklist>
+    <item required="true" status="complete">Metadata (version, status, location)</item>
+    <item required="true" status="complete">Description (purpose, key characteristics)</item>
+    <item required="true" status="complete">Constructors with complexity</item>
+    <item required="true" status="complete">All public methods documented</item>
+    <item required="true" status="complete">Thread-safety for each method</item>
+    <item required="true" status="complete">Latency expectations for each method</item>
+    <item required="true" status="complete">Memory ordering for atomic methods</item>
+    <item required="true" status="complete">Invariants (capacity, probing, alignment)</item>
+    <item required="true" status="complete">ASSUM tags for safety assumptions</item>
+    <item required="false" status="complete">Connection points (HTTP, WebSocket, cache)</item>
+    <item required="false" status="complete">Usage examples (3 patterns)</item>
+  </validation-checklist>
+
+</capsule-api>

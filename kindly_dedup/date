@@ -1,0 +1,1 @@
+=== VALIDATING APPEND-ONLY LSH BUCKET FIX === echo Testing with 100K document dataset (10-15 seconds expected) date +%Y-%m-%d %H:%M:%S timeout 60 ./target/release/kindly_dedup  --dedup-type universal  --input-path test_data/c4_100k.jsonl  --output-path /tmp/dedup_100k_output.json  --threshold 0.85

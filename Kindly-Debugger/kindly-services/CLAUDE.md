@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- kindly-services - Kindly Debugger Marketing Website -->
-<!-- Version: 1.0.0 | Updated: 2025-12-06 | Status: Production (Cloudflare Pages) -->
-<project name="kindly-services" version="1.0.0">
+<!-- Version: 1.1.0 | Updated: 2025-12-07 | Status: Production (Cloudflare Pages) -->
+<project name="kindly-services" version="1.1.0">
 
 <metadata>
   <description>Marketing landing page for Kindly Debugger - "Time-travel debugging for AI workflows"</description>
-  <location>/home/samuel/Primitives/kindly-services/</location>
-  <url>https://kindly.services</url>
-  <size>7,584 LOC | 10 components | 5 pages</size>
+  <location>/home/samuel/Primitives/Kindly-Debugger/kindly-services/</location>
+  <url>https://www.kindly.software</url>
+  <size>8,150+ LOC | 12 components | 7 pages</size>
   <framework>Leptos 0.7 (CSR/WASM)</framework>
-  <deployment>Cloudflare Pages (auto-deploy on push)</deployment>
-  <bundle-size>331 KB WASM + 38 KB JS (~140-180 KB gzipped)</bundle-size>
-  <protection>T6 Mixed (T1 + T0 + T9) with COCA compliance</protection>
+  <deployment>Cloudflare Pages (manual deploy via wrangler)</deployment>
+  <bundle-size>355 KB WASM + 46 KB JS (~150-190 KB gzipped)</bundle-size>
+  <protection>T6 Mixed (T1 + T0 + T9) with Chaos compliance</protection>
   <trade-secret>YES - HTTP server and protection capsules protected</trade-secret>
   <status>Production Ready</status>
+  <promo-period>7-day launch promo: unlimited sessions for Hobby tier, then 5/month</promo-period>
 </metadata>
 
 <!-- ============================================================================
@@ -32,7 +33,7 @@
     <file path="src/components/pricing.rs" lines="382">5 pricing tiers</file>
     <file path="src/effects/mesh_gradient.rs" lines="286">WebGL2 animated background</file>
     <file path="src/security_orchestrator.rs" lines="800">T6 protection coordination</file>
-    <file path="src/bin/http_server.rs" lines="1003">COCA static file server</file>
+    <file path="src/bin/http_server.rs" lines="1003">Chaos static file server</file>
     <file path="Trunk.toml" lines="29">WASM build config</file>
     <file path="_headers" lines="43">Cloudflare security headers + CSP</file>
   </key-files>
@@ -42,11 +43,13 @@
      PROJECT STRUCTURE
      ============================================================================ -->
 <project-structure>
-<category name="Components" path="src/components/" lines="3695">
+<category name="Components" path="src/components/" lines="4272">
   <file name="navbar.rs" lines="235">Navigation + hamburger mobile menu</file>
   <file name="hero.rs" lines="203">Hero section with shimmer animation</file>
   <file name="features.rs" lines="150">Feature cards grid</file>
-  <file name="pricing.rs" lines="382">5 pricing tiers with feature comparison</file>
+  <file name="pricing.rs" lines="400">5 pricing tiers with promo features (Hobby featured)</file>
+  <file name="signup.rs" lines="265" added="v1.1.0">Email signup form with validation</file>
+  <file name="verified.rs" lines="312" added="v1.1.0">License display after email verification</file>
   <file name="docs.rs" lines="431">Documentation page</file>
   <file name="privacy.rs" lines="454">Privacy policy (GDPR compliant)</file>
   <file name="terms.rs" lines="527">Terms of service</file>
@@ -66,7 +69,7 @@
 </category>
 
 <category name="Binaries" path="src/bin/" lines="1371">
-  <file name="http_server.rs" lines="1003">T6 COCA static file server (12/12 tests)</file>
+  <file name="http_server.rs" lines="1003">T6 Chaos static file server (12/12 tests)</file>
   <file name="supply_chain.rs" lines="368">Supply chain verification</file>
 </category>
 
@@ -86,8 +89,10 @@
 <!-- ============================================================================
      PAGES & ROUTING
      ============================================================================ -->
-<pages total="5" routing="hash-based">
+<pages total="7" routing="hash-based">
   <page path="/" component="Home">Hero + Features + Pricing + CTA</page>
+  <page path="#signup" component="Signup" added="v1.1.0">Email signup form → POST /api/v1/signup</page>
+  <page path="#verified" component="Verified" added="v1.1.0">License display after email verification</page>
   <page path="#docs" component="Docs">Documentation (431 lines)</page>
   <page path="#privacy" component="Privacy">Privacy Policy (GDPR)</page>
   <page path="#terms" component="Terms">Terms of Service</page>
@@ -158,7 +163,7 @@
      PROTECTION ARCHITECTURE (T6 Mixed)
      ============================================================================ -->
 <protection tier="T6-Mixed">
-  <description>COCA-compliant security orchestration with 3 capsules</description>
+  <description>Chaos-compliant security orchestration with 3 capsules</description>
   <total-latency>Less than 200ns per request</total-latency>
 
   <capsules>
@@ -212,7 +217,7 @@
     <directive name="default-src">'self'</directive>
     <directive name="script-src">'self' 'wasm-unsafe-eval' https://static.cloudflareinsights.com</directive>
     <directive name="style-src">'self' 'unsafe-inline' https://fonts.googleapis.com</directive>
-    <directive name="connect-src">'self' https://api.kindly.services https://cloudflareinsights.com</directive>
+    <directive name="connect-src">'self' https://api.kindly.software https://cloudflareinsights.com</directive>
     <directive name="img-src">'self' data: blob:</directive>
     <directive name="font-src">'self' https://fonts.gstatic.com</directive>
   </header>
@@ -223,7 +228,7 @@
 </security-headers>
 
 <!-- ============================================================================
-     HTTP SERVER (COCA Binary)
+     HTTP SERVER (Chaos Binary)
      ============================================================================ -->
 <http-server tier="T6-Mixed">
   <file>src/bin/http_server.rs</file>
@@ -253,28 +258,34 @@
      PRICING TIERS
      ============================================================================ -->
 <pricing-tiers count="5">
-  <tier name="Hobby" price="Free">
-    <snapshots>100</snapshots>
+  <tier name="Hobby" price="Free" featured="true" promo="true">
+    <snapshots>50/day</snapshots>
+    <sessions>5/month (UNLIMITED during 7-day launch promo)</sessions>
     <retention>7 days</retention>
     <features>Time-travel, breakpoints, stack trace, audit trail</features>
+    <cta>#signup (hash-based signup form)</cta>
   </tier>
   <tier name="Starter" price="$9.99/mo">
-    <snapshots>1,000</snapshots>
+    <snapshots>1,000/day</snapshots>
+    <sessions>50/month</sessions>
     <retention>7 days</retention>
     <features>+ Memory read</features>
   </tier>
   <tier name="Developer" price="$49.99/mo">
-    <snapshots>10,000</snapshots>
+    <snapshots>10,000/day</snapshots>
+    <sessions>500/month</sessions>
     <retention>30 days</retention>
     <features>+ Memory write</features>
   </tier>
   <tier name="Professional" price="$499/mo">
-    <snapshots>100,000</snapshots>
+    <snapshots>100,000/day</snapshots>
+    <sessions>Unlimited</sessions>
     <retention>90 days</retention>
     <features>+ Symbol resolution, step backward, priority support</features>
   </tier>
   <tier name="Enterprise" price="Contact">
     <snapshots>Unlimited</snapshots>
+    <sessions>Unlimited</sessions>
     <retention>Custom</retention>
     <features>+ Custom retention, SLA guarantee</features>
   </tier>
@@ -312,20 +323,21 @@
      DEPLOYMENT
      ============================================================================ -->
 <deployment platform="Cloudflare Pages">
-  <domain>https://kindly.services</domain>
-  <auto-deploy>On push to main branch</auto-deploy>
+  <domain>https://www.kindly.software</domain>
+  <project-name>kindly-services</project-name>
+  <auto-deploy>Manual via wrangler CLI</auto-deploy>
   <build-command>trunk build --release</build-command>
   <output-directory>dist/</output-directory>
 
   <manual-deploy>
     <step>trunk build --release</step>
-    <step>npx wrangler pages deploy dist --project-name=kindly-services</step>
+    <step>wrangler pages deploy dist --project-name=kindly-services --commit-dirty=true</step>
   </manual-deploy>
 
   <assets>
     <asset name="index.html" size="17 KB">Compiled HTML</asset>
-    <asset name="kindly-services-*.wasm" size="331 KB">WASM binary</asset>
-    <asset name="kindly-services-*.js" size="38 KB">JS glue code</asset>
+    <asset name="kindly-services-*.wasm" size="355 KB">WASM binary</asset>
+    <asset name="kindly-services-*.js" size="46 KB">JS glue code</asset>
     <asset name="kdb-logo.jpg" size="435 KB">Hero logo</asset>
     <asset name="navbar-logo.png" size="471 KB">Navbar logo</asset>
   </assets>
@@ -387,17 +399,18 @@
      ============================================================================ -->
 <signature>
   <project>kindly-services</project>
-  <version>1.0.0</version>
-  <description>Kindly Debugger Marketing Website</description>
-  <url>https://kindly.services</url>
-  <size>7,584 LOC | 10 components | 5 pages</size>
+  <version>1.1.0</version>
+  <description>Kindly Debugger Marketing Website with Signup Flow</description>
+  <url>https://www.kindly.software</url>
+  <size>8,150+ LOC | 12 components | 7 pages</size>
   <framework>Leptos 0.7 (CSR/WASM)</framework>
-  <deployment>Cloudflare Pages</deployment>
-  <bundle>331 KB WASM + 38 KB JS</bundle>
+  <deployment>Cloudflare Pages (kindly-services project)</deployment>
+  <bundle>355 KB WASM + 46 KB JS</bundle>
   <protection>T6 Mixed (T1 + T0 + T9)</protection>
-  <http-server>T6 COCA binary (1,003 lines, 12/12 tests)</http-server>
+  <http-server>T6 Chaos binary (1,003 lines, 12/12 tests)</http-server>
   <compliance>SOX, SOC2, GDPR, HIPAA</compliance>
-  <date>2025-12-06</date>
+  <promo>7-day launch: Hobby tier unlimited, then 5 sessions/month</promo>
+  <date>2025-12-07</date>
 </signature>
 
 </project>

@@ -76,6 +76,9 @@ pub struct McpServerCapsule {
     /// Tool registry (16 KB)
     pub tools: McpToolRegistryCapsule,
 
+    /// Response sanitizer (128 B) - Removes Chaos implementation details
+    pub sanitizer: crate::response_sanitizer::ResponseSanitizerCapsule,
+
     // ========================================================================
     // MCP Protocol State Machine (T1 Atomic, <10ns)
     // ========================================================================
@@ -213,6 +216,7 @@ impl McpServerCapsule {
             rate_limiter: RateLimiterCapsule::new(),
             quota: QuotaTrackerCapsule::with_limits(10_000, 100_000, 1_000_000),
             tools: McpToolRegistryCapsule::new(),
+            sanitizer: crate::response_sanitizer::ResponseSanitizerCapsule::new(),
             protocol_state: AtomicU8::new(0),  // Start as Uninitialized
             total_requests: AtomicU64::new(0),
             successful_requests: AtomicU64::new(0),
@@ -392,14 +396,39 @@ impl McpServerCapsule {
             _ => {}
         }
 
+        // Handle MCP tools/call method (MCP 2024-11-05 spec)
+        // Extract actual tool name from params.name and args from params.arguments
+        let is_tools_call = req.method == "tools/call";
+
+        // Create empty args for default case (needs to outlive the if block)
+        let empty_args = serde_json::json!({});
+
+        let (tool_method, tool_params): (&str, &serde_json::Value) = if is_tools_call {
+            // MCP spec: tools/call has { name: "tool_name", arguments: {...} }
+            let tool_name = req.params.get("name")
+                .and_then(|n| n.as_str())
+                .ok_or_else(|| {
+                    self.failed_requests.fetch_add(1, Ordering::Relaxed);
+                    format!(r#"{{"jsonrpc":"2.0","id":{},"error":{{"code":-32602,"message":"Missing required parameter: name"}}}}"#, req.id)
+                })?;
+
+            // Get arguments, default to empty object if not provided
+            let tool_args = req.params.get("arguments").unwrap_or(&empty_args);
+
+            (tool_name, tool_args)
+        } else {
+            // Direct method call (legacy compatibility)
+            (req.method.as_str(), &req.params)
+        };
+
         // 2. Extract PID and command for authentication
-        let target_pid = req.params["pid"]
+        let target_pid = tool_params["pid"]
             .as_u64()
             .map(|p| p as u32)
-            .or_else(|| req.params["pid"].as_i64().map(|p| p as u32))
+            .or_else(|| tool_params["pid"].as_i64().map(|p| p as u32))
             .unwrap_or(0); // 0 = no PID
 
-        let command = crate::auth_middleware::method_to_command(&req.method)
+        let command = crate::auth_middleware::method_to_command(tool_method)
             .map_err(|e| format!("Invalid method: {}", e))?;
 
         // 3. AUTHENTICATE REQUEST (NEW - CVSS 9.3 FIX)
@@ -469,11 +498,11 @@ impl McpServerCapsule {
         }
 
         // 7. Route to tool (<120ns)
-        let handle = self.tools.lookup(&req.method)
-            .ok_or_else(|| format!("Unknown method: {}", req.method))?;
+        let handle = self.tools.lookup(tool_method)
+            .ok_or_else(|| format!("Unknown method: {}", tool_method))?;
 
         // 8. Execute debug command WITH auth_ctx (variable latency)
-        let result = self.dispatch_tool(handle.handler_id, &req.params, &auth_ctx, debugger)?;
+        let result = self.dispatch_tool(handle.handler_id, tool_params, &auth_ctx, debugger)?;
 
         // 9. Record metrics (<10ns)
         let latency_ns = Self::get_timestamp_ns() - start_ns;
@@ -487,7 +516,22 @@ impl McpServerCapsule {
         self.total_requests.fetch_add(1, Ordering::Relaxed);
         self.successful_requests.fetch_add(1, Ordering::Relaxed);
 
-        self.json_rpc.format_response(req.id, result)
+        // Wrap result in MCP content format for tools/call (MCP 2024-11-05 spec)
+        let final_result = if is_tools_call {
+            serde_json::json!({
+                "content": [
+                    {
+                        "type": "text",
+                        "text": result.to_string()
+                    }
+                ],
+                "isError": false
+            })
+        } else {
+            result
+        };
+
+        self.json_rpc.format_response(req.id, final_result)
             .map_err(|e| e.to_string())
     }
 
@@ -727,7 +771,7 @@ impl McpServerCapsule {
             // Could add X-Snapshot-Warning header in response
         }
 
-        match handler_id {
+        let mut result = match handler_id {
             // Debugging tools (1-9)
             1 => self.tool_attach(params, auth_ctx, debugger),
             2 => self.tool_set_breakpoint(params, auth_ctx, debugger),
@@ -761,7 +805,14 @@ impl McpServerCapsule {
             26 => self.tool_elevate_to_operator(params, auth_ctx),
             27 => self.tool_revoke_operator(auth_ctx),
             _ => Err(format!("Unknown handler: {}", handler_id)),
-        }
+        }?;
+
+        // Sanitize response before returning to user
+        // Removes Chaos implementation details (tier, capsule, latency_ns, etc.)
+        // Performance: <1μs (in-place JSON mutation)
+        self.sanitizer.sanitize(&mut result);
+
+        Ok(result)
     }
 
     // ========================================================================

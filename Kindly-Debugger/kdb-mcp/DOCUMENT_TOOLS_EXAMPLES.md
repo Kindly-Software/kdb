@@ -566,7 +566,7 @@ These examples demonstrate:
 5. **Real-world** scenarios (batch processing, monitoring)
 6. **Error handling** and recovery
 
-All examples follow COCA principles:
+All examples follow Chaos principles:
 - Stack-allocated capsules
 - Zero heap allocation
 - Atomic operations only

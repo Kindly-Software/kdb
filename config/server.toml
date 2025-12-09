@@ -1,0 +1,678 @@
+# Atomic Capsule HTTP Server - Production Configuration
+# Version: 1.0.0 (2025-11-21)
+# Framework: UCE34 T8 (Network) + T1 (Atomic Coordination) + T5 (Streaming)
+# Deployment: kindly.software (6900HX AMD Ryzen 9 6900HX, 64GB DDR5)
+#
+# This configuration implements 10 capsule systems:
+# - TlsServerCapsule: TLS 1.3 termination with ALPN
+# - HttpRouterCapsule: High-performance request routing
+# - StaticFileServerCapsule: Sendfile-based static content
+# - CorsMiddlewareCapsule: Cross-origin resource sharing
+# - CsrfProtectionCapsule: Token-based CSRF protection
+# - SecurityHeadersCapsule: Defense-in-depth headers
+# - RateLimiterCapsule: T1 atomic rate limiting (<10ns)
+# - CircuitBreakerCapsule: T1 adaptive circuit breaking
+# - ValidationCapsule: T2 SIMD-accelerated XSS/SQL detection
+# - CacheMiddlewareCapsule: ETag-based HTTP caching
+
+# ============================================================================
+# SERVER CORE CONFIGURATION
+# ============================================================================
+[server]
+# Server identity
+name = "atomic-capsule-saas"
+version = "1.0.0"
+environment = "production"
+
+# Network bindings
+listen_https = "0.0.0.0:443"
+listen_http = "0.0.0.0:80"
+
+# Connection management
+max_connections = 100000
+max_pending_accept = 1024
+keepalive_timeout = 60  # seconds
+keepalive_max_requests = 1000
+request_timeout = 30  # seconds
+graceful_shutdown_timeout = 15  # seconds
+
+# Performance tuning (6900HX: 8c/16t)
+worker_threads = 16
+io_uring_enabled = true  # Linux 5.1+
+io_uring_queue_depth = 2048
+enable_tcp_nodelay = true
+enable_ipv6 = true
+socket_send_buffer = 262144  # 256KB
+socket_recv_buffer = 262144  # 256KB
+
+# Performance features
+enable_http2 = true
+http2_max_streams_per_connection = 128
+http2_initial_window_size = 65535
+http2_settings_timeout = 5
+
+# Resource limits
+max_upload_size = 104857600  # 100MB
+max_header_size = 8192  # 8KB
+max_body_size = 104857600  # 100MB
+
+# ============================================================================
+# TLS CONFIGURATION (TlsServerCapsule)
+# ============================================================================
+[tls]
+# Certificate paths (Let's Encrypt)
+cert_path = "/etc/letsencrypt/live/kindly.software/fullchain.pem"
+key_path = "/etc/letsencrypt/live/kindly.software/privkey.pem"
+
+# #ASSUME_TLS_CERT_EXISTS: Let's Encrypt certificate will exist before first run
+# #VERIFY_TLS_CERT: Check paths with: ls -la /etc/letsencrypt/live/kindly.software/
+
+# Protocol enforcement
+protocols = ["TLSv1.3"]  # TLS 1.3 only (no fallback to 1.2)
+min_tls_version = "1.3"
+max_tls_version = "1.3"
+
+# Cipher suites (FIPS 140-2 compliant)
+ciphers = [
+    "TLS_AES_256_GCM_SHA384",
+    "TLS_CHACHA20_POLY1305_SHA256"
+]
+
+# Application Layer Protocol Negotiation
+alpn = ["h2", "http/1.1"]
+
+# Session management
+enable_0rtt = false  # Disable for security (prevents replay attacks)
+session_cache_size = 10000
+session_timeout = 3600  # seconds
+
+# Performance features
+enable_session_resumption = true
+enable_ticket_support = true
+enable_sni = true
+
+# OCSP Stapling
+enable_ocsp = true
+ocsp_cache_ttl = 3600
+
+# Certificates (future mTLS support)
+enable_client_auth = false  # Set to true for mTLS
+client_cert_path = ""
+require_client_cert = false
+
+# Security features
+enable_strict_sni = true
+enable_ecdhe = true
+enable_dhe = false  # DHE deprecated, use ECDHE only
+certificate_chain_validation = "strict"
+
+# ============================================================================
+# HTTP SERVER CONFIGURATION (HttpRouterCapsule)
+# ============================================================================
+[http]
+# Server identity headers (privacy)
+server_header = "atomic-capsule/1.0"
+
+# Request/response handling
+enable_compression = true
+compression_level = 6  # 1-9, 6 is balanced
+compression_min_size = 1024  # Don't compress <1KB
+compression_types = ["text/", "application/json", "application/javascript"]
+
+# HTTP/1.1 features
+enable_expect_100_continue = true
+enable_transfer_encoding_chunked = true
+
+# Performance features
+enable_pipeline_pipelining = false  # HTTP pipelining deprecated in HTTP/2
+enable_keep_alive = true
+keep_alive_max_requests = 1000
+keep_alive_timeout = 60
+
+# Default handlers
+default_error_handler = "json"  # json | html
+not_found_status = 404
+method_not_allowed_status = 405
+
+# Request validation
+validate_request_uri = true
+validate_request_headers = true
+validate_http_version = true
+
+# ============================================================================
+# STATIC FILE SERVER (StaticFileServerCapsule)
+# ============================================================================
+[static_files]
+# Content paths
+root = "/home/samuel/Primitives/public"
+index_files = ["index.html", "index.htm"]
+fallback = ""  # For SPA: "index.html"
+
+# Caching strategy
+cache_ttl = 3600  # 1 hour for versioned assets
+cache_max_age = 604800  # 7 days (use with ?v=hash query param)
+enable_browser_cache = true
+enable_cdn_cache = true
+
+# Transfer optimization
+enable_sendfile = true  # Zero-copy sendfile (Linux sendfile64)
+enable_etag = true
+enable_last_modified = true
+enable_range = true  # HTTP Range requests (resume downloads)
+enable_gzip = true  # Content-Encoding: gzip
+enable_brotli = false  # Requires brotli dependency
+
+# SIMD-accelerated features
+mime_detection = "simd"  # SIMD detection for Content-Type (30× speedup)
+mime_type_detection_cache_size = 10000
+
+# Security
+enable_directory_listing = false
+enable_symlink_follow = false
+hidden_files_pattern = [".*", "*.bak", "*.swp"]
+
+# Precompression (brotli/gzip on disk)
+enable_precompressed = true
+precompressed_formats = ["br", "gz"]
+
+# Performance tuning
+max_file_size_in_memory = 1048576  # 1MB (larger files use sendfile)
+read_buffer_size = 65536  # 64KB chunks
+allow_listing = false
+
+# ============================================================================
+# CORS CONFIGURATION (CorsMiddlewareCapsule)
+# ============================================================================
+[cors]
+# Origin validation
+allowed_origins = [
+    "https://kindly.software",
+    "https://www.kindly.software",
+    "https://app.kindly.software",
+    "https://api.kindly.software"
+]
+allow_any_origin = false
+allow_null_origin = false
+
+# Credentials and cookies
+allow_credentials = true
+allow_private_networks = false
+
+# Method and header control
+allowed_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"]
+allowed_headers = [
+    "Content-Type",
+    "Authorization",
+    "X-CSRF-Token",
+    "X-API-Key",
+    "Accept",
+    "Accept-Language",
+    "User-Agent"
+]
+expose_headers = [
+    "Content-Type",
+    "X-Total-Count",
+    "X-Page-Count",
+    "X-Request-Id",
+    "X-RateLimit-Limit",
+    "X-RateLimit-Remaining"
+]
+
+# Caching
+max_age = 86400  # 24 hours
+cache_preflight = true
+
+# Wildcard origins (use sparingly)
+allow_wildcard_origins = false
+allow_wildcard_headers = false
+allow_wildcard_methods = false
+
+# ============================================================================
+# CSRF PROTECTION (CsrfProtectionCapsule)
+# ============================================================================
+[csrf]
+# Token management
+token_ttl = 3600  # 1 hour
+token_length = 32  # bytes (256 bits)
+token_generator = "secure_random"  # csprng
+
+# Cookie configuration
+cookie_name = "__csrf_token"
+cookie_domain = "kindly.software"
+cookie_path = "/"
+cookie_secure = true  # HTTPS only
+cookie_http_only = true
+cookie_same_site = "Strict"  # Strict | Lax | None
+
+# Request handling
+header_name = "X-CSRF-Token"
+form_field_name = "_csrf_token"
+query_param_name = "_csrf"
+
+# Methods requiring CSRF token
+protected_methods = ["POST", "PUT", "DELETE", "PATCH"]
+safe_methods = ["GET", "HEAD", "OPTIONS"]
+
+# Configuration
+enable_double_submit = false
+enable_session_based = true
+require_double_verification = false
+
+# Exclusions
+excluded_paths = [
+    "/health",
+    "/ready",
+    "/metrics"
+]
+
+# ============================================================================
+# SECURITY HEADERS (SecurityHeadersCapsule)
+# ============================================================================
+[security_headers]
+# HTTP Strict Transport Security (HSTS)
+hsts_enabled = true
+hsts_max_age = 31536000  # 1 year
+hsts_include_subdomains = true
+hsts_preload = true
+
+# Content Security Policy (CSP)
+csp_enabled = true
+csp_default_src = "'self'"
+csp_script_src = "'self' 'nonce-{NONCE}'"
+csp_style_src = "'self' 'unsafe-inline'"
+csp_img_src = "'self' data:"
+csp_font_src = "'self'"
+csp_connect_src = "'self'"
+csp_frame_ancestors = "'none'"
+csp_form_action = "'self'"
+csp_base_uri = "'self'"
+csp_upgrade_insecure_requests = true
+csp_block_all_mixed_content = true
+csp_report_uri = "/api/csp-report"
+
+# Clickjacking protection
+x_frame_options = "DENY"  # DENY | SAMEORIGIN | ALLOW-FROM
+
+# MIME type sniffing prevention
+x_content_type_options = "nosniff"
+
+# XSS protection (legacy, modern CSP preferred)
+x_xss_protection = "1; mode=block"
+
+# Referrer policy
+referrer_policy = "strict-origin-when-cross-origin"
+
+# Feature policy (Permissions Policy)
+permissions_policy = "geolocation=(), microphone=(), camera=()"
+
+# Additional headers
+enable_remove_server_header = true
+enable_remove_powered_by_header = true
+enable_remove_x_aspnet_version = true
+
+# Public key pinning (HPKP) - WARNING: Use with caution
+enable_hpkp = false
+hpkp_max_age = 2592000  # 30 days
+
+# ============================================================================
+# RATE LIMITING (RateLimiterCapsule - T1 Atomic, <10ns)
+# ============================================================================
+[rate_limiter]
+# Static file serving
+static_files_rpm = 1000  # requests per minute per IP
+static_files_burst = 50  # burst allowance
+
+# API endpoints
+api_rpm = 100  # requests per minute per IP
+api_burst = 10  # burst allowance
+
+# Authentication endpoints
+auth_rpm = 30  # login/register attempts per minute
+auth_burst = 5
+
+# General rate limiting
+default_rpm = 100
+default_burst = 20
+
+# Window configuration
+window_duration = 60  # seconds
+cleanup_interval = 300  # seconds (cleanup stale entries)
+
+# Storage
+max_tracked_ips = 100000
+ip_cleanup_mode = "lru"  # lru | fifo
+
+# Features
+enable_distributed = false  # Redis sync (not needed for single server)
+enable_leaky_bucket = true
+enable_token_bucket = true
+enable_sliding_window = false  # More accurate but more memory
+
+# Bypass conditions
+bypass_loopback = true
+bypass_authenticated = false
+bypass_paths = [
+    "/health",
+    "/ready",
+    "/metrics"
+]
+
+# Response headers
+include_limit_headers = true
+x_ratelimit_limit_header = "X-RateLimit-Limit"
+x_ratelimit_remaining_header = "X-RateLimit-Remaining"
+x_ratelimit_reset_header = "X-RateLimit-Reset"
+
+# ============================================================================
+# CIRCUIT BREAKER (CircuitBreakerCapsule - T1 Atomic)
+# ============================================================================
+[circuit_breaker]
+# Threshold configuration
+error_threshold = 0.5  # 50% error rate triggers open
+latency_threshold_ms = 100  # p99 latency 100ms
+request_volume_threshold = 20  # Minimum requests before evaluating
+
+# State transitions
+closed_to_open_errors = 0.5  # 50% errors → Open
+open_to_half_open_wait_ms = 30000  # 30 seconds recovery
+half_open_to_closed_success_rate = 0.9  # 90% success → Closed
+half_open_max_calls = 3  # Test 3 requests in half-open
+
+# Fractal degradation (L0-L3)
+enable_fractal_degradation = true
+l0_latency_ms = 50  # OK
+l1_latency_ms = 100  # Slow (timeout < L1)
+l2_latency_ms = 200  # Very slow (reduce workers)
+l3_latency_ms = 500  # Critical (fail-safe)
+
+# Degradation actions
+l0_action = "monitor"
+l1_action = "monitor"  # No change
+l2_action = "reduce_load"  # Reduce concurrent requests
+l3_action = "circuit_open"  # Open circuit
+
+# Recovery features
+enable_recovery_tracking = true
+recovery_window_ms = 60000  # 1 minute recovery window
+min_recovery_rate = 0.8  # 80% success needed to recover
+
+# Metrics
+enable_metrics = true
+reset_metrics_on_transition = false
+
+# ============================================================================
+# VALIDATION (ValidationCapsule - T2 SIMD, 30× speedup)
+# ============================================================================
+[validation]
+# XSS protection (SIMD-accelerated)
+enable_xss = true
+xss_method = "simd"  # simd | scalar | both (both = validate+fallback)
+sanitize_html = true
+sanitize_script_tags = true
+sanitize_style_attributes = true
+allow_safe_html = false
+
+# SQL injection detection (SIMD-accelerated)
+enable_sql_injection = true
+sql_method = "simd"  # simd | pattern | both
+sql_keywords = [
+    "SELECT", "INSERT", "UPDATE", "DELETE", "DROP",
+    "UNION", "ALTER", "EXEC", "EXECUTE", "SCRIPT"
+]
+detect_comment_tricks = true
+detect_encoding_tricks = true
+
+# Email validation
+enable_email_validation = true
+email_validation_strict = true
+
+# URL validation
+enable_url_validation = true
+url_allowed_schemes = ["http", "https"]
+url_allow_relative = true
+url_disallow_javascript = true
+
+# Field validation
+max_field_length = 10000  # bytes
+max_text_area_length = 100000  # bytes
+max_array_length = 10000  # elements
+
+# Input constraints
+require_non_empty = ["email", "password", "username"]
+require_ascii_printable = ["username", "comment"]
+require_valid_utf8 = true
+
+# Character set restrictions
+allowed_username_charset = "[a-zA-Z0-9_.-]"
+allowed_email_charset = "[a-zA-Z0-9._+%-]"
+
+# Validation performance
+enable_simd = true  # SIMD-accelerated detection (30× speedup)
+simd_batch_size = 256  # Process N bytes at once
+enable_caching = true
+cache_size = 10000
+
+# ============================================================================
+# CACHE MIDDLEWARE (CacheMiddlewareCapsule)
+# ============================================================================
+[cache]
+# Cache control
+enable_caching = true
+enable_etag = true
+enable_last_modified = true
+enable_304_responses = true
+
+# Default caching strategy
+default_cache_control = "public, max-age=3600"
+default_max_age = 3600  # 1 hour
+
+# Cache validation
+enable_weak_etag = false  # Use strong ETags only
+etag_algorithm = "blake3"  # blake3 | sha256 | xxhash64
+
+# Last-Modified handling
+enable_last_modified = true
+preserve_last_modified = true
+
+# Caching rules by content type
+[cache.rules]
+"text/html" = { max_age = 3600, public = true, must_revalidate = true }
+"text/css" = { max_age = 31536000, public = true, immutable = true }
+"application/javascript" = { max_age = 31536000, public = true, immutable = true }
+"image/*" = { max_age = 31536000, public = true, immutable = true }
+"application/json" = { max_age = 0, private = true, must_revalidate = true }
+
+# Vary header support
+enable_vary_header = true
+vary_on = ["Accept-Encoding", "Accept-Language"]
+
+# Cache busting
+enable_query_param_vary = true
+enable_version_suffix_vary = true
+version_suffix_param = "v"
+
+# ============================================================================
+# LOGGING & AUDIT (Tier 0 Auditable + Logging)
+# ============================================================================
+[logging]
+# Output configuration
+level = "info"  # debug | info | warn | error | critical
+format = "json"  # json | text
+output = "/home/samuel/Primitives/logs/server.log"
+max_size = 104857600  # 100MB (rotate when exceeded)
+max_backups = 10  # Keep 10 backups
+max_age_days = 7  # Delete logs older than 7 days
+
+# Rotation strategy
+rotation_policy = "daily"  # daily | size | off
+rotate_daily = true
+rotate_at_hour = 0  # Rotate at midnight
+
+# Performance
+enable_async_logging = true
+async_buffer_capacity = 10000
+async_thread_count = 2
+
+# Log fields
+include_timestamp = true
+include_level = true
+include_module = true
+include_file = true
+include_line = true
+include_function = true
+
+# Request/response logging
+enable_request_logging = true
+enable_response_logging = true
+log_request_headers = false
+log_request_body = false  # Security: don't log passwords
+log_response_headers = false
+log_response_body = false
+
+# Performance monitoring
+enable_latency_logging = true
+slow_request_threshold_ms = 100  # Log requests >100ms
+enable_percentile_tracking = true
+
+# ============================================================================
+# AUDIT LOG (Q34 Compliance - Tamper-Evident)
+# ============================================================================
+[audit]
+# Audit trail configuration
+enable_audit = true
+output = "/home/samuel/Primitives/logs/audit.log"
+max_size = 52428800  # 50MB
+max_backups = 20
+max_age_days = 30  # 30 days for audit compliance
+
+# Events to audit
+audit_events = [
+    "authentication_success",
+    "authentication_failure",
+    "authorization_failure",
+    "configuration_change",
+    "security_event",
+    "data_access",
+    "deletion",
+    "privilege_escalation"
+]
+
+# Hash-chain integrity (Q34)
+enable_hash_chain = true
+hash_algorithm = "blake3"
+verify_chain_period_sec = 300  # Verify every 5 minutes
+
+# Format
+format = "json"  # Immutable JSON with hash
+include_hash = true
+include_previous_hash = true
+
+# Retention
+retention_days = 90  # GDPR/SOX compliance
+enable_archival = true
+archive_path = "/home/samuel/Primitives/logs/audit-archive"
+
+# ============================================================================
+# METRICS (Prometheus Format)
+# ============================================================================
+[metrics]
+# Metrics endpoint
+enable = true
+endpoint = "/metrics"
+format = "prometheus"  # prometheus | json | openmetrics
+
+# Metrics to collect
+collect_http_requests = true
+collect_latency = true
+collect_errors = true
+collect_cache_stats = true
+collect_memory = true
+collect_cpu = true
+collect_connections = true
+collect_rate_limiting = true
+collect_circuit_breaker = true
+
+# Histogram buckets (milliseconds)
+latency_buckets = [1, 5, 10, 25, 50, 100, 250, 500, 1000]
+
+# Cardinality limits
+max_label_cardinality = 10000
+max_metric_series = 100000
+
+# Performance
+enable_async_collection = true
+collection_interval_sec = 60
+push_interval_sec = 0  # 0 = no push (pull-based)
+
+# ============================================================================
+# HEALTH CHECK & READINESS
+# ============================================================================
+[health]
+# Endpoints
+health_endpoint = "/health"
+ready_endpoint = "/ready"
+alive_endpoint = "/alive"
+
+# Health check configuration
+health_check_interval = 30  # seconds
+health_check_timeout = 5  # seconds
+
+# Liveness criteria
+check_memory = true
+max_memory_percent = 90.0
+check_disk = true
+max_disk_percent = 90.0
+check_connections = true
+max_connections_percent = 95.0
+
+# Readiness criteria
+check_tls = true  # Certificate valid
+check_routes = true  # Routes initialized
+check_dependencies = true  # All services ready
+startup_delay = 5  # seconds (wait for startup)
+
+# Response format
+response_format = "json"
+include_details = true
+include_timestamp = true
+
+# ============================================================================
+# DATABASE (Placeholder for future integration)
+# ============================================================================
+[database]
+# Disabled for current deployment (no database)
+enabled = false
+# type = "postgresql"
+# host = "localhost"
+# port = 5432
+# database = "kindly_saas"
+# username = "samuel"
+# password = "changeme"
+# pool_size = 20
+# max_idle_time = 300
+# connection_timeout = 10
+
+# ============================================================================
+# PERFORMANCE TUNING
+# ============================================================================
+[performance]
+# Memory optimization
+enable_memory_pooling = true
+memory_pool_size = 1000
+enable_string_interning = false  # Only for <100 unique strings
+
+# CPU optimization
+enable_cpu_affinity = true
+cpu_cores_reserved = 1  # Reserve 1 core for OS
+cpu_profiling = false  # Enable only for debugging
+
+# Cache optimization
+enable_l1_cache = true
+enable_l2_cache = true
+l1_cache_size = 32768  # 32KB
+l2_cache_size = 262144  # 256KB
+
+# SIMD optimization
+enable_simd = true
+simd_batch_size = 256
+detect_cpu_features = true

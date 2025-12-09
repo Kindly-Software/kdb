@@ -1,0 +1,21 @@
+warning: user-defined alias `bench` is ignored, because it is shadowed by a built-in command
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/atomic_network_gateway/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/kiang/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+   Compiling atomic_llm_capsule v0.1.0 (/home/samuel/Primitives/atomic_llm_capsule)
+error: couldn't read `atomic_llm_capsule/src/integration/mod.rs`: stream did not contain valid UTF-8
+  --> atomic_llm_capsule/src/lib.rs:20:1
+   |
+20 | pub mod integration;
+   | ^^^^^^^^^^^^^^^^^^^^
+   |
+note: byte `215` is not valid utf-8
+  --> atomic_llm_capsule/src/integration/mod.rs:17:58
+   |
+17 | //! 1. **Micro-Block Co-Located Quantization (MBCQ)** - 3� faster via co-located metadata
+   |                                                          ^
+
+error: could not compile `atomic_llm_capsule` (lib) due to 1 previous error

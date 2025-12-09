@@ -1,7 +1,7 @@
 # AnomalyDetectorCapsule - T10 ML-Based Anomaly Detection Implementation
 
 **Status**: ✅ Production Ready (v0.1.0)
-**Framework**: UCE34, COCA (100% lockfree), ASSUM (99.99% safety)
+**Framework**: UCE34, Chaos (100% lockfree), ASSUM (99.99% safety)
 **Tiers**: T10 (Probabilistic) + T2 (SIMD) + T5 (Streaming)
 **Size**: 1024 bytes (256-byte aligned) + 64KB model
 **Latency**: +400ns per request (200ns features + 200ns inference)
@@ -386,7 +386,7 @@ const MAX_FALSE_POSITIVE_RATE: f32 = 0.01; // <1% FPR target
 - ✅ Q33: Verification (#[derive(ComputationalCapsule)])
 - ✅ Q34: Auditability (event logging)
 
-### COCA (100% Computational Capsules)
+### Chaos (100% Computational Capsules)
 - ✅ 1024-byte aligned capsule
 - ✅ All stats via atomics (no mutex)
 - ✅ Zero unsafe code in fast paths
@@ -433,7 +433,7 @@ const MAX_FALSE_POSITIVE_RATE: f32 = 0.01; // <1% FPR target
 ## References
 
 - **UCE34 Framework**: `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/uce34.xml`
-- **COCA Philosophy**: `/home/samuel/Docs/The Computational Capsule.md`
+- **Chaos Philosophy**: `/home/samuel/Docs/The Computational Capsule.md`
 - **KEY_INNOVATIONS**: `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md`
 - **B32 Benchmarking**: `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/b32.xml`
 - **T28 Testing**: `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/t28.xml`
@@ -442,7 +442,7 @@ const MAX_FALSE_POSITIVE_RATE: f32 = 0.01; // <1% FPR target
 ## Author & License
 
 **Implemented**: November 2025
-**Framework**: UCE34 (Systematic Discovery) + COCA (Computational Capsules)
+**Framework**: UCE34 (Systematic Discovery) + Chaos (Computational Capsules)
 **License**: MIT OR Apache-2.0
 **Status**: Production Ready (v0.1.0)
 

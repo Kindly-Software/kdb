@@ -1,0 +1,36 @@
+[package]
+name = "capsule_cache"
+version = "0.1.0"
+edition = "2021"
+resolver = "2"
+description = "Redis-like cache built with computational capsule architecture (UCE34/Chaos compliant)"
+license = "Proprietary"
+
+[features]
+default = ["std"]
+std = [
+    "atomic_capsule/std",
+    "atomic_capsule/cache",
+]
+# Integrity/auth/privacy toggles (forwarded to atomic_capsule)
+integrity = ["std", "atomic_capsule/cache-hmac"]
+multi-tenant = ["std", "atomic_capsule/cache-multi-tenant"]
+encryption = ["std", "atomic_capsule/cache-encryption"]
+security-full = ["integrity", "multi-tenant", "encryption"]
+
+# Distributed tier (T8) feature set
+distributed = ["std", "atomic_capsule/distributed"]
+distributed-compression = ["distributed", "atomic_capsule/distributed-compression"]
+distributed-audit = ["distributed", "atomic_capsule/distributed-audit"]
+distributed-histogram = ["distributed", "atomic_capsule/distributed-histogram"]
+distributed-all = [
+    "distributed-compression",
+    "distributed-audit",
+    "distributed-histogram",
+]
+
+[dependencies]
+atomic_capsule = { path = "../atomic_capsule", default-features = false, features = ["std", "histogram", "ring-trace", "queue-bounded"] }
+
+[lints.rust]
+unsafe_code = "forbid"

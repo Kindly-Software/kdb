@@ -1,0 +1,11 @@
+[package]
+name = "kindly_rub"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+atomic_capsule = { path = "../atomic_capsule", features = ["std", "native", "mux-webm"] }
+atomic_capsule_derive = { path = "../atomic_capsule_derive" }
+
+[lints]
+workspace = true

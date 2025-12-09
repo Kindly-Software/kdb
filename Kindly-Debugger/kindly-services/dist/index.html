@@ -11,7 +11,7 @@
     <meta property="og:title" content="Kindly Debugger | Time-Travel Debugging for AI Workflows">
     <meta property="og:description" content="Time-travel debugging for AI workflows. Debug as if the bug never existed. MCP-native for Claude Code.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://kindly.services">
+    <meta property="og:url" content="https://kindly.software">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
@@ -31,8 +31,8 @@
     <!-- Build the WASM target (wasm-opt skipped via Trunk.toml) -->
     
 <script type="module">
-import init, * as bindings from '/kindly-services-b77f4819306a0d0b.js';
-const wasm = await init({ module_or_path: '/kindly-services-b77f4819306a0d0b_bg.wasm' });
+import init, * as bindings from '/kindly-services-4c3aa5954ae26f41.js';
+const wasm = await init({ module_or_path: '/kindly-services-4c3aa5954ae26f41_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -102,8 +102,15 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 
         html {
             scroll-behavior: smooth;
-            font-size: 16px;
+            font-size: 13px;
             scroll-padding-top: 100px;
+        }
+
+        /* Scale up slightly on large desktops */
+        @media (min-width: 1400px) {
+            html {
+                font-size: 14px;
+            }
         }
 
         /* Anchor link scroll offset - accounts for fixed navbar height */
@@ -522,10 +529,10 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
             }
         }
     </style>
-<link rel="modulepreload" href="/kindly-services-b77f4819306a0d0b.js" crossorigin="anonymous" integrity="sha384-kGJgBcdP3aP7C2vfmwoLVlG04yFllbeaJLf8Pkh7HkX26UNpIgTzNPECHPmk5mP7"><link rel="preload" href="/kindly-services-b77f4819306a0d0b_bg.wasm" crossorigin="anonymous" integrity="sha384-V4zs+Fp5ks9ampBriHBCkJJWBTln+EDqryT0Je7Q34cOYYvesQtCKgNj2xBLHgzO" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/kindly-services-4c3aa5954ae26f41.js" crossorigin="anonymous" integrity="sha384-lByErqU0EPVYiQ9LEsN/hzlzXh36/losoOq4nTEad89XkUT2XZC99aCBPixQYPrP"><link rel="preload" href="/kindly-services-4c3aa5954ae26f41_bg.wasm" crossorigin="anonymous" integrity="sha384-bnjcubgqW4Bz/Wzysz+s2UQXz4pkXcagp5otaJUwivP0p70B1Gbkac5Vf3fBQp85" as="fetch" type="application/wasm"></head>
 <body>
     <canvas id="webgl-bg"></canvas>
-    <div id="app" class="loading">Loading kindly.services</div>
+    <div id="app" class="loading">Loading kindly.software</div>
     <noscript>
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #1a0028, #2D004D); color: white; font-family: 'Inter', sans-serif; text-align: center; padding: 2rem;">
             <h1 style="font-size: 2rem; margin-bottom: 1rem;">Kindly Debugger</h1>

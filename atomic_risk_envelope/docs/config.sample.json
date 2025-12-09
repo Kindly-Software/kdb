@@ -1,0 +1,24 @@
+[
+  {
+    "rem_daily_loss_cents": 60000,
+    "max_per_trade_cents": 20000,
+    "max_contracts": 6,
+    "max_open_ms": 60000,
+    "forbid_after_min_ct": 900,
+    "eod_flat_min_ct": 930,
+    "flags": 0,
+    "version": 1,
+    "sequence": 0
+  },
+  {
+    "rem_daily_loss_cents": 85000,
+    "max_per_trade_cents": 25000,
+    "max_contracts": 8,
+    "max_open_ms": 80000,
+    "forbid_after_min_ct": 885,
+    "eod_flat_min_ct": 915,
+    "flags": 1,
+    "version": 2,
+    "sequence": 3
+  }
+]

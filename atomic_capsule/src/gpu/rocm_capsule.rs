@@ -7,7 +7,7 @@
 // - Q33: Verification (#[derive(ComputationalCapsule)] for coordination)
 // - Q34: Audit trail (kernel launch tracking, performance metrics)
 //
-// COCA Compliance: T1 Atomic coordination + T7 GPU compute
+// Chaos Compliance: T1 Atomic coordination + T7 GPU compute
 // ASSUM Safety: 99.99%+
 // - #ASSUME_HIP_RUNTIME_INIT: HIP runtime initialized before capsule creation
 // - #ASSUME_DEVICE_MEMORY_VALID: GPU device pointers valid within capsule lifetime

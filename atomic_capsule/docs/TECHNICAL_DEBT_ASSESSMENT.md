@@ -279,7 +279,7 @@ let capacity = STRESS_TEST_CAPACITY;
 | **B32 Benchmarking** | ✅ 100% | Honest claims, fair baselines |
 | **ASSUM Safety** | ✅ 99.5% | 12/12 unsafe tagged |
 | **I20 Integration** | ✅ 100% | Zero breaking changes |
-| **COCA Architecture** | ✅ 100% | Lockfree, verified |
+| **Chaos Architecture** | ✅ 100% | Lockfree, verified |
 
 ### Target Status (v0.3.2)
 
@@ -290,7 +290,7 @@ let capacity = STRESS_TEST_CAPACITY;
 | **B32 Benchmarking** | ✅ 100% | Maintained |
 | **ASSUM Safety** | ✅ 99.5% | Maintained |
 | **I20 Integration** | ✅ 100% | Maintained |
-| **COCA Architecture** | ✅ 100% | Maintained |
+| **Chaos Architecture** | ✅ 100% | Maintained |
 
 ---
 

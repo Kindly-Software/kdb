@@ -24,7 +24,7 @@
 //!
 //! - **B32**: Fair baselines, 95% CI, 1000+ iterations
 //! - **UCE34**: Q10 T4+T5+T1 mixed tier validation
-//! - **COCA**: 100% lockfree (validated via benchmarks)
+//! - **Chaos**: 100% lockfree (validated via benchmarks)
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
 use atomic_capsule::quantum::qec_integration::*;

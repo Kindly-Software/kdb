@@ -203,7 +203,7 @@ fn test_rapid_tier_transitions() {
     let start = Instant::now();
 
     let handles: Vec<_> = (0..100)
-        .map(|_id| {
+        .map(|id| {
             let pool = Arc::clone(&pool);
             let transitions = Arc::clone(&transition_count);
 

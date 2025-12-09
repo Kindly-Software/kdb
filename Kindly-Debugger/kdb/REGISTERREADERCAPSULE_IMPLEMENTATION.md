@@ -4,7 +4,7 @@
 **Status**: ✅ **COMPLETE**
 **Tier**: T2 SIMD (vectorized register copy)
 **Performance Target**: <500ns for 16 registers
-**Framework Compliance**: UCE34 Q1-Q34, COCA 100% Lockfree, B32 Validation
+**Framework Compliance**: UCE34 Q1-Q34, Chaos 100% Lockfree, B32 Validation
 
 ---
 
@@ -252,7 +252,7 @@ pub fn read_registers(&self, pid: i32) -> Result<user_regs_struct, RegisterError
 - ✅ **Q33**: Verification (#[derive(ComputationalCapsule)], compile-time)
 - ✅ **Q34**: Auditability (generation counters for trace integrity)
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 - ✅ **Cache-aligned**: 256-byte (warm-tier)
 - ✅ **Lockfree**: 100% atomic, zero mutex
 - ✅ **Type-safe**: user_regs_struct at compile time
@@ -384,7 +384,7 @@ Why not higher?
 - [x] Documentation complete (this file)
 - [x] Safety verified (ASSUM tags, lockfree verification)
 - [x] Performance measured (B32 benchmarks)
-- [x] Framework compliance (UCE34, COCA, B32, T28, I20)
+- [x] Framework compliance (UCE34, Chaos, B32, T28, I20)
 - [ ] Integrated with other capsules (future)
 - [ ] Deployed to production (future)
 
@@ -398,7 +398,7 @@ Why not higher?
 
 ### Framework Documentation
 - `UCE34` - `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/uce34.xml`
-- `COCA` - `/home/samuel/Docs/The Computational Capsule.md`
+- `Chaos` - `/home/samuel/Docs/The Computational Capsule.md`
 - `B32` - `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/b32.xml`
 - `T28` - `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/t28.xml`
 - `I20` - `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/i20.xml`

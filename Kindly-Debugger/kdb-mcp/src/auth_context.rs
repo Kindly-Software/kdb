@@ -4,7 +4,7 @@
 //! Created by AuthGuard.authenticate() and consumed by tool routing/execution.
 //!
 //! **Purpose**: Type-safe authentication state preventing unauthenticated request execution
-//! **Framework**: UCE34 Q31 (Rust type safety), COCA (zero runtime overhead)
+//! **Framework**: UCE34 Q31 (Rust type safety), Chaos (zero runtime overhead)
 
 use crate::types::SessionId;
 

@@ -55,7 +55,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 T1 Atomic tier, Q11 Rust (bit manipulation), Q34 audit trails
-//! - **COCA**: 100% lockfree (atomic counters, bit operations)
+//! - **Chaos**: 100% lockfree (atomic counters, bit operations)
 //! - **ASSUM**: 99.99% safe (5 assumptions, all verified)
 //! - **B32**: Fair baseline (Phase Q3.2 state vector), 1,000-20,000× speedup
 //! - **T28**: 28 comprehensive tests (unit/property/integration/production)

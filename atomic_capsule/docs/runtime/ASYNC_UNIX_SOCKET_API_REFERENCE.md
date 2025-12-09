@@ -486,7 +486,7 @@ cargo doc --features unix-socket --open
 ## Framework Compliance
 
 - ✅ **UCE34**: Q10 (T1+T5), Q33 (Verification)
-- ✅ **COCA**: 100% Computational Capsule Architecture
+- ✅ **Chaos**: 100% Computational Capsule Architecture
 - ✅ **ASSUM**: 99.5%+ Safety (10 verified assumptions)
 - ✅ **B32**: Fair baseline, TYPICAL tier measurements
 - ✅ **T28**: 26+ tests (unit/property/integration/production)

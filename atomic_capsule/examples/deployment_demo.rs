@@ -137,7 +137,7 @@ fn main() {
     println!("✓ UCE34: Q11 (100% Rust, zero bash scripts)");
     println!("✓ UCE34: Q33 (Computational capsule verification)");
     println!("✓ UCE34: Q34 (Hash-chain audit trail for compliance)");
-    println!("✓ COCA:  100% lockfree, atomic operations only");
+    println!("✓ Chaos:  100% lockfree, atomic operations only");
     println!("✓ ASSUM: Type-safe, no shell injection, validated SSH");
     println!("✓ B32:   <100ns coordination, honest deployment claims");
 

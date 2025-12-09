@@ -4,7 +4,7 @@
 **Version**: 0.1.0 AI-Native Edition
 **Date**: 2025-11-15
 **Tier**: T1 Atomic (stateful workflow orchestrator)
-**Framework Compliance**: UCE34 + COCA + ASSUM + B32 + T28 + I20
+**Framework Compliance**: UCE34 + Chaos + ASSUM + B32 + T28 + I20
 
 ---
 
@@ -381,7 +381,7 @@ All errors implement:
 | Q33 (Verification) | Ready for #[derive(ComputationalCapsule)] | ✅ Planned |
 | Q34 (Auditability) | ReplayEngineCapsule provides hash chain | ✅ Integrated |
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 
 | Aspect | Implementation | Status |
 |--------|-----------------|--------|
@@ -612,7 +612,7 @@ session.detach()
 
 **Frameworks**:
 - UCE34: Systematic discovery (Q1-Q34)
-- COCA: Computational Capsule Architecture
+- Chaos: Computational Capsule Architecture
 - ASSUM: Safety verification (99.99%)
 - B32: Honest benchmarking
 - T28: Comprehensive testing (4 tiers)

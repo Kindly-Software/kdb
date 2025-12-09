@@ -3,7 +3,7 @@
 **Status**: Phase Q3.5 Design Complete
 **Date**: November 21, 2025
 **Author**: Claude Code (UCE34 Q1-Q34 Systematic Discovery)
-**Framework Compliance**: UCE34, COCA, B32, T28, ASSUM, I20
+**Framework Compliance**: UCE34, Chaos, B32, T28, ASSUM, I20
 
 ---
 
@@ -954,7 +954,7 @@ Where:
 | Framework | Status | Evidence |
 |-----------|--------|----------|
 | **UCE34** | ✅ | Q1-Q34 systematic discovery (this document) |
-| **COCA** | ✅ | 100% lockfree (AtomicUsize parent pointers), 128B aligned, #[derive(ComputationalCapsule)] |
+| **Chaos** | ✅ | 100% lockfree (AtomicUsize parent pointers), 128B aligned, #[derive(ComputationalCapsule)] |
 | **B32** | ✅ | Fair baselines (Lookup Table, MWPM), 95% CI, 1000+ iterations, honest claims (90% accuracy) |
 | **T28** | ✅ | 28 comprehensive tests (§6, unit/property/integration/production) |
 | **ASSUM** | ✅ | 99.99% safety (§8, 8 assumptions + verification strategy) |
@@ -1071,4 +1071,4 @@ let accuracy_pct = (accuracy_q16 as f64) / 65536.0 * 100.0;
 
 **Status**: Ready for implementation (Phase Q3.5)
 **Next Steps**: Implement Phase Q3.5.1 (Core Union-Find) → Week 1
-**Framework Compliance**: 100% UCE34+COCA+B32+T28+ASSUM+I20 ✅
+**Framework Compliance**: 100% UCE34+Chaos+B32+T28+ASSUM+I20 ✅

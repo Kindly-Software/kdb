@@ -216,7 +216,10 @@ fn bench_scaling_variable_threads(c: &mut Criterion) {
         let tasks_per_thread = 100;
 
         group.bench_with_input(
-            BenchmarkId::from_parameter(format!("{}threads_{}tasks", thread_count, tasks_per_thread)),
+            BenchmarkId::from_parameter(format!(
+                "{}threads_{}tasks",
+                thread_count, tasks_per_thread
+            )),
             &thread_count,
             |b, &threads| {
                 b.iter(|| {

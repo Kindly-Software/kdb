@@ -1,0 +1,36 @@
+# Clippy Configuration for clapi_core
+# Enforces computational capsule verification and code quality standards
+# Version: 1.0
+# Date: 2025-10-21
+
+# ============================================================================
+# CAPSULE VERIFICATION LINTS
+# ============================================================================
+# Note: Custom clippy lint clippy::missing_capsule_verification would be
+# enforced here, but is not yet part of the standard clippy distribution
+
+# ============================================================================
+# COGNITIVE COMPLEXITY LIMITS
+# ============================================================================
+# Enforce simple, maintainable functions (UCE34 Q28 Simplicity)
+cognitive-complexity-threshold = 25
+
+# ============================================================================
+# TYPE COMPLEXITY LIMITS
+# ============================================================================
+# Prevent overly complex types (UCE34 Q28 Simplicity)
+type-complexity-threshold = 250
+
+# ============================================================================
+# PERFORMANCE LINTS
+# ============================================================================
+# Avoid performance pitfalls
+avoid-breaking-exported-api = true
+
+# ============================================================================
+# IGNORED LINTS (Project-Specific Justifications)
+# ============================================================================
+# These lints are disabled for valid reasons:
+# - module_name_repetitions: Capsule naming convention (BudgetSlotCapsule, etc.)
+# - similar_names: Capsule field naming (bucket_idx, bucket_val, etc.)
+# - too_many_arguments: Capsule initialization functions (validated by design)

@@ -137,6 +137,7 @@ pub struct LeaderInfo {
 /// ```
 #[repr(C, align(128))]
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
+#[cfg_attr(feature = "derive", capsule(alignment = 128))]
 pub struct LeaderElectionCapsule {
     /// Dual atomic coordination (epoch+flags, leader_id)
     state: DualAtomicU64,

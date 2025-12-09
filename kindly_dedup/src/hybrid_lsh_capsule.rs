@@ -12,7 +12,7 @@
 //! **T5 Streaming** (incremental WAL + flushing)
 //!
 //! - **Persistent**: Buckets stored on disk, crash-recoverable via generation counters + WAL
-//! - **Atomic**: No mutex/RwLock on insert fast path (COCA mandate)
+//! - **Atomic**: No mutex/RwLock on insert fast path (Chaos mandate)
 //! - **Batch**: Flush operation processes bucket batches to disk
 //! - **Streaming**: Incremental WAL appends, on-demand flush coordination
 //!
@@ -230,7 +230,7 @@ pub type HybridLshResult<T> = Result<T, HybridLshError>;
 ///
 /// # Layout
 ///
-/// 64-byte cache-aligned structure (HotTier COCA pattern):
+/// 64-byte cache-aligned structure (HotTier Chaos pattern):
 /// - 8 bytes: Arc pointer (in_memory_lsh)
 /// - 8 bytes: Arc pointer (disk_writer)
 /// - 8 bytes: Arc pointer (disk_index)
@@ -751,7 +751,7 @@ impl HybridLshCapsule {
     /// # Framework Compliance
     ///
     /// - **UCE34 Q10**: T5 Streaming (O(1) RAM per bucket iteration)
-    /// - **COCA**: 100% lockfree (read-only disk operations, flush atomicity guaranteed)
+    /// - **Chaos**: 100% lockfree (read-only disk operations, flush atomicity guaranteed)
     /// - **ASSUM**:
     ///   - #ASSUME_FLUSH_COMPLETE: All documents flushed to disk before verification
     ///     Verified by: flush() call at start, atomicity via flush_pending flag

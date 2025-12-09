@@ -3,7 +3,7 @@
 **Date**: November 15, 2025
 **Status**: Production Ready
 **Version**: 0.1.0
-**Framework**: UCE34 (Q1-Q34), COCA, ASSUM, B32, T28, I20
+**Framework**: UCE34 (Q1-Q34), Chaos, ASSUM, B32, T28, I20
 
 ## Overview
 
@@ -254,7 +254,7 @@ match decision.action {
 - Log BLOCK actions (severity=2)
 - Q34 Compliance: SOX, SOC2, GDPR, HIPAA
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 
 - 100% lockfree (no mutex/RwLock)
 - Atomic coordination primitives only

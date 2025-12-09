@@ -1,0 +1,45 @@
+[package]
+name = "kindlydb-server"
+version = "0.1.0"
+edition = "2021"
+description = "KindlyDB HTTP server for kdb-signup user and audit storage - lockfree Chaos compliant"
+license = "Proprietary"
+authors = ["Kindly Software"]
+
+# Standalone project
+[workspace]
+
+[dependencies]
+# Web framework
+axum = "0.7"
+tokio = { version = "1", features = ["full", "signal"] }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Cryptography
+blake3 = "1.5"
+
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Metrics
+metrics = "0.24"
+metrics-exporter-prometheus = "0.16"
+
+[[bin]]
+name = "kindlydb-server"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

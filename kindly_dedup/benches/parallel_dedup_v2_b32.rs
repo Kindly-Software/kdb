@@ -4,8 +4,8 @@
 //!
 //! # Framework Compliance
 //!
-//! **UCE34**: Q10 T6 Mixed tier selection, Q33 verification (COCA), Q34 audit trails
-//! **COCA**: 100% lockfree capsules, zero mutex/RwLock
+//! **UCE34**: Q10 T6 Mixed tier selection, Q33 verification (Chaos), Q34 audit trails
+//! **Chaos**: 100% lockfree capsules, zero mutex/RwLock
 //! **B32**: Fair baselines (DedupPipeline sequential), 95% CI (Criterion default), statistical rigor (K11-K20)
 //! **T28**: Comprehensive testing (unit/property/integration/production benchmarks)
 //! **ASSUM**: 99.5%+ safe (atomic CAS loops, no unsafe in hot paths)
@@ -478,7 +478,7 @@ criterion_main!(benches);
 //    - T6 Mixed (T4 Batch + T5 Streaming + T1 Atomic)
 //    - Identified through profiling (PARALLEL_PERFORMANCE_INVESTIGATION.md)
 //
-// ✅ COCA 100% Lockfree
+// ✅ Chaos 100% Lockfree
 //    - No mutex/RwLock in measurements
 //    - All coordination via atomic capsules
 //    - CAS loops with bounded retries

@@ -1,6 +1,6 @@
 //! ProgressTrackerCapsule - T1 Atomic per-thread progress tracking
 //!
-//! **Framework**: UCE34 Q10 (T1 Atomic), COCA (100% capsule), ASSUM (99.99% safe)
+//! **Framework**: UCE34 Q10 (T1 Atomic), Chaos (100% capsule), ASSUM (99.99% safe)
 //!
 //! **Purpose**: Track progress across parallel worker threads with per-thread counters
 //! and atomic aggregation. Enables real-time throughput calculation and phase timing.

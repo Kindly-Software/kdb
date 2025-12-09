@@ -1,0 +1,119 @@
+[package]
+name = "capsule-migrate"
+version = "0.1.0"
+edition = "2021"
+authors = ["Samuel <samuel@kindly.ai>"]
+description = "Code migration tool for computational capsule architecture (Chaos) with nightly optimizations"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/kindly-ai/primitives"
+keywords = ["capsule", "migration", "refactoring", "lockfree", "atomic"]
+categories = ["development-tools", "command-line-utilities"]
+
+[[bin]]
+name = "capsule-migrate"
+path = "src/main.rs"
+
+[lib]
+name = "capsule_migrate"
+path = "src/lib.rs"
+
+[dependencies]
+# Code parsing and generation (0ns const fn validation where possible)
+syn = { version = "2.0", features = ["full", "parsing", "extra-traits"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+
+# CLI interface
+clap = { version = "4.5", features = ["derive", "cargo", "env"] }
+
+# File system traversal
+walkdir = "2.4"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Optional: Parallel processing (T4 Batch optimization)
+rayon = { version = "1.10", optional = true }
+
+# Optional: Regex for pattern matching
+regex = { version = "1.10", optional = true }
+
+# Optional: Serialization for migration reports
+serde = { version = "1.0", optional = true, features = ["derive"] }
+serde_json = { version = "1.0", optional = true }
+
+[dev-dependencies]
+criterion = "0.5"
+tempfile = "3.10"
+pretty_assertions = "1.4"
+
+[features]
+default = ["std", "regex"]
+
+# Standard library (required for file I/O)
+std = []
+
+# Nightly optimizations (IMPL-2 V3.1 cutting-edge-first)
+nightly-const-fn = []
+nightly-specialization = []
+nightly-const-traits = []
+nightly-generic-const-exprs = []
+nightly-inline-const = []
+
+# Meta: All nightly optimizations (30-50% compilation speedup)
+nightly-all = [
+    "nightly-const-fn",
+    "nightly-specialization",
+    "nightly-const-traits",
+    "nightly-generic-const-exprs",
+    "nightly-inline-const",
+]
+
+nightly = ["nightly-all"]
+
+# Tier 4: Parallel processing (10-100× speedup for large codebases)
+parallel = ["rayon"]
+
+# Advanced pattern matching
+regex-full = ["regex"]
+
+# Migration reports (JSON/TOML output)
+reports = ["serde", "serde_json"]
+
+# All features (development/testing)
+all-features = ["nightly-all", "parallel", "regex-full", "reports"]
+
+# Minimal features (CI/embedded)
+minimal = []
+
+[profile.dev]
+opt-level = 1
+debug = true
+lto = false
+
+[profile.release]
+opt-level = 3
+debug = false
+lto = "fat"
+codegen-units = 1
+strip = "symbols"
+panic = "abort"
+
+[profile.release-with-debug]
+inherits = "release"
+debug = true
+strip = "none"
+
+[profile.bench]
+inherits = "release"
+debug = false
+lto = "fat"
+
+[profile.test]
+opt-level = 1
+debug = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

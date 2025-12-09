@@ -1,6 +1,6 @@
 # TerminalCapabilityCapsule - T1 Atomic Terminal Detection Specification
 
-**Status**: Production Ready (100% COCA compliant)
+**Status**: Production Ready (100% Chaos compliant)
 **Framework**: UCE34 Q1-Q34 (Tier 1 Atomic)
 **Date**: November 13, 2025
 **Version**: 0.6.1

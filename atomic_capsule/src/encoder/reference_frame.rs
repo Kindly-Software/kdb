@@ -22,7 +22,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 T1+T4 Mixed tier, Q33 lockfree, Q34 audit trails
-//! - **COCA**: 256B cache-aligned, zero mutex, generation counters
+//! - **Chaos**: 256B cache-aligned, zero mutex, generation counters
 //! - **ASSUM**: 99.99% safe, all assumptions verified
 //! - **B32**: Fair baseline (H.264/H.265), 95% CI, 1000+ iterations
 //! - **T28**: 28 comprehensive tests (4 tiers)
@@ -457,6 +457,7 @@ unsafe impl Send for ReferenceFrameCapsule {}
 unsafe impl Sync for ReferenceFrameCapsule {}
 
 #[cfg(test)]
+#[allow(deprecated)]
 mod tests {
     use super::*;
 

@@ -4,7 +4,7 @@ Production-grade Prometheus metrics endpoint implementation for monitoring MCP s
 
 **Date**: 2025-11-16
 **Status**: Production Ready (100% Complete)
-**Framework Compliance**: UCE34, COCA (100% lockfree), B32 (fair benchmarking)
+**Framework Compliance**: UCE34, Chaos (100% lockfree), B32 (fair benchmarking)
 
 ## Implementation Summary
 
@@ -287,7 +287,7 @@ Expected output:
 - **Q33** (Validation): Atomic operations verified by tests
 - **Q34** (Auditability): Metrics provide audit trail of system behavior
 
-#### COCA (Computational Capsule)
+#### Chaos (Computational Capsule)
 
 - **Lockfree**: 100% atomic operations (no mutex/RwLock)
 - **Cache-Aligned**: 256-byte alignment (prevents false sharing)
@@ -454,7 +454,7 @@ curl -X POST http://localhost:3000/api/dashboards/db \
 - [x] Grafana dashboard (grafana/dashboard.json)
 - [x] Unit tests (15/15 passing)
 - [x] Release build succeeds
-- [x] COCA compliance (100% lockfree verified)
+- [x] Chaos compliance (100% lockfree verified)
 - [x] Framework compliance (UCE34, B32, ASSUM)
 - [x] Performance targets (<10ns increment, <5ms scrape)
 - [x] Bounded cardinality (<100 series)
@@ -508,7 +508,7 @@ curl -X POST http://localhost:3000/api/dashboards/db \
 **Cardinality**: ✓ Bounded to <100 series
 **Lockfree**: ✓ 100% verified (no mutex/RwLock)
 **Tests**: ✓ 15/15 passing (100%)
-**Framework**: ✓ UCE34, COCA, B32 compliant
+**Framework**: ✓ UCE34, Chaos, B32 compliant
 
 ---
 

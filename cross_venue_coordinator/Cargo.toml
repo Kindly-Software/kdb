@@ -1,0 +1,64 @@
+[package]
+name = "cross_venue_coordinator"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["Claude <noreply@anthropic.com>"]
+description = "Cross-venue arbitrage coordination with 16 simultaneous venues"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/kindly-ecosystem/atomic-primitives"
+keywords = ["trading", "arbitrage", "lockfree", "atomics", "coordination"]
+categories = ["concurrency", "algorithms", "finance"]
+
+[features]
+default = ["std", "circuit_breaker", "arbitrage_scanner"]
+std = []
+circuit_breaker = ["dep:atomic_breaker"]
+arbitrage_scanner = ["dep:fractal_arbitrage_scanner"]
+nightly = [
+    "portable_simd",
+    "atomic_from_mut",
+    "const_trait_impl",
+    "const_fn_floating_point_arithmetic",
+    "generic_const_exprs"
+]
+portable_simd = []
+atomic_from_mut = []
+const_trait_impl = []
+const_fn_floating_point_arithmetic = []
+generic_const_exprs = []
+
+[dependencies]
+# Core atomic primitives
+atomic_venue_snapshot = { path = "../atomic_venue_snapshot" }
+atomic_portfolio_map = { path = "../atomic_portfolio_map" }
+atomic_risk_envelope = { path = "../atomic_risk_envelope" }
+atomic_network_gateway = { path = "../atomic_network_gateway" }
+
+# Circuit breaker integration
+atomic_breaker = { path = "../atomic_breaker", optional = true }
+
+# Arbitrage scanner integration
+fractal_arbitrage_scanner = { path = "../fractal_arbitrage_scanner", optional = true }
+
+# Utility libraries
+aid_96 = { path = "../aid_96" }
+test_support = { path = "../test_support" }
+
+# Standard dependencies
+thiserror = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+
+[[bench]]
+name = "cross_venue_coordination"
+harness = false
+required-features = ["std"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

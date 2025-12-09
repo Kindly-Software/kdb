@@ -8,7 +8,7 @@
 **Version**: 1.0.0
 **Date**: 2025-10-24
 **Author**: atomic_capsule Research Team
-**Framework Compliance**: UCE34 (Q28-Q34), COCA (Production Deployment)
+**Framework Compliance**: UCE34 (Q28-Q34), Chaos (Production Deployment)
 **Status**: Production-Ready Deployment Guide
 
 ---
@@ -26,7 +26,7 @@
 8. [Final Assessment & Future Work](#final-assessment--future-work)
 
 ### Cross-Document Navigation
-- **Part 1**: Foundation & UCE34 Q1-Q15, COCA Patterns, Circular Dependency Trap
+- **Part 1**: Foundation & UCE34 Q1-Q15, Chaos Patterns, Circular Dependency Trap
 - **Part 2**: Implementation (2000+ lines), Advanced Weaponization, Attack Scenarios
 
 ---

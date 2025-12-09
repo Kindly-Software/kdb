@@ -166,7 +166,7 @@ fn emit_missing_computational_capsule_diagnostic<'tcx>(
 /// - Compile-time benefits (0ns runtime, <20ms compile)
 /// - ASCII diagrams (verified vs unverified capsules)
 /// - Exact fix suggestions (derive macro vs manual verification)
-/// - UCE34 Q33 framework reference (canonical COCA verification)
+/// - UCE34 Q33 framework reference (canonical Chaos verification)
 fn emit_missing_verification_diagnostic<'tcx>(
     cx: &LateContext<'tcx>,
     item: &'tcx Item<'tcx>,

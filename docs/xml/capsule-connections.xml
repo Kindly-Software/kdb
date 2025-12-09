@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- capsule-connections.xml: Canonical connection types for computational capsules -->
+<!-- Version 1.0: Defines 5 connection patterns for inter-capsule communication -->
+<capsule-connections xmlns="http://kindly.ai/uce34/v6.0"
+                     version="1.0">
+
+  <!-- ========================================
+       CONNECTION TYPE DEFINITIONS
+       5 canonical patterns for capsule interconnection
+       ======================================== -->
+  <connection-types>
+
+    <type id="direct">
+      <name>Direct Connection</name>
+      <pattern>1:1 synchronous</pattern>
+      <latency>&lt;10ns</latency>
+      <throughput>Single element per call</throughput>
+      <use-case>Parent-child capsule state propagation, tight coupling</use-case>
+      <description>Synchronous point-to-point connection between two capsules. Lowest latency, highest coupling. Used when capsules have direct dependency.</description>
+
+      <api>
+        <signature>fn connect(&amp;self, target: &amp;impl Capsule) -> ConnectionHandle</signature>
+        <signature>fn send(&amp;self, handle: ConnectionHandle, data: T) -> Result&lt;(), SendError&gt;</signature>
+        <signature>fn disconnect(&amp;self, handle: ConnectionHandle)</signature>
+      </api>
+
+      <characteristics>
+        <blocking>Yes (synchronous)</blocking>
+        <backpressure>Implicit (caller blocks)</backpressure>
+        <ordering>Strict FIFO</ordering>
+        <thread-safety>SPSC optimized, MPSC supported</thread-safety>
+      </characteristics>
+
+      <examples>
+        <example>FrameBufferCapsule → DctTransformCapsule (encoder pipeline)</example>
+        <example>CircuitBreaker → HealthChecker (state propagation)</example>
+        <example>QuicConnection → StreamManager (connection state)</example>
+      </examples>
+    </type>
+
+    <type id="pipeline">
+      <name>Pipeline Connection</name>
+      <pattern>N:1 streaming</pattern>
+      <latency>&lt;50ns per stage</latency>
+      <throughput>Batch-optimized (64-4096 elements)</throughput>
+      <use-case>Multi-stage processing pipelines, data transformation chains</use-case>
+      <description>Unidirectional flow through ordered stages. Each stage transforms and forwards. Supports backpressure via bounded queues.</description>
+
+      <api>
+        <signature>fn pipe_to(&amp;self, next: &amp;impl StreamingCapsule) -> PipelineHandle</signature>
+        <signature>fn submit(&amp;self, batch: Batch&lt;T&gt;) -> Result&lt;BatchId, PipelineError&gt;</signature>
+        <signature>fn flush(&amp;self) -> Result&lt;(), FlushError&gt;</signature>
+        <signature>fn drain(&amp;self) -> impl Iterator&lt;Item = T&gt;</signature>
+      </api>
+
+      <characteristics>
+        <blocking>Non-blocking with bounded queue</blocking>
+        <backpressure>Explicit (queue capacity)</backpressure>
+        <ordering>Per-batch FIFO, batches may reorder</ordering>
+        <thread-safety>SPSC per stage, lockfree queues</thread-safety>
+      </characteristics>
+
+      <stage-coordination>
+        <pattern>DualAtomicU64 with phase bitmasks</pattern>
+        <snapshot>Atomic snapshot of all stage states</snapshot>
+        <recovery>Per-stage checkpointing</recovery>
+      </stage-coordination>
+
+      <examples>
+        <example>Av1EncoderMetacapsule: Input → Transform → Quantize → Entropy → Output</example>
+        <example>ETL Pipeline: Extract → Validate → Transform → Load</example>
+        <example>ImageProcessor: Decode → Resize → Filter → Encode</example>
+      </examples>
+    </type>
+
+    <type id="broadcast">
+      <name>Broadcast Connection</name>
+      <pattern>1:N fanout</pattern>
+      <latency>&lt;100ns total (parallel dispatch)</latency>
+      <throughput>Multiplied by subscriber count</throughput>
+      <use-case>Event distribution, observer pattern, pub/sub</use-case>
+      <description>Single source distributes to multiple subscribers. Zero-copy when possible. Parallel dispatch to minimize total latency.</description>
+
+      <api>
+        <signature>fn broadcast(&amp;self, subscribers: &amp;[&amp;impl Capsule]) -> BroadcastHandle</signature>
+        <signature>fn subscribe(&amp;mut self, subscriber: &amp;impl Capsule) -> SubscriptionId</signature>
+        <signature>fn unsubscribe(&amp;mut self, id: SubscriptionId)</signature>
+        <signature>fn publish(&amp;self, event: E) -> Result&lt;usize, BroadcastError&gt;</signature>
+      </api>
+
+      <characteristics>
+        <blocking>Non-blocking (fire-and-forget or ack)</blocking>
+        <backpressure>Per-subscriber independent</backpressure>
+        <ordering>Causal ordering (same source)</ordering>
+        <thread-safety>MPMC (multiple publishers, multiple consumers)</thread-safety>
+      </characteristics>
+
+      <delivery-guarantees>
+        <guarantee id="at-most-once">Best effort, no retries</guarantee>
+        <guarantee id="at-least-once">Retry until ack</guarantee>
+        <guarantee id="exactly-once">Dedup + idempotency</guarantee>
+      </delivery-guarantees>
+
+      <examples>
+        <example>RingBufferBroadcast: Log events to multiple consumers</example>
+        <example>PriceUpdate → [RiskEngine, OrderRouter, HistoryLogger]</example>
+        <example>ConfigChange → [AllServiceCapsules]</example>
+      </examples>
+    </type>
+
+    <type id="mesh">
+      <name>Mesh Connection</name>
+      <pattern>N:N bidirectional</pattern>
+      <latency>&lt;200ns per hop</latency>
+      <throughput>Aggregate of all connections</throughput>
+      <use-case>Distributed coordination, consensus, peer-to-peer</use-case>
+      <description>Fully or partially connected capsule network. Bidirectional communication. Supports routing and multi-hop.</description>
+
+      <api>
+        <signature>fn mesh_connect(&amp;self, peers: &amp;[&amp;impl MeshCapsule]) -> MeshHandle</signature>
+        <signature>fn send_to(&amp;self, peer: PeerId, msg: M) -> Result&lt;(), MeshError&gt;</signature>
+        <signature>fn broadcast_mesh(&amp;self, msg: M) -> Result&lt;Vec&lt;PeerId&gt;, MeshError&gt;</signature>
+        <signature>fn route(&amp;self, dest: PeerId, msg: M) -> Result&lt;Path, RoutingError&gt;</signature>
+      </api>
+
+      <characteristics>
+        <blocking>Async (futures-based)</blocking>
+        <backpressure>Per-connection flow control</backpressure>
+        <ordering>Per-connection FIFO, global ordering via vector clocks</ordering>
+        <thread-safety>Full MPMC, lockfree coordination</thread-safety>
+      </characteristics>
+
+      <topology-options>
+        <topology id="full-mesh">All pairs connected, O(n^2) connections</topology>
+        <topology id="ring">Circular, O(n) connections, O(n/2) latency</topology>
+        <topology id="star">Central hub, O(n) connections, O(2) latency</topology>
+        <topology id="hierarchical">Tree structure, O(n) connections, O(log n) latency</topology>
+      </topology-options>
+
+      <examples>
+        <example>QuicEndpointMetacapsule: Connection ↔ Stream ↔ Frame ↔ Packet</example>
+        <example>Raft consensus: Leader ↔ Followers (heartbeat, log replication)</example>
+        <example>Distributed cache: Shard1 ↔ Shard2 ↔ ... ↔ ShardN</example>
+      </examples>
+    </type>
+
+    <type id="request-response">
+      <name>Request-Response Connection</name>
+      <pattern>Async query</pattern>
+      <latency>&lt;1us round-trip</latency>
+      <throughput>Concurrent requests (bounded)</throughput>
+      <use-case>Cross-tier queries, API calls, RPC</use-case>
+      <description>Asynchronous request with future-based response. Supports timeout, retry, and cancellation.</description>
+
+      <api>
+        <signature>fn request&lt;R&gt;(&amp;self, query: Query) -> Future&lt;R&gt;</signature>
+        <signature>fn request_timeout&lt;R&gt;(&amp;self, query: Query, timeout: Duration) -> Future&lt;Result&lt;R, Timeout&gt;&gt;</signature>
+        <signature>fn batch_request&lt;R&gt;(&amp;self, queries: Vec&lt;Query&gt;) -> Future&lt;Vec&lt;R&gt;&gt;</signature>
+        <signature>fn cancel(&amp;self, request_id: RequestId) -> bool</signature>
+      </api>
+
+      <characteristics>
+        <blocking>Non-blocking (async/await)</blocking>
+        <backpressure>Bounded in-flight requests</backpressure>
+        <ordering>Per-request (no global ordering)</ordering>
+        <thread-safety>MPMC with request correlation</thread-safety>
+      </characteristics>
+
+      <error-handling>
+        <error id="timeout">Request exceeded deadline</error>
+        <error id="cancelled">Request cancelled by caller</error>
+        <error id="overload">Too many in-flight requests</error>
+        <error id="unavailable">Target capsule unavailable</error>
+      </error-handling>
+
+      <examples>
+        <example>UniversalApiMetaCapsule: REST/GraphQL/gRPC request handling</example>
+        <example>DistributedCache: Get/Set/Delete operations</example>
+        <example>DatabaseCapsule: Query execution</example>
+      </examples>
+    </type>
+
+  </connection-types>
+
+  <!-- ========================================
+       INTER-TIER CONNECTION RULES
+       Canonical rules for connecting capsules across tiers
+       ======================================== -->
+  <inter-tier-rules>
+    <description>Recommended connection types between computational capsule tiers</description>
+
+    <!-- T1 Atomic connections -->
+    <rule from="T1" to="T1">
+      <connection>Direct or Mesh</connection>
+      <rationale>Atomic coordination, lockfree synchronization</rationale>
+      <example>CircuitBreaker ↔ RateLimiter (shared state)</example>
+    </rule>
+    <rule from="T1" to="T2">
+      <connection>Direct or Pipeline</connection>
+      <rationale>Atomic state feeds SIMD acceleration</rationale>
+      <example>AtomicCounter → SimdAggregator</example>
+    </rule>
+    <rule from="T1" to="T3">
+      <connection>Direct</connection>
+      <rationale>Atomic state with fixed-point precision</rationale>
+      <example>PositionTracker → PnLCalculator (Q16.16)</example>
+    </rule>
+
+    <!-- T2 SIMD connections -->
+    <rule from="T2" to="T2">
+      <connection>Pipeline</connection>
+      <rationale>Vectorized data flows through SIMD stages</rationale>
+      <example>SimdHash → SimdCompare → SimdFilter</example>
+    </rule>
+    <rule from="T2" to="T3">
+      <connection>Pipeline</connection>
+      <rationale>Vectorized computation to fixed-point output</rationale>
+      <example>SimdMatMul → FixedPointNormalize</example>
+    </rule>
+    <rule from="T2" to="T4">
+      <connection>Pipeline</connection>
+      <rationale>SIMD processes batches</rationale>
+      <example>SimdEncoder → BatchWriter</example>
+    </rule>
+
+    <!-- T3 Fixed-Point connections -->
+    <rule from="T3" to="T3">
+      <connection>Pipeline</connection>
+      <rationale>Deterministic computation chain</rationale>
+      <example>FeeCalculator → TaxCalculator → TotalCalculator</example>
+    </rule>
+    <rule from="T3" to="T9">
+      <connection>Request-Response</connection>
+      <rationale>Deterministic results to persistent storage</rationale>
+      <example>PnLCalculator → PersistentLedger</example>
+    </rule>
+
+    <!-- T4 Batch connections -->
+    <rule from="T4" to="T4">
+      <connection>Pipeline</connection>
+      <rationale>Batch handoff between processing stages</rationale>
+      <example>BatchReader → BatchProcessor → BatchWriter</example>
+    </rule>
+    <rule from="T4" to="T5">
+      <connection>Pipeline</connection>
+      <rationale>Batch to streaming transition</rationale>
+      <example>BatchAggregator → StreamingOutput</example>
+    </rule>
+
+    <!-- T5 Streaming connections -->
+    <rule from="T5" to="T5">
+      <connection>Pipeline or Broadcast</connection>
+      <rationale>Continuous data flow</rationale>
+      <example>StreamParser → StreamTransformer → StreamSink</example>
+    </rule>
+    <rule from="T5" to="T9">
+      <connection>Pipeline</connection>
+      <rationale>Stream checkpointing to persistence</rationale>
+      <example>StreamProcessor → WALWriter</example>
+    </rule>
+
+    <!-- T6 Mixed/Metacapsule connections -->
+    <rule from="T6" to="*">
+      <connection>Any (orchestration)</connection>
+      <rationale>Metacapsules orchestrate multiple tiers</rationale>
+      <example>Av1EncoderMetacapsule coordinates T1+T2+T4+T5</example>
+    </rule>
+
+    <!-- T7 Heterogeneous connections -->
+    <rule from="T7" to="T4">
+      <connection>Request-Response</connection>
+      <rationale>GPU kernel dispatch from batch coordinator</rationale>
+      <example>GpuScheduler ↔ BatchDispatcher</example>
+    </rule>
+    <rule from="T7" to="T8">
+      <connection>Request-Response</connection>
+      <rationale>GPU results over network</rationale>
+      <example>GpuInference → NetworkResponse</example>
+    </rule>
+
+    <!-- T8 Network connections -->
+    <rule from="T8" to="T8">
+      <connection>Mesh</connection>
+      <rationale>Distributed network coordination</rationale>
+      <example>Node1 ↔ Node2 ↔ Node3 (cluster)</example>
+    </rule>
+    <rule from="T8" to="T9">
+      <connection>Request-Response</connection>
+      <rationale>Network requests to persistent storage</rationale>
+      <example>QuicStream → PersistentKV</example>
+    </rule>
+
+    <!-- T9 Persistent connections -->
+    <rule from="T9" to="T9">
+      <connection>Request-Response</connection>
+      <rationale>Cross-store queries, replication</rationale>
+      <example>PrimaryDB ↔ ReplicaDB</example>
+    </rule>
+
+    <!-- T10 Probabilistic connections -->
+    <rule from="T10" to="T10">
+      <connection>Pipeline or Broadcast</connection>
+      <rationale>Probabilistic data structure composition</rationale>
+      <example>MinHash → LSHBucket → UnionFind</example>
+    </rule>
+    <rule from="T10" to="T9">
+      <connection>Request-Response</connection>
+      <rationale>Probabilistic results persisted</rationale>
+      <example>HyperLogLog → PersistentCounter</example>
+    </rule>
+
+  </inter-tier-rules>
+
+  <!-- ========================================
+       CONNECTION LIFECYCLE
+       State machine for connection management
+       ======================================== -->
+  <connection-lifecycle>
+    <states>
+      <state id="disconnected">No active connection</state>
+      <state id="connecting">Handshake in progress</state>
+      <state id="connected">Active, ready for data</state>
+      <state id="draining">Completing in-flight, rejecting new</state>
+      <state id="error">Recoverable error state</state>
+      <state id="closed">Permanently closed</state>
+    </states>
+
+    <transitions>
+      <transition from="disconnected" to="connecting" trigger="connect()"/>
+      <transition from="connecting" to="connected" trigger="handshake_complete"/>
+      <transition from="connecting" to="error" trigger="handshake_failed"/>
+      <transition from="connected" to="draining" trigger="drain()"/>
+      <transition from="connected" to="error" trigger="io_error"/>
+      <transition from="draining" to="disconnected" trigger="drain_complete"/>
+      <transition from="error" to="connecting" trigger="retry()"/>
+      <transition from="error" to="closed" trigger="close()"/>
+      <transition from="*" to="closed" trigger="force_close()"/>
+    </transitions>
+  </connection-lifecycle>
+
+  <!-- ========================================
+       PERFORMANCE GUIDELINES
+       Latency and throughput expectations
+       ======================================== -->
+  <performance-guidelines>
+    <guideline connection="direct">
+      <expected-latency>&lt;10ns</expected-latency>
+      <max-latency>50ns (with contention)</max-latency>
+      <throughput>100M+ ops/sec single-threaded</throughput>
+    </guideline>
+    <guideline connection="pipeline">
+      <expected-latency>&lt;50ns per stage</expected-latency>
+      <max-latency>200ns per stage (full queue)</max-latency>
+      <throughput>10M+ elements/sec (batch optimized)</throughput>
+    </guideline>
+    <guideline connection="broadcast">
+      <expected-latency>&lt;100ns total</expected-latency>
+      <max-latency>500ns (many subscribers)</max-latency>
+      <throughput>1M+ events/sec</throughput>
+    </guideline>
+    <guideline connection="mesh">
+      <expected-latency>&lt;200ns per hop</expected-latency>
+      <max-latency>1us (multi-hop)</max-latency>
+      <throughput>100K+ messages/sec per connection</throughput>
+    </guideline>
+    <guideline connection="request-response">
+      <expected-latency>&lt;1us round-trip</expected-latency>
+      <max-latency>10us (under load)</max-latency>
+      <throughput>100K+ requests/sec</throughput>
+    </guideline>
+  </performance-guidelines>
+
+</capsule-connections>

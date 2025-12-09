@@ -83,14 +83,15 @@ impl ProgressPhase {
 
 /// Progress state capsule (256B aligned)
 ///
-/// # Memory Layout
+/// # Memory Layout (256 bytes, 64B aligned)
 /// - 8 bytes: phase_packed (phase:8 + progress:32 + total:24)
 /// - 8 bytes: throughput_docs_sec
 /// - 4 bytes: cpu_usage_permille
 /// - 4 bytes: _pad1
+/// - 8 bytes: generation (T1 Atomic Chaos compliance)
 /// - 8 bytes: ram_usage_mb
 /// - 8 bytes: eta_seconds
-/// - 216 bytes: padding (complete 256B cache line)
+/// - 208 bytes: padding (complete 256B cache line)
 #[derive(Debug, ComputationalCapsule)]
 #[capsule(alignment = 64, size = 256, tier = "Atomic")]
 #[repr(C, align(64))]
@@ -113,6 +114,11 @@ pub struct ProgressCapsule {
     /// Padding for alignment
     _pad1: u32,
 
+    /// Generation counter for T1 Atomic Chaos compliance
+    /// #ASSUME: AtomicU64 provides sufficient generation space
+    /// #VERIFY: Incremented on all state mutations
+    generation: AtomicU64,
+
     /// RAM usage in MB
     /// #ASSUME: u64 sufficient for RAM (realistic max ~1TB = 1M MB)
     ram_usage_mb: AtomicU64,
@@ -121,8 +127,8 @@ pub struct ProgressCapsule {
     /// #ASSUME: u64 sufficient for ETA (max ~584 billion years)
     eta_seconds: AtomicU64,
 
-    /// Padding to 256B
-    _padding: [u8; 216],
+    /// Padding to 256B (40 + 8 + 208 = 256)
+    _padding: [u8; 208],
 }
 
 impl ProgressCapsule {
@@ -133,9 +139,10 @@ impl ProgressCapsule {
             throughput_docs_sec: AtomicU64::new(0),
             cpu_usage_permille: AtomicU32::new(0),
             _pad1: 0,
+            generation: AtomicU64::new(0),
             ram_usage_mb: AtomicU64::new(0),
             eta_seconds: AtomicU64::new(0),
-            _padding: [0u8; 216],
+            _padding: [0u8; 208],
         }
     }
 

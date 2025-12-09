@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Primary Meta Tags -->
+    <title>kindly_dedup - Lightning-Fast LLM Dataset Deduplication</title>
+    <meta name="title" content="kindly_dedup - Lightning-Fast LLM Dataset Deduplication" />
+    <meta name="description" content="Production-ready dataset deduplication. 38× faster single-threaded, scales to 580× on 16-core systems. 10M docs/month free. 100% safe Rust." />
+    <meta name="keywords" content="deduplication, LLM, dataset, Rust, SIMD, parallel, machine learning, data cleaning, MinHash, LSH" />
+    <meta name="author" content="Kindly Software" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://kindly.software/kindly_dedup" />
+    <meta property="og:title" content="kindly_dedup - Lightning-Fast LLM Dataset Deduplication" />
+    <meta property="og:description" content="Production-ready dataset deduplication. 38× faster single-threaded, scales to 580× on 16-core systems. 10M docs/month free." />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://kindly.software/kindly_dedup" />
+    <meta property="twitter:title" content="kindly_dedup - Lightning-Fast LLM Dataset Deduplication" />
+    <meta property="twitter:description" content="Production-ready dataset deduplication. 38× faster single-threaded, scales to 580× on 16-core systems. 10M docs/month free." />
+
+    <style>
+        /* ============================================================================
+           BYZANTINE ROYAL × MACOS PREMIUM DESIGN SYSTEM
+           ============================================================================ */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Purple Spectrum */
+            --purple-950: #1a0033;
+            --purple-900: #2d0052;
+            --purple-800: #4B0082;
+            --purple-700: #5a0099;
+            --purple-600: #663399;
+            --purple-500: #703C8B;
+            --purple-400: #8B5AA8;
+            --purple-300: #A77BC4;
+            --purple-200: #C4A3DC;
+            --purple-100: #E6D9F0;
+
+            /* Metallic Gold */
+            --gold-900: #B8860B;
+            --gold-800: #DAA520;
+            --gold-700: #FFD700;
+            --gold-600: #FFED4E;
+            --gold-500: #FFF4A3;
+
+            /* Glass Tints */
+            --glass-purple-dark: rgba(75, 0, 130, 0.6);
+            --glass-purple-mid: rgba(102, 51, 153, 0.4);
+            --glass-purple-light: rgba(112, 60, 139, 0.2);
+
+            /* Glass Borders */
+            --glass-border-bright: rgba(255, 237, 78, 0.3);
+            --glass-border-subtle: rgba(255, 255, 255, 0.1);
+
+            /* Shadows */
+            --shadow-purple-dense: rgba(45, 0, 82, 0.5);
+            --shadow-purple-mid: rgba(75, 0, 130, 0.3);
+            --shadow-purple-soft: rgba(102, 51, 153, 0.15);
+            --shadow-gold-glow: rgba(255, 215, 0, 0.4);
+
+            /* Backgrounds */
+            --bg-deepest: #0d001a;
+            --bg-deep: var(--purple-950);
+            --bg-base: var(--purple-900);
+
+            /* Typography */
+            --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", system-ui, sans-serif;
+            --font-display: "SF Pro Display", -apple-system, "Inter", system-ui, sans-serif;
+
+            /* Spacing (8px grid) */
+            --space-1: 0.5rem;
+            --space-2: 1rem;
+            --space-3: 1.5rem;
+            --space-4: 2rem;
+            --space-6: 3rem;
+            --space-8: 4rem;
+
+            /* Blur Levels */
+            --blur-sm: 8px;
+            --blur-md: 16px;
+            --blur-lg: 24px;
+            --blur-xl: 32px;
+
+            /* Border Radius */
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+
+            /* Animation */
+            --duration-fast: 150ms;
+            --duration-base: 250ms;
+            --duration-slow: 350ms;
+            --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: radial-gradient(ellipse 80% 100% at center, #4B0082 0%, #3A006B 20%, #2D0052 45%, #1A0028 70%, #0A0014 100%);
+            background-attachment: fixed;
+            color: #FFFFFF;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        /* ============================================================================
+           FROSTED GLASS NAVBAR (macOS Big Sur Style)
+           ============================================================================ */
+        .navbar, nav {
+            background: var(--glass-purple-mid);
+            backdrop-filter: blur(var(--blur-lg)) saturate(180%);
+            -webkit-backdrop-filter: blur(var(--blur-lg)) saturate(180%);
+            padding: var(--space-2) var(--space-4);
+            border-bottom: 1px solid var(--glass-border-subtle);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow:
+                0 8px 32px var(--shadow-purple-dense),
+                0 4px 16px var(--shadow-purple-mid),
+                0 2px 8px var(--shadow-purple-soft),
+                inset 0 1px 0 var(--glass-border-bright);
+            transition: backdrop-filter var(--duration-base) var(--ease-smooth);
+        }
+
+        .navbar.scrolled {
+            backdrop-filter: blur(var(--blur-xl)) saturate(200%);
+            -webkit-backdrop-filter: blur(var(--blur-xl)) saturate(200%);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #4B0082 0%, #E6D5F5 100%);
+            padding: 6rem 2rem;
+            text-align: center;
+        }
+
+        .hero-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 3.75rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #FFD700 0%, #FFED4E 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            color: #F8F7FF;
+            font-weight: 400;
+        }
+
+        .hero-disclaimer {
+            font-size: 0.875rem;
+            color: #E6D5F5;
+            margin-top: 1rem;
+            font-style: italic;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* Buttons */
+        button, .btn {
+            padding: 1rem 2rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+            transition: all 250ms ease-in-out;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        button:hover, .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Sections */
+        section {
+            padding: 4rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .features, .comparison, .demo, .pricing, .api-preview, .faq {
+            background-color: #0A0A0F;
+        }
+
+        .features-container, .faq-container, .api-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 3rem;
+            text-align: center;
+            background: linear-gradient(135deg, #663399 0%, #FFD700 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        /* Feature Cards */
+        .feature-card {
+            background: linear-gradient(135deg, #2D2D3D 0%, #1A1A24 100%);
+            padding: 2rem;
+            border-radius: 1rem;
+            border: 1px solid #703C8B;
+            transition: all 250ms ease-in-out;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(112, 60, 139, 0.3);
+            border-color: #FFD700;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #FFD700;
+        }
+
+        .feature-card p {
+            color: #E6D5F5;
+            line-height: 1.75;
+        }
+
+        /* FAQ */
+        .faq-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .faq-item {
+            background: #2D2D3D;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            border-left: 4px solid #703C8B;
+        }
+
+        .faq-question {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #FFD700;
+        }
+
+        .faq-answer {
+            color: #E6D5F5;
+            line-height: 1.75;
+        }
+
+        .faq-subtitle {
+            text-align: center;
+            color: #E6D5F5;
+            margin-bottom: 3rem;
+            font-size: 1.125rem;
+        }
+
+        /* API Preview */
+        .api-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .api-subtitle {
+            color: #E6D5F5;
+            font-size: 1.125rem;
+            margin-top: 1rem;
+        }
+
+        .api-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .api-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .api-code, .code-block {
+            background: #1A1A24;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .code-header {
+            background: #2D2D3D;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .code-language {
+            color: #FFD700;
+            font-weight: 600;
+        }
+
+        .code-block pre {
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 0;
+        }
+
+        .code-block code {
+            font-family: 'Courier New', monospace;
+            color: #E6D5F5;
+            font-size: 0.875rem;
+            line-height: 1.75;
+        }
+
+        .api-features-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .api-feature-item h4 {
+            color: #FFD700;
+            margin-bottom: 0.5rem;
+            font-size: 1.125rem;
+        }
+
+        .api-feature-item p {
+            color: #E6D5F5;
+            line-height: 1.75;
+        }
+
+        /* Footer */
+        .footer {
+            background: #1A1A24;
+            padding: 3rem 2rem;
+            border-top: 2px solid #703C8B;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-section h3, .footer-section h4 {
+            color: #FFD700;
+            margin-bottom: 1rem;
+            font-size: 1.125rem;
+        }
+
+        .footer-section p, .footer-section li {
+            color: #E6D5F5;
+            line-height: 1.75;
+        }
+
+        .footer-section ul {
+            list-style: none;
+        }
+
+        .footer-section a {
+            color: #E6D5F5;
+            text-decoration: none;
+            transition: color 150ms ease-in-out;
+        }
+
+        .footer-section a:hover {
+            color: #FFD700;
+        }
+
+        .footer-disclaimer {
+            background: #2D2D3D;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin: 2rem auto;
+            max-width: 1200px;
+        }
+
+        .disclaimer-text {
+            color: #8B8B9B;
+            font-size: 0.875rem;
+            line-height: 1.75;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid #2D2D3D;
+            color: #8B8B9B;
+        }
+
+        .footer-bottom a {
+            color: #703C8B;
+            text-decoration: none;
+        }
+
+        .footer-bottom a:hover {
+            color: #FFD700;
+        }
+
+        /* Testimonials */
+        .testimonials-carousel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .testimonial {
+            background: #2D2D3D;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            border-left: 4px solid #703C8B;
+        }
+
+        .testimonial-quote {
+            color: #E6D5F5;
+            font-style: italic;
+            margin-bottom: 1rem;
+            line-height: 1.75;
+        }
+
+        .testimonial-author {
+            color: #FFD700;
+            font-weight: 600;
+        }
+
+        .testimonial-role {
+            color: #8B8B9B;
+            font-size: 0.875rem;
+        }
+
+        /* Utility Classes */
+        .section-title {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.25rem;
+            }
+
+            .hero-subtitle {
+                font-size: 1.125rem;
+            }
+
+            section {
+                padding: 3rem 1rem;
+            }
+
+            .navbar, nav {
+                padding: 1rem;
+            }
+        }
+
+        /* Holographic Shimmer Animation */
+        @keyframes holographic-shimmer {
+            0% {
+                filter: hue-rotate(0deg) brightness(1.2);
+                box-shadow:
+                    0 0 30px rgba(255, 215, 0, 0.8),
+                    inset 0 0 20px rgba(255, 255, 255, 0.5),
+                    inset 0 0 40px rgba(255, 215, 0, 0.3);
+            }
+            25% {
+                filter: hue-rotate(15deg) brightness(1.4);
+                box-shadow:
+                    0 0 40px rgba(255, 215, 0, 1.0),
+                    inset 0 0 30px rgba(255, 255, 255, 0.7),
+                    inset 0 0 50px rgba(255, 215, 0, 0.5);
+            }
+            50% {
+                filter: hue-rotate(30deg) brightness(1.6);
+                box-shadow:
+                    0 0 50px rgba(255, 215, 0, 1.0),
+                    inset 0 0 40px rgba(255, 255, 255, 0.8),
+                    inset 0 0 60px rgba(255, 215, 0, 0.6);
+            }
+            75% {
+                filter: hue-rotate(15deg) brightness(1.4);
+                box-shadow:
+                    0 0 40px rgba(255, 215, 0, 1.0),
+                    inset 0 0 30px rgba(255, 255, 255, 0.7),
+                    inset 0 0 50px rgba(255, 215, 0, 0.5);
+            }
+            100% {
+                filter: hue-rotate(0deg) brightness(1.2);
+                box-shadow:
+                    0 0 30px rgba(255, 215, 0, 0.8),
+                    inset 0 0 20px rgba(255, 255, 255, 0.5),
+                    inset 0 0 40px rgba(255, 215, 0, 0.3);
+            }
+        }
+
+        /* Docker Command Box Pulse Glow Animation */
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow:
+                    0 16px 48px rgba(255, 215, 0, 0.4),
+                    0 0 20px rgba(255, 215, 0, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            }
+            50% {
+                box-shadow:
+                    0 20px 60px rgba(255, 215, 0, 0.5),
+                    0 0 30px rgba(255, 215, 0, 0.4),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+</body>
+</html>

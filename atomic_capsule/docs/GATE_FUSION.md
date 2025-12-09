@@ -2,7 +2,7 @@
 
 **Tier**: T4 Batch
 **Performance**: 3-5× speedup via 60-80% gate count reduction
-**Framework**: UCE34 (Q1-Q34), ASSUM (99.99%), B32 (fair baselines), T28 (28 tests), COCA (100% lockfree)
+**Framework**: UCE34 (Q1-Q34), ASSUM (99.99%), B32 (fair baselines), T28 (28 tests), Chaos (100% lockfree)
 
 ## Overview
 

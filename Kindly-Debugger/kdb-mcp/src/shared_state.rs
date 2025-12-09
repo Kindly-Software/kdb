@@ -7,7 +7,7 @@
 // - Lockfree coordination: DualAtomicU64 across instances
 // - Session registry: 4096 sessions (lockfree hash table)
 // - Quota tracker: Per-client quotas (lockfree counters)
-// - Zero mutex/RwLock (100% COCA compliant)
+// - Zero mutex/RwLock (100% Chaos compliant)
 //
 // Performance:
 // - <50ns per state access (mmap + atomic operations)
@@ -18,7 +18,7 @@
 //
 // Framework Compliance:
 // - UCE34: Q10 T9 Persistent tier selection
-// - COCA: 100% lockfree, cache-aligned
+// - Chaos: 100% lockfree, cache-aligned
 // - ASSUM: 99.99% safe (all assumptions documented)
 // - B32: <50ns state access validated
 // - T28: Comprehensive testing (unit/property/integration/production)

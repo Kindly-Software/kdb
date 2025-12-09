@@ -18,7 +18,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q1-Q10 (T0 Auditable tier selection)
-//! - **COCA**: 100% safe, zero dependencies, no allocations beyond output
+//! - **Chaos**: 100% safe, zero dependencies, no allocations beyond output
 //! - **ASSUM**: 100% safe (no unsafe blocks)
 //! - **T28**: 18 unit + edge case tests
 //!

@@ -329,9 +329,9 @@ All test helper methods are marked #[doc(hidden)] to:
 
 ### UCE34
 - **Q31 (Simplicity)**: Actual methods have clear, descriptive names
-- **Q33 (Verification)**: All methods lockfree, 100% COCA compliant
+- **Q33 (Verification)**: All methods lockfree, 100% Chaos compliant
 
-### COCA
+### Chaos
 - All methods use atomic operations
 - Zero mutex/RwLock
 - Cache-aligned capsule fields

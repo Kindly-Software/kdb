@@ -1796,7 +1796,7 @@ fn bench_mwpm_decoder_distance5_parallel(b: &mut Bencher) {
 
 ---
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 
 - ✅ **100% Lockfree**: Rayon work-stealing (no mutex/RwLock in parallel path search)
 - ✅ **Cache-Aligned**: 256B capsule header, 64B vertices, 16B edges
@@ -1892,7 +1892,7 @@ fn bench_mwpm_decoder_distance5_parallel(b: &mut Bencher) {
   - #ASSUME_GRAPH_VALIDITY: BFS connectivity check (all vertices reachable)
   - #ASSUME_MEMORY_ORDERING: Acquire/Release for matching result (LOOM verified)
 
-✅ **COCA Compliance**:
+✅ **Chaos Compliance**:
   - 100% lockfree coordination (atomic work distribution via rayon)
   - 256B cache-aligned capsule header (AVX-512 future-proof)
   - Minimal dependencies (std + rayon + petgraph)
@@ -1915,5 +1915,5 @@ fn bench_mwpm_decoder_distance5_parallel(b: &mut Bencher) {
 **VERSION**: 1.0
 **DATE**: 2025-11-21
 **AUTHOR**: Claude (Anthropic)
-**FRAMEWORK**: UCE34+COCA+B32+T28+ASSUM+I20
+**FRAMEWORK**: UCE34+Chaos+B32+T28+ASSUM+I20
 **STATUS**: Specification Complete ✅

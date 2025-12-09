@@ -1,0 +1,89 @@
+# NEW CAPSULES CATALOG - THIS SESSION
+# Generated: 2025-11-14
+# Methodology: Git analysis + source code inspection
+# Scope: atomic_capsule, atomic_debugger, atomic_mcp_server
+
+## ATOMIC_CAPSULE NEW CAPSULES (10 primary)
+
+### T0 (Auditable)
+- InstallAuditTrailCapsule (T0+T9) | 512B | <50ns | Hash-chain audit trail | src/install/install_audit.rs | std | 25+ tests | production
+
+### T1 (Atomic - Lockfree Coordination)
+1. TimerWheelCapsule | 8KB | <100ns schedule | Hierarchical timing wheel | src/runtime/timer_wheel.rs | queue-unbounded | 16 tests | production
+2. McpToolRegistryCapsule | 64KB | <120ns lookup | MCP tool registry | src/mcp/tool_registry.rs | std | 24 tests | production
+3. QuotaTrackerCapsule | 64KB | <70ns record | Per-user quota tracking | src/patterns/quota_tracker.rs | std | 20 tests | production
+4. RateLimiterCapsule | 64B | <150ns check | Token bucket rate limiting | src/patterns/rate_limiter.rs | std | 18 tests | production
+5. InstallerStateCapsule | 128B | <15ns transition | Installation progress | src/install/installer_state.rs | std | 20 tests | production
+6. SignatureVerifierCapsule | 256B | <10ns verify | Signature verification | src/install/signature_verifier.rs | std | 15 tests | production
+7. DownloadProgressCapsule | 512B | <20ns update | Download progress tracking | src/install/download_progress.rs | std | 18 tests | production
+
+### T5 (Streaming - Incremental)
+- RingBufferCapsule<T> | 128KB | <10ns record | Generic ring buffer for tracing | src/collections/ring_trace.rs | ring-trace | 14 tests | production
+
+### T0+T1 (Auditable + Atomic)
+- ReplayEngineCapsule<T> | 128KB | <10ns per snapshot | Time-travel bidirectional replay | src/patterns/time_travel.rs | time-travel | 8 tests | production
+
+## ATOMIC_DEBUGGER CAPSULES (23 capsules, T6 Mixed primary)
+
+### Composite (T6 Mixed - 1 MB total)
+- DebuggerCapsule | 1MB | Variable | Multi-tier debugger | src/debugger.rs | std | 12 tests | production
+
+### Component Capsules (T1-T10)
+1. ExecutionStateCapsule | T1 | <50ns | CPU execution state | src/tier1_atomic.rs
+2. BreakpointManagerCapsule | T1 | <30ns | Breakpoint tracking | src/tier1_atomic.rs
+3. RegisterReaderCapsule | T1 | <20ns | CPU register reading | src/tier1_atomic.rs
+4. ThreadStateCapsule | T1 | <40ns | Thread state coordination | src/tier1_atomic.rs
+5. WatchpointTableCapsule | T1 | <25ns | Data watchpoint tracking | src/tier1_atomic.rs
+6. SimdStackFrameCapsule | T2 | <50ns | SIMD stack unwinding | src/tier2_simd.rs
+7. SimdSymbolTableCapsule | T2 | <80ns | SIMD symbol lookup | src/tier2_simd.rs
+8. ParallelStackAnalyzerCapsule | T4 | <100ns | Parallel frame analysis | src/tier4_parallel_debug.rs
+9. BatchSymbolResolverCapsule | T4 | <150ns | Batch symbol resolution | src/tier4_parallel_debug.rs
+10. RingBufferTraceCapsule | T5 | <10ns | Instruction tracing | src/tier5_streaming.rs
+11. MmapCrashDumpCapsule | T9 | <1ms | Persistent crash dumps | src/tier9_persistent.rs
+12. ProcessMapCapsule | T9 | <500ns | Memory map persistence | src/tier9_persistent.rs
+13. LshPathTableCapsule | T10 | <200ns | Path deduplication LSH | src/tier10_probabilistic.rs
+
+### Platform-Specific (Linux ptrace)
+1. PtraceWrapperCapsule | T1 | <100ns | ptrace syscall wrapper | src/ptrace/wrapper.rs
+2. ProcessStateCapsule | T1 | <50ns | Process state from ptrace | src/ptrace/process_state.rs
+3. BreakpointTableCapsule | T1 | <30ns | Breakpoint table | src/ptrace/breakpoint.rs
+4. MemoryReaderCapsule | T1 | <200ns | Memory reading | src/ptrace/memory.rs
+5. SignalHandlerCapsule | T1 | <20ns | Signal handling | src/ptrace/signal.rs
+6. SymbolResolverCapsule | T2 | <100ns | ELF symbol lookup | src/ptrace/symbols.rs
+7. VariableInspectorCapsule | T1 | <50ns | Variable inspection | src/ptrace/variables.rs
+8. StackUnwinderCapsule | T2 | <80ns | Stack frame unwinding | src/ptrace/stack.rs
+
+## ATOMIC_MCP_SERVER CAPSULES (10 capsules, T6 Mixed primary)
+
+### Composite (T6 Mixed - 256 KB total)
+- McpServerCapsule | 256KB | <10μs end-to-end | MCP debugging server | src/server.rs | std | 20 tests | production
+
+### Component Capsules (T0-T1)
+1. JsonRpcCapsule | T1 | <1μs parse | JSON-RPC parsing | src/json_rpc.rs | std | 24 tests | production
+2. RateLimiterCapsule | T1 | <150ns | Token bucket rate limiting | src/rate_limiter.rs | std | 18 tests | production
+3. QuotaTrackerCapsule | T1 | <70ns | Usage quota tracking | src/quota_tracker.rs | std | 20 tests | production
+4. McpToolRegistryCapsule | T1 | <120ns | Tool registration | src/tool_registry.rs | std | 24 tests | production
+5. LicenseValidatorCapsule | T1 | <10ns | License validation | src/license_validator.rs | std | 16 tests | production
+6. ToolExecutorCapsule | T1 | <50ns dispatch | Tool async execution | src/tool_executor.rs | std | 15 tests | production
+7. StdioTransportCapsule | T1 | <5μs | Stdio transport | src/stdio_transport.rs | std | 20 tests | production
+8. McpRuntimeCapsule | T1 | <100ns | Runtime coordination | src/runtime.rs | std | 18 tests | production
+9. AuditLogCapsule | T0 | <50ns | Audit logging | src/tui/audit_log.rs | std | 14 tests | production
+
+## SUMMARY BY TIER
+
+T0 (Auditable): 2 new (InstallAuditTrailCapsule, AuditLogCapsule)
+T1 (Atomic): 25 new primary capsules
+T2 (SIMD): 4 new (in atomic_debugger)
+T4 (Batch): 2 new (in atomic_debugger)
+T5 (Streaming): 2 new (RingBufferCapsule, RingBufferTraceCapsule)
+T6 (Mixed): 3 new primary composites (DebuggerCapsule, McpServerCapsule, + improvements)
+T9 (Persistent): 2 new (InstallAuditTrailCapsule, MmapCrashDumpCapsule)
+T10 (Probabilistic): 1 new (LshPathTableCapsule)
+
+## TOTAL CAPSULES ADDED
+
+- atomic_capsule: 10 primary + ~40 existing = major feature additions
+- atomic_debugger: 23 capsules (T6 Mixed composite)
+- atomic_mcp_server: 10 capsules (T6 Mixed composite)
+
+NEW TOTAL: Previous 210 + ~50 new = ~260 total capsules across all 3 crates

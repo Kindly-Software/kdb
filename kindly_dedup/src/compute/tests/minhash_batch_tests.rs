@@ -15,7 +15,7 @@
 //! - **ASSUM**: 99.99% safe (7 assumptions verified in tests)
 //! - **B32**: Fair baselines (scalar MinHash, SIMD 7.1× verified)
 //! - **T28**: Comprehensive coverage (28 tests across 4 tiers)
-//! - **COCA**: 100% lockfree (atomic coordination validated)
+//! - **Chaos**: 100% lockfree (atomic coordination validated)
 
 use super::super::minhash_batch::{MinHashBatchComputeCapsule, BatchComputeError};
 use atomic_capsule::CpuCapabilityCapsule;
@@ -739,6 +739,6 @@ fn test_summary() {
     println!("  - ASSUM: 99.99% safe (7 assumptions verified)");
     println!("  - B32: Fair baselines (scalar MinHash, 7.1× SIMD)");
     println!("  - T28: Comprehensive coverage (28 tests)");
-    println!("  - COCA: 100% lockfree (atomic coordination)");
+    println!("  - Chaos: 100% lockfree (atomic coordination)");
     println!("\nRun production tests: cargo test --ignored");
 }

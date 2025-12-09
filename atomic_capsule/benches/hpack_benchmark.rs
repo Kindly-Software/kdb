@@ -121,11 +121,11 @@ fn bench_decode_indexed_headers() {
     let iterations = 10_000;
 
     let test_cases = vec![
-        ("Method GET", [0x82_u8] as &[u8]),      // Index 2
-        ("Status 200", [0x88_u8] as &[u8]),      // Index 8
-        ("Status 404", [0x8d_u8] as &[u8]),      // Index 13
-        ("Scheme HTTPS", [0x87_u8] as &[u8]),    // Index 7
-        ("Path /", [0x84_u8] as &[u8]),          // Index 4
+        ("Method GET", [0x82_u8] as &[u8]),   // Index 2
+        ("Status 200", [0x88_u8] as &[u8]),   // Index 8
+        ("Status 404", [0x8d_u8] as &[u8]),   // Index 13
+        ("Scheme HTTPS", [0x87_u8] as &[u8]), // Index 7
+        ("Path /", [0x84_u8] as &[u8]),       // Index 4
     ];
 
     for (label, buffer) in test_cases {
@@ -157,11 +157,17 @@ fn bench_encode_literal_headers() {
 
     let test_cases = vec![
         ("Short custom", (b"x-id" as &[u8], b"123" as &[u8])),
-        ("Medium custom", (b"x-request-id", b"550e8400-e29b-41d4-a716-446655440000")),
-        ("Long custom", (
-            b"x-trace-path",
-            b"service1->service2->service3->service4->service5",
-        )),
+        (
+            "Medium custom",
+            (b"x-request-id", b"550e8400-e29b-41d4-a716-446655440000"),
+        ),
+        (
+            "Long custom",
+            (
+                b"x-trace-path",
+                b"service1->service2->service3->service4->service5",
+            ),
+        ),
     ];
 
     for (label, (name, value)) in test_cases {
@@ -208,31 +214,16 @@ fn bench_compression_ratios() {
     let metrics = encoder.metrics();
     let ratio = metrics.compression_ratio();
 
-    println!(
-        "  Headers encoded:     {}",
-        metrics.headers_encoded
-    );
-    println!(
-        "  Bytes before:        {}",
-        metrics.bytes_before
-    );
-    println!(
-        "  Bytes after:         {}",
-        metrics.bytes_after
-    );
+    println!("  Headers encoded:     {}", metrics.headers_encoded);
+    println!("  Bytes before:        {}", metrics.bytes_before);
+    println!("  Bytes after:         {}", metrics.bytes_after);
     println!(
         "  Compression ratio:   {:.2}% ({:.0}% improvement)",
         ratio * 100.0,
         (1.0 - ratio) * 100.0
     );
-    println!(
-        "  Indexed lookups:     {}",
-        metrics.indexed_lookups
-    );
-    println!(
-        "  Literal encodings:   {}",
-        metrics.literal_encodings
-    );
+    println!("  Indexed lookups:     {}", metrics.indexed_lookups);
+    println!("  Literal encodings:   {}", metrics.literal_encodings);
 }
 
 /// Benchmark 6: Multi-header throughput
@@ -265,26 +256,11 @@ fn bench_multi_header_throughput() {
     let per_header = elapsed.as_micros() as f64 / total_headers as f64;
     let throughput = (1_000_000 / elapsed.as_micros()) * total_headers as u128;
 
-    println!(
-        "  Request headers:     {}",
-        headers.len()
-    );
-    println!(
-        "  Iterations:          {}",
-        iterations
-    );
-    println!(
-        "  Total headers:       {}",
-        total_headers
-    );
-    println!(
-        "  Per-header latency:  {:.3} μs",
-        per_header
-    );
-    println!(
-        "  Throughput:          {} headers/sec",
-        throughput
-    );
+    println!("  Request headers:     {}", headers.len());
+    println!("  Iterations:          {}", iterations);
+    println!("  Total headers:       {}", total_headers);
+    println!("  Per-header latency:  {:.3} μs", per_header);
+    println!("  Throughput:          {} headers/sec", throughput);
 }
 
 /// Benchmark 7: Concurrent encoding stress test
@@ -321,26 +297,11 @@ fn bench_concurrent_encoding() {
     let per_op = elapsed.as_nanos() / total_ops as u128;
     let throughput = (1_000_000_000 / elapsed.as_nanos()) * total_ops as u128;
 
-    println!(
-        "  Threads:             {}",
-        num_threads
-    );
-    println!(
-        "  Iterations/thread:   {}",
-        iterations_per_thread
-    );
-    println!(
-        "  Total operations:    {}",
-        total_ops
-    );
-    println!(
-        "  Per-operation:       {} ns",
-        per_op
-    );
-    println!(
-        "  Throughput:          {} ops/sec",
-        throughput
-    );
+    println!("  Threads:             {}", num_threads);
+    println!("  Iterations/thread:   {}", iterations_per_thread);
+    println!("  Total operations:    {}", total_ops);
+    println!("  Per-operation:       {} ns", per_op);
+    println!("  Throughput:          {} ops/sec", throughput);
 
     let metrics = encoder.metrics();
     println!(

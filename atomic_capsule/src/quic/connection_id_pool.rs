@@ -202,6 +202,7 @@ impl ConnectionId {
 /// All operations are cache-aligned and use atomic primitives only.
 #[repr(C, align(256))]
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
+#[cfg_attr(feature = "derive", capsule(alignment = 256))]
 pub struct ConnectionIdPoolCapsule {
     /// State vector: active_count(8) | sequence(32) | generation(24)
     /// Layout: bits [0-7]=active_count, [8-39]=sequence, [40-63]=generation

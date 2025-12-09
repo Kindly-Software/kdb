@@ -127,7 +127,7 @@
 - [x] Q15+: Integration & performance (ready for Phase 2)
 - [x] All framework questions addressed
 
-### ✅ COCA (Computational Capsule Architecture)
+### ✅ Chaos (Computational Capsule Architecture)
 - [x] T1 Atomic: DualAtomicU64 coordination verified by Q13
 - [x] T9 Persistent: mmap + fsync verified by Q11
 - [x] 100% Lockfree: CAS-based allocation verified by Q8/Q9
@@ -227,7 +227,7 @@
 - [x] Concurrent scaling linear (lockfree)
 
 ### Framework Alignment
-- [x] All 5 frameworks validated (UCE34/COCA/ASSUM/B32/T28)
+- [x] All 5 frameworks validated (UCE34/Chaos/ASSUM/B32/T28)
 - [x] No breaking changes to public API
 - [x] Backward compatible with existing code
 - [x] Ready for production deployment
@@ -292,7 +292,7 @@ grep -n "fn test_" src/document/persistent_cache.rs
 
 ### Framework Compliance
 - [x] UCE34: Q1-Q14 complete ✓
-- [x] COCA: T1+T9 mixed, 100% lockfree ✓
+- [x] Chaos: T1+T9 mixed, 100% lockfree ✓
 - [x] ASSUM: All 4 tags verified ✓
 - [x] B32: Performance targets met ✓
 - [x] T28: All 4 tiers ready ✓

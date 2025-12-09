@@ -718,6 +718,6 @@ let frequent = cms.heavy_hitters(100);  // <150μs
 
 **Total Documentation**: ~50,000 words across 9 strategic documents (4 LLM dedup + 5 primitives)
 
-**All with complete UCE34 Q1-Q34 analysis, COCA compliance, and production-ready designs.**
+**All with complete UCE34 Q1-Q34 analysis, Chaos compliance, and production-ready designs.**
 
 **Ready to build.** 🚀

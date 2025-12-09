@@ -205,7 +205,7 @@ fn test_q21_production_readiness() {
 
     println!("\nFramework Compliance:");
     println!("  ✓ UCE34: Q10-Q34 complete (T6 Mixed tier)");
-    println!("  ✓ COCA: 100% lockfree (no mutex)");
+    println!("  ✓ Chaos: 100% lockfree (no mutex)");
     println!("  ✓ ASSUM: 99.99% safe (7 assumptions verified)");
     println!("  ✓ B32: Fair baseline (260 docs/sec DedupPipeline)");
     println!("  ✓ T28: Q15-Q21 integration tests (7 test categories)");
@@ -403,9 +403,9 @@ fn test_q24_framework_compliance() {
     println!("  ✓ Q11-Q12: Research validation (MinHash, LSH, Union-Find)");
     println!("  ✓ Q13-Q21: Implementation (stage wiring, orchestration)");
     println!("  ✓ Q22-Q28: Validation (end-to-end tests)");
-    println!("  ✓ Q30-Q34: Production (COCA lockfree, ASSUM safety, audit trails)");
+    println!("  ✓ Q30-Q34: Production (Chaos lockfree, ASSUM safety, audit trails)");
 
-    println!("\nCOCA - Computational Capsule:");
+    println!("\nChaos - Computational Capsule:");
     println!("  ✓ UniversalDedupPipelineCapsule: T6 Mixed wrapper");
     println!("  ✓ DedupMetacapsule: Orchestrator (128 bytes, cache-aligned)");
     println!("  ✓ DocumentStreamCapsule: Stage 1 (T5 Streaming)");

@@ -105,7 +105,7 @@
 //! └──────────────────────────────────────┘
 //! ```
 //!
-//! ## COCA Compliance
+//! ## Chaos Compliance
 //!
 //! - **Lockfree**: 100% atomic operations (NO mutex/RwLock)
 //! - **Cache-aligned**: 128B structure (2× 64B cache lines)

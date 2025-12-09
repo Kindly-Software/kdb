@@ -1,0 +1,170 @@
+name: Performance Regression Tests
+
+# Trigger on all pull requests and pushes to main/analysis branches
+on:
+  pull_request:
+    paths:
+      - 'atomic_capsule/src/**'
+      - 'atomic_capsule/tests/**'
+      - 'atomic_capsule/benches/**'
+      - 'atomic_capsule/Cargo.toml'
+  push:
+    branches:
+      - main
+      - 'analysis/**'
+
+# Environment variables for consistent testing
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  regression-tests:
+    name: Performance Regression Detection
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run atomic operations regression tests
+        working-directory: atomic_capsule
+        run: |
+          cargo test --test performance_regression test_atomic --release -- --nocapture
+
+      - name: Run concurrent map regression tests (std)
+        working-directory: atomic_capsule
+        run: |
+          cargo test --test performance_regression test_concurrent_map --release --features std -- --nocapture
+
+      - name: Run lockfree table regression tests (std)
+        working-directory: atomic_capsule
+        run: |
+          cargo test --test performance_regression test_lockfree_table --release --features std -- --nocapture
+
+      - name: Run SIMD regression tests (Tier 2, nightly)
+        working-directory: atomic_capsule
+        run: |
+          cargo +nightly test --test performance_regression test_simd --release --features "portable_simd" -- --nocapture
+
+      - name: Run concurrent operations regression tests (std)
+        working-directory: atomic_capsule
+        run: |
+          cargo test --test performance_regression test_concurrent --release --features std -- --nocapture
+
+      - name: Verify baseline TOML generation
+        working-directory: atomic_capsule
+        run: |
+          cargo test --test performance_regression test_baseline_toml_generation --release -- --nocapture
+
+      - name: Performance summary
+        if: always()
+        run: |
+          echo "✅ Performance regression tests completed"
+          echo "📊 Baseline source: benches/BASELINE_PERFORMANCE.toml"
+          echo "⚠️  Regression threshold: 10% (fail on >10% slower)"
+          echo "✨ Improvement detection: Log on >10% faster"
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: regression-test-failures
+          path: |
+            atomic_capsule/target/release/deps/performance_regression-*
+            atomic_capsule/benches/BASELINE_PERFORMANCE.toml
+
+  # Optional: Benchmark comparison job (runs only on main)
+  benchmark-comparison:
+    name: Benchmark Comparison (Main Branch)
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-bench-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run criterion benchmarks
+        working-directory: atomic_capsule
+        run: |
+          cargo bench --bench concurrent_map_bench --features std
+          cargo bench --bench lockfree_table_bench --features std
+          cargo +nightly bench --bench simd_capsule_bench --features "portable_simd"
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v3
+        with:
+          name: criterion-results
+          path: atomic_capsule/target/criterion/
+
+  # Documentation job (ensures regression tests are documented)
+  documentation:
+    name: Validate Regression Test Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check baseline documentation
+        run: |
+          if [ ! -f "atomic_capsule/benches/BASELINE_PERFORMANCE.toml" ]; then
+            echo "❌ Missing baseline file: benches/BASELINE_PERFORMANCE.toml"
+            exit 1
+          fi
+          echo "✅ Baseline file present"
+
+      - name: Validate baseline TOML syntax
+        run: |
+          # Simple TOML syntax check
+          if grep -q "atomic_operations" atomic_capsule/benches/BASELINE_PERFORMANCE.toml && \
+             grep -q "concurrent_map" atomic_capsule/benches/BASELINE_PERFORMANCE.toml && \
+             grep -q "metadata" atomic_capsule/benches/BASELINE_PERFORMANCE.toml; then
+            echo "✅ Baseline TOML structure valid"
+          else
+            echo "❌ Baseline TOML missing required sections"
+            exit 1
+          fi
+
+      - name: Check regression test documentation
+        run: |
+          if grep -q "Performance Regression Tests" atomic_capsule/tests/performance_regression.rs && \
+             grep -q "UCE34 Framework Compliance" atomic_capsule/tests/performance_regression.rs && \
+             grep -q "B32 Framework Application" atomic_capsule/tests/performance_regression.rs; then
+            echo "✅ Regression test documentation complete"
+          else
+            echo "❌ Regression test missing required documentation"
+            exit 1
+          fi

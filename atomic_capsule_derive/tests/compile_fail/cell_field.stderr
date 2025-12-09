@@ -1,0 +1,21 @@
+error: Field `state` uses Cell/RefCell which is FORBIDDEN in capsule architecture.
+
+       COCA MANDATE: Capsules are Send + Sync and require atomic operations.
+       (Cell/RefCell are NOT Send/Sync)
+
+       Replace Cell/RefCell with:
+       - AtomicU64/AtomicI64/AtomicBool for primitive types
+       - Atomic operations with appropriate memory ordering
+
+       Example:
+       // Before: state: Cell<u64> (FORBIDDEN - not Send/Sync)
+       // After:  state: AtomicU64 (REQUIRED - Send + Sync, lockfree)
+
+       See: /home/samuel/Docs/The Atomic Capsule.md
+       See: $WORKSPACE/CLAUDE.md (COCA mandate)
+  --> tests/compile_fail/cell_field.rs:12:10
+   |
+12 | #[derive(ComputationalCapsule)]
+   |          ^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this error originates in the derive macro `ComputationalCapsule` (in Nightly builds, run with -Z macro-backtrace for more info)

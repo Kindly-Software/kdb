@@ -60,7 +60,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 (T1 Atomic tier), Q33 (verification), Q34 (audit trails)
-//! - **COCA**: 100% lockfree (AtomicU64, AtomicU8, AtomicPtr, CAS loops)
+//! - **Chaos**: 100% lockfree (AtomicU64, AtomicU8, AtomicPtr, CAS loops)
 //! - **ASSUM**: 99.99% safe (all assumptions documented + verified)
 //! - **B32**: 80-90% load factor validated (2× improvement target)
 //! - **T28**: Comprehensive testing (unit/property/integration/production)
@@ -556,11 +556,40 @@ where
                 // Atomically swap key pointer
                 let key_ptr = Box::into_raw(key_to_insert);
                 let old_key_ptr = bucket.key_ptr.swap(key_ptr, Ordering::AcqRel);
+
+                // SAFETY FIX: Check for null before Box::from_raw
+                // Race condition: Another thread may have removed the entry between
+                // reading incumbent_dib and this swap, leaving null pointers.
+                // If null, the slot was concurrently emptied - our entry is now in place,
+                // and there's no displaced entry to continue with.
+                if old_key_ptr.is_null() {
+                    // Slot was emptied concurrently - our entry is now in place
+                    // Atomically swap value pointer (also handle null case)
+                    let val_ptr = Box::into_raw(value_to_insert);
+                    let old_val_ptr = bucket.value_ptr.swap(val_ptr, Ordering::AcqRel);
+                    if !old_val_ptr.is_null() {
+                        // Clean up orphaned value if any
+                        let _ = unsafe { Box::from_raw(old_val_ptr) };
+                    }
+                    // Increment size counter (we inserted a new entry)
+                    self.len.fetch_add(1, Ordering::Relaxed);
+                    return Ok(None);
+                }
                 key_to_insert = unsafe { Box::from_raw(old_key_ptr) };
 
                 // Atomically swap value pointer
                 let val_ptr = Box::into_raw(value_to_insert);
                 let old_val_ptr = bucket.value_ptr.swap(val_ptr, Ordering::AcqRel);
+
+                // SAFETY FIX: Check for null before Box::from_raw
+                if old_val_ptr.is_null() {
+                    // Inconsistent state: key was present but value was null
+                    // This shouldn't happen in normal operation, but handle defensively
+                    // Drop the displaced key and continue (value already swapped in)
+                    drop(key_to_insert);
+                    self.len.fetch_add(1, Ordering::Relaxed);
+                    return Ok(None);
+                }
                 value_to_insert = unsafe { Box::from_raw(old_val_ptr) };
 
                 // Continue inserting displaced entry

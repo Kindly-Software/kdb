@@ -15,7 +15,7 @@
 //! - **T28**: Unit + Property + Integration + Production tests
 //! - **ASSUM**: 99.99% safe (all assumptions verified)
 //! - **B32**: Fair baselines, statistical rigor
-//! - **COCA**: 100% lockfree (zero blocking primitives)
+//! - **Chaos**: 100% lockfree (zero blocking primitives)
 
 use kindly_dedup::{DedupBloomFilter, ParallelDedupPipeline};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -313,7 +313,7 @@ fn assum_011_parallel_correctness_matches_sequential() {
 
 #[test]
 fn lockfree_mandate_zero_blocking_primitives() {
-    // COCA Lockfree Mandate: 100% lockfree, no Mutex/RwLock
+    // Chaos Lockfree Mandate: 100% lockfree, no Mutex/RwLock
     // Verification: Compile-time check (this test existing proves Send constraints)
 
     use atomic_capsule::probabilistic::ShardedBloomFilterCapsule;

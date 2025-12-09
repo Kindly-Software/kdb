@@ -42,9 +42,12 @@
 //! }
 //! ```
 
+#![allow(dead_code)]
+
 pub mod audit;
 pub mod background_monitor;
 pub mod build_verification;
+pub mod commercial_limiter;
 pub mod dedup_audit;
 pub mod demo_limiter;
 pub mod encryption;
@@ -81,6 +84,7 @@ pub mod protection_system;
 pub use audit::{AuditError, SecurityAuditEvent, SecurityEventType};
 pub use background_monitor::{is_running, shutdown_monitor, spawn_monitor};
 pub use build_verification::BuildVerification;
+pub use commercial_limiter::{CommercialLimitError, CommercialLimiterCapsule, LicenseTier};
 pub use dedup_audit::{
     log_add_document, log_bloom_skip, log_cluster_formed, log_find_duplicate, DedupAuditEvent, DedupEventType,
 };

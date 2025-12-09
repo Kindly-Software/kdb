@@ -27,10 +27,12 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 (T1 Atomic tier selection), Q33 (deterministic snapshots)
-//! - **COCA**: 100% lockfree (AtomicU64/AtomicU32/AtomicBool only, no Mutex)
+//! - **Chaos**: 100% lockfree (AtomicU64/AtomicU32/AtomicBool only, no Mutex)
 //! - **ASSUM**: 99.99% safe (documented memory ordering, overflow assumptions)
 //! - **T28**: 4-tier tests (unit/property/integration/production)
 //! - **B32**: Fair benchmarking (realistic contention, 1000+ iterations)
+
+#![allow(dead_code)]
 
 use std::sync::atomic::{AtomicU64, AtomicU32, AtomicBool, Ordering};
 

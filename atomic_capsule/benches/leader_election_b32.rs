@@ -14,7 +14,7 @@
 //! - Not a strawman: Uses standard library primitives
 
 use atomic_capsule::patterns::{ElectionResult, LeaderElectionCapsule};
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 

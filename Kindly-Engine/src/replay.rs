@@ -398,6 +398,78 @@ pub fn encode_supply_replay_payload(pressure_avg_q16: u32, fatigue_avg_q16: u32)
     tag | p | f
 }
 
+/// Encode logistics overlays (throughput + command-delay penalty + disruptions/attrition).
+///
+/// Layout:
+/// - bits 63..48: 0xC230 tag
+/// - bits 47..32: avg throughput (Q16.16, clamped)
+/// - bits 31..16: avg command-delay penalty (ticks, clamped)
+/// - bits 15..8 : disruptions (clamped to u8)
+/// - bits 7..0  : attrition events (clamped to u8)
+pub fn encode_logistics_replay_payload(
+    throughput_avg_q16: u32,
+    command_delay_penalty_ticks: u32,
+    disruptions: u32,
+    attrition_events: u32,
+) -> u64 {
+    let tag = 0xC230u64 << 48;
+    let throughput = (throughput_avg_q16.min(0xFFFF) as u64) << 32;
+    let penalty = (command_delay_penalty_ticks.min(0xFFFF) as u64) << 16;
+    let disruptions = (disruptions.min(0xFF) as u64) << 8;
+    let attrition = attrition_events.min(0xFF) as u64;
+    tag | throughput | penalty | disruptions | attrition
+}
+
+/// Encode supply route cut event (disruption cluster).
+///
+/// Layout:
+/// - bits 63..48: 0xC231 tag
+/// - bits 31..16: cuts (u16)
+/// - bits 15..0 : reserved
+pub fn encode_supply_route_cut(cuts: u32) -> u64 {
+    let tag = 0xC231u64 << 48;
+    let c = (cuts.min(0xFFFF) as u64) << 16;
+    tag | c
+}
+
+/// Encode Ops/C2 guardrails (backpressure + courier reliability).
+///
+/// Layout:
+/// - bits 63..48: 0xC340 tag
+/// - bits 47..32: ops backpressure (Q16.16, clamped)
+/// - bits 31..16: courier reliability (Q16.16, clamped)
+/// - bits 15..0 : reserved
+pub fn encode_ops_guard_payload(backpressure_q16: u32, courier_reliability_q16: u32) -> u64 {
+    let tag = 0xC340u64 << 48;
+    let backpressure = (backpressure_q16.min(0xFFFF) as u64) << 32;
+    let reliability = (courier_reliability_q16.min(0xFFFF) as u64) << 16;
+    tag | backpressure | reliability
+}
+
+/// Encode ops backpressure drop count (orders dropped due to caps).
+///
+/// Layout:
+/// - bits 63..48: 0xC342 tag
+/// - bits 31..16: drops (u16)
+/// - bits 15..0 : reserved
+pub fn encode_ops_backpressure_drops(drops: u32) -> u64 {
+    let tag = 0xC342u64 << 48;
+    let d = (drops.min(0xFFFF) as u64) << 16;
+    tag | d
+}
+
+/// Encode ops congestion bucket (queue depth severity).
+///
+/// Layout:
+/// - bits 63..48: 0xC343 tag
+/// - bits 31..24: congestion bucket (0..7)
+/// - bits 23..0 : reserved
+pub fn encode_ops_congestion(bucket: u8) -> u64 {
+    let tag = 0xC343u64 << 48;
+    let b = (bucket.min(0xFF) as u64) << 24;
+    tag | b
+}
+
 /// Encode command/courier overlays (command stress + courier latency/loss).
 ///
 /// Layout:
@@ -418,6 +490,30 @@ pub fn encode_command_replay_payload(
     let losses = (courier_losses.min(0xFF) as u64) << 8;
     let spoofed = courier_spoofed.min(0xFF) as u64;
     tag | stress | eta | losses | spoofed
+}
+
+/// Encode command delay p95 bucket (histogram-derived).
+///
+/// Layout:
+/// - bits 63..48: 0xC324 tag
+/// - bits 31..24: p95 bucket (0..7)
+/// - bits 23..0 : reserved
+pub fn encode_command_delay_p95(bucket: u8) -> u64 {
+    let tag = 0xC324u64 << 48;
+    let b = (bucket.min(0xFF) as u64) << 24;
+    tag | b
+}
+
+/// Encode courier ETA p95 bucket (histogram-derived).
+///
+/// Layout:
+/// - bits 63..48: 0xC325 tag
+/// - bits 31..24: p95 bucket (0..7)
+/// - bits 23..0 : reserved
+pub fn encode_courier_eta_p95(bucket: u8) -> u64 {
+    let tag = 0xC325u64 << 48;
+    let b = (bucket.min(0xFF) as u64) << 24;
+    tag | b
 }
 
 /// Encode applied command delay summary (count + avg ticks).
@@ -456,6 +552,28 @@ pub fn encode_strategic_event_payload(ev: &crate::strategic_map::StrategicEventS
         ),
     };
     tag | kind | province | primary | secondary
+}
+
+/// Encode auxiliary strategic metadata (generation + infra delta) for auditability.
+///
+/// Layout:
+/// - bits 63..48: 0xCA01 tag
+/// - bits 47..32: province_id (u16)
+/// - bits 31..16: generation (lsb 16; snapshot carries full 64)
+/// - bits 15..0 : infra_delta_q16 >> 4 (u16, clamped); 0 for ownership changes
+pub fn encode_strategic_event_meta(ev: &crate::strategic_map::StrategicEventSnapshot) -> u64 {
+    let tag = 0xCA01u64 << 48;
+    let province = (ev.province_id.min(0xFFFF) as u64) << 32;
+    let generation = (ev.generation as u64 & 0xFFFF) << 16;
+    let delta_q16 = if ev.kind == StrategicEventKind::InfrastructureRepair {
+        ev.to_infra_q16
+            .saturating_sub(ev.from_infra_q16)
+            .saturating_div(16)
+            .min(0xFFFF)
+    } else {
+        0
+    };
+    tag | province | generation | delta_q16 as u64
 }
 
 /// Encode 4 histogram buckets (command delay) into one payload chunk.
@@ -583,6 +701,30 @@ pub fn encode_battle_ai_replay_payload(
     tag | src | tgt | ord | (score_q8 as u64)
 }
 
+/// Encode aggregated battle AI intent (stance/doctrine/threat centroid).
+///
+/// Layout:
+/// - bits 63..48: 0xC901 tag
+/// - bits 47..36: threat centroid x tile (u12)
+/// - bits 35..24: threat centroid z tile (u12)
+/// - bits 23..16: doctrine mode (u8)
+/// - bits 15..8 : dominant stance (u8)
+/// - bits 7..0  : generation lsb (u8)
+pub fn encode_battle_ai_intent_payload(
+    threat_x_tile: u16,
+    threat_z_tile: u16,
+    doctrine_mode: u8,
+    dominant_stance: u8,
+    generation_lsb: u8,
+) -> u64 {
+    let tag = 0xC901u64 << 48;
+    let x = (threat_x_tile.min(0x0FFF) as u64) << 36;
+    let z = (threat_z_tile.min(0x0FFF) as u64) << 24;
+    let doctrine = (doctrine_mode as u64) << 16;
+    let stance = (dominant_stance as u64) << 8;
+    tag | x | z | doctrine | stance | (generation_lsb as u64)
+}
+
 /// Encode grenade telemetry: casualties, cover, detonation.
 ///
 /// Layout:
@@ -634,6 +776,53 @@ pub fn encode_garrison_aperture_detail_payload(min_q16: u32, max_q16: u32) -> u6
     tag | min | max
 }
 
+/// Encode siege overlay snapshot (integrity/progress + breach/repair counts).
+///
+/// Layout:
+/// - bits 63..48: 0xC820 tag
+/// - bits 47..32: avg integrity q16 (u16, clamped)
+/// - bits 31..24: breach events (u8)
+/// - bits 23..16: repair events (u8)
+/// - bits 15..0 : avg breach progress q16 (u16, clamped)
+pub fn encode_siege_replay_payload(
+    integrity_avg_q16: u32,
+    breach_events: u32,
+    repair_events: u32,
+    progress_q16: u32,
+) -> u64 {
+    let tag = 0xC820u64 << 48;
+    let integrity = (integrity_avg_q16.min(0xFFFF) as u64) << 32;
+    let breach = (breach_events.min(0xFF) as u64) << 24;
+    let repair = (repair_events.min(0xFF) as u64) << 16;
+    let progress = progress_q16.min(0xFFFF) as u64;
+    tag | integrity | breach | repair | progress
+}
+
+/// Encode a specific siege face event (breach/repair) for replay/telemetry.
+///
+/// Layout:
+/// - bits 63..48: 0xC821 tag
+/// - bits 47..32: structure_id (u16)
+/// - bits 31..24: face_idx (u8)
+/// - bit 23     : breached flag (1 = breach, 0 = repair/seal)
+/// - bits 22..8 : integrity_q16 >> 4 (u15, clamped)
+/// - bits 7..0  : breach_progress_q16 >> 8 (u8, clamped)
+pub fn encode_siege_event_detail(
+    structure_id: u32,
+    face_idx: u8,
+    breached: bool,
+    integrity_q16: u32,
+    breach_progress_q16: u32,
+) -> u64 {
+    let tag = 0xC821u64 << 48;
+    let sid = (structure_id.min(0xFFFF) as u64) << 32;
+    let face = (face_idx.min(0xFF) as u64) << 24;
+    let breach_bit = if breached { 1u64 } else { 0 } << 23;
+    let integrity = ((integrity_q16 >> 4).min(0x7FFF) as u64) << 8;
+    let progress = (breach_progress_q16 >> 8).min(0xFF) as u64;
+    tag | sid | face | breach_bit | integrity | progress
+}
+
 /// Decoded replay record kinds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ReplayRecord {
@@ -654,6 +843,30 @@ pub enum ReplayRecord {
         pressure_avg_q16: u16,
         fatigue_avg_q16: u16,
     },
+    /// Logistics overlay (throughput + command-delay penalty + disruptions/attrition).
+    Logistics {
+        throughput_avg_q16: u16,
+        command_delay_penalty_ticks: u16,
+        disruptions: u8,
+        attrition_events: u8,
+    },
+    /// Supply route cut event (clustered disruptions).
+    SupplyRouteCut {
+        cuts: u16,
+    },
+    /// Ops/C2 guardrails snapshot (backpressure + courier reliability).
+    OpsGuard {
+        backpressure_q16: u16,
+        courier_reliability_q16: u16,
+    },
+    /// Ops backpressure drop count (orders dropped due to caps).
+    OpsBackpressureDrops {
+        drops: u16,
+    },
+    /// Ops/C2 congestion severity bucket.
+    OpsCongestion {
+        bucket: u8,
+    },
     /// Command/courier overlay snapshot.
     Command {
         command_stress_q16: u16,
@@ -666,12 +879,26 @@ pub enum ReplayRecord {
         count: u16,
         avg_delay_ticks: u16,
     },
+    /// Command delay p95 bucket (histogram-derived).
+    CommandDelayP95 {
+        bucket: u8,
+    },
+    /// Courier ETA p95 bucket (histogram-derived).
+    CourierEtaP95 {
+        bucket: u8,
+    },
     /// Strategic overlay: ownership/repair events.
     Strategic {
         kind: StrategicEventKind,
         province_id: u16,
         primary: u16,
         secondary: u16,
+    },
+    /// Strategic metadata (generation + infra delta).
+    StrategicMeta {
+        province_id: u16,
+        generation_lsb: u16,
+        infra_delta_q16_shift: u16,
     },
     /// Command delay/courier ETA histogram chunk (4 buckets).
     CommandHistogram {
@@ -702,6 +929,14 @@ pub enum ReplayRecord {
         rank_fire_events: u8,
         advance_fire_events: u8,
     },
+    /// Battle AI aggregated intent snapshot.
+    BattleAiIntent {
+        threat_x_tile: u16,
+        threat_z_tile: u16,
+        doctrine_mode: u8,
+        dominant_stance: u8,
+        generation_lsb: u8,
+    },
     /// Battle AI decision snapshot.
     BattleAi {
         source_formation_id: u16,
@@ -714,6 +949,21 @@ pub enum ReplayRecord {
         casualties: u16,
         avg_cover_q16: u16,
         detonation_ms: u16,
+    },
+    /// Siege overlay snapshot (integrity/progress + breach/repair counts).
+    Siege {
+        integrity_q16: u16,
+        breach_events: u8,
+        repair_events: u8,
+        progress_q16: u16,
+    },
+    /// Siege face event detail (breach/repair + integrity/progress).
+    SiegeEventDetail {
+        structure_id: u16,
+        face_idx: u8,
+        breached: bool,
+        integrity_q16: u16,
+        breach_progress_q16: u16,
     },
     /// Garrison overlay snapshot (count, breaches, avg aperture width).
     Garrison {
@@ -743,6 +993,25 @@ pub fn decode_replay_payload(payload: u64) -> ReplayRecord {
             pressure_avg_q16: ((payload >> 32) & 0xFFFF) as u16,
             fatigue_avg_q16: ((payload >> 16) & 0xFFFF) as u16,
         },
+        0xC230 => ReplayRecord::Logistics {
+            throughput_avg_q16: ((payload >> 32) & 0xFFFF) as u16,
+            command_delay_penalty_ticks: ((payload >> 16) & 0xFFFF) as u16,
+            disruptions: ((payload >> 8) & 0xFF) as u8,
+            attrition_events: (payload & 0xFF) as u8,
+        },
+        0xC231 => ReplayRecord::SupplyRouteCut {
+            cuts: ((payload >> 16) & 0xFFFF) as u16,
+        },
+        0xC340 => ReplayRecord::OpsGuard {
+            backpressure_q16: ((payload >> 32) & 0xFFFF) as u16,
+            courier_reliability_q16: ((payload >> 16) & 0xFFFF) as u16,
+        },
+        0xC342 => ReplayRecord::OpsBackpressureDrops {
+            drops: ((payload >> 16) & 0xFFFF) as u16,
+        },
+        0xC343 => ReplayRecord::OpsCongestion {
+            bucket: ((payload >> 24) & 0xFF) as u8,
+        },
         0xC300 => ReplayRecord::Command {
             command_stress_q16: ((payload >> 32) & 0xFFFF) as u16,
             courier_eta_ticks: ((payload >> 16) & 0xFFFF) as u16,
@@ -752,6 +1021,12 @@ pub fn decode_replay_payload(payload: u64) -> ReplayRecord {
         0xC320 => ReplayRecord::CommandDelayApplied {
             count: ((payload >> 32) & 0xFFFF) as u16,
             avg_delay_ticks: ((payload >> 16) & 0xFFFF) as u16,
+        },
+        0xC324 => ReplayRecord::CommandDelayP95 {
+            bucket: ((payload >> 24) & 0xFF) as u8,
+        },
+        0xC325 => ReplayRecord::CourierEtaP95 {
+            bucket: ((payload >> 24) & 0xFF) as u8,
         },
         0xC310 | 0xC311 => {
             let tag = payload >> 48;
@@ -795,6 +1070,16 @@ pub fn decode_replay_payload(payload: u64) -> ReplayRecord {
                 secondary,
             }
         }
+        0xCA01 => {
+            let province_id = ((payload >> 32) & 0xFFFF) as u16;
+            let generation_lsb = ((payload >> 16) & 0xFFFF) as u16;
+            let infra_delta_q16_shift = (payload & 0xFFFF) as u16;
+            ReplayRecord::StrategicMeta {
+                province_id,
+                generation_lsb,
+                infra_delta_q16_shift,
+            }
+        }
         0xC400 => ReplayRecord::Artillery {
             ricochet_bounces: ((payload >> 40) & 0xFF) as u8,
             crater_radius_tiles: ((payload >> 32) & 0xFF) as u8,
@@ -815,6 +1100,13 @@ pub fn decode_replay_payload(payload: u64) -> ReplayRecord {
             rank_fire_events: ((payload >> 8) & 0xFF) as u8,
             advance_fire_events: (payload & 0xFF) as u8,
         },
+        0xC901 => ReplayRecord::BattleAiIntent {
+            threat_x_tile: ((payload >> 36) & 0xFFF) as u16,
+            threat_z_tile: ((payload >> 24) & 0xFFF) as u16,
+            doctrine_mode: ((payload >> 16) & 0xFF) as u8,
+            dominant_stance: ((payload >> 8) & 0xFF) as u8,
+            generation_lsb: (payload & 0xFF) as u8,
+        },
         0xC900 => match OrderKind::from_u8(((payload >> 8) & 0xFF) as u8) {
             Some(order_kind) => ReplayRecord::BattleAi {
                 source_formation_id: ((payload >> 32) & 0xFFFF) as u16,
@@ -829,6 +1121,26 @@ pub fn decode_replay_payload(payload: u64) -> ReplayRecord {
             avg_cover_q16: ((payload >> 16) & 0xFFFF) as u16,
             detonation_ms: (payload & 0xFFFF) as u16,
         },
+        0xC820 => ReplayRecord::Siege {
+            integrity_q16: ((payload >> 32) & 0xFFFF) as u16,
+            breach_events: ((payload >> 24) & 0xFF) as u8,
+            repair_events: ((payload >> 16) & 0xFF) as u8,
+            progress_q16: (payload & 0xFFFF) as u16,
+        },
+        0xC821 => {
+            let structure_id = ((payload >> 32) & 0xFFFF) as u16;
+            let face_idx = ((payload >> 24) & 0xFF) as u8;
+            let breached = ((payload >> 23) & 0x1) != 0;
+            let integrity_q16 = (((payload >> 8) & 0x7FFF) as u16) << 4;
+            let breach_progress_q16 = ((payload & 0xFF) as u16) << 8;
+            ReplayRecord::SiegeEventDetail {
+                structure_id,
+                face_idx,
+                breached,
+                integrity_q16,
+                breach_progress_q16,
+            }
+        }
         0xC800 => ReplayRecord::Garrison {
             garrisoned: ((payload >> 32) & 0xFFFF) as u16,
             breached: ((payload >> 16) & 0xFFFF) as u16,
@@ -907,6 +1219,32 @@ pub fn doctrine_series(events: &[(u64, ReplayRecord)]) -> Vec<(u64, u8, u8, u16,
         .collect()
 }
 
+/// Extract battle AI intent timeline: (tick, x_tile, z_tile, doctrine, stance, gen_lsb).
+pub fn battle_ai_intent_series(
+    events: &[(u64, ReplayRecord)],
+) -> Vec<(u64, u16, u16, u8, u8, u8)> {
+    events
+        .iter()
+        .filter_map(|(tick, rec)| match rec {
+            ReplayRecord::BattleAiIntent {
+                threat_x_tile,
+                threat_z_tile,
+                doctrine_mode,
+                dominant_stance,
+                generation_lsb,
+            } => Some((
+                *tick,
+                *threat_x_tile,
+                *threat_z_tile,
+                *doctrine_mode,
+                *dominant_stance,
+                *generation_lsb,
+            )),
+            _ => None,
+        })
+        .collect()
+}
+
 /// Extract battle AI decision timeline: (tick, src_id, tgt_id, order, score_q8).
 pub fn battle_ai_series(events: &[(u64, ReplayRecord)]) -> Vec<(u64, u16, u16, OrderKind, u8)> {
     events
@@ -923,6 +1261,32 @@ pub fn battle_ai_series(events: &[(u64, ReplayRecord)]) -> Vec<(u64, u16, u16, O
                 *target_formation_id,
                 *order_kind,
                 *score_q8,
+            )),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Extract siege face events: (tick, structure_id, face_idx, breached, integrity_q16, progress_q16).
+pub fn siege_event_series(
+    events: &[(u64, ReplayRecord)],
+) -> Vec<(u64, u16, u8, bool, u16, u16)> {
+    events
+        .iter()
+        .filter_map(|(tick, rec)| match rec {
+            ReplayRecord::SiegeEventDetail {
+                structure_id,
+                face_idx,
+                breached,
+                integrity_q16,
+                breach_progress_q16,
+            } => Some((
+                *tick,
+                *structure_id,
+                *face_idx,
+                *breached,
+                *integrity_q16,
+                *breach_progress_q16,
             )),
             _ => None,
         })
@@ -947,6 +1311,21 @@ pub fn strategic_series(
         .collect()
 }
 
+/// Extract strategic metadata: (tick, province_id, generation_lsb, infra_delta_q16>>4).
+pub fn strategic_meta_series(events: &[(u64, ReplayRecord)]) -> Vec<(u64, u16, u16, u16)> {
+    events
+        .iter()
+        .filter_map(|(tick, rec)| match rec {
+            ReplayRecord::StrategicMeta {
+                province_id,
+                generation_lsb,
+                infra_delta_q16_shift,
+            } => Some((*tick, *province_id, *generation_lsb, *infra_delta_q16_shift)),
+            _ => None,
+        })
+        .collect()
+}
+
 /// Extract applied command delays: (tick, count, avg_delay_ticks).
 pub fn command_delay_applied_series(events: &[(u64, ReplayRecord)]) -> Vec<(u64, u16, u16)> {
     events
@@ -956,6 +1335,60 @@ pub fn command_delay_applied_series(events: &[(u64, ReplayRecord)]) -> Vec<(u64,
                 count,
                 avg_delay_ticks,
             } => Some((*tick, *count, *avg_delay_ticks)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Extract command delay p95 buckets: (tick, bucket).
+pub fn command_delay_p95_series(events: &[(u64, ReplayRecord)]) -> Vec<(u64, u8)> {
+    events
+        .iter()
+        .filter_map(|(tick, rec)| match rec {
+            ReplayRecord::CommandDelayP95 { bucket } => Some((*tick, *bucket)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Extract courier ETA p95 buckets: (tick, bucket).
+pub fn courier_eta_p95_series(events: &[(u64, ReplayRecord)]) -> Vec<(u64, u8)> {
+    events
+        .iter()
+        .filter_map(|(tick, rec)| match rec {
+            ReplayRecord::CourierEtaP95 { bucket } => Some((*tick, *bucket)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Extract ops backpressure drops: (tick, drops).
+pub fn ops_backpressure_drops_series(events: &[(u64, ReplayRecord)]) -> Vec<(u64, u16)> {
+    events
+        .iter()
+        .filter_map(|(tick, rec)| match rec {
+            ReplayRecord::OpsBackpressureDrops { drops } => Some((*tick, *drops)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// Extract ops congestion buckets: (tick, bucket).
+pub fn ops_congestion_series(events: &[(u64, ReplayRecord)]) -> Vec<(u64, u8)> {
+    events
+        .iter()
+        .filter_map(|(tick, rec)| match rec {
+            ReplayRecord::OpsCongestion { bucket } => Some((*tick, *bucket)),
+            _ => None,
+        })
+        .collect()
+}
+
+pub fn supply_route_cut_series(events: &[(u64, ReplayRecord)]) -> Vec<(u64, u16)> {
+    events
+        .iter()
+        .filter_map(|(tick, rec)| match rec {
+            ReplayRecord::SupplyRouteCut { cuts } => Some((*tick, *cuts)),
             _ => None,
         })
         .collect()
@@ -1005,6 +1438,12 @@ pub enum StratOpsRecord {
         primary: u16,
         secondary: u16,
     },
+    StrategicMeta {
+        tick: u64,
+        province_id: u16,
+        generation_lsb: u16,
+        infra_delta_q16_shift: u16,
+    },
     CommandDelayApplied {
         tick: u64,
         count: u16,
@@ -1038,6 +1477,16 @@ pub fn build_stratops_lane(events: &[(u64, ReplayRecord)]) -> Vec<StratOpsRecord
                 province_id: *province_id,
                 primary: *primary,
                 secondary: *secondary,
+            }),
+            ReplayRecord::StrategicMeta {
+                province_id,
+                generation_lsb,
+                infra_delta_q16_shift,
+            } => out.push(StratOpsRecord::StrategicMeta {
+                tick: *tick,
+                province_id: *province_id,
+                generation_lsb: *generation_lsb,
+                infra_delta_q16_shift: *infra_delta_q16_shift,
             }),
             ReplayRecord::CommandDelayApplied {
                 count,
@@ -1326,6 +1775,61 @@ mod tests {
     }
 
     #[test]
+    fn battle_ai_intent_round_trips() {
+        let payload = encode_battle_ai_intent_payload(0x123, 0x456, 3, 2, 7);
+        match decode_replay_payload(payload) {
+            ReplayRecord::BattleAiIntent {
+                threat_x_tile,
+                threat_z_tile,
+                doctrine_mode,
+                dominant_stance,
+                generation_lsb,
+            } => {
+                assert_eq!(threat_x_tile, 0x123);
+                assert_eq!(threat_z_tile, 0x456 & 0x0FFF);
+                assert_eq!(doctrine_mode, 3);
+                assert_eq!(dominant_stance, 2);
+                assert_eq!(generation_lsb, 7);
+            }
+            other => panic!("expected battle ai intent, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn logistics_payload_round_trips() {
+        let payload = encode_logistics_replay_payload(40_000, 12, 3, 2);
+        match decode_replay_payload(payload) {
+            ReplayRecord::Logistics {
+                throughput_avg_q16,
+                command_delay_penalty_ticks,
+                disruptions,
+                attrition_events,
+            } => {
+                assert_eq!(throughput_avg_q16, 40_000);
+                assert_eq!(command_delay_penalty_ticks, 12);
+                assert_eq!(disruptions, 3);
+                assert_eq!(attrition_events, 2);
+            }
+            other => panic!("expected logistics record, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn ops_guard_payload_round_trips() {
+        let payload = encode_ops_guard_payload(20_000, 50_000);
+        match decode_replay_payload(payload) {
+            ReplayRecord::OpsGuard {
+                backpressure_q16,
+                courier_reliability_q16,
+            } => {
+                assert_eq!(backpressure_q16, 20_000);
+                assert_eq!(courier_reliability_q16, 50_000);
+            }
+            other => panic!("expected ops guard record, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn decode_stream_yields_supply_series() {
         let payload = encode_supply_replay_payload(10_000, 2_000);
         let events = vec![ReplayEvent::new(7, payload)];
@@ -1348,12 +1852,23 @@ mod tests {
             resistance_q16: 0,
             generation: 0,
         });
+        let strat_meta_payload = encode_strategic_event_meta(&StrategicEventSnapshot {
+            kind: StrategicEventKind::InfrastructureRepair,
+            province_id: 9,
+            from_owner_id: 0,
+            to_owner_id: 0,
+            from_infra_q16: 12_000,
+            to_infra_q16: 14_000,
+            resistance_q16: 0,
+            generation: 0x1234,
+        });
         let cmd_delay_payload = encode_command_delay_applied(5, 12);
         let cmd_hist_payload = encode_command_delay_hist_payload(0, &[1, 2, 3, 4]);
         let courier_hist_payload = encode_courier_eta_hist_payload(1, &[5, 6, 7, 8]);
 
         let events = vec![
             ReplayEvent::new(1, strat_payload),
+            ReplayEvent::new(1, strat_meta_payload),
             ReplayEvent::new(2, cmd_delay_payload),
             ReplayEvent::new(3, cmd_hist_payload),
             ReplayEvent::new(4, courier_hist_payload),
@@ -1389,6 +1904,15 @@ mod tests {
         ));
         assert!(matches!(
             stratops[1],
+            StratOpsRecord::StrategicMeta {
+                tick: 1,
+                province_id: 9,
+                generation_lsb,
+                infra_delta_q16_shift,
+            } if generation_lsb == 0x1234 && infra_delta_q16_shift == ((14_000 - 12_000) >> 4) as u16
+        ));
+        assert!(matches!(
+            stratops[2],
             StratOpsRecord::CommandDelayApplied {
                 tick: 2,
                 count: 5,
@@ -1396,7 +1920,7 @@ mod tests {
             }
         ));
         assert!(matches!(
-            stratops[2],
+            stratops[3],
             StratOpsRecord::CommandDelayHist {
                 tick: 3,
                 chunk: 0,
@@ -1404,12 +1928,101 @@ mod tests {
             } if buckets == [1,2,3,4]
         ));
         assert!(matches!(
-            stratops[3],
+            stratops[4],
             StratOpsRecord::CourierEtaHist {
                 tick: 4,
                 chunk: 1,
                 buckets
             } if buckets == [5,6,7,8]
         ));
+    }
+
+    #[test]
+    fn siege_payload_round_trip() {
+        let payload = encode_siege_replay_payload(40_000, 2, 1, 22_000);
+        match decode_replay_payload(payload) {
+            ReplayRecord::Siege {
+                integrity_q16,
+                breach_events,
+                repair_events,
+                progress_q16,
+            } => {
+                assert_eq!(integrity_q16, 40_000);
+                assert_eq!(breach_events, 2);
+                assert_eq!(repair_events, 1);
+                assert_eq!(progress_q16, 22_000);
+            }
+            other => panic!("unexpected decode: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn siege_event_detail_round_trip() {
+        let payload = encode_siege_event_detail(77, 2, true, 50_000, 12_000);
+        match decode_replay_payload(payload) {
+            ReplayRecord::SiegeEventDetail {
+                structure_id,
+                face_idx,
+                breached,
+                integrity_q16,
+                breach_progress_q16,
+            } => {
+                assert_eq!(structure_id, 77);
+                assert_eq!(face_idx, 2);
+                assert!(breached);
+                assert_eq!(integrity_q16, (50_000 >> 4) << 4);
+                assert_eq!(breach_progress_q16, (12_000 >> 8) << 8);
+            }
+            other => panic!("unexpected decode: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn ops_backpressure_drops_round_trip() {
+        let payload = encode_ops_backpressure_drops(777);
+        match decode_replay_payload(payload) {
+            ReplayRecord::OpsBackpressureDrops { drops } => {
+                assert_eq!(drops, 777u16);
+            }
+            other => panic!("unexpected decode: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn ops_congestion_round_trip() {
+        let payload = encode_ops_congestion(5);
+        match decode_replay_payload(payload) {
+            ReplayRecord::OpsCongestion { bucket } => {
+                assert_eq!(bucket, 5);
+            }
+            other => panic!("unexpected decode: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn command_delay_p95_round_trip() {
+        let payload = encode_command_delay_p95(3);
+        match decode_replay_payload(payload) {
+            ReplayRecord::CommandDelayP95 { bucket } => assert_eq!(bucket, 3),
+            other => panic!("unexpected decode: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn courier_eta_p95_round_trip() {
+        let payload = encode_courier_eta_p95(4);
+        match decode_replay_payload(payload) {
+            ReplayRecord::CourierEtaP95 { bucket } => assert_eq!(bucket, 4),
+            other => panic!("unexpected decode: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn supply_route_cut_round_trip() {
+        let payload = encode_supply_route_cut(9);
+        match decode_replay_payload(payload) {
+            ReplayRecord::SupplyRouteCut { cuts } => assert_eq!(cuts, 9),
+            other => panic!("unexpected decode: {:?}", other),
+        }
     }
 }

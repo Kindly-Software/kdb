@@ -1,0 +1,205 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/atomic_network_gateway/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/kiang/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+   Compiling atomic_capsule_map v0.1.0 (/home/samuel/Primitives/atomic_capsule_map)
+    Finished `bench` profile [optimized] target(s) in 26.29s
+     Running benches/vs_dashmap.rs (/home/samuel/Primitives/target/release/deps/vs_dashmap-981e0dd465e42155)
+Gnuplot not found, using plotters backend
+Benchmarking insert_comparison/capsule_map/uncontended
+Benchmarking insert_comparison/capsule_map/uncontended: Warming up for 2.0000 s
+Benchmarking insert_comparison/capsule_map/uncontended: Collecting 1000 samples in estimated 5.2812 s (4.0M iterations)
+Benchmarking insert_comparison/capsule_map/uncontended: Analyzing
+insert_comparison/capsule_map/uncontended
+                        time:   [1.2369 µs 1.2481 µs 1.2596 µs]
+                        change: [+217.18% +222.98% +229.66%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 1 outliers among 1000 measurements (0.10%)
+  1 (0.10%) high mild
+Benchmarking insert_comparison/dashmap/uncontended
+Benchmarking insert_comparison/dashmap/uncontended: Warming up for 2.0000 s
+Benchmarking insert_comparison/dashmap/uncontended: Collecting 1000 samples in estimated 5.0251 s (39M iterations)
+Benchmarking insert_comparison/dashmap/uncontended: Analyzing
+insert_comparison/dashmap/uncontended
+                        time:   [49.148 ns 49.421 ns 49.701 ns]
+                        change: [+31.990% +33.127% +34.359%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 10 outliers among 1000 measurements (1.00%)
+  8 (0.80%) high mild
+  2 (0.20%) high severe
+
+Benchmarking get_comparison/capsule_map/100
+Benchmarking get_comparison/capsule_map/100: Warming up for 2.0000 s
+Benchmarking get_comparison/capsule_map/100: Collecting 1000 samples in estimated 5.0018 s (341M iterations)
+Benchmarking get_comparison/capsule_map/100: Analyzing
+get_comparison/capsule_map/100
+                        time:   [12.080 ns 12.183 ns 12.296 ns]
+                        change: [+74.688% +76.180% +77.618%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 1 outliers among 1000 measurements (0.10%)
+  1 (0.10%) high severe
+Benchmarking get_comparison/dashmap/100
+Benchmarking get_comparison/dashmap/100: Warming up for 2.0000 s
+Benchmarking get_comparison/dashmap/100: Collecting 1000 samples in estimated 5.0017 s (210M iterations)
+Benchmarking get_comparison/dashmap/100: Analyzing
+get_comparison/dashmap/100
+                        time:   [25.308 ns 25.729 ns 26.147 ns]
+                        change: [+47.400% +48.990% +50.679%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 229 outliers among 1000 measurements (22.90%)
+  65 (6.50%) low mild
+  8 (0.80%) high mild
+  156 (15.60%) high severe
+Benchmarking get_comparison/capsule_map/1000
+Benchmarking get_comparison/capsule_map/1000: Warming up for 2.0000 s
+Benchmarking get_comparison/capsule_map/1000: Collecting 1000 samples in estimated 5.0013 s (308M iterations)
+Benchmarking get_comparison/capsule_map/1000: Analyzing
+get_comparison/capsule_map/1000
+                        time:   [16.004 ns 16.056 ns 16.114 ns]
+                        change: [+83.773% +84.499% +85.147%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 235 outliers among 1000 measurements (23.50%)
+  4 (0.40%) low severe
+  122 (12.20%) low mild
+  26 (2.60%) high mild
+  83 (8.30%) high severe
+Benchmarking get_comparison/dashmap/1000
+Benchmarking get_comparison/dashmap/1000: Warming up for 2.0000 s
+Benchmarking get_comparison/dashmap/1000: Collecting 1000 samples in estimated 5.0105 s (194M iterations)
+Benchmarking get_comparison/dashmap/1000: Analyzing
+get_comparison/dashmap/1000
+                        time:   [27.335 ns 27.664 ns 27.995 ns]
+                        change: [+48.611% +52.313% +56.030%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 1 outliers among 1000 measurements (0.10%)
+  1 (0.10%) high mild
+Benchmarking get_comparison/capsule_map/10000
+Benchmarking get_comparison/capsule_map/10000: Warming up for 2.0000 s
+Benchmarking get_comparison/capsule_map/10000: Collecting 1000 samples in estimated 5.0042 s (152M iterations)
+Benchmarking get_comparison/capsule_map/10000: Analyzing
+get_comparison/capsule_map/10000
+                        time:   [31.350 ns 31.404 ns 31.461 ns]
+                        change: [+173.85% +179.43% +184.91%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 28 outliers among 1000 measurements (2.80%)
+  13 (1.30%) high mild
+  15 (1.50%) high severe
+Benchmarking get_comparison/dashmap/10000
+Benchmarking get_comparison/dashmap/10000: Warming up for 2.0000 s
+Benchmarking get_comparison/dashmap/10000: Collecting 1000 samples in estimated 5.0008 s (202M iterations)
+Benchmarking get_comparison/dashmap/10000: Analyzing
+get_comparison/dashmap/10000
+                        time:   [28.143 ns 29.112 ns 30.097 ns]
+                        change: [+6.9646% +10.841% +14.883%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 50 outliers among 1000 measurements (5.00%)
+  3 (0.30%) high mild
+  47 (4.70%) high severe
+
+Benchmarking update_comparison/capsule_map
+Benchmarking update_comparison/capsule_map: Warming up for 2.0000 s
+Benchmarking update_comparison/capsule_map: Collecting 1000 samples in estimated 5.0096 s (98M iterations)
+Benchmarking update_comparison/capsule_map: Analyzing
+update_comparison/capsule_map
+                        time:   [47.507 ns 48.352 ns 49.202 ns]
+                        change: [+44.780% +48.339% +51.733%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Benchmarking update_comparison/dashmap
+Benchmarking update_comparison/dashmap: Warming up for 2.0000 s
+Benchmarking update_comparison/dashmap: Collecting 1000 samples in estimated 5.0138 s (163M iterations)
+Benchmarking update_comparison/dashmap: Analyzing
+update_comparison/dashmap
+                        time:   [27.747 ns 27.880 ns 28.017 ns]
+                        change: [+48.509% +52.872% +57.507%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 2 outliers among 1000 measurements (0.20%)
+  2 (0.20%) high mild
+
+Benchmarking mixed_workload/capsule_map
+Benchmarking mixed_workload/capsule_map: Warming up for 2.0000 s
+Benchmarking mixed_workload/capsule_map: Collecting 500 samples in estimated 5.0063 s (46M iterations)
+Benchmarking mixed_workload/capsule_map: Analyzing
+mixed_workload/capsule_map
+                        time:   [134.70 ns 135.25 ns 135.83 ns]
+                        change: [+99.463% +108.88% +118.45%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 111 outliers among 500 measurements (22.20%)
+  29 (5.80%) low severe
+  27 (5.40%) low mild
+  27 (5.40%) high mild
+  28 (5.60%) high severe
+Benchmarking mixed_workload/dashmap
+Benchmarking mixed_workload/dashmap: Warming up for 2.0000 s
+Benchmarking mixed_workload/dashmap: Collecting 500 samples in estimated 5.0064 s (78M iterations)
+Benchmarking mixed_workload/dashmap: Analyzing
+mixed_workload/dashmap  time:   [46.287 ns 47.727 ns 49.197 ns]
+                        change: [+177.87% +182.10% +186.36%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 59 outliers among 500 measurements (11.80%)
+  59 (11.80%) low severe
+
+Benchmarking concurrent_reads/capsule_map/2
+Benchmarking concurrent_reads/capsule_map/2: Warming up for 2.0000 s
+Benchmarking concurrent_reads/capsule_map/2: Collecting 100 samples in estimated 5.3030 s (61k iterations)
+Benchmarking concurrent_reads/capsule_map/2: Analyzing
+concurrent_reads/capsule_map/2
+                        time:   [88.320 µs 91.981 µs 97.162 µs]
+                        change: [+78.906% +94.244% +114.02%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 6 outliers among 100 measurements (6.00%)
+  3 (3.00%) high mild
+  3 (3.00%) high severe
+Benchmarking concurrent_reads/dashmap/2
+Benchmarking concurrent_reads/dashmap/2: Warming up for 2.0000 s
+Benchmarking concurrent_reads/dashmap/2: Collecting 100 samples in estimated 5.3417 s (71k iterations)
+Benchmarking concurrent_reads/dashmap/2: Analyzing
+concurrent_reads/dashmap/2
+                        time:   [76.054 µs 76.853 µs 77.712 µs]
+                        change: [-25.356% -7.1353% +14.863%] (p = 0.55 > 0.05)
+                        No change in performance detected.
+Found 13 outliers among 100 measurements (13.00%)
+  8 (8.00%) low mild
+  5 (5.00%) high mild
+Benchmarking concurrent_reads/capsule_map/4
+Benchmarking concurrent_reads/capsule_map/4: Warming up for 2.0000 s
+Benchmarking concurrent_reads/capsule_map/4: Collecting 100 samples in estimated 5.5234 s (40k iterations)
+Benchmarking concurrent_reads/capsule_map/4: Analyzing
+concurrent_reads/capsule_map/4
+                        time:   [133.10 µs 135.29 µs 137.50 µs]
+                        change: [+47.442% +49.911% +52.281%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking concurrent_reads/dashmap/4
+Benchmarking concurrent_reads/dashmap/4: Warming up for 2.0000 s
+Benchmarking concurrent_reads/dashmap/4: Collecting 100 samples in estimated 5.1757 s (40k iterations)
+Benchmarking concurrent_reads/dashmap/4: Analyzing
+concurrent_reads/dashmap/4
+                        time:   [124.97 µs 127.15 µs 129.36 µs]
+                        change: [+3.3466% +20.521% +39.334%] (p = 0.01 < 0.05)
+                        Performance has regressed.
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) high mild
+  1 (1.00%) high severe
+Benchmarking concurrent_reads/capsule_map/8
+Benchmarking concurrent_reads/capsule_map/8: Warming up for 2.0000 s
+Benchmarking concurrent_reads/capsule_map/8: Collecting 100 samples in estimated 6.0601 s (25k iterations)
+Benchmarking concurrent_reads/capsule_map/8: Analyzing
+concurrent_reads/capsule_map/8
+                        time:   [230.40 µs 232.83 µs 235.11 µs]
+                        change: [-4.8650% +18.714% +46.255%] (p = 0.10 > 0.05)
+                        No change in performance detected.
+Benchmarking concurrent_reads/dashmap/8
+Benchmarking concurrent_reads/dashmap/8: Warming up for 2.0000 s
+Benchmarking concurrent_reads/dashmap/8: Collecting 100 samples in estimated 5.7350 s (25k iterations)
+Benchmarking concurrent_reads/dashmap/8: Analyzing
+concurrent_reads/dashmap/8
+                        time:   [231.53 µs 259.86 µs 300.71 µs]
+                        change: [+12.922% +36.573% +60.918%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 7 outliers among 100 measurements (7.00%)
+  1 (1.00%) low mild
+  6 (6.00%) high severe
+

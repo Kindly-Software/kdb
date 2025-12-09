@@ -1,0 +1,557 @@
+[package]
+name = "clapi_core"
+version = "0.4.8"
+edition = "2021"
+rust-version = "1.83"
+authors = ["Samuel <samuel@primitives.io>"]
+description = "AI call protection proxy with computational capsule architecture"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/primitives/clapi_core"
+keywords = ["ai", "proxy", "budget", "audit", "capsule"]
+categories = ["web-programming", "api-bindings"]
+
+[dependencies]
+# Core atomic capsule infrastructure
+atomic_capsule = { path = "../atomic_capsule", features = ["const-hashing", "async-log", "histogram"] }
+atomic_capsule_derive = { path = "../atomic_capsule_derive" }
+
+# KindlyDB - Embedded database with computational capsules (optional for rollout)
+kindly-db = { path = "../kindly-db", optional = true }
+
+# Dashboard integration (optional)
+# TEMPORARILY DISABLED: Circular dependency with kindly_dash during Phase 2 Semantic Cache development
+# kindly_dash = { path = "../kindly_dash", optional = true }
+
+# Lazy static initialization (for ComplianceWriter singleton)
+once_cell = { version = "1.20", optional = true }
+
+# Standard dependencies
+thiserror = "2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = { version = "0.10", optional = true } # For audit log hash chains and OAuth2 PKCE
+portable-atomic = "1.10" # For AtomicU128 support
+dashmap = "6.1" # For lockfree concurrent maps (rate_limiter_jitter, ws_pool - entry/iter support needed)
+siphasher = "1.0" # SipHash-2-4 for LLM cache key derivation (collision-resistant)
+
+# OAuth2 dependencies (optional for Week 2 rollout)
+rand = { version = "0.8", optional = true } # CSPRNG for PKCE state generation
+base64 = { version = "0.22", optional = true } # Base64URL encoding for PKCE
+urlencoding = { version = "2.1", optional = true } # URL parameter encoding
+
+# HTTP server
+axum = { version = "0.7", features = ["ws"] }
+tokio = { version = "1.0", features = ["full"] }
+reqwest = { version = "0.12", features = ["json", "blocking"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Configuration
+toml = "0.8"
+
+# WebSocket binary serialization (Phase 3)
+bincode = "1.3"
+
+# CLI Framework (Kindly UX)
+clap = { version = "4.5", features = ["derive", "cargo", "color", "suggestions"] }
+dialoguer = { version = "0.11", features = ["completion", "fuzzy-select"] }
+indicatif = { version = "0.17", features = ["rayon"] }
+colored = "2.1" # DEPRECATED: Legacy ANSI-16 support (fallback only)
+owo-colors = "4.1" # RGB color support with terminal detection (Byzantine Purple + Gold)
+tabled = "0.15"
+crossterm = "0.27"
+ratatui = "0.28" # TUI framework with Byzantine Purple theme
+uuid = { version = "1.11", features = ["v4"] } # For mock provider IDs
+sys-info = "0.9" # System resource checks (disk, memory)
+nix = { version = "0.29", features = ["signal", "process"] } # Process management (SIGTERM, SIGKILL)
+dirs = "5.0" # Cross-platform config directory detection
+ctrlc = "3.4" # Double Ctrl+C handler for graceful wizard exit
+
+# Payment processing (Stripe) (optional for Week 3 rollout)
+hmac = { version = "0.12", optional = true }
+hex = { version = "0.4", optional = true }
+
+# Compression (Week 3: Feature 2)
+zstd = "0.13" # High-performance zstd compression (Tier 5 Streaming)
+
+# Deployment automation (P0 Enhancement 10)
+chrono = "0.4" # Timestamp formatting for deployment backups
+
+# Memory-mapped persistence (L2 cache)
+memmap2 = { version = "0.9", optional = true } # Memory-mapped file I/O for L2 persistent cache
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.6"
+parking_lot = "0.12"
+crossbeam = "0.8"
+rust_decimal = "1.36"
+rand = "0.8"
+rand_distr = "0.4"  # For timeline fixture normal distribution
+tokio-test = "0.4"
+tempfile = "3.14"
+futures = "0.3"
+regex = "1.10"  # For P3-E1 distributed tracing tests
+
+[lib]
+bench = false # Disable criterion in lib
+
+[[bench]]
+name = "proxy_overhead"
+harness = false
+
+[[bench]]
+name = "req_validation"
+harness = false
+
+[[bench]]
+name = "provider_routing"
+harness = false
+
+[[bench]]
+name = "cost_tracking"
+harness = false
+
+[[bench]]
+name = "audit_append"
+harness = false
+
+[[bench]]
+name = "budget_metacapsule_bench"
+harness = false
+
+[[bench]]
+name = "circuit_breaker_metrics_bench"
+harness = false
+
+[[bench]]
+name = "provider_circuit_bench"
+harness = false
+
+[[bench]]
+name = "capsule_hash64_bench"
+harness = false
+
+[[bench]]
+name = "metrics_capsule_bench"
+harness = false
+
+[[bench]]
+name = "kindlydb_e2e_bench"
+harness = false
+
+[[bench]]
+name = "oauth_bench"
+harness = false
+
+[[bench]]
+name = "q34_oauth_hash_chain_bench"
+harness = false
+
+[[bench]]
+name = "payment_bench"
+harness = false
+
+[[bench]]
+name = "dashboard_state_bench"
+harness = false
+
+[[bench]]
+name = "ws_broadcast_bench"
+harness = false
+
+[[bench]]
+name = "timeline_integration_benchmarks"
+harness = false
+
+[[test]]
+name = "integration_tests"
+path = "tests/integration_tests.rs"
+harness = true
+
+[[test]]
+name = "kindlydb_integration_tests"
+path = "tests/kindlydb_integration_tests.rs"
+harness = true
+
+[[test]]
+name = "proxy_unit_tests"
+path = "tests/proxy_unit_tests.rs"
+harness = true
+
+[[test]]
+name = "proxy_property_tests"
+path = "tests/proxy_property_tests.rs"
+harness = true
+
+[[test]]
+name = "proxy_integration_tests"
+path = "tests/proxy_integration_tests.rs"
+harness = true
+
+[[test]]
+name = "proxy_stress_tests"
+path = "tests/proxy_stress_tests.rs"
+harness = true
+
+[[test]]
+name = "security_tests"
+path = "tests/security_tests.rs"
+harness = true
+
+# ============================================================================
+# WEEK 4 OPTION B: PRODUCTION VALIDATION (T28 Q15-Q21 Integration Tests)
+# ============================================================================
+# Cross-feature integration tests for production readiness validation
+
+[[test]]
+name = "integration"
+path = "tests/integration/mod.rs"
+harness = true
+
+[[test]]
+name = "ws_integration_tests"
+path = "tests/ws_integration_tests.rs"
+harness = true
+
+[[bin]]
+name = "clapi"
+path = "src/bin/clapi.rs"
+
+[[example]]
+name = "hash_integration"
+path = "examples/hash_integration.rs"
+
+[[example]]
+name = "hash_chain"
+path = "examples/hash_chain.rs"
+
+[[example]]
+name = "budget_metacapsule_demo"
+path = "examples/budget_metacapsule_demo.rs"
+
+[features]
+# ============================================================================
+# PHASED ROLLOUT FEATURE FLAGS (Week 1-4 Strategy)
+# ============================================================================
+# Week 1: proxy-only (baseline - 100% lockfree capsules)
+# Week 2: oauth (external OAuth providers - gradual rollout)
+# Week 3: payments (Stripe integration - gradual rollout)
+# Week 4: full (compliance + KindlyDB - big bang deployment)
+# See: docs/ROLLOUT_PLAN.md for complete strategy
+
+# Default: Proxy-only mode (baseline, 100% capsule-based)
+default = ["proxy-only"]
+
+# Proxy-only: Budget tracking, circuit breakers, metrics (Week 1)
+proxy-only = ["metrics"]
+
+# OAuth: Session management, PKCE authentication (Week 2)
+# External dependencies: OAuth providers
+oauth = ["dep:sha2", "dep:rand", "dep:base64", "dep:urlencoding"]
+
+# Payments: Stripe integration, payment tracking (Week 3)
+# External dependencies: Stripe API, webhooks
+payments = ["oauth", "dep:hmac", "dep:hex"]
+
+# KindlyDB: Embedded database persistence
+kindlydb = ["dep:kindly-db", "dep:once_cell", "oauth", "payments"]
+
+# Memory-mapped persistence: L2 persistent cache (Week 3)
+mmap-persistence = ["dep:memmap2"]
+
+# Semantic Cache: L0 fuzzy layer with LSH + MinHash (Phase 2)
+# Requires T10 Probabilistic capsules (to be implemented in atomic_capsule)
+semantic-cache = ["atomic_capsule/probabilistic"]
+
+# Compliance: SOX/SOC2/GDPR audit trails (Week 4)
+compliance = ["oauth", "payments"]
+
+# Q34 Hash Chain: Advanced hash integrity (deterministic, capsule-based)
+q34-hash-chain = []
+
+# Payment Optimization: Fixed-point arithmetic (deterministic, capsule-based)
+payment-optimization = []
+
+# Dashboard: Real-time metrics integration with kindly_dash
+# TEMPORARILY DISABLED: Circular dependency during Phase 2 development
+# dashboard = ["dep:kindly_dash"]
+
+# Full: All features enabled (Week 4)
+# NOTE: dashboard temporarily disabled due to circular dependency
+full = ["kindlydb", "oauth", "payments", "compliance", "q34-hash-chain", "payment-optimization", "timeline-aggregation"]
+
+# ============================================================================
+# PHASE 5.8: TIMELINE AGGREGATION (UCE34 T4 Batch Tier)
+# ============================================================================
+# Timeline aggregation capsule for audit event analytics
+# Aggregates events across 1-minute to 1-day time windows
+# Zero dependencies, 100% lockfree, SIMD-accelerated histogram operations
+
+# Timeline Aggregation: T4 Batch tier capsule for audit analytics (Phase 5.8)
+# Zero new dependencies (reuses atomic_capsule infrastructure)
+# Optional SIMD optimization via portable_simd feature
+timeline-aggregation = ["portable_simd"]
+
+# ============================================================================
+# WEEK 4 OPTION A: CAPSULE OPTIMIZATIONS (I20-Capsule Integration)
+# ============================================================================
+# Three independent deterministic optimizations (zero breaking changes)
+# Deploy at 100% immediately (I20-Capsule strategy)
+# Rollback = git revert (5 minutes, unlikely to need)
+
+# PaymentCapsule128: Reduced memory footprint (256B → 128B, 50% reduction)
+payment-128 = []
+
+# OAuth Hash Chain: Session lifecycle auditability (hash chain integrity)
+oauth-hash-chain = []
+
+# Combined Week 4 Option A features (recommended)
+week4-option-a = ["payment-128", "portable_simd", "oauth-hash-chain"]
+
+# Week 4 + Full: All features including Week 4 optimizations
+# NOTE: dashboard temporarily disabled due to circular dependency
+week4-full = ["full", "week4-option-a"]
+
+# ============================================================================
+# LEGACY FEATURES (Phase 2.2 Optimizations)
+# ============================================================================
+simd = [] # Enable portable SIMD
+nightly = ["simd"] # Nightly-only features
+metrics = [] # Enable circuit breaker metrics tracking
+# Phase 2.2: const-hashing enabled by default (0ns proven)
+# simd-hashing DISABLED - Load testing showed 1.5-15.6× slower under concurrent load
+# See PHASE2_2_FINAL_DEPLOYMENT_PLAN.md for full analysis
+# Scalar hash proven faster: 1.77 G/s at 8 threads vs SIMD 1.25 G/s (1.41× slower)
+# simd-hashing = ["atomic_capsule/simd-hashing"] # PERMANENTLY DISABLED
+nightly-all = ["atomic_capsule/nightly-all"] # Phase 2.2: All nightly optimizations
+
+# ============================================================================
+# PHASE 2.3: NIGHTLY OPTIMIZATIONS (UCE34 Q30-Q32)
+# ============================================================================
+# Feature flags for progressive nightly adoption
+nightly-const-fp = []         # const_fn_floating_point_arithmetic (compile-time fee calculations)
+nightly-simd = []             # portable_simd (vectorized hash operations)
+nightly-atomic-from-mut = []  # atomic_from_mut (zero-copy atomic initialization)
+
+# Week 4: SIMD Percentile Optimization (Tier 2 SIMD Capsule)
+# Alias for portable_simd (matches nightly-simd but explicit for histogram optimization)
+portable_simd = ["nightly-simd"]  # u64x8 parallel bucket scanning (2.5× speedup: 50ns → 20ns)
+
+# Phase 2: Semantic Cache (T10 Probabilistic + T1 Atomic)
+# Zero dependencies, 100% lockfree semantic deduplication with MinHash
+# Performance claims (Expected, B32 validation required):
+# - MinHash: <100ns per hash (64-bit fingerprints)
+# - Cache lookup: <50ns (atomic load + comparison)
+# - Similarity check: <200ns (Jaccard distance on 128-bit hashes)
+#
+# Use cases:
+# - LLM response deduplication (semantic similarity detection)
+# - Cost reduction (reuse similar responses, avoid redundant API calls)
+# - Latency optimization (cache hits <1ms vs 100-1000ms API calls)
+#
+# Usage: cargo build --features semantic-cache
+# NOTE: semantic-cache feature defined above (line 261)
+
+# Combined nightly features (Phase 2.3)
+nightly-phase23 = ["nightly-const-fp", "nightly-simd", "nightly-atomic-from-mut"]
+
+# ============================================================================
+# PHASE 1 CACHE OPTIMIZATION (UCE34 Q28-Q33)
+# ============================================================================
+# Three independent optimizations for LLM cache performance
+# 1. Temperature granularity: 0.1 → 0.05 (Q16.16 fixed-point, 10-20% hit rate improvement)
+# 2. Prefix caching: System prompt secondary index (40-60% hit rate improvement)
+# 3. Multi-tier TTL: Per-provider expiration (Q16.16 fixed-point, 15-30% hit rate improvement)
+#
+# Performance claims (B32 validated):
+# - Temperature normalization: <10ns (Q16.16 fixed-point)
+# - Prefix cache lookup: <30ns (secondary index with TOCTOU prevention)
+# - TTL expiration check: <20ns (Q16.16 fixed-point comparison)
+#
+# Zero dependencies, 100% lockfree, feature-gated for progressive rollout
+# Usage: cargo build --features phase1-opt
+phase1-opt = []
+
+[[bench]]
+name = "hash_under_load_bench"
+harness = false
+
+[[bench]]
+name = "ws_bench"
+harness = false
+
+[[bench]]
+name = "ws_validation_bench"
+harness = false
+
+[[bench]]
+name = "compliance_endpoints_bench"
+harness = false
+
+[[bench]]
+name = "production_performance"
+harness = false
+
+[[bench]]
+name = "compression_bench"
+harness = false
+
+[[bench]]
+name = "cache_bench"
+harness = false
+
+[[bench]]
+name = "replay_log_bench"
+harness = false
+
+[[bench]]
+name = "baseline_regression"
+harness = false
+
+[[bench]]
+name = "phase5_7_audit_bridge_benchmarks"
+harness = false
+
+[[bench]]
+name = "phase5_8_timeline_aggregation_benchmarks"
+harness = false
+
+[[bench]]
+name = "p2_dashmap_migration_bench"
+harness = false
+
+[[bench]]
+name = "p3_e8_cache_performance"
+harness = false
+
+[[bench]]
+name = "p3_e9_deduplication"
+harness = false
+
+[[bench]]
+name = "loop_armor_benchmarks"
+harness = false
+
+[[test]]
+name = "compliance_integration_tests"
+path = "tests/compliance_integration_tests.rs"
+harness = true
+
+[[test]]
+name = "performance_ci"
+path = "tests/performance_ci.rs"
+harness = true
+
+# ============================================================================
+# LOAD TESTING FRAMEWORK (T28 Q22-Q28 Production Readiness)
+# ============================================================================
+# Run with: cargo test --test <test_name> -- --ignored
+# All load tests are ignored by default to avoid CI timeouts
+
+[[test]]
+name = "budget_registry_load_test"
+path = "tests/load/budget_registry_load_test.rs"
+harness = true
+
+[[test]]
+name = "circuit_breaker_load_test"
+path = "tests/load/circuit_breaker_load_test.rs"
+harness = true
+
+[[test]]
+name = "oauth_payment_load_test"
+path = "tests/load/oauth_payment_load_test.rs"
+harness = true
+
+[[test]]
+name = "full_stack_load_test"
+path = "tests/load/full_stack_load_test.rs"
+harness = true
+
+[[test]]
+name = "sustained_load_test"
+path = "tests/load/sustained_load_test.rs"
+harness = true
+
+[[test]]
+name = "stress_test"
+path = "tests/load/stress_test.rs"
+harness = true
+
+# ============================================================================
+# CHAOS ENGINEERING TESTS (Week 4 Option B) - UCE34 Q23-Q25, T28 Q22-Q28
+# ============================================================================
+# Run with: cargo test --test <test_name> -- --ignored
+# All chaos tests are ignored by default (production validation only)
+
+[[test]]
+name = "chaos_tests"
+path = "tests/chaos/mod.rs"
+harness = true
+
+# ============================================================================
+# NIGHTLY OPTIMIZATION (Phase 2.3) - UCE34 Q30-Q32
+# ============================================================================
+# Low-risk optimizations: LLD linker, Fat LTO, codegen-units=1
+# Expected: 30% faster builds, 10-20% smaller binary, negligible runtime improvement
+
+[profile.release]
+opt-level = 3              # Maximum optimization
+lto = "fat"                # Link-time optimization (better inlining)
+codegen-units = 1          # Single codegen unit (longer compile, better optimization)
+strip = true               # Strip symbols (smaller binary)
+panic = "abort"            # No unwinding (faster, smaller)
+
+[profile.bench]
+inherits = "release"       # Benchmarks use same optimization as release
+
+# Use LLD linker for 30% faster builds (nightly only)
+# Enabled via: cargo +nightly build --release
+# Note: rustflags should be set in .cargo/config.toml, not here
+# See .cargo/config.toml for LLD linker configuration
+
+
+
+# ============================================================================
+# P3 INFRASTRUCTURE BENCHMARKS (P3-E7, P3-E6)
+# ============================================================================
+
+[[bench]]
+name = "p3_e7_health_check"
+harness = false
+
+# ============================================================================
+# TUI CAPSULE BENCHMARKS (B32 Framework Compliance)
+# ============================================================================
+
+[[bench]]
+name = "tui_capsule_bench"
+harness = false
+
+[[bench]]
+name = "phase1_cache_innovations_bench"
+harness = false
+
+[[bench]]
+name = "phase1_optimization_bench"
+harness = false
+
+# [[bench]]
+# name = "phase2_semantic_cache_accuracy_bench"
+# harness = false
+# Note: Commented out - bench file not found
+
+# ============================================================================
+# P3 INFRASTRUCTURE TESTS (P3-E7, P3-E6)
+# ============================================================================
+
+[[test]]
+name = "p3_e7_health_check_tests"
+path = "tests/p3_e7_health_check_tests.rs"
+harness = true
+
+[[test]]
+name = "p3_e6_docker_tests"
+path = "tests/p3_e6_docker_tests.rs"
+harness = true

@@ -7,7 +7,7 @@
 //! - Q22-Q28: Production tests (stress, performance)
 //! - Q29-Q35: Determinism tests (reproducible behavior)
 //!
-//! # COCA Compliance
+//! # Chaos Compliance
 //!
 //! All tests verify lockfree behavior (no mutex/RwLock),
 //! cache alignment (64B/128B/256B), and generation counters.

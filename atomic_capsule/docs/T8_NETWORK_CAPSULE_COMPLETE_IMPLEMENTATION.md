@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Date**: 2025-10-27
 **Status**: ✅ **PRODUCTION-READY**
-**Framework**: UCE34 (Q1-Q34), IMPL-2 V3.1, COCA, ASSUM, B32, T28, I20
+**Framework**: UCE34 (Q1-Q34), IMPL-2 V3.1, Chaos, ASSUM, B32, T28, I20
 
 ---
 
@@ -45,7 +45,7 @@ The **T8 Network Capsule** primitive has been comprehensively designed, architec
 **Framework Compliance**:
 - ✅ UCE34 Q1-Q34 complete (systematic discovery)
 - ✅ IMPL-2 V3.1 (cutting-edge-first, nightly analysis, tier selection)
-- ✅ COCA (100% capsule-based architecture)
+- ✅ Chaos (100% capsule-based architecture)
 - ✅ B32 (performance targets documented with hardware reality checks)
 
 **Status**: ✅ **COMPLETE** - Production-ready architecture blueprint
@@ -423,7 +423,7 @@ The **T8 Network Capsule** primitive has been comprehensively designed, architec
 **Framework Compliance**:
 - ✅ ASSUM: 99.9% safe (exceeds 99.5% target)
 - ✅ UCE34: Systematic discovery applied
-- ✅ COCA: 100% lockfree, zero mutex
+- ✅ Chaos: 100% lockfree, zero mutex
 - ✅ B32: Performance targets documented
 - ✅ T28: 18 unit tests + planned property/integration/stress
 
@@ -437,7 +437,7 @@ The **T8 Network Capsule** primitive has been comprehensively designed, architec
 |-----------|--------|----------|-------|
 | **UCE34** | ✅ Complete | Q1-Q34 | Systematic discovery, all questions answered |
 | **IMPL-2 V3.1** | ✅ Complete | Cutting-edge-first | Stable Rust (no nightly), tier-maximized, innovation-stacking |
-| **COCA** | ✅ Complete | 100% capsule-based | NetworkShardCapsule, AuditLogCapsule, all T1 tier |
+| **Chaos** | ✅ Complete | 100% capsule-based | NetworkShardCapsule, AuditLogCapsule, all T1 tier |
 | **ASSUM** | ✅ Complete | 99.9% safe | 27 assumptions documented/verified, 0 unsafe |
 | **B32** | ✅ Complete | Fair baselines | 6 benchmarks, honest claims, 95% CI |
 | **T28** | ✅ Partial | 4/5 tiers | 70 tests (unit/property), 90 tests outlined (integration/production/chaos) |
@@ -614,7 +614,7 @@ The **T8 Network Capsule** primitive has been comprehensively designed, architec
 
 ## Conclusion
 
-The **T8 Network Capsule** has been comprehensively designed, implemented, secured, and validated by **8 specialized expert agents**. With 5,000+ lines of documentation, 2,000 LOC of production code, 70+ working tests, and complete framework compliance (UCE34, IMPL-2, COCA, ASSUM, B32, T28, I20), the T8 primitive is **ready for enterprise production deployment**.
+The **T8 Network Capsule** has been comprehensively designed, implemented, secured, and validated by **8 specialized expert agents**. With 5,000+ lines of documentation, 2,000 LOC of production code, 70+ working tests, and complete framework compliance (UCE34, IMPL-2, Chaos, ASSUM, B32, T28, I20), the T8 primitive is **ready for enterprise production deployment**.
 
 **Key Achievement**: Enables **1000× scale increase** (100M → 100B documents) via distributed coordination with <10ms latency, automatic failover, and enterprise-grade security.
 

@@ -223,7 +223,7 @@ keyboard.reset();
 | **Q11-Q15** (Safety) | 100% safe, no unsafe code, lockfree | ✅ Safe |
 | **Q16-Q20** (Validation) | 15 tests cover all paths, stress tested | ✅ Validated |
 
-### COCA Framework (100% Lockfree)
+### Chaos Framework (100% Lockfree)
 
 | Check | Status |
 |-------|--------|
@@ -386,7 +386,7 @@ Planned capsule primitives (not yet implemented):
 
 - **Code**: `/home/samuel/Primitives/atomic_capsule/src/tui/keyboard_input.rs`
 - **Tests**: Lines 485-820 (embedded in implementation)
-- **Framework**: UCE34 (Q10/Q28/Q31/Q33), ASSUM, B32, T28, I20, COCA
+- **Framework**: UCE34 (Q10/Q28/Q31/Q33), ASSUM, B32, T28, I20, Chaos
 - **Architecture**: The Atomic Capsule.md + KEY_INNOVATIONS.md
 
 ## Status

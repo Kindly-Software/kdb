@@ -308,4 +308,4 @@ This documentation meets all requirements for reference-grade capsule architectu
 
 **Created**: November 13, 2025
 **Framework**: UNIVERSAL-6.0 (XML-canonical source)
-**Compliance**: UCE34 + ASSUM + B32 + T28 + I20 + COCA
+**Compliance**: UCE34 + ASSUM + B32 + T28 + I20 + Chaos

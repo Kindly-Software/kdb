@@ -594,14 +594,14 @@ match allocator.validate(150) {
     <criterion id="6" status="PASS">Panic-safe (clean recovery verified)</criterion>
     <criterion id="7" status="PASS">Memory-stable (1000 iterations, no leaks)</criterion>
     <criterion id="8" status="PASS">Backward compatible (old API preserved, feature-gated)</criterion>
-    <criterion id="9" status="PASS">Framework compliant (UCE34, COCA, ASSUM, B32, T28, I20)</criterion>
+    <criterion id="9" status="PASS">Framework compliant (UCE34, Chaos, ASSUM, B32, T28, I20)</criterion>
     <criterion id="10" status="PASS">Production stress tested (T28 Q22-Q28 complete)</criterion>
   </criteria>
 
   <approval>
     <status>APPROVED FOR PRODUCTION DEPLOYMENT</status>
     <date>2025-11-16</date>
-    <signed-off-by>All 6 frameworks (UCE34, COCA, ASSUM, B32, T28, I20)</signed-off-by>
+    <signed-off-by>All 6 frameworks (UCE34, Chaos, ASSUM, B32, T28, I20)</signed-off-by>
     <recommendation>Enable bounded-docid by default in v2.1.0 (2 weeks)</recommendation>
   </approval>
 </production-readiness>
@@ -659,7 +659,7 @@ match allocator.validate(150) {
 <metadata>
   <version>2.0.0</version>
   <date>2025-11-16</date>
-  <framework>Q12-ULTRATHINK + UCE34 + COCA + ASSUM + B32 + T28 + I20</framework>
+  <framework>Q12-ULTRATHINK + UCE34 + Chaos + ASSUM + B32 + T28 + I20</framework>
   <implementation-time>4 hours (2 hours wall-clock with 7 parallel agents)</implementation-time>
   <agents-used>3 Haiku (implementation) + 4 Sonnet (validation)</agents-used>
   <lines-added>

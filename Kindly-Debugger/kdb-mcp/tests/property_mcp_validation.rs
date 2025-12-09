@@ -1,7 +1,7 @@
 //! Comprehensive Q8-Q14 Property Validation for Atomic MCP Server
 //!
 //! **Framework**: T28 (Q8-Q14 Property-Based Testing)
-//! **Compliance**: COCA (100% lockfree), ASSUM (99.99% safe), B32 (fair baseline), UCE34
+//! **Compliance**: Chaos (100% lockfree), ASSUM (99.99% safe), B32 (fair baseline), UCE34
 //! **Tier**: T1 Atomic (100% lockfree, <10ns coordination)
 //!
 //! # Properties Tested

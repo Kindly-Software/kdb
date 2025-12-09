@@ -2,7 +2,7 @@
 //!
 //! **Tier**: T4 (Batch) + T10 (Probabilistic)
 //!
-//! **Purpose**: Generate MinHash signatures in parallel batches with 100% COCA compliance.
+//! **Purpose**: Generate MinHash signatures in parallel batches with 100% Chaos compliance.
 //!
 //! ## Architecture
 //!
@@ -20,7 +20,7 @@
 //! - **Memory**: O(batch_size × 256 bytes) = 16K × 256B = 4 MB per batch (L3 cache fit)
 //! - **Per-document latency**: ~8.3 µs (1 / 120K)
 //!
-//! ## COCA Compliance
+//! ## Chaos Compliance
 //!
 //! - **100% Lockfree**: Pure parallel map, zero CAS, zero mutex, zero atomic coordination
 //! - **Cache-aligned**: 64-byte alignment prevents false sharing
@@ -47,7 +47,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 (T4+T10 tier selection), Q33 (deterministic signatures), Q34 (audit trails)
-//! - **COCA**: 100% lockfree computational capsule (no mutex/RwLock)
+//! - **Chaos**: 100% lockfree computational capsule (no mutex/RwLock)
 //! - **ASSUM**: 99.99% safe (5+ assumptions, all verified via property tests)
 //! - **B32**: Fair baselines (sequential vs parallel), 1000+ iterations, 95% CI
 //! - **T28**: 20 tests minimum (6 unit + 7 property + 7 integration)

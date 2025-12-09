@@ -174,7 +174,7 @@ tests/v1_0_benchmark_tests.rs:297:                let result = serde_json::Value
 
 ## Framework Compliance
 
-- **COCA**: 100% trait usage (all calls use JsonCapsule methods)
+- **Chaos**: 100% trait usage (all calls use JsonCapsule methods)
 - **UCE34 Q31**: Rust transforms (serde_json → JsonCapsule)
 - **ASSUM**: Zero unsafe code in changes
 - **Trade Secret**: All commits tagged `[TRADE SECRET]`

@@ -23,7 +23,7 @@
 //! - **Phase-Based Coordination**: Bitmask flags for 18 parallel phases
 //! - **Error Handling**: Atomic error flags + optional error channel
 //! - **Performance**: <50ns snapshot, <100ns state transitions
-//! - **Framework Compliance**: 100% COCA (lockfree), UCE34 (T6 tier), ASSUM (99.99% safe)
+//! - **Framework Compliance**: 100% Chaos (lockfree), UCE34 (T6 tier), ASSUM (99.99% safe)
 //!
 //! ## Modules
 //!

@@ -31,6 +31,7 @@ use super::status_capsule::{
 };
 use super::ProtectionError;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Mutex, OnceLock};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
@@ -40,6 +41,13 @@ use std::time::Duration;
 
 /// Shutdown signal for monitor thread
 static SHUTDOWN: AtomicBool = AtomicBool::new(false);
+
+/// Global handle storage for proper thread cleanup
+/// Uses OnceLock<Mutex<Option<...>>> pattern for safe initialization and join
+///
+/// ASSUM: #ASSUME_HANDLE_SAFE - OnceLock ensures single initialization
+/// VERIFY: spawn_monitor() stores handle, shutdown_and_join() takes it
+static MONITOR_HANDLE: OnceLock<Mutex<Option<JoinHandle<()>>>> = OnceLock::new();
 
 // ============================================================================
 // CONFIGURATION
@@ -133,9 +141,10 @@ fn monitoring_loop() {
 /// Spawn background monitoring thread
 ///
 /// Must be called once at startup. Subsequent calls are ignored.
+/// The thread handle is stored globally for proper cleanup via `shutdown_and_join()`.
 ///
 /// ## Returns
-/// JoinHandle for the monitor thread (can be used for testing/cleanup)
+/// `true` if thread was spawned, `false` if already running
 ///
 /// ## Example
 /// ```rust,no_run
@@ -143,24 +152,83 @@ fn monitoring_loop() {
 ///
 /// background_monitor::spawn_monitor();
 /// // ... application runs ...
-/// background_monitor::shutdown_monitor();
+/// background_monitor::shutdown_and_join();  // Proper cleanup
 /// ```
-pub fn spawn_monitor() -> JoinHandle<()> {
-    SHUTDOWN.store(false, Ordering::Release);
+pub fn spawn_monitor() -> bool {
+    // Initialize the handle storage (only once)
+    let handle_storage = MONITOR_HANDLE.get_or_init(|| Mutex::new(None));
 
-    thread::Builder::new()
-        .name("protection-monitor".to_string())
-        .spawn(monitoring_loop)
-        .expect("Failed to spawn protection monitor thread")
+    // Check if already running
+    if let Ok(mut guard) = handle_storage.lock() {
+        if guard.is_some() {
+            eprintln!("[protection-monitor] Already running, ignoring spawn request");
+            return false;
+        }
+
+        SHUTDOWN.store(false, Ordering::Release);
+
+        let handle = thread::Builder::new()
+            .name("protection-monitor".to_string())
+            .spawn(monitoring_loop)
+            .expect("Failed to spawn protection monitor thread");
+
+        *guard = Some(handle);
+        true
+    } else {
+        eprintln!("[protection-monitor] Failed to acquire handle lock");
+        false
+    }
 }
 
-/// Signal monitor thread to shutdown
+/// Signal monitor thread to shutdown (does NOT wait for thread to exit)
 ///
 /// Gracefully terminates the background monitoring thread.
 /// The thread will exit on next iteration (within monitoring interval).
+///
+/// **WARNING**: Prefer `shutdown_and_join()` for proper cleanup.
+/// This function only signals shutdown without waiting.
+#[deprecated(since = "3.1.0", note = "Use shutdown_and_join() for proper thread cleanup")]
 pub fn shutdown_monitor() {
     SHUTDOWN.store(true, Ordering::Release);
-    eprintln!("[protection-monitor] Shutdown signal sent");
+    eprintln!("[protection-monitor] Shutdown signal sent (use shutdown_and_join for clean exit)");
+}
+
+/// Signal shutdown AND wait for thread to exit
+///
+/// Properly terminates the background monitoring thread by:
+/// 1. Setting the shutdown flag
+/// 2. Joining the thread handle (waiting for it to complete)
+///
+/// This prevents SIGSEGV in test harness caused by orphaned threads.
+///
+/// ## Example
+/// ```rust,no_run
+/// use kindly_dedup::protection::background_monitor;
+///
+/// background_monitor::spawn_monitor();
+/// // ... application runs ...
+/// background_monitor::shutdown_and_join();  // Clean exit
+/// ```
+pub fn shutdown_and_join() {
+    // Signal shutdown
+    SHUTDOWN.store(true, Ordering::Release);
+    eprintln!("[protection-monitor] Shutdown signal sent, waiting for thread...");
+
+    // Wait for thread to exit by taking and joining the handle
+    if let Some(handle_storage) = MONITOR_HANDLE.get() {
+        if let Ok(mut guard) = handle_storage.lock() {
+            if let Some(handle) = guard.take() {
+                match handle.join() {
+                    Ok(()) => {
+                        eprintln!("[protection-monitor] Thread joined successfully");
+                    }
+                    Err(e) => {
+                        eprintln!("[protection-monitor] Thread panicked: {:?}", e);
+                    }
+                }
+            }
+        }
+    }
 }
 
 /// Check if monitor is currently running
@@ -186,27 +254,35 @@ pub fn get_failure_count() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use super::super::status_capsule::PROTECTION_BLOCKED;
 
     #[test]
+    #[serial]
     fn test_spawn_shutdown() {
+        // Reset state for clean test
         SHUTDOWN.store(false, Ordering::Release);
-        let _handle = spawn_monitor();
-        
+        // Clear any previous handle
+        if let Some(storage) = MONITOR_HANDLE.get() {
+            if let Ok(mut guard) = storage.lock() {
+                *guard = None;
+            }
+        }
+
+        assert!(spawn_monitor(), "spawn_monitor should return true on first call");
         assert!(is_running());
-        
+
         // Let it run briefly
         thread::sleep(Duration::from_millis(50));
-        
-        shutdown_monitor();
-        
-        // Give thread time to exit
-        thread::sleep(Duration::from_millis(200));
-        
+
+        // Use shutdown_and_join() for proper cleanup (prevents SIGSEGV)
+        shutdown_and_join();
+
         assert!(!is_running());
     }
 
     #[test]
+    #[serial]
     fn test_interval_from_env() {
         // Test default
         let default = Duration::from_millis(100);
@@ -220,6 +296,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_status_initial_state() {
         PROTECTION_STATUS.reset();
         let status = get_status();
@@ -227,32 +304,46 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_monitor_runs_checks() {
+        // Reset state for clean test
         SHUTDOWN.store(false, Ordering::Release);
+        if let Some(storage) = MONITOR_HANDLE.get() {
+            if let Ok(mut guard) = storage.lock() {
+                *guard = None;
+            }
+        }
         PROTECTION_STATUS.reset();
-        
-        let _handle = spawn_monitor();
-        
+
+        spawn_monitor();
+
         // Wait for at least one check cycle
         thread::sleep(Duration::from_millis(150));
-        
+
         let check_count = get_check_count();
         assert!(
             check_count >= 1,
             "Monitor should have performed at least 1 check (got {})",
             check_count
         );
-        
-        shutdown_monitor();
-        thread::sleep(Duration::from_millis(200));
+
+        // Use shutdown_and_join() for proper cleanup
+        shutdown_and_join();
     }
 
     #[test]
+    #[serial]
     fn test_status_visibility_across_threads() {
+        // Reset state for clean test
         SHUTDOWN.store(false, Ordering::Release);
+        if let Some(storage) = MONITOR_HANDLE.get() {
+            if let Ok(mut guard) = storage.lock() {
+                *guard = None;
+            }
+        }
         PROTECTION_STATUS.reset();
 
-        let _handle = spawn_monitor();
+        spawn_monitor();
         thread::sleep(Duration::from_millis(150));
 
         // Spawn reader threads
@@ -272,31 +363,38 @@ mod tests {
             handle.join().unwrap();
         }
 
-        shutdown_monitor();
-        thread::sleep(Duration::from_millis(200));
+        // Use shutdown_and_join() for proper cleanup
+        shutdown_and_join();
     }
 
     #[test]
+    #[serial]
     fn test_failure_counter_increments() {
+        // Reset state for clean test
         SHUTDOWN.store(false, Ordering::Release);
+        if let Some(storage) = MONITOR_HANDLE.get() {
+            if let Ok(mut guard) = storage.lock() {
+                *guard = None;
+            }
+        }
         PROTECTION_STATUS.reset();
-        
+
         let initial_failures = get_failure_count();
-        
-        let _handle = spawn_monitor();
-        
+
+        spawn_monitor();
+
         // Wait for checks to run
         thread::sleep(Duration::from_millis(150));
-        
+
         let final_failures = get_failure_count();
-        
+
         // Just verify counter is monotonically increasing (or staying same if no failures)
         assert!(
             final_failures >= initial_failures,
             "Failure count should be monotonic"
         );
-        
-        shutdown_monitor();
-        thread::sleep(Duration::from_millis(200));
+
+        // Use shutdown_and_join() for proper cleanup
+        shutdown_and_join();
     }
 }

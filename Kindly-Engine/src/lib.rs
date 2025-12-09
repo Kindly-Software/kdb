@@ -10,6 +10,7 @@ pub mod counter_battery;
 pub mod courier;
 #[cfg(feature = "io-uring")]
 pub mod driver;
+pub mod campaign;
 pub mod diplomacy;
 pub mod engineering;
 pub mod fire_doctrine;
@@ -34,6 +35,7 @@ pub mod shock;
 pub mod snapshot;
 pub mod strategic_map;
 pub mod structure;
+pub mod siege;
 pub mod supply;
 pub mod telemetry;
 pub mod terrain;
@@ -198,7 +200,9 @@ pub fn standard_retry() -> RetryPolicy {
 
 // Re-exports for downstream modules
 pub use ballistics::{BallisticsCapsule, FireControlPhysicsContext};
-pub use battle_ai::{BattleAiCapsule, BattleAiDecision, BattleAiInputs, BattleAiPlan};
+pub use battle_ai::{
+    BattleAiCapsule, BattleAiDecision, BattleAiInputs, BattleAiIntent, BattleAiPlan,
+};
 pub use command::{
     commanders_to_generals, CommandHierarchyCapsule, CommanderCapsule, CommanderSnapshot,
 };

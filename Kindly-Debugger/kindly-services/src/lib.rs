@@ -3,6 +3,8 @@
 //! Premium WASM landing page with WebGL effects and glassmorphism UI.
 //!
 //! Built with Leptos 0.7 (CSR) + WebGL2 + Byzantine Royal Purple design.
+//!
+//! Mobile-safe: Graceful degradation from WebGL2 -> WebGL1 -> Canvas2D -> CSS gradient
 
 use leptos::prelude::*;
 use wasm_bindgen::prelude::*;
@@ -12,8 +14,8 @@ pub mod components;
 pub mod effects;
 pub mod utils;
 
-use components::{Cta, Docs, Features, Footer, Hero, Navbar, Pricing, PrivacyPage, TermsPage, LicensePage};
-use effects::MeshGradient;
+use components::{Cta, Docs, Features, Footer, Hero, LicensePage, Navbar, Pricing, PrivacyPage, Signup, TermsPage, Verified};
+use effects::{MeshGradient, RenderBackend};
 
 /// Get current page from URL hash
 fn get_current_page() -> String {
@@ -22,11 +24,15 @@ fn get_current_page() -> String {
     hash.trim_start_matches('#').to_string()
 }
 
+
 /// Main application component
 #[component]
 pub fn App() -> impl IntoView {
     // Track current page via hash
     let (current_page, set_current_page) = signal(get_current_page());
+
+    // Track WebGL initialization state to prevent infinite retries
+    let (webgl_failed, set_webgl_failed) = signal(false);
 
     // Listen for hash changes and scroll to anchor
     Effect::new(move |_| {
@@ -51,7 +57,7 @@ pub fn App() -> impl IntoView {
 
                         let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
                             scroll_callback.as_ref().unchecked_ref(),
-                            50
+                            50,
                         );
                         std::mem::forget(scroll_callback);
                     }
@@ -60,66 +66,116 @@ pub fn App() -> impl IntoView {
         }) as Box<dyn FnMut()>);
 
         window
-            .add_event_listener_with_callback("hashchange", hashchange_callback.as_ref().unchecked_ref())
+            .add_event_listener_with_callback(
+                "hashchange",
+                hashchange_callback.as_ref().unchecked_ref(),
+            )
             .expect("failed to add hashchange listener");
 
         std::mem::forget(hashchange_callback);
     });
 
     // Initialize WebGL mesh gradient on mount
-    // Firefox compatibility: gracefully handle WebGL failures
+    // Mobile-safe: Gracefully handles WebGL failures with fallback chain
     Effect::new(move |_| {
+        // Don't retry if we already failed
+        if webgl_failed.get() {
+            return;
+        }
+
         // Initialize mesh gradient using the canvas ID
         match MeshGradient::new("gradient-canvas") {
             Ok(gradient) => {
+                // Log which backend we're using
+                let backend_name = match gradient.backend() {
+                    RenderBackend::WebGl2 => "WebGL2",
+                    RenderBackend::WebGl1 => "WebGL1",
+                    RenderBackend::Canvas2D => "Canvas2D",
+                };
+                web_sys::console::log_1(
+                    &format!("MeshGradient initialized with {} backend", backend_name).into(),
+                );
+
                 // Use Rc<RefCell> to share gradient in animation loop
                 let gradient = std::rc::Rc::new(std::cell::RefCell::new(gradient));
-                let g = gradient.clone();
+
+                // Track animation state for cleanup
+                let animation_running =
+                    std::rc::Rc::new(std::cell::Cell::new(true));
+                let animation_running_clone = animation_running.clone();
 
                 // Create animation loop using requestAnimationFrame
                 let f: std::rc::Rc<std::cell::RefCell<Option<Closure<dyn FnMut()>>>> =
                     std::rc::Rc::new(std::cell::RefCell::new(None));
                 let f_clone = f.clone();
+                let g = gradient.clone();
 
                 *f_clone.borrow_mut() = Some(Closure::wrap(Box::new(move || {
-                    // Get current time from performance.now()
-                    let window = web_sys::window().expect("no window");
-                    let time = window.performance().expect("no performance").now();
+                    // Check if we should stop
+                    if !animation_running.get() {
+                        return;
+                    }
 
-                    // Render frame
-                    g.borrow().render(time);
+                    // Get current time from performance.now()
+                    let window = match web_sys::window() {
+                        Some(w) => w,
+                        None => return,
+                    };
+                    let time = match window.performance() {
+                        Some(p) => p.now(),
+                        None => return,
+                    };
+
+                    // Render frame - returns false if context lost
+                    let should_continue = g.borrow().render(time);
+
+                    if !should_continue {
+                        // Context lost - stop animation but don't hide canvas
+                        // The CSS gradient fallback in index.html will show through
+                        web_sys::console::warn_1(
+                            &"WebGL context lost - pausing animation".into(),
+                        );
+                        return;
+                    }
 
                     // Request next frame
                     if let Some(ref closure) = *f.borrow() {
-                        window
-                            .request_animation_frame(closure.as_ref().unchecked_ref())
-                            .expect("failed to request animation frame");
+                        let _ = window
+                            .request_animation_frame(closure.as_ref().unchecked_ref());
                     }
                 }) as Box<dyn FnMut()>));
 
                 // Start the animation loop
-                let window = web_sys::window().expect("no window");
-                if let Some(ref closure) = *f_clone.borrow() {
-                    window
-                        .request_animation_frame(closure.as_ref().unchecked_ref())
-                        .expect("failed to start animation");
+                if let Some(window) = web_sys::window() {
+                    if let Some(ref closure) = *f_clone.borrow() {
+                        let _ = window
+                            .request_animation_frame(closure.as_ref().unchecked_ref());
+                    }
                 }
 
-                // Leak the closure to keep it alive (animation runs forever)
+                // Keep closures alive for the lifetime of the page
+                // Note: In a more sophisticated setup, we'd use on_cleanup to properly
+                // cancel the RAF and drop these, but for a marketing page that runs
+                // for the full session, this is acceptable.
                 std::mem::forget(f_clone);
                 std::mem::forget(gradient);
-
-                web_sys::console::log_1(&"WebGL mesh gradient initialized successfully".into());
+                std::mem::forget(animation_running_clone);
             }
             Err(e) => {
-                // Firefox compatibility: WebGL may fail but page should still work
-                // Common in Firefox due to driver blacklisting or disabled WebGL2
-                web_sys::console::warn_1(&format!(
-                    "WebGL init failed (this is OK - page will work without animated background): {:?}",
-                    e
-                ).into());
+                // Mark as failed to prevent retry loops
+                set_webgl_failed.set(true);
 
-                // Hide the canvas so the CSS gradient fallback shows through
+                // All backends failed (WebGL2, WebGL1, Canvas2D)
+                // This is very rare - only happens on severely limited browsers
+                web_sys::console::warn_1(
+                    &format!(
+                        "All rendering backends failed - using CSS gradient fallback: {:?}",
+                        e
+                    )
+                    .into(),
+                );
+
+                // Hide the canvas so the CSS gradient fallback in index.html shows
                 if let Some(window) = web_sys::window() {
                     if let Some(document) = window.document() {
                         if let Some(canvas) = document.get_element_by_id("gradient-canvas") {
@@ -140,12 +196,22 @@ pub fn App() -> impl IntoView {
 
         let resize_callback = Closure::wrap(Box::new(move || {
             if let Some(canvas) = document.get_element_by_id("gradient-canvas") {
-                let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into().unwrap();
-                let window = web_sys::window().expect("no window");
-                let width = window.inner_width().unwrap().as_f64().unwrap() as u32;
-                let height = window.inner_height().unwrap().as_f64().unwrap() as u32;
-                canvas.set_width(width);
-                canvas.set_height(height);
+                if let Ok(canvas) = canvas.dyn_into::<web_sys::HtmlCanvasElement>() {
+                    if let Some(window) = web_sys::window() {
+                        let width = window
+                            .inner_width()
+                            .ok()
+                            .and_then(|w| w.as_f64())
+                            .unwrap_or(1920.0) as u32;
+                        let height = window
+                            .inner_height()
+                            .ok()
+                            .and_then(|h| h.as_f64())
+                            .unwrap_or(1080.0) as u32;
+                        canvas.set_width(width);
+                        canvas.set_height(height);
+                    }
+                }
             }
         }) as Box<dyn FnMut()>);
 
@@ -190,6 +256,9 @@ pub fn App() -> impl IntoView {
                     "privacy" => view! { <PrivacyPage /> }.into_any(),
                     "terms" => view! { <TermsPage /> }.into_any(),
                     "license" => view! { <LicensePage /> }.into_any(),
+                    "verified" => view! { <Verified /> }.into_any(),
+                    "signup" => view! { <Signup /> }.into_any(),
+                    _ if page.starts_with("verified?") => view! { <Verified /> }.into_any(),
                     _ => view! {
                         <Hero />
                         <Features />

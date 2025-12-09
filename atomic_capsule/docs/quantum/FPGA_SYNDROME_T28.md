@@ -812,7 +812,7 @@ watch -n 60 'cat /sys/class/fpga/intel/fpga0/temp; \
 **Framework Compliance**:
 - ✅ **T28**: All 28 questions covered (comprehensive testing)
 - ✅ **UCE34**: Tier selection (Q10 T7 Heterogeneous), validation (Q30-Q34)
-- ✅ **COCA**: 100% lockfree host coordination (verified via ASSUM tests)
+- ✅ **Chaos**: 100% lockfree host coordination (verified via ASSUM tests)
 - ✅ **B32**: Fair CPU baseline (200-300μs SIMD, validated in Q10)
 - ✅ **ASSUM**: 99.99% safe (zero unsafe in fast paths, verified via Valgrind)
 - ✅ **I20**: Integration validation (Q15-Q21)

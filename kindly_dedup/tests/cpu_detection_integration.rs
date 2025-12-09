@@ -15,7 +15,7 @@
 //! - T28: Integration tier (Q15-Q21)
 //! - ASSUM: 99.99% safe (zero unsafe)
 //! - B32: Fair overhead measurement
-//! - COCA: 100% lockfree
+//! - Chaos: 100% lockfree
 
 use atomic_capsule::CpuCapabilityCapsule;
 use kindly_dedup::DedupPipeline;

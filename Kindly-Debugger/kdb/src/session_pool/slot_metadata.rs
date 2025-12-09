@@ -15,7 +15,7 @@
 //! timestamp         [48:63] Compact timestamp (seconds since epoch, 16-bit)
 //! ```
 //!
-//! # COCA Compliance
+//! # Chaos Compliance
 //!
 //! - 100% lockfree (no mutex/RwLock)
 //! - Cache-line aligned (64 bytes)

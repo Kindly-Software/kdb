@@ -1,0 +1,30 @@
+[package]
+name = "atomic_epoch_tile"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+blake3 = "1.5"
+static_assertions = "1.1"
+thiserror = "1.0"
+memoffset = "0.9"
+memmap2 = "0.9"
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+xxhash-rust = { version = "0.8", features = ["xxh32"] }
+atomic_position_capsule = { path = "../atomic_position_capsule" }
+atomic_venue_snapshot = { path = "../atomic_venue_snapshot" }
+atomic_latency_ticket = { path = "../atomic_latency_ticket" }
+atomic_event_lockout_map = { path = "../atomic_event_lockout_map" }
+atomic_breaker = { path = "../atomic_breaker" }
+atomic_cost_tracker = { path = "../atomic_cost_tracker" }
+atomic_risk_envelope = { path = "../atomic_risk_envelope" }
+atomic_portfolio_map = { path = "../atomic_portfolio_map" }
+atomic_pre_execution_capsule = { path = "../atomic_pre_execution_capsule" }
+atomic_execution_bundle = { path = "../atomic_execution_bundle" }
+atomic_risk_ladder_table = { path = "../atomic_risk_ladder_table" }
+
+[dev-dependencies]
+tempfile = "3.10"

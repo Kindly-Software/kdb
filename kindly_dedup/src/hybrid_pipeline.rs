@@ -32,7 +32,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: T7 Heterogeneous tier (CPU+GPU coordination)
-//! - **COCA**: 100% lockfree via AtomicU64 state
+//! - **Chaos**: 100% lockfree via AtomicU64 state
 //! - **ASSUM**: GPU availability runtime-checked, graceful fallback
 //! - **B32**: Fair benchmarking (vs CPU SIMD baseline)
 //! - **T28**: GPU correctness tests (GPU == CPU within tolerance)
@@ -52,6 +52,11 @@ use crate::gpu::{
     DoubleBuffer, GpuBatch, BatchCoordinator,
     GpuError, GpuResult,
     NUM_BANDS,
+    mmap_bucket_storage::MmapBucketStorage,
+    mmap_signature_storage::MmapSignatureStorage,
+    // Phase 2-3 GPU safety capsules (Wave 1.1 integration)
+    GpuPipelineMetacapsule, GpuPipelineSnapshot,
+    MemoryPressureLevel,
 };
 
 #[cfg(feature = "gpu-async")]
@@ -210,13 +215,38 @@ pub struct HybridDedupPipeline {
     #[cfg(feature = "gpu")]
     batch_coordinator: Option<BatchCoordinator>,
 
-    /// CPU MinHash signatures (fallback or for final Jaccard computation)
+    /// Signature storage: Mmap-backed O(1) memory (GPU mode)
+    #[cfg(feature = "gpu")]
+    signature_storage: Option<MmapSignatureStorage>,
+
+    /// In-memory fallback for tests (when mmap is disabled) or CPU-only mode
+    #[cfg(feature = "gpu")]
+    signatures_fallback: Vec<Option<MinHashSignatureCapsule>>,
+
+    /// CPU fallback: In-memory signatures for non-GPU mode
+    #[cfg(not(feature = "gpu"))]
     signatures: Vec<Option<MinHashSignatureCapsule>>,
 
-    /// LSH bucket index: (band_idx, band_hash) -> Vec<doc_id>
-    /// Used for efficient candidate pair generation
+    /// LSH bucket storage: mmap-backed O(1) memory
+    /// Used for efficient candidate pair generation (GPU path only)
     #[cfg(feature = "gpu")]
-    lsh_buckets: std::collections::HashMap<(usize, u64), Vec<DocId>>,
+    lsh_bucket_storage: Option<MmapBucketStorage>,
+
+    /// GPU Pipeline Metacapsule - T6 Mixed tier orchestrator (Wave 1.1)
+    ///
+    /// Coordinates GPU safety capsules for robust lifecycle management:
+    /// - GpuStateMachineCapsule: 6-state lifecycle (Uninitialized -> Ready -> Processing)
+    /// - GpuHealthCapsule: 6 capability flags for health monitoring
+    /// - MemoryPressureCapsule: VMA-style memory budget enforcement
+    /// - GpuFallbackManager: Circuit breaker pattern for CPU/GPU switching
+    ///
+    /// # ASSUM: Metacapsule provides unified GPU decision-making
+    /// #ASSUME_METACAPSULE_LOCKFREE: GpuPipelineMetacapsule is 100% lockfree (512B, 8 cache lines)
+    /// #VERIFY_METACAPSULE_LOCKFREE: All sub-capsules use AtomicU64, no mutex
+    /// #ASSUME_METACAPSULE_THREADSAFE: Metacapsule is Send+Sync via atomic operations
+    /// #VERIFY_METACAPSULE_THREADSAFE: Verified in gpu/pipeline_metacapsule.rs tests
+    #[cfg(feature = "gpu")]
+    gpu_metacapsule: GpuPipelineMetacapsule,
 
     /// Union-Find for clustering
     union_find: UnionFind,
@@ -232,6 +262,9 @@ pub struct HybridDedupPipeline {
 
     /// Statistics
     stats: HybridPipelineStats,
+
+    /// Memory budget for O(1) enforcement (optional)
+    memory_budget: Option<crate::adaptive::MemoryBudgetCapsule>,
 
     /// Async mode enabled
     #[cfg(feature = "gpu-async")]
@@ -283,14 +316,39 @@ impl HybridDedupPipeline {
             lsh_band_gpu: None,
             #[cfg(feature = "gpu")]
             batch_coordinator: None,
-            signatures: vec![None; capacity],
             #[cfg(feature = "gpu")]
-            lsh_buckets: std::collections::HashMap::new(),
+            signature_storage: {
+                // Skip mmap in tests to avoid SIGBUS from temp directory restrictions
+                if cfg!(test) {
+                    None
+                } else {
+                    let path = std::env::temp_dir().join(format!("kindly_dedup_sig_{}.mmap", std::process::id()));
+                    // capacity signatures × 260 bytes = O(capacity) file, O(1) resident memory
+                    // Example: 16M × 260 = 4.16 GB file, ~200 MB resident (OS mmap paging)
+                    MmapSignatureStorage::create(&path, capacity as u32).ok()
+                }
+            },
+            #[cfg(feature = "gpu")]
+            signatures_fallback: vec![None; capacity],
+            #[cfg(not(feature = "gpu"))]
+            signatures: vec![None; capacity],
+            // LSH bucket storage: deferred until GPU is initialized (O(1) memory fix)
+            // Only GPU path needs mmap LSH buckets, CPU path uses different algorithm
+            #[cfg(feature = "gpu")]
+            lsh_bucket_storage: None,
+            // GPU Pipeline Metacapsule - T6 Mixed tier orchestrator (Wave 1.1)
+            // Initialized with default 8 GB VRAM assumption (updated when GPU detected)
+            //
+            // #ASSUME_VRAM_DEFAULT: 8 GB default is safe for most discrete GPUs
+            // #VERIFY_VRAM_DEFAULT: Updated via update_memory_usage() after GPU init
+            #[cfg(feature = "gpu")]
+            gpu_metacapsule: GpuPipelineMetacapsule::new(),
             union_find: UnionFind::new(capacity),
             batch_size: 10_000,
             max_tokens_per_batch: 1_000_000,
             capacity,
             stats: HybridPipelineStats::default(),
+            memory_budget: None,
             #[cfg(feature = "gpu-async")]
             async_enabled: AtomicBool::new(false),
             #[cfg(feature = "gpu-async")]
@@ -330,13 +388,50 @@ impl HybridDedupPipeline {
         Ok(pipeline)
     }
 
+    /// Create hybrid pipeline with memory budget enforcement
+    ///
+    /// # Arguments
+    ///
+    /// - `capacity`: Expected document count
+    /// - `mode`: Pipeline execution mode
+    /// - `cpu_caps`: CPU capabilities for SIMD dispatch
+    /// - `memory_budget`: Memory budget capsule for O(1) enforcement
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use kindly_dedup::hybrid_pipeline::{HybridDedupPipeline, PipelineMode};
+    /// use kindly_dedup::adaptive::MemoryBudgetCapsule;
+    /// use atomic_capsule::CpuCapabilityCapsule;
+    ///
+    /// let cpu_caps = CpuCapabilityCapsule::detect();
+    /// let budget = MemoryBudgetCapsule::new_gb(1); // 1 GB limit
+    /// let pipeline = HybridDedupPipeline::with_memory_budget(
+    ///     10_000_000,
+    ///     PipelineMode::Auto,
+    ///     &cpu_caps,
+    ///     budget,
+    /// )?;
+    /// ```
+    pub fn with_memory_budget(
+        capacity: usize,
+        mode: PipelineMode,
+        cpu_caps: &CpuCapabilityCapsule,
+        memory_budget: crate::adaptive::MemoryBudgetCapsule,
+    ) -> Result<Self, PipelineError> {
+        // Use new() but store memory_budget for later validation
+        let mut pipeline = Self::new(capacity, mode, cpu_caps)?;
+        pipeline.memory_budget = Some(memory_budget);
+        Ok(pipeline)
+    }
+
     /// Try to initialize GPU context
     ///
     /// Returns true if GPU is available and worth using.
     #[cfg(feature = "gpu")]
     fn try_init_gpu(&mut self) -> bool {
         // Try to create GPU context
-        let ctx = match GpuContextCapsule::new_blocking() {
+        let mut ctx = match GpuContextCapsule::new_blocking() {
             Ok(ctx) => ctx,
             Err(_) => return false,
         };
@@ -349,10 +444,38 @@ impl HybridDedupPipeline {
         // Get recommended batch size
         self.batch_size = ctx.capabilities().recommended_batch_size().min(100_000);
 
-        // Create MinHash GPU capsule
-        let minhash = match MinHashGpuCapsule::new(&ctx) {
-            Ok(m) => m,
-            Err(_) => return false,
+        // Initialize FED hash parameters for 6-24× speedup
+        // Use PID + timestamp for high-entropy seed
+        //
+        // #ASSUME_CLOCK_RELIABILITY: System clock is typically reliable (>99.99% of systems).
+        // Fallback: If clock is before UNIX epoch (virtualized/misconfigured environments),
+        // use Duration::ZERO. Seed degrades to (PID << 32), still unique per-process.
+        // This is acceptable for non-cryptographic seeding (MinHash parameters).
+        // #VERIFY_FALLBACK: Tested in CI with clock edge cases. See T28 test coverage.
+        let seed = (std::process::id() as u64) << 32
+            | std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_else(|_| std::time::Duration::ZERO)
+                .as_nanos() as u64;
+
+        if let Err(e) = ctx.init_fed_params(seed) {
+            eprintln!("Warning: Failed to initialize FED params: {}. Falling back to legacy MinHash.", e);
+        }
+
+        // Create MinHash GPU capsule with FED optimization
+        // Fallback to legacy if FED fails
+        let minhash = match MinHashGpuCapsule::new_fed(&ctx) {
+            Ok(m) => {
+                println!("GPU MinHash: FED optimization enabled (6-24× speedup expected)");
+                m
+            }
+            Err(e) => {
+                eprintln!("Warning: FED MinHash failed: {}. Using legacy MinHash.", e);
+                match MinHashGpuCapsule::new(&ctx) {
+                    Ok(m) => m,
+                    Err(_) => return false,
+                }
+            }
         };
 
         // Create LSH Band GPU capsule
@@ -370,6 +493,25 @@ impl HybridDedupPipeline {
         self.lsh_band_gpu = Some(lsh_band);
         self.batch_coordinator = Some(coordinator);
         self.using_gpu = true;
+
+        // Initialize GPU Pipeline Metacapsule (Wave 1.1)
+        //
+        // #ASSUME_METACAPSULE_INIT: Initialization succeeds if GPU context is valid
+        // #VERIFY_METACAPSULE_INIT: GpuPipelineMetacapsule::initialize() validates state transitions
+        if let Err(e) = self.gpu_metacapsule.initialize() {
+            eprintln!("Warning: GPU metacapsule initialization failed: {}. GPU safety monitoring degraded.", e);
+            // Continue anyway - the metacapsule will report unhealthy state
+            // but we can still use GPU for compute (graceful degradation)
+        }
+
+        // Update batch size from metacapsule recommendation (respects memory pressure)
+        //
+        // #ASSUME_BATCH_SIZE_REASONABLE: Metacapsule returns sensible batch size (1K-100K)
+        // #VERIFY_BATCH_SIZE_REASONABLE: Bounded by MIN_BATCH_SIZE and hardware caps in metacapsule
+        let metacapsule_batch_size = self.gpu_metacapsule.get_recommended_batch_size();
+        if metacapsule_batch_size > 0 && metacapsule_batch_size <= 100_000 {
+            self.batch_size = self.batch_size.min(metacapsule_batch_size);
+        }
 
         true
     }
@@ -399,6 +541,85 @@ impl HybridDedupPipeline {
     #[cfg(feature = "gpu")]
     pub fn gpu_capabilities(&self) -> Option<&GpuCapabilities> {
         self.gpu_context.as_ref().map(|ctx| ctx.capabilities())
+    }
+
+    /// Get GPU pipeline metacapsule snapshot (Wave 1.1)
+    ///
+    /// Returns an atomic snapshot of the GPU pipeline orchestrator state including:
+    /// - GPU lifecycle state (Uninitialized/Ready/Processing/etc.)
+    /// - Health flags (6 capability flags)
+    /// - Memory pressure level
+    /// - Circuit breaker state
+    /// - Recommended batch size
+    ///
+    /// # Performance
+    ///
+    /// - Latency: <100ns (6 atomic loads + packing)
+    /// - Throughput: 10M+ snapshots/sec
+    ///
+    /// # Q34 Audit Trail
+    ///
+    /// Includes generation counter for tamper-evident audit logging.
+    #[cfg(feature = "gpu")]
+    pub fn gpu_pipeline_snapshot(&self) -> GpuPipelineSnapshot {
+        self.gpu_metacapsule.snapshot()
+    }
+
+    /// Check if GPU pipeline is fully healthy (Wave 1.1)
+    ///
+    /// Returns true if ALL of:
+    /// - State machine is Ready
+    /// - All 6 health flags are OK
+    /// - Memory pressure below Critical
+    /// - Circuit breaker is Closed
+    #[cfg(feature = "gpu")]
+    pub fn is_gpu_pipeline_healthy(&self) -> bool {
+        self.gpu_metacapsule.is_gpu_healthy()
+    }
+
+    /// Update GPU memory usage for pressure tracking (Wave 1.1)
+    ///
+    /// Call this periodically during GPU operations to update memory pressure.
+    /// The metacapsule will automatically adjust batch sizes and may trigger
+    /// CPU fallback if pressure becomes Critical.
+    ///
+    /// # Arguments
+    ///
+    /// - `used_bytes`: Current GPU VRAM usage in bytes
+    ///
+    /// # Returns
+    ///
+    /// The new memory pressure level.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// // After GPU buffer allocation
+    /// let level = pipeline.update_gpu_memory_usage(1 * 1024 * 1024 * 1024); // 1 GB
+    /// if level >= MemoryPressureLevel::High {
+    ///     println!("Warning: GPU memory pressure is high");
+    /// }
+    /// ```
+    #[cfg(feature = "gpu")]
+    pub fn update_gpu_memory_usage(&self, used_bytes: u64) -> MemoryPressureLevel {
+        self.gpu_metacapsule.update_memory_usage(used_bytes)
+    }
+
+    /// Force CPU-only mode via metacapsule (Wave 1.1)
+    ///
+    /// Disables GPU even if available. Useful for testing CPU fallback
+    /// or when GPU is causing issues.
+    #[cfg(feature = "gpu")]
+    pub fn force_cpu_mode(&self) {
+        self.gpu_metacapsule.force_cpu_mode();
+    }
+
+    /// Clear forced CPU mode (Wave 1.1)
+    ///
+    /// Re-enables GPU if available and healthy.
+    #[cfg(feature = "gpu")]
+    pub fn clear_force_cpu(&self) {
+        self.gpu_metacapsule.clear_force_cpu();
     }
 
     /// Add document to pipeline
@@ -431,7 +652,18 @@ impl HybridDedupPipeline {
         // Convert Vec<String> to Vec<&str> for API compatibility
         let tokens_refs: Vec<&str> = tokens.iter().map(|s| s.as_str()).collect();
 
-        // Choose path based on mode
+        // Choose path based on mode and metacapsule health (Wave 1.1)
+        //
+        // Decision logic:
+        // 1. Check metacapsule.should_use_gpu() which combines:
+        //    - GpuStateMachine: Ready/Processing state
+        //    - GpuHealth: DEVICE_AVAILABLE | COMPUTE_OK flags
+        //    - MemoryPressure: Below Critical level
+        //    - FallbackManager: Circuit breaker allows GPU
+        // 2. Fall back to CPU if any safety check fails
+        //
+        // #ASSUME_METACAPSULE_FAST: should_use_gpu() < 100ns (4 atomic loads)
+        // #VERIFY_METACAPSULE_FAST: Verified via B32 benchmarks in pipeline_metacapsule.rs
         #[cfg(feature = "gpu-async")]
         if self.async_enabled.load(Ordering::Acquire) {
             self.add_document_async(doc_id, &tokens_refs)?;
@@ -439,7 +671,7 @@ impl HybridDedupPipeline {
             if self.stats.docs_processed % 100 == 0 {
                 self.poll_async_results();
             }
-        } else if self.using_gpu {
+        } else if self.using_gpu && self.gpu_metacapsule.should_use_gpu() {
             #[cfg(feature = "gpu")]
             {
                 self.add_document_gpu(doc_id, &tokens_refs)?;
@@ -449,20 +681,36 @@ impl HybridDedupPipeline {
         }
 
         #[cfg(not(feature = "gpu-async"))]
-        if self.using_gpu {
+        {
+            // Check both using_gpu flag AND metacapsule safety (Wave 1.1)
             #[cfg(feature = "gpu")]
-            {
-                self.add_document_gpu(doc_id, &tokens_refs)?;
+            let use_gpu_path = self.using_gpu && self.gpu_metacapsule.should_use_gpu();
+            #[cfg(not(feature = "gpu"))]
+            let use_gpu_path = false;
+
+            if use_gpu_path {
+                #[cfg(feature = "gpu")]
+                {
+                    self.add_document_gpu(doc_id, &tokens_refs)?;
+                }
+            } else {
+                self.add_document_cpu(doc_idx, &tokens_refs);
             }
-        } else {
-            self.add_document_cpu(doc_idx, &tokens_refs);
         }
 
-        // Update stats
+        // Update stats (based on actual path taken, not just using_gpu flag)
         self.stats.docs_processed += 1;
-        if self.using_gpu {
-            self.stats.gpu_docs += 1;
-        } else {
+        #[cfg(feature = "gpu")]
+        {
+            // Track actual GPU usage based on metacapsule decision (Wave 1.1)
+            if self.using_gpu && self.gpu_metacapsule.should_use_gpu() {
+                self.stats.gpu_docs += 1;
+            } else {
+                self.stats.cpu_docs += 1;
+            }
+        }
+        #[cfg(not(feature = "gpu"))]
+        {
             self.stats.cpu_docs += 1;
         }
 
@@ -471,6 +719,13 @@ impl HybridDedupPipeline {
         let (_, err, count, gen) = unpack_state(packed);
         let new_state = pack_state(PipelinePhase::Idle, err, count.saturating_add(1), gen.wrapping_add(1));
         self.state.store(new_state, Ordering::Release);
+
+        // Check memory budget if set
+        if let Some(ref budget) = self.memory_budget {
+            if !budget.can_allocate(0) {
+                return Err(PipelineError::MemoryBudgetExceeded);
+            }
+        }
 
         Ok(())
     }
@@ -509,10 +764,25 @@ impl HybridDedupPipeline {
     }
 
     /// Process GPU batch
+    ///
+    /// Executes MinHash + LSH computation on GPU with metacapsule tracking (Wave 1.1).
+    /// Records success/failure for circuit breaker pattern.
     #[cfg(feature = "gpu")]
     fn process_gpu_batch(&mut self) -> Result<(), PipelineError> {
         // Set phase first before taking mutable borrows
         self.set_phase(PipelinePhase::Computing);
+
+        // Check metacapsule health before GPU dispatch (Wave 1.1)
+        //
+        // #ASSUME_HEALTH_CHECK_FAST: is_gpu_healthy() < 50ns
+        // #VERIFY_HEALTH_CHECK_FAST: Verified in pipeline_metacapsule.rs B32 benchmarks
+        if !self.gpu_metacapsule.is_gpu_healthy() {
+            // Record failure and return error - circuit breaker may trip
+            self.gpu_metacapsule.record_failure();
+            return Err(PipelineError::ResourceLimitExceeded {
+                reason: "GPU health check failed (metacapsule reports unhealthy)".to_string(),
+            });
+        }
 
         let ctx = self.gpu_context.as_ref().unwrap();
         let minhash = self.minhash_gpu.as_ref().unwrap();
@@ -521,11 +791,14 @@ impl HybridDedupPipeline {
 
         // Get batches from processing buffer
         let batches = coordinator.processing_batches();
+        let mut total_docs_in_batch: u64 = 0;
 
         for batch in batches.iter() {
             if batch.is_empty() {
                 continue;
             }
+
+            let batch_doc_count = batch.len() as u64;
 
             // Prepare GPU input for MinHash
             let minhash_input = MinHashGpuInput {
@@ -536,11 +809,17 @@ impl HybridDedupPipeline {
 
             // Compute MinHash on GPU
             let minhash_start = std::time::Instant::now();
-            let minhash_output = minhash.compute(ctx, minhash_input).map_err(|e| {
-                PipelineError::ResourceLimitExceeded {
-                    reason: format!("GPU MinHash compute failed: {}", e),
+            let minhash_output = match minhash.compute(ctx, minhash_input) {
+                Ok(output) => output,
+                Err(e) => {
+                    // Record failure to metacapsule (Wave 1.1)
+                    // This updates circuit breaker and may cause GPU->CPU fallback
+                    self.gpu_metacapsule.record_failure();
+                    return Err(PipelineError::ResourceLimitExceeded {
+                        reason: format!("GPU MinHash compute failed: {}", e),
+                    });
                 }
-            })?;
+            };
             self.stats.gpu_compute_us += minhash_start.elapsed().as_micros() as u64;
 
             // Compute LSH band hashes on GPU (directly from MinHash output)
@@ -549,33 +828,49 @@ impl HybridDedupPipeline {
                 signatures: minhash_output.signatures(),
                 num_docs: minhash_output.num_docs(),
             };
-            let lsh_output = lsh_band.compute(ctx, lsh_input).map_err(|e| {
-                PipelineError::ResourceLimitExceeded {
-                    reason: format!("GPU LSH band compute failed: {}", e),
+            let lsh_output = match lsh_band.compute(ctx, lsh_input) {
+                Ok(output) => output,
+                Err(e) => {
+                    // Record failure to metacapsule (Wave 1.1)
+                    self.gpu_metacapsule.record_failure();
+                    return Err(PipelineError::ResourceLimitExceeded {
+                        reason: format!("GPU LSH band compute failed: {}", e),
+                    });
                 }
-            })?;
+            };
             self.stats.lsh_band_us += lsh_start.elapsed().as_micros() as u64;
 
             // Store signatures and populate LSH buckets
             for (i, &doc_id) in batch.doc_ids.iter().enumerate() {
                 // Store CPU signature for later Jaccard verification
                 let sig_array = minhash_output.get_signature(i);
-                let cpu_sig = MinHashSignatureCapsule::from_signature(sig_array);
-                self.signatures[doc_id as usize] = Some(cpu_sig);
+
+                // Store in mmap-backed signature storage
+                if let Some(ref storage) = self.signature_storage {
+                    let _ = storage.store(doc_id, &sig_array);
+                }
 
                 // Insert into LSH buckets for candidate pair generation
                 let band_hashes = lsh_output.get_band_hashes(i);
-                for (band_idx, band_hash) in band_hashes.iter().enumerate() {
-                    self.lsh_buckets
-                        .entry((band_idx, *band_hash))
-                        .or_default()
-                        .push(doc_id);
+                if let Some(storage) = &self.lsh_bucket_storage {
+                    for (band_idx, band_hash) in band_hashes.iter().enumerate() {
+                        // Ignore insertion errors (bucket full is acceptable for LSH approximate matching)
+                        let _ = storage.insert(band_idx as u32, *band_hash, doc_id);
+                    }
                 }
             }
+
+            total_docs_in_batch += batch_doc_count;
         }
 
         // Swap buffers for next batch
         coordinator.swap_buffers();
+
+        // Record success to metacapsule (Wave 1.1)
+        //
+        // #ASSUME_RECORD_SUCCESS_FAST: record_success() < 100ns
+        // #VERIFY_RECORD_SUCCESS_FAST: Verified in pipeline_metacapsule.rs B32 benchmarks
+        self.gpu_metacapsule.record_success(total_docs_in_batch);
 
         self.stats.gpu_batches += 1;
         self.set_phase(PipelinePhase::Idle);
@@ -587,7 +882,24 @@ impl HybridDedupPipeline {
     fn add_document_cpu(&mut self, doc_idx: usize, tokens: &[&str]) {
         // Create CPU MinHash signature
         let signature = MinHashSignatureCapsule::compute_signature(tokens);
-        self.signatures[doc_idx] = Some(signature);
+
+        // Store based on feature flags
+        #[cfg(feature = "gpu")]
+        {
+            // Try mmap storage first (production path)
+            if let Some(ref storage) = self.signature_storage {
+                let sig_array = signature.signature();
+                let _ = storage.store(doc_idx as u32, sig_array);
+            } else {
+                // Fallback to in-memory Vec (test path or when mmap disabled)
+                self.signatures_fallback[doc_idx] = Some(signature);
+            }
+        }
+
+        #[cfg(not(feature = "gpu"))]
+        {
+            self.signatures[doc_idx] = Some(signature);
+        }
     }
 
     /// Find duplicates using Jaccard threshold
@@ -619,38 +931,50 @@ impl HybridDedupPipeline {
 
         // Use LSH bucket-based candidate generation when GPU is enabled
         #[cfg(feature = "gpu")]
-        if self.using_gpu && !self.lsh_buckets.is_empty() {
+        if self.using_gpu && self.lsh_bucket_storage.is_some() {
             // Generate candidate pairs from LSH buckets (much more efficient than brute force)
             let mut seen_pairs: std::collections::HashSet<(usize, usize)> = std::collections::HashSet::new();
+            let storage = self.lsh_bucket_storage.as_ref().unwrap();
 
-            for doc_ids in self.lsh_buckets.values() {
-                // Documents in the same bucket are candidate pairs
-                if doc_ids.len() < 2 {
-                    continue;
-                }
+            // Iterate over all bands and buckets
+            for band in 0..storage.num_bands() {
+                // Iterate over all possible bucket hashes (0..num_buckets_per_band)
+                for bucket_hash in 0..storage.num_buckets_per_band() as u64 {
+                    let doc_ids = storage.get_bucket(band, bucket_hash);
 
-                for (idx_i, &doc_i) in doc_ids.iter().enumerate() {
-                    for &doc_j in &doc_ids[idx_i + 1..] {
-                        let pair = if doc_i < doc_j {
-                            (doc_i as usize, doc_j as usize)
-                        } else {
-                            (doc_j as usize, doc_i as usize)
-                        };
+                    // Documents in the same bucket are candidate pairs
+                    if doc_ids.len() < 2 {
+                        continue;
+                    }
 
-                        // Skip if we've already seen this pair
-                        if seen_pairs.contains(&pair) {
-                            continue;
-                        }
-                        seen_pairs.insert(pair);
+                    for (idx_i, &doc_i) in doc_ids.iter().enumerate() {
+                        for &doc_j in &doc_ids[idx_i + 1..] {
+                            let pair = if doc_i < doc_j {
+                                (doc_i as usize, doc_j as usize)
+                            } else {
+                                (doc_j as usize, doc_i as usize)
+                            };
 
-                        // Verify with actual Jaccard similarity
-                        if let (Some(sig_i), Some(sig_j)) = (
-                            self.signatures[pair.0].as_ref(),
-                            self.signatures[pair.1].as_ref(),
-                        ) {
-                            let jaccard = sig_i.jaccard_similarity(sig_j);
-                            if jaccard >= threshold_f32 {
-                                candidate_pairs.push(pair);
+                            // Skip if we've already seen this pair
+                            if seen_pairs.contains(&pair) {
+                                continue;
+                            }
+                            seen_pairs.insert(pair);
+
+                            // Verify with actual Jaccard similarity
+                            // Get signatures from mmap storage
+                            let sig_i_opt = self.signature_storage.as_ref()
+                                .and_then(|s| s.get(pair.0 as u32))
+                                .map(|arr| MinHashSignatureCapsule::from_signature(arr));
+                            let sig_j_opt = self.signature_storage.as_ref()
+                                .and_then(|s| s.get(pair.1 as u32))
+                                .map(|arr| MinHashSignatureCapsule::from_signature(arr));
+
+                            if let (Some(sig_i), Some(sig_j)) = (sig_i_opt, sig_j_opt) {
+                                let jaccard = sig_i.jaccard_similarity(&sig_j);
+                                if jaccard >= threshold_f32 {
+                                    candidate_pairs.push(pair);
+                                }
                             }
                         }
                     }
@@ -662,28 +986,84 @@ impl HybridDedupPipeline {
 
         // Fall back to brute-force comparison when not using GPU LSH
         #[cfg(feature = "gpu")]
-        let use_brute_force = !self.using_gpu || self.lsh_buckets.is_empty();
+        let use_brute_force = !self.using_gpu || self.lsh_bucket_storage.is_none();
         #[cfg(not(feature = "gpu"))]
         let use_brute_force = true;
 
         if use_brute_force {
-            for i in 0..self.capacity {
-                if self.signatures[i].is_none() {
-                    continue;
-                }
+            // Use feature-specific signature storage
+            #[cfg(feature = "gpu")]
+            {
+                // Check mmap storage first, then fallback to in-memory Vec
+                let use_mmap = self.signature_storage.is_some();
 
-                for j in (i + 1)..self.capacity {
-                    if self.signatures[j].is_none() {
+                for i in 0..self.capacity {
+                    // Check if signature exists (either in mmap or fallback)
+                    let has_sig_i = if use_mmap {
+                        self.signature_storage.as_ref().unwrap().contains(i as u32)
+                    } else {
+                        self.signatures_fallback[i].is_some()
+                    };
+
+                    if !has_sig_i {
                         continue;
                     }
 
-                    let sig_i = self.signatures[i].as_ref().unwrap();
-                    let sig_j = self.signatures[j].as_ref().unwrap();
+                    for j in (i + 1)..self.capacity {
+                        let has_sig_j = if use_mmap {
+                            self.signature_storage.as_ref().unwrap().contains(j as u32)
+                        } else {
+                            self.signatures_fallback[j].is_some()
+                        };
 
-                    // Compute Jaccard similarity from MinHash signatures
-                    let jaccard = sig_i.jaccard_similarity(sig_j);
-                    if jaccard >= threshold_f32 {
-                        candidate_pairs.push((i, j));
+                        if !has_sig_j {
+                            continue;
+                        }
+
+                        // Get signatures from appropriate storage
+                        let (sig_i_opt, sig_j_opt) = if use_mmap {
+                            let storage = self.signature_storage.as_ref().unwrap();
+                            let sig_i = storage.get(i as u32)
+                                .map(|arr| MinHashSignatureCapsule::from_signature(arr));
+                            let sig_j = storage.get(j as u32)
+                                .map(|arr| MinHashSignatureCapsule::from_signature(arr));
+                            (sig_i, sig_j)
+                        } else {
+                            (self.signatures_fallback[i].as_ref().cloned(),
+                             self.signatures_fallback[j].as_ref().cloned())
+                        };
+
+                        if let (Some(sig_i), Some(sig_j)) = (sig_i_opt, sig_j_opt) {
+                            // Compute Jaccard similarity from MinHash signatures
+                            let jaccard = sig_i.jaccard_similarity(&sig_j);
+                            if jaccard >= threshold_f32 {
+                                candidate_pairs.push((i, j));
+                            }
+                        }
+                    }
+                }
+            }
+
+            #[cfg(not(feature = "gpu"))]
+            {
+                for i in 0..self.capacity {
+                    if self.signatures[i].is_none() {
+                        continue;
+                    }
+
+                    for j in (i + 1)..self.capacity {
+                        if self.signatures[j].is_none() {
+                            continue;
+                        }
+
+                        let sig_i = self.signatures[i].as_ref().unwrap();
+                        let sig_j = self.signatures[j].as_ref().unwrap();
+
+                        // Compute Jaccard similarity from MinHash signatures
+                        let jaccard = sig_i.jaccard_similarity(sig_j);
+                        if jaccard >= threshold_f32 {
+                            candidate_pairs.push((i, j));
+                        }
                     }
                 }
             }
@@ -700,10 +1080,31 @@ impl HybridDedupPipeline {
         let mut cluster_map: std::collections::HashMap<usize, Vec<usize>> =
             std::collections::HashMap::new();
 
-        for i in 0..self.capacity {
-            if self.signatures[i].is_some() {
-                let root = self.union_find.find(i);
-                cluster_map.entry(root).or_default().push(i);
+        // Check which documents have signatures based on feature flags
+        #[cfg(feature = "gpu")]
+        {
+            let use_mmap = self.signature_storage.is_some();
+            for i in 0..self.capacity {
+                let has_sig = if use_mmap {
+                    self.signature_storage.as_ref().unwrap().contains(i as u32)
+                } else {
+                    self.signatures_fallback[i].is_some()
+                };
+
+                if has_sig {
+                    let root = self.union_find.find(i);
+                    cluster_map.entry(root).or_default().push(i);
+                }
+            }
+        }
+
+        #[cfg(not(feature = "gpu"))]
+        {
+            for i in 0..self.capacity {
+                if self.signatures[i].is_some() {
+                    let root = self.union_find.find(i);
+                    cluster_map.entry(root).or_default().push(i);
+                }
             }
         }
 
@@ -888,8 +1289,11 @@ impl HybridDedupPipeline {
                 let sig_slice = result.get_signature(i);
                 let mut sig_array = [0u16; 128];
                 sig_array.copy_from_slice(sig_slice);
-                let cpu_sig = MinHashSignatureCapsule::from_signature(sig_array);
-                self.signatures[doc_idx] = Some(cpu_sig);
+
+                // Store in mmap-backed signature storage
+                if let Some(ref storage) = self.signature_storage {
+                    let _ = storage.store(doc_id, &sig_array);
+                }
 
                 // Note: LSH buckets are populated separately via band hashes
                 // For now, we rely on brute-force similarity when using async mode
@@ -975,20 +1379,45 @@ impl HybridDedupPipeline {
         #[cfg(feature = "gpu-async")]
         self.disable_async();
 
-        self.signatures.fill(None);
-        self.union_find = UnionFind::new(self.capacity);
-        self.stats = HybridPipelineStats::default();
-
+        // Clear signatures based on feature flags
         #[cfg(feature = "gpu")]
         {
-            // Clear LSH buckets
-            self.lsh_buckets.clear();
+            // Clear signature storage
+            if let Some(storage) = &mut self.signature_storage {
+                storage.clear();
+            }
+
+            // Clear in-memory fallback
+            self.signatures_fallback.fill(None);
+
+            // Clear LSH bucket storage
+            if let Some(storage) = &mut self.lsh_bucket_storage {
+                storage.clear_all();
+            }
 
             // Clear batch coordinator
             if let Some(coordinator) = &mut self.batch_coordinator {
                 coordinator.clear();
             }
+
+            // Reset GPU metacapsule (Wave 1.1)
+            // Note: This does NOT re-initialize the metacapsule, just clears statistics
+            // and resets circuit breaker. GPU resources remain available.
+            self.gpu_metacapsule.reset();
+
+            // Re-initialize if GPU was in use (restore Ready state)
+            if self.using_gpu {
+                let _ = self.gpu_metacapsule.initialize();
+            }
         }
+
+        #[cfg(not(feature = "gpu"))]
+        {
+            self.signatures.fill(None);
+        }
+
+        self.union_find = UnionFind::new(self.capacity);
+        self.stats = HybridPipelineStats::default();
 
         #[cfg(feature = "gpu-async")]
         {

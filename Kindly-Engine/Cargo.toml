@@ -1,0 +1,30 @@
+[package]
+name = "kindly-engine"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Capsule-first Napoleonic warfare engine built on atomic_capsule primitives"
+
+[lib]
+name = "kindly_engine"
+path = "src/lib.rs"
+
+[dependencies]
+atomic_capsule = { path = "../atomic_capsule", features = ["std", "capsule-mmap", "los"] }
+[features]
+default = []
+driver-bin = []
+simd-los = ["atomic_capsule/los"]
+avx2-los = ["simd-los", "atomic_capsule/los-avx2"]
+io-uring = []
+kgpu-driver = ["atomic_capsule/kgpu-driver"]
+kgpu-driver-all = ["atomic_capsule/kgpu-driver-all"]
+kgpu-driver-linux = ["atomic_capsule/kgpu-driver-linux"]
+kgpu-driver-intel = ["atomic_capsule/kgpu-driver-intel"]
+kgpu-driver-amd = ["atomic_capsule/kgpu-driver-amd"]
+kgpu-driver-nvidia = ["atomic_capsule/kgpu-driver-nvidia"]
+
+[[bin]]
+name = "kindly_driver"
+path = "src/bin/kindly_driver.rs"
+required-features = ["driver-bin"]

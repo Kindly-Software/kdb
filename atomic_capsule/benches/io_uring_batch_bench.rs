@@ -10,12 +10,12 @@
 //! - Per-operation overhead: <100ns amortized
 //! - Overall throughput: 10-100× depending on batch size
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::vec::Vec;
 
 #[cfg(all(target_os = "linux", feature = "std"))]
 fn benchmark_io_uring_batch(c: &mut Criterion) {
-    use atomic_capsule::runtime::{IoUringCapsule, IoUringBatchCapsule};
+    use atomic_capsule::runtime::{IoUringBatchCapsule, IoUringCapsule};
 
     let mut group = c.benchmark_group("io_uring_batch");
     group.sample_size(100); // 100 samples
@@ -28,8 +28,12 @@ fn benchmark_io_uring_batch(c: &mut Criterion) {
         let batch = IoUringBatchCapsule::new(&ring).expect("batch init");
 
         b.iter(|| {
-            batch.batch_size.store(8, std::sync::atomic::Ordering::Release);
-            batch.pending_ops.store(8, std::sync::atomic::Ordering::Release);
+            batch
+                .batch_size
+                .store(8, std::sync::atomic::Ordering::Release);
+            batch
+                .pending_ops
+                .store(8, std::sync::atomic::Ordering::Release);
 
             let result = batch.submit_batch(8);
             black_box(result)
@@ -41,8 +45,12 @@ fn benchmark_io_uring_batch(c: &mut Criterion) {
         let batch = IoUringBatchCapsule::new(&ring).expect("batch init");
 
         b.iter(|| {
-            batch.batch_size.store(16, std::sync::atomic::Ordering::Release);
-            batch.pending_ops.store(16, std::sync::atomic::Ordering::Release);
+            batch
+                .batch_size
+                .store(16, std::sync::atomic::Ordering::Release);
+            batch
+                .pending_ops
+                .store(16, std::sync::atomic::Ordering::Release);
 
             let result = batch.submit_batch(16);
             black_box(result)
@@ -54,8 +62,12 @@ fn benchmark_io_uring_batch(c: &mut Criterion) {
         let batch = IoUringBatchCapsule::new(&ring).expect("batch init");
 
         b.iter(|| {
-            batch.batch_size.store(32, std::sync::atomic::Ordering::Release);
-            batch.pending_ops.store(32, std::sync::atomic::Ordering::Release);
+            batch
+                .batch_size
+                .store(32, std::sync::atomic::Ordering::Release);
+            batch
+                .pending_ops
+                .store(32, std::sync::atomic::Ordering::Release);
 
             let result = batch.submit_batch(32);
             black_box(result)
@@ -67,8 +79,12 @@ fn benchmark_io_uring_batch(c: &mut Criterion) {
         let batch = IoUringBatchCapsule::new(&ring).expect("batch init");
 
         b.iter(|| {
-            batch.batch_size.store(64, std::sync::atomic::Ordering::Release);
-            batch.pending_ops.store(64, std::sync::atomic::Ordering::Release);
+            batch
+                .batch_size
+                .store(64, std::sync::atomic::Ordering::Release);
+            batch
+                .pending_ops
+                .store(64, std::sync::atomic::Ordering::Release);
 
             let result = batch.submit_batch(64);
             black_box(result)
@@ -145,8 +161,12 @@ fn benchmark_io_uring_batch(c: &mut Criterion) {
         let ring = IoUringCapsule::new(256, 0).expect("init");
         let batch = IoUringBatchCapsule::new(&ring).expect("batch init");
 
-        batch.avg_batch_latency_ns.store(100, std::sync::atomic::Ordering::Release);
-        batch.queue_pressure.store(30, std::sync::atomic::Ordering::Release);
+        batch
+            .avg_batch_latency_ns
+            .store(100, std::sync::atomic::Ordering::Release);
+        batch
+            .queue_pressure
+            .store(30, std::sync::atomic::Ordering::Release);
 
         b.iter(|| {
             let result = batch.adapt_batch_size();
@@ -158,8 +178,12 @@ fn benchmark_io_uring_batch(c: &mut Criterion) {
         let ring = IoUringCapsule::new(256, 0).expect("init");
         let batch = IoUringBatchCapsule::new(&ring).expect("batch init");
 
-        batch.avg_batch_latency_ns.store(5000, std::sync::atomic::Ordering::Release);
-        batch.queue_pressure.store(85, std::sync::atomic::Ordering::Release);
+        batch
+            .avg_batch_latency_ns
+            .store(5000, std::sync::atomic::Ordering::Release);
+        batch
+            .queue_pressure
+            .store(85, std::sync::atomic::Ordering::Release);
 
         b.iter(|| {
             let result = batch.adapt_batch_size();

@@ -1,6 +1,6 @@
 # Pure-Capsule Quantum Simulator - Phase 1
 
-**World's First 100% COCA-Compliant Quantum Simulator**
+**World's First 100% Chaos-Compliant Quantum Simulator**
 
 ## Overview
 
@@ -513,7 +513,7 @@ println!("Correlation: {}%", correlations / 10);
 ✅ **Q33**: Verification (T28 comprehensive testing)
 ✅ **Q34**: Auditability (Q34 hash-chain potential)
 
-### COCA (Computational Capsules)
+### Chaos (Computational Capsules)
 
 ✅ **100% Lockfree**: No mutex/RwLock (not needed for quantum state)
 ✅ **Cache-aligned**: 256B/128B alignment for efficiency
@@ -582,7 +582,7 @@ println!("Correlation: {}%", correlations / 10);
 ### Internal Documentation
 
 - [KEY_INNOVATIONS.md Innovation #2](../../../Docs/KEY_INNOVATIONS.md) - T2 SIMD patterns (19× Hebbian)
-- [The Computational Capsule.md](../../../Docs/The Computational Capsule.md) - COCA principles
+- [The Computational Capsule.md](../../../Docs/The Computational Capsule.md) - Chaos principles
 - [UCE34_FRAMEWORK.md](../../../Docs/UCE34_FRAMEWORK.md) - Tier selection (Q1-Q34)
 - [atomic_capsule/CLAUDE.md](../CLAUDE.md) - Full capsule inventory
 
@@ -606,7 +606,7 @@ println!("Correlation: {}%", correlations / 10);
 
 **Framework Compliance**:
 - UCE34: Q10-Q12, Q31-Q34 (✅)
-- COCA: 100% lockfree, cache-aligned (✅)
+- Chaos: 100% lockfree, cache-aligned (✅)
 - ASSUM: 99.5%+ safe (✅)
 - B32: Fair baselines, statistical rigor (✅)
 - T28: 28/28 tests passing (✅)

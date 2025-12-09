@@ -6,14 +6,14 @@
 //! 3. cache_stats (T0 Auditable snapshot)
 //! 4. preload_documents (T4 Batch parallel loading)
 //!
-//! **Architecture**: 100% COCA (all state in capsules, zero mutex/RwLock)
+//! **Architecture**: 100% Chaos (all state in capsules, zero mutex/RwLock)
 //! **Total Size**: ~850B (all 4 tools + supporting capsules)
 //! **Latency**: <100μs orchestration, <10μs cache operations
 //!
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 tier selection (T6/T2/T0/T4), Q33 verification (@derive)
-//! - **COCA**: 100% atomic capsules, cache-aligned (64B/128B/256B)
+//! - **Chaos**: 100% atomic capsules, cache-aligned (64B/128B/256B)
 //! - **ASSUM**: 99.5%+ safety (all pointers checked, Acquire/Release ordering)
 //! - **B32**: Fair baseline validation, <100μs latency SLA
 //! - **T28**: Unit/property/integration/production testing
@@ -23,7 +23,7 @@ use crate::{json_rpc::JsonRpcRequest, tool_registry::McpToolRegistryCapsule};
 use core::sync::atomic::{AtomicU64, AtomicU32, Ordering};
 
 // ============================================================================
-// Supporting Capsules (All 100% COCA)
+// Supporting Capsules (All 100% Chaos)
 // ============================================================================
 
 /// RequestContextCapsule - T0 Auditable request metadata (32B)

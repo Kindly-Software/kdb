@@ -1,7 +1,7 @@
 //! TLS (Transport Layer Security) Capsule Module
 //!
 //! **Tier**: T1 Atomic (lockfree protocol selection)
-//! **Framework**: UCE34, COCA, ASSUM, B32, T28, I20
+//! **Framework**: UCE34, Chaos, ASSUM, B32, T28, I20
 //! **Standard Compliance**: RFC 7301 (ALPN), RFC 8446 (TLS 1.3)
 //!
 //! This module provides thread-safe, high-performance TLS primitives for building
@@ -56,7 +56,7 @@
 //! - **Q13-Q28**: Implementation (28+ tests)
 //! - **Q29-Q34**: Validation (ASSUM safety, B32 benchmarks, I20 integration)
 //!
-//! ### COCA (Computational Capsule Architecture)
+//! ### Chaos (Computational Capsule Architecture)
 //! - 100% lockfree (atomic operations only)
 //! - Cache-aligned (64 bytes)
 //! - Zero dependencies

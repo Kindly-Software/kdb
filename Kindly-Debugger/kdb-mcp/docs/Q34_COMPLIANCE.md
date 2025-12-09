@@ -2,7 +2,7 @@
 
 **Status**: Production Ready (v0.1.0)
 **Tier**: T0 Auditable + T5 Streaming
-**Framework**: UCE34 (Q1-Q34), COCA, ASSUM (99.99%), B32, T28 (28/28 tests)
+**Framework**: UCE34 (Q1-Q34), Chaos, ASSUM (99.99%), B32, T28 (28/28 tests)
 
 ---
 
@@ -808,7 +808,7 @@ std::thread::spawn(|| {
 ### Internal Frameworks
 
 - **UCE34**: Systematic discovery (Q1-Q34), Auditability (Q34)
-- **COCA**: Computational Capsule architecture (100% lockfree)
+- **Chaos**: Computational Capsule architecture (100% lockfree)
 - **ASSUM**: Safety assumptions (99.5%+ target, 10 verified)
 - **B32**: Performance validation (95% CI, 1000+ iterations)
 - **T28**: Testing framework (4 tiers: unit, property, integration, production)
@@ -818,7 +818,7 @@ std::thread::spawn(|| {
 - `/home/samuel/Primitives/atomic_mcp_server/src/audit_enhancement.rs` - Core capsule
 - `/home/samuel/Primitives/atomic_mcp_server/tests/audit_enhancement_tests.rs` - 28 tests
 - `/home/samuel/CLAUDE.md` - UCE34 framework (Q1-Q34 questions)
-- `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md` - COCA patterns
+- `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md` - Chaos patterns
 
 ---
 

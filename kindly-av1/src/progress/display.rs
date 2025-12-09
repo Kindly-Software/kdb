@@ -20,7 +20,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 T1 Atomic tier (display state)
-//! - **COCA**: Lockfree progress reading, stateless display
+//! - **Chaos**: Lockfree progress reading, stateless display
 
 use super::capsule::{ProgressCapsule, ProgressSnapshot};
 use crate::cli::branding::{

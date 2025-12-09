@@ -541,6 +541,6 @@ fn t28_summary() {
     println!("✅ Q22-Q28: Production Tests (7/7)");
     println!("Total: 28/28 tests");
     println!("Coverage: 100%");
-    println!("Framework: UCE34 + T28 + COCA + ASSUM");
+    println!("Framework: UCE34 + T28 + Chaos + ASSUM");
     println!("======================================\n");
 }

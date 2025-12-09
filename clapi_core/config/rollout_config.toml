@@ -1,0 +1,375 @@
+# CLAPI Core - Phased Rollout Configuration
+# Version: 1.0
+# Framework: I20 Integration Framework
+# See: docs/ROLLOUT_PLAN.md for complete strategy
+
+# ============================================================================
+# ROLLOUT CONTROL
+# ============================================================================
+[rollout]
+# Week selection: 1 = proxy-only, 2 = oauth, 3 = payments, 4 = full
+week = 1
+
+# ============================================================================
+# WEEK 1: BASELINE VALIDATION (Proxy-Only Mode)
+# ============================================================================
+[week1]
+features = ["proxy-only"]
+traffic_percentage = 100
+description = "Baseline proxy with budget tracking, circuit breakers, metrics"
+
+# Enabled endpoints
+enabled_endpoints = [
+    "POST /v1/chat/completions",
+    "GET /metrics",
+    "GET /metrics/circuit_breaker",
+    "GET /metrics/budget",
+    "GET /health"
+]
+
+# Success criteria
+[week1.success_criteria]
+budget_check_latency_p50_ns = 60
+budget_check_latency_p99_ns = 120
+circuit_breaker_latency_ns = 5
+slot_allocation_latency_p50_ns = 80
+proxy_overhead_ns = 300
+zero_panics = true
+zero_crashes = true
+
+# Monitoring baselines
+[week1.monitoring]
+duration_hours = 24
+metrics = [
+    "budget.try_deduct.latency_ns",
+    "budget.allocation.latency_ns",
+    "circuit_breaker.state",
+    "circuit_breaker.failure_rate_bp",
+    "budget.slots.utilization"
+]
+
+# ============================================================================
+# WEEK 2: OAUTH 2.0 INTEGRATION (Canary → Full)
+# ============================================================================
+[week2]
+features = ["oauth"]
+traffic_percentage = 1  # Start with 1% canary
+description = "OAuth 2.0 PKCE authentication with gradual rollout"
+
+# Enabled endpoints
+enabled_endpoints = [
+    # Week 1 endpoints (inherited)
+    "POST /v1/chat/completions",
+    "GET /metrics",
+    "GET /health",
+
+    # Week 2 new endpoints
+    "POST /auth/authorize",
+    "GET /auth/callback",
+    "POST /auth/token",
+    "POST /auth/revoke",
+    "POST /auth/refresh"
+]
+
+# Gradual rollout schedule
+[week2.rollout_schedule]
+day_1_2_percentage = 1   # 1% canary
+day_3_4_percentage = 10  # 10% if canary succeeds
+day_5_6_percentage = 50  # 50% if 10% succeeds
+day_7_percentage = 100   # 100% full rollout
+
+# Success criteria
+[week2.success_criteria]
+oauth_session_create_latency_p99_ns = 50
+oauth_token_verify_latency_p99_ns = 50
+oauth_session_create_errors_percentage = 1.0  # <1%
+kindlydb_persistence_latency_ns = 100
+oauth_provider_unavailable_percentage = 0.0
+
+# Rollback triggers (auto-rollback to Week 1)
+[week2.rollback_triggers]
+oauth_session_create_errors_gt_percentage = 1.0  # >1% errors
+oauth_token_verify_latency_p99_gt_ns = 100       # >100ns latency
+kindlydb_connection_errors_gt_percentage = 0.0   # Any KindlyDB errors
+
+# Monitoring
+[week2.monitoring]
+duration_hours = 168  # 7 days (full week)
+critical_alerts = [
+    "oauth_session_create_errors > 1%",
+    "oauth_token_verify_latency_p99 > 100ns",
+    "kindlydb_connection_errors > 0%"
+]
+warning_alerts = [
+    "oauth_provider_unavailable",
+    "session_cleanup_failures > 1%"
+]
+
+# Canary tests
+[week2.canary_tests]
+create_sessions = 1000
+verify_tokens = 10000
+test_revocation = true
+test_refresh = true
+test_cleanup = true
+
+# ============================================================================
+# WEEK 3: STRIPE PAYMENT INTEGRATION (Canary → Full)
+# ============================================================================
+[week3]
+features = ["payments"]
+traffic_percentage = 10  # Start with 10% canary (careful with payments)
+description = "Stripe payment tracking with Q16.16 fixed-point arithmetic"
+
+# Enabled endpoints
+enabled_endpoints = [
+    # Week 1-2 endpoints (inherited)
+    "POST /v1/chat/completions",
+    "GET /metrics",
+    "GET /health",
+    "POST /auth/authorize",
+    "GET /auth/callback",
+    "POST /auth/token",
+
+    # Week 3 new endpoints
+    "POST /payments/create",
+    "POST /webhooks/stripe",
+    "GET /payments/history",
+    "POST /payments/refund"
+]
+
+# Gradual rollout schedule
+[week3.rollout_schedule]
+day_1_2_percentage = 10  # 10% canary (conservative for payments)
+day_3_4_percentage = 50  # 50% if canary succeeds
+day_5_7_percentage = 100 # 100% full rollout
+
+# Success criteria
+[week3.success_criteria]
+payment_create_latency_p99_ns = 150
+webhook_processing_latency_p99_ms = 500
+payment_confirmation_errors_percentage = 1.0  # <1%
+idempotency_check_latency_ns = 100
+stripe_api_rate_limit_warnings = 0
+
+# Rollback triggers (auto-rollback to Week 2)
+[week3.rollback_triggers]
+payment_confirmation_errors_gt_percentage = 1.0  # >1% errors
+webhook_processing_errors_gt_percentage = 1.0    # >1% webhook errors
+stripe_idempotency_failures_gt_percentage = 0.1  # >0.1% (duplicate charge risk)
+
+# Monitoring
+[week3.monitoring]
+duration_hours = 168  # 7 days (full week)
+critical_alerts = [
+    "payment_confirmation_errors > 1%",
+    "webhook_processing_errors > 1%",
+    "stripe_idempotency_failures > 0.1%"
+]
+warning_alerts = [
+    "stripe_api_rate_limit_warnings",
+    "refund_failures > 1%"
+]
+
+# Canary tests
+[week3.canary_tests]
+create_test_payments = 100  # 100 × $1.00 = $100 test budget
+test_payment_amount_cents = 100  # $1.00 each
+simulate_webhooks = true
+test_duplicate_webhooks = true  # Idempotency
+test_refund_lifecycle = true
+test_payment_history = true
+
+# ============================================================================
+# WEEK 4: FULL COMPLIANCE + KINDLYDB (Big Bang)
+# ============================================================================
+[week4]
+features = ["full"]
+traffic_percentage = 100  # Big bang (capsule-based, deterministic)
+description = "Full compliance (SOX/SOC2/GDPR) + KindlyDB persistence"
+
+# Enabled endpoints (all)
+enabled_endpoints = [
+    # Week 1-3 endpoints (inherited)
+    "POST /v1/chat/completions",
+    "GET /metrics",
+    "GET /health",
+    "POST /auth/authorize",
+    "GET /auth/callback",
+    "POST /auth/token",
+    "POST /payments/create",
+    "POST /webhooks/stripe",
+    "GET /payments/history",
+
+    # Week 4 new endpoints
+    "GET /compliance/export",
+    "GET /forensics/timeline",
+    "GET /forensics/anomalies",
+    "GET /compliance/verify_hash_chain"
+]
+
+# Success criteria
+[week4.success_criteria]
+compliance_export_json_latency_p99_ms = 1000
+compliance_export_csv_latency_p99_ms = 2000
+hash_chain_integrity_percentage = 100.0  # Must be 100%
+timeline_reconstruction_latency_p99_ms = 500
+anomaly_detection_latency_p99_ms = 1000
+kindlydb_persistence_latency_ns = 100
+
+# Rollback triggers (NO auto-rollback, manual investigation)
+[week4.rollback_triggers]
+compliance_export_errors_gt_percentage = 1.0  # >1% errors
+audit_hash_integrity_failures_gt_count = 0    # CRITICAL: Any failure
+
+# Monitoring
+[week4.monitoring]
+duration_hours = 24  # 24 hours validation
+critical_alerts = [
+    "compliance_export_errors > 1%",
+    "audit_hash_integrity_failures > 0"  # CRITICAL (data corruption)
+]
+warning_alerts = [
+    "compliance_export_latency_p99 > 5s",
+    "anomaly_detection_false_positives > 10%"
+]
+
+# Validation tests
+[week4.validation_tests]
+export_audit_events = 1000
+export_formats = ["json", "csv", "binary"]
+verify_hash_chain = true
+test_timeline_reconstruction = true
+test_anomaly_detection = true
+
+# ============================================================================
+# ROLLBACK PROCEDURES
+# ============================================================================
+[rollback]
+
+# Week 2 → Week 1 (OAuth rollback)
+[rollback.week2_to_week1]
+method = "feature_flag"
+rollback_time_seconds = 60  # <1 minute
+steps = [
+    "Update config: week = 1",
+    "Restart server",
+    "Verify: Proxy still works, sessions preserved in KindlyDB"
+]
+data_loss = "None (sessions preserved, graceful degradation)"
+
+# Week 3 → Week 2 (Payment rollback)
+[rollback.week3_to_week2]
+method = "feature_flag"
+rollback_time_seconds = 60  # <1 minute
+steps = [
+    "Update config: week = 2",
+    "Restart server",
+    "Mark outstanding payments as 'pending'",
+    "Manual reconciliation with Stripe API"
+]
+data_loss = "None (payments marked pending, manual reconciliation required)"
+
+# Week 4 → Week 3 (Compliance rollback)
+[rollback.week4_to_week3]
+method = "git_revert"
+rollback_time_seconds = 300  # <5 minutes
+steps = [
+    "git revert <week4-commit-hash>",
+    "cargo build --release --features payments",
+    "Restart server",
+    "Verify: Exports disabled, core functionality preserved"
+]
+data_loss = "None (all data preserved in KindlyDB)"
+
+# ============================================================================
+# ALERT ROUTING
+# ============================================================================
+[alerts]
+
+# Critical alerts (auto-rollback + notifications)
+[alerts.critical]
+channels = ["pagerduty", "email", "slack"]
+auto_rollback = true
+escalation_minutes = 5
+
+# Warning alerts (manual investigation)
+[alerts.warning]
+channels = ["slack", "cloudwatch"]
+auto_rollback = false
+escalation_minutes = 15
+
+# Info alerts (logging only)
+[alerts.info]
+channels = ["cloudwatch"]
+auto_rollback = false
+
+# ============================================================================
+# PERFORMANCE BUDGETS (B32 Framework)
+# ============================================================================
+[performance_budgets]
+
+# Proxy baseline (Week 1)
+[performance_budgets.proxy]
+budget_check_ns = 60
+slot_allocation_ns = 80
+circuit_breaker_ns = 5
+total_overhead_ns = 300
+
+# OAuth overhead (Week 2)
+[performance_budgets.oauth]
+session_create_ns = 50
+token_verify_ns = 50
+kindlydb_write_ns = 100
+
+# Payment overhead (Week 3)
+[performance_budgets.payment]
+payment_create_ns = 150
+webhook_processing_ms = 500
+idempotency_check_ns = 100
+
+# Compliance overhead (Week 4)
+[performance_budgets.compliance]
+export_json_ms = 1000
+export_csv_ms = 2000
+timeline_reconstruction_ms = 500
+anomaly_detection_ms = 1000
+
+# ============================================================================
+# I20 FRAMEWORK VALIDATION
+# ============================================================================
+[i20_validation]
+questions_answered = 20
+phases_validated = 4
+
+# Phase 1: Scope (Q1-Q5)
+[i20_validation.scope]
+q1_components = ["proxy", "oauth", "payments", "compliance"]
+q2_problem = "User auth, budget tracking, regulatory compliance"
+q3_explicit_contracts = "POST /auth/authorize, POST /payments/create, GET /compliance/export"
+q4_implicit_dependencies = "OAuth providers, Stripe API, KindlyDB"
+q5_integration_necessary = true
+
+# Phase 2: Compatibility (Q6-Q10)
+[i20_validation.compatibility]
+q6_architectural = "All lockfree ✓, OAuth/Payments have external deps ⚠"
+q7_performance = "Proxy <300ns, OAuth <50ns, Payments <150ns, Compliance <1s"
+q8_error_model = "All use Result<T, E> ✓"
+q9_concurrency = "All Send + Sync ✓"
+q10_boundary_failures = "OAuth provider outages, Stripe webhook failures, export errors"
+
+# Phase 3: Safety (Q11-Q15)
+[i20_validation.safety]
+q11_assumptions = "OAuth providers available, Stripe webhooks arrive <5min"
+q12_failure_cascades = "Circuit breakers prevent cascades, manual reconciliation for payments"
+q13_boundary_invariants = "Session count <1M, payment amount matches Stripe, hash chain integrity"
+q14_race_deadlock = "All lockfree, no deadlocks ✓"
+q15_escape_hatches = "Feature flags, circuit breakers, manual override"
+
+# Phase 4: Validation (Q16-Q20)
+[i20_validation.validation]
+q16_minimal_test = "Create session, create payment, export audit event"
+q17_property_invariants = "Sessions valid, payments correct, hash chain unbroken"
+q18_performance_budget = "Proxy <300ns, OAuth <50ns, Payments <150ns, Compliance <1s"
+q19_integration_strategy = "Week 2-3: Incremental (external deps), Week 4: Big Bang (capsules)"
+q20_rollback_plan = "Week 2-3: Feature flag (<1min), Week 4: Git revert (<5min)"

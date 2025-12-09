@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>kindly-av1 Encoding Progress - Example Output</title>
+    <style>
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: transparent;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #FFFFFF;
+            overflow: hidden;
+        }
+
+        .overlay {
+            padding: 20px;
+            display: flex;
+            flex-direction: row;
+            gap: 15px;
+            align-items: center;
+            
+        }
+
+        .overlay.minimal {
+            padding: 10px 20px;
+        }
+
+        .progress-container {
+            position: relative;
+            width: 100%;
+            min-width: 300px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #9B59B6;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #9B59B6 0%, #F1C40F 100%);
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.85;
+            }
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            font-weight: bold;
+            color: #FFFFFF;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+        }
+
+        .stats-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 15px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(155, 89, 182, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .stat {
+            display: flex;
+            gap: 8px;
+            align-items: baseline;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #F1C40F;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            color: #FFFFFF;
+            font-weight: bold;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .overlay.corner .stats-container {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .overlay.corner .stat {
+            justify-content: space-between;
+        }
+
+        /* Pulsing animation for active encoding */
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3);
+            }
+            50% {
+                box-shadow: 0 4px 25px rgba(155, 89, 182, 0.6);
+            }
+        }
+
+        .progress-bar.active {
+            animation: pulse 2s infinite;
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="overlay standard">
+        <div class="progress-container">
+            <div class="progress-bar active" id="progressBar">
+                <div class="progress-fill" id="progressFill" style="width: 67%;"></div>
+            </div>
+            <div class="progress-text" id="progressText">67%</div>
+        </div>
+        <div class="stats-container">
+            <div class="stat">
+                <span class="stat-label">FPS:</span>
+                <span class="stat-value" id="fps">42.3</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">ETA:</span>
+                <span class="stat-value" id="eta">2:34</span>
+            </div>
+        </div>
+    </div>
+    <script>
+        
+        // WebSocket connection to overlay server
+        // Default port: 9876 (configurable via --obs-server flag)
+
+        let ws = null;
+        let reconnectTimeout = null;
+        let reconnectDelay = 1000; // Start with 1 second
+        const maxReconnectDelay = 30000; // Max 30 seconds
+
+        function connect() {
+            // Auto-detect WebSocket port from query string or use default
+            const urlParams = new URLSearchParams(window.location.search);
+            const port = urlParams.get('port') || '9876';
+            const wsUrl = 'ws://localhost:' + port + '/ws';
+
+            console.log('[kindly-av1] Connecting to WebSocket:', wsUrl);
+
+            try {
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = function() {
+                    console.log('[kindly-av1] WebSocket connected');
+                    reconnectDelay = 1000; // Reset delay on successful connection
+
+                    // Clear any pending reconnect
+                    if (reconnectTimeout) {
+                        clearTimeout(reconnectTimeout);
+                        reconnectTimeout = null;
+                    }
+                };
+
+                ws.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        console.log('[kindly-av1] Received update:', data);
+                        updateOverlay(data);
+                    } catch (e) {
+                        console.error('[kindly-av1] Failed to parse message:', e);
+                    }
+                };
+
+                ws.onerror = function(error) {
+                    console.error('[kindly-av1] WebSocket error:', error);
+                };
+
+                ws.onclose = function(event) {
+                    console.log('[kindly-av1] WebSocket closed, reconnecting in', reconnectDelay, 'ms');
+                    ws = null;
+
+                    // Exponential backoff for reconnection
+                    reconnectTimeout = setTimeout(function() {
+                        reconnectDelay = Math.min(reconnectDelay * 2, maxReconnectDelay);
+                        connect();
+                    }, reconnectDelay);
+                };
+
+            } catch (e) {
+                console.error('[kindly-av1] Failed to create WebSocket:', e);
+
+                // Retry connection
+                reconnectTimeout = setTimeout(function() {
+                    reconnectDelay = Math.min(reconnectDelay * 2, maxReconnectDelay);
+                    connect();
+                }, reconnectDelay);
+            }
+        }
+
+        function updateOverlay(data) {
+            
+            if (data.progress !== undefined) {
+                const progressFill = document.getElementById('progressFill');
+                const progressText = document.getElementById('progressText');
+                const progressBar = document.getElementById('progressBar');
+
+                if (progressFill && progressText) {
+                    const percent = Math.round(data.progress * 100);
+                    progressFill.style.width = percent + '%';
+                    progressText.textContent = percent + '%';
+
+                    // Add active animation when encoding
+                    if (percent > 0 && percent < 100) {
+                        progressBar.classList.add('active');
+                    } else {
+                        progressBar.classList.remove('active');
+                    }
+                }
+            }
+            if (data.fps !== undefined) {
+                const fpsElem = document.getElementById('fps');
+                if (fpsElem) {
+                    fpsElem.textContent = data.fps.toFixed(1);
+                }
+            }
+            if (data.eta_seconds !== undefined) {
+                const etaElem = document.getElementById('eta');
+                if (etaElem) {
+                    const hours = Math.floor(data.eta_seconds / 3600);
+                    const minutes = Math.floor((data.eta_seconds % 3600) / 60);
+                    const seconds = Math.floor(data.eta_seconds % 60);
+
+                    if (hours > 0) {
+                        etaElem.textContent = hours + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+                    } else {
+                        etaElem.textContent = minutes + ':' + String(seconds).padStart(2, '0');
+                    }
+                }
+            }
+        }
+
+        // Initial connection
+        connect();
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (reconnectTimeout) {
+                clearTimeout(reconnectTimeout);
+            }
+            if (ws) {
+                ws.close();
+            }
+        });
+        
+    </script>
+</body>
+</html>

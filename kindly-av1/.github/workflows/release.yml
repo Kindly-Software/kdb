@@ -1,0 +1,332 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux x86_64 (musl for static binary)
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            archive: tar.gz
+
+          # Windows x86_64
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            archive: zip
+
+          # macOS x86_64 (Intel)
+          - target: x86_64-apple-darwin
+            os: macos-13
+            archive: tar.gz
+
+          # macOS ARM64 (Apple Silicon)
+          - target: aarch64-apple-darwin
+            os: macos-14
+            archive: tar.gz
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@1482605bfc5719782e1267fd0c0cc350fe7646b8 # v1
+        with:
+          toolchain: nightly
+          targets: ${{ matrix.target }}
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install musl tools (Linux)
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+        env:
+          RUSTFLAGS: "-C target-cpu=native -C opt-level=3 -C lto=fat -C codegen-units=1"
+
+      - name: Build installer binary
+        run: |
+          cd installer
+          cargo build --release --target ${{ matrix.target }}
+        env:
+          RUSTFLAGS: "-C opt-level=z -C lto=fat -C codegen-units=1 -C strip=symbols"
+
+      # macOS Code Signing & Notarization
+      - name: Import Apple certificates (macOS)
+        if: startsWith(matrix.os, 'macos') && github.event_name == 'push'
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          KEYCHAIN_PWD: ${{ secrets.KEYCHAIN_PWD }}
+        run: |
+          # Create temporary keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          security create-keychain -p "$KEYCHAIN_PWD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PWD" $KEYCHAIN_PATH
+
+          # Import certificate to keychain
+          echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
+          security import certificate.p12 -P "$MACOS_CERTIFICATE_PWD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+          # Enable codesigning from keychain
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PWD" $KEYCHAIN_PATH
+
+      - name: Codesign binary (macOS)
+        if: startsWith(matrix.os, 'macos') && github.event_name == 'push'
+        env:
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+        run: |
+          BINARY_PATH="target/${{ matrix.target }}/release/kindly-av1"
+          INSTALLER_PATH="installer/target/${{ matrix.target }}/release/kindly-av1-installer"
+
+          if [ -f "$BINARY_PATH" ]; then
+            /usr/bin/codesign --force --sign "$MACOS_SIGNING_IDENTITY" \
+              --options runtime \
+              --timestamp \
+              --verbose \
+              "$BINARY_PATH"
+            /usr/bin/codesign --verify --verbose "$BINARY_PATH"
+          fi
+
+          if [ -f "$INSTALLER_PATH" ]; then
+            /usr/bin/codesign --force --sign "$MACOS_SIGNING_IDENTITY" \
+              --options runtime \
+              --timestamp \
+              --verbose \
+              "$INSTALLER_PATH"
+            /usr/bin/codesign --verify --verbose "$INSTALLER_PATH"
+          fi
+
+      - name: Notarize binary (macOS)
+        if: startsWith(matrix.os, 'macos') && github.event_name == 'push'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          BINARY_PATH="target/${{ matrix.target }}/release/kindly-av1"
+          INSTALLER_PATH="installer/target/${{ matrix.target }}/release/kindly-av1-installer"
+
+          # Create temporary directory for notarization
+          NOTARIZE_DIR=$RUNNER_TEMP/notarize
+          mkdir -p $NOTARIZE_DIR
+
+          # Notarize main binary
+          if [ -f "$BINARY_PATH" ]; then
+            cp "$BINARY_PATH" "$NOTARIZE_DIR/"
+            NOTARIZE_ZIP="$NOTARIZE_DIR/kindly-av1.zip"
+            ditto -c -k --keepParent "$NOTARIZE_DIR/kindly-av1" "$NOTARIZE_ZIP"
+            xcrun notarytool submit "$NOTARIZE_ZIP" \
+              --apple-id "$APPLE_ID" \
+              --team-id "$APPLE_TEAM_ID" \
+              --password "$APPLE_APP_PASSWORD" \
+              --wait
+            rm "$NOTARIZE_ZIP" "$NOTARIZE_DIR/kindly-av1"
+          fi
+
+          # Notarize installer binary
+          if [ -f "$INSTALLER_PATH" ]; then
+            cp "$INSTALLER_PATH" "$NOTARIZE_DIR/"
+            NOTARIZE_ZIP="$NOTARIZE_DIR/kindly-av1-installer.zip"
+            ditto -c -k --keepParent "$NOTARIZE_DIR/kindly-av1-installer" "$NOTARIZE_ZIP"
+            xcrun notarytool submit "$NOTARIZE_ZIP" \
+              --apple-id "$APPLE_ID" \
+              --team-id "$APPLE_TEAM_ID" \
+              --password "$APPLE_APP_PASSWORD" \
+              --wait
+          fi
+
+          # Note: Stapling not needed for CLI binaries (only .app bundles)
+          # The notarization is stored on Apple's servers and checked at first run
+
+      # Windows Code Signing (Optional - requires certificate)
+      - name: Sign binary (Windows)
+        if: matrix.os == 'windows-latest' && github.event_name == 'push' && secrets.WINDOWS_CERTIFICATE != ''
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PWD: ${{ secrets.WINDOWS_CERTIFICATE_PWD }}
+        shell: pwsh
+        run: |
+          # Decode certificate
+          $certBytes = [System.Convert]::FromBase64String($env:WINDOWS_CERTIFICATE)
+          $certPath = Join-Path -Path $env:RUNNER_TEMP -ChildPath "cert.pfx"
+          [IO.File]::WriteAllBytes($certPath, $certBytes)
+
+          # Import certificate to store
+          $cert = Import-PfxCertificate -FilePath $certPath -CertStoreLocation Cert:\CurrentUser\My -Password (ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PWD -AsPlainText -Force)
+
+          # Sign main binary
+          $binary = "target\${{ matrix.target }}\release\kindly-av1.exe"
+          $installer = "installer\target\${{ matrix.target }}\release\kindly-av1-installer.exe"
+          $signtool = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe"
+
+          if (Test-Path $binary) {
+            & $signtool sign /fd SHA256 /sha1 $cert.Thumbprint /tr http://timestamp.digicert.com /td SHA256 $binary
+            & $signtool verify /pa $binary
+          }
+
+          if (Test-Path $installer) {
+            & $signtool sign /fd SHA256 /sha1 $cert.Thumbprint /tr http://timestamp.digicert.com /td SHA256 $installer
+            & $signtool verify /pa $installer
+          }
+
+          # Cleanup
+          Remove-Item $certPath
+
+      # Create archive with binary + installer + README + LICENSE
+      - name: Create release archive
+        shell: bash
+        run: |
+          ARCHIVE_NAME="kindly-av1-${{ matrix.target }}"
+          ARCHIVE_DIR="$RUNNER_TEMP/$ARCHIVE_NAME"
+          mkdir -p "$ARCHIVE_DIR"
+
+          # Copy main binary
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            BINARY_SRC="target/${{ matrix.target }}/release/kindly-av1.exe"
+            BINARY_DST="$ARCHIVE_DIR/kindly-av1.exe"
+            INSTALLER_SRC="installer/target/${{ matrix.target }}/release/kindly-av1-installer.exe"
+            INSTALLER_DST="$ARCHIVE_DIR/kindly-av1-installer.exe"
+          else
+            BINARY_SRC="target/${{ matrix.target }}/release/kindly-av1"
+            BINARY_DST="$ARCHIVE_DIR/kindly-av1"
+            INSTALLER_SRC="installer/target/${{ matrix.target }}/release/kindly-av1-installer"
+            INSTALLER_DST="$ARCHIVE_DIR/kindly-av1-installer"
+          fi
+
+          cp "$BINARY_SRC" "$BINARY_DST"
+          [ -f "$INSTALLER_SRC" ] && cp "$INSTALLER_SRC" "$INSTALLER_DST"
+
+          # Copy documentation
+          [ -f README.md ] && cp README.md "$ARCHIVE_DIR/"
+          [ -f LICENSE ] && cp LICENSE "$ARCHIVE_DIR/"
+          [ -f CHANGELOG.md ] && cp CHANGELOG.md "$ARCHIVE_DIR/"
+
+          # Create archive
+          cd "$RUNNER_TEMP"
+          if [ "${{ matrix.archive }}" = "zip" ]; then
+            7z a -tzip "$ARCHIVE_NAME.zip" "$ARCHIVE_NAME"
+            echo "ARCHIVE_FILE=$ARCHIVE_NAME.zip" >> $GITHUB_ENV
+          else
+            tar czf "$ARCHIVE_NAME.tar.gz" "$ARCHIVE_NAME"
+            echo "ARCHIVE_FILE=$ARCHIVE_NAME.tar.gz" >> $GITHUB_ENV
+          fi
+
+      - name: Generate SHA256 checksum
+        shell: bash
+        run: |
+          cd "$RUNNER_TEMP"
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            certutil -hashfile "$ARCHIVE_FILE" SHA256 > "$ARCHIVE_FILE.sha256"
+          else
+            shasum -a 256 "$ARCHIVE_FILE" > "$ARCHIVE_FILE.sha256"
+          fi
+
+          # Display checksum for verification
+          cat "$ARCHIVE_FILE.sha256"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        with:
+          name: ${{ env.ARCHIVE_FILE }}
+          path: ${{ runner.temp }}/${{ env.ARCHIVE_FILE }}
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload checksum
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        with:
+          name: ${{ env.ARCHIVE_FILE }}.sha256
+          path: ${{ runner.temp }}/${{ env.ARCHIVE_FILE }}.sha256
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          path: artifacts
+
+      - name: Display structure of downloaded files
+        run: ls -R artifacts/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
+        with:
+          draft: true
+          generate_release_notes: true
+          files: |
+            artifacts/**/*
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  verify-slsa:
+    name: SLSA Provenance
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          path: artifacts
+
+      - name: Generate SLSA provenance summary
+        run: |
+          echo "# SLSA Build Provenance" > slsa-provenance.md
+          echo "" >> slsa-provenance.md
+          echo "**Build Information:**" >> slsa-provenance.md
+          echo "- Workflow: ${{ github.workflow }}" >> slsa-provenance.md
+          echo "- Run ID: ${{ github.run_id }}" >> slsa-provenance.md
+          echo "- Run Number: ${{ github.run_number }}" >> slsa-provenance.md
+          echo "- SHA: ${{ github.sha }}" >> slsa-provenance.md
+          echo "- Ref: ${{ github.ref }}" >> slsa-provenance.md
+          echo "- Actor: ${{ github.actor }}" >> slsa-provenance.md
+          echo "" >> slsa-provenance.md
+          echo "**Artifacts:**" >> slsa-provenance.md
+          find artifacts -type f -name "*.sha256" -exec cat {} \; >> slsa-provenance.md
+
+          cat slsa-provenance.md
+
+      - name: Upload SLSA provenance
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        with:
+          name: slsa-provenance.md
+          path: slsa-provenance.md
+          retention-days: 90

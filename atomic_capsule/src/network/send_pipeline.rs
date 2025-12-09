@@ -5,7 +5,7 @@
 //
 // Framework Compliance:
 // - UCE34: Q10 (T4+T5 tier), Q33 (lockfree), Q34 (audit optional)
-// - COCA: 100% lockfree, 128B cache-aligned, generation counters
+// - Chaos: 100% lockfree, 128B cache-aligned, generation counters
 // - ASSUM: 99.99% safe, 7 documented assumptions
 // - B32: 2-5× conservative, 10-20× optimistic vs QUIC
 // - T28: 28 tests (unit/property/integration/production)

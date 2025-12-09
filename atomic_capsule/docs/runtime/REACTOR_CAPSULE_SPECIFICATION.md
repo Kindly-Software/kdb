@@ -358,7 +358,7 @@ runtime-reactor = ["std"]  # T1: Lockfree I/O reactor (epoll/kqueue)
 - ❌ Windows (requires IOCP backend - future)
 - ❌ WASM (requires web-sys Fetch API - future)
 
-## COCA Compliance
+## Chaos Compliance
 
 ### Computational Capsule Requirements
 
@@ -423,7 +423,7 @@ Real-world deployment testing:
 - ASSUM Safety: Assumption validation framework
 - B32 Benchmarking: Honest performance measurement
 - T28 Testing: Comprehensive test framework
-- COCA: Computational Capsule architecture
+- Chaos: Computational Capsule architecture
 
 ### Implementation Files
 - `/home/samuel/Primitives/atomic_capsule/src/runtime/reactor.rs` (420 lines)
@@ -446,6 +446,6 @@ ReactorCapsule is a **complete, production-ready T1 Atomic Capsule** for high-pe
 - **Lockfree**: 100% (zero mutex/RwLock)
 - **Performance**: <1μs poll latency, 1M+ events/sec
 - **Alignment**: 384B FdState, 128B cache-aligned
-- **Compliance**: UCE34, ASSUM, B32, T28, COCA ✓
+- **Compliance**: UCE34, ASSUM, B32, T28, Chaos ✓
 
 **Status**: ✅ **Phase 13.1 Complete** - Ready for Phase 13.2 (B32 Benchmarks) and Phase 13.3 (Integration)

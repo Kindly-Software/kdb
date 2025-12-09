@@ -1,0 +1,195 @@
+# ============================================================================
+# kindly-av1 .gitignore
+# UCE34 Compliance: Exclude proprietary files from public release
+# ============================================================================
+
+# ============================================================================
+# PROPRIETARY & INTERNAL DOCUMENTATION
+# ============================================================================
+# Internal configuration and planning
+CLAUDE.md
+.claude/
+
+# Trade secret protection
+TRADE_SECRET_NOTICE.md
+**/TRADE_SECRET_NOTICE.md
+
+# Internal documentation and reports
+**/SESSION_*.md
+**/*_SUMMARY.txt
+**/*_REPORT.md
+**/*_DELIVERABLE*.txt
+**/*_VERIFICATION*.txt
+**/*_IMPLEMENTATION*.md
+
+# ============================================================================
+# BUILD ARTIFACTS
+# ============================================================================
+# Rust build outputs
+/target/
+**/target/
+Cargo.lock
+
+# Compilation artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.lib
+*.exe
+
+# Debug symbols
+*.dSYM/
+*.pdb
+
+# ============================================================================
+# IDE & EDITOR FILES
+# ============================================================================
+# JetBrains IDEs (IntelliJ, CLion, RustRover)
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.*.sw?
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ============================================================================
+# OS FILES
+# ============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+
+# Linux
+.directory
+.Trash-*
+
+# ============================================================================
+# TEMPORARY & LOG FILES
+# ============================================================================
+*.tmp
+*.temp
+*.log
+*.bak
+*.backup
+*.orig
+*.rej
+*.patch
+
+# Checkpoint files
+*.ckpt
+*.checkpoint
+
+# Core dumps
+core
+core.*
+
+# ============================================================================
+# TESTING & BENCHMARKING ARTIFACTS
+# ============================================================================
+# Criterion benchmark results
+**/criterion/
+bench_results.txt
+benchmark_output.txt
+
+# Test artifacts
+test_results.txt
+*.profraw
+*.profdata
+
+# Coverage reports
+coverage/
+*.gcda
+*.gcno
+*.lcov
+
+# Flamegraph outputs
+flamegraph.svg
+perf.data
+perf.data.old
+
+# ============================================================================
+# DEVELOPMENT ARTIFACTS
+# ============================================================================
+# Rust toolchain files (project-specific, not version controlled)
+# rust-toolchain.toml is typically version controlled, so not excluded
+
+# Build scripts output
+/build/
+*.rustc_info.json
+
+# Incremental compilation
+**/*.rlib.rmeta
+**/*.rmeta
+
+# ============================================================================
+# DOCUMENTATION BUILD ARTIFACTS
+# ============================================================================
+/doc/
+/docs/build/
+
+# ============================================================================
+# MISCELLANEOUS
+# ============================================================================
+# Environment files (may contain secrets)
+.env
+.env.*
+!.env.example
+
+# Local configuration overrides
+*.local
+
+# Package manager locks (if using alternative package managers)
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# Rust ICE (Internal Compiler Error) reports
+rustc-ice-*.txt
+
+# ============================================================================
+# PROJECT-SPECIFIC EXCLUSIONS
+# ============================================================================
+# AV1 encoder test outputs
+*.ivf
+*.webm
+*.mp4
+test_vectors/
+
+# Training data and models (if applicable)
+/data/
+/models/
+*.model
+*.weights
+
+# Large binary test files
+*.yuv
+*.raw
+*.bin

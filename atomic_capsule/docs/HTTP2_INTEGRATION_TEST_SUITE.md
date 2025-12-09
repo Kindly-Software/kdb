@@ -4,7 +4,7 @@
 **Date**: November 21, 2025
 **Status**: Production Ready (50 tests, 100% pass rate)
 **RFC Compliance**: RFC 9113 (HTTP/2 Protocol)
-**Framework Compliance**: UCE34, COCA, B32, T28, ASSUM, I20
+**Framework Compliance**: UCE34, Chaos, B32, T28, ASSUM, I20
 
 ## Executive Summary
 
@@ -325,7 +325,7 @@ finished in 0.00s (avg 0ns per test)
 - **Q33**: Verification (50+ tests, 100% pass rate)
 - **Q34**: Auditability (framework compliance tracking)
 
-### ✅ COCA (Computational Capsule Architecture)
+### ✅ Chaos (Computational Capsule Architecture)
 - 100% lockfree design validation
 - Zero mutex/RwLock in core paths
 - Cache-aligned frame structures
@@ -401,7 +401,7 @@ finished in 0.00s (avg 0ns per test)
 - **RFC 8441**: Bootstrapping WebSockets with HTTP/2
 - **KEY_INNOVATIONS.md**: Computational capsule breakthrough patterns
 - **UCE34_FRAMEWORK.md**: Systematic discovery methodology
-- **COCA_PATTERNS.md**: Lockfree design patterns
+- **Chaos_PATTERNS.md**: Lockfree design patterns
 
 ## License & Trade Secret Notice
 
@@ -411,4 +411,4 @@ This HTTP/2 test suite is part of the atomic_capsule computational capsule found
 
 **Protection**: Server-side only. Never shipped to clients or WebAssembly targets. Implementation details are confidential IP.
 
-**Compliance**: All code follows UCE34 framework, COCA architecture, and production-quality standards per CLAUDE.md configuration.
+**Compliance**: All code follows UCE34 framework, Chaos architecture, and production-quality standards per CLAUDE.md configuration.

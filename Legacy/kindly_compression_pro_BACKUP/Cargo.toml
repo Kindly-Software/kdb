@@ -1,0 +1,90 @@
+[package]
+name = "kindly_compression_pro"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.83"
+authors = ["Samuel <samuel@kindly.ai>"]
+description = "Proprietary weight compression codec: 6-10× compression with <2% accuracy loss (TRADE SECRET)"
+license = "PROPRIETARY"
+publish = false
+
+# TRADE SECRET: This crate contains breakthrough compression algorithms
+# NEVER commit to public repositories, NEVER share publicly
+
+[lib]
+name = "kindly_compression_pro"
+path = "src/lib.rs"
+crate-type = ["rlib"]
+
+[dependencies]
+# Foundation: Computational capsule primitives (T2 SIMD + T3 Fixed-Point)
+atomic_capsule = { path = "../atomic_capsule", features = [
+    "portable_simd",   # T2: SIMD block unpacking (f32x8, 8× speedup)
+    "std",             # Standard library support
+    "nightly",         # Nightly features
+] }
+
+# Parallel batch processing (rayon for T4 batch tier)
+rayon = "1.8"
+
+# Serialization (optional, for checkpoint export)
+serde = { version = "1.0", features = ["derive"], optional = true }
+bincode = { version = "1.3", optional = true }
+
+[dev-dependencies]
+# T28 Testing Framework
+proptest = "1.4"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+# B32 Benchmarking
+rand = "0.8"
+rand_chacha = "0.3"
+
+[features]
+default = ["weight-compression"]
+
+# Core features
+weight-compression = []           # Structured block sparsity + mixed-precision + dictionary
+model-quantization = []           # Layer-sensitive Q-format selection (Q4.4/Q6.6/Q8.8)
+
+# Nightly features (MANDATORY for target performance)
+portable_simd = []                # portable_simd (8× block unpacking speedup)
+nightly-simd = ["portable_simd"]  # Alias for portable_simd
+nightly-const-fp = []             # const_fn_floating_point (0ns centroid init)
+nightly-all = ["nightly-simd", "nightly-const-fp"]
+
+# Advanced features
+dictionary-compression = []       # K-means weight clustering (1.5× additional compression)
+adaptive-precision = []           # Auto-select Q-format based on layer sensitivity
+
+# Serialization support (optional)
+checkpoint-export = ["serde", "bincode"]
+
+# Binary distribution features (license key enforcement)
+licensed = []                     # Enable license key validation
+proprietary = ["licensed"]        # Mark as proprietary (prevents accidental open-source)
+
+[profile.dev]
+opt-level = 2                     # Enable SIMD optimizations in dev builds
+
+[profile.release]
+opt-level = 3                     # Maximum optimization
+lto = "fat"                       # Full LTO (link-time optimization)
+codegen-units = 1                 # Single codegen unit for maximum optimization
+panic = "abort"                   # No panic unwinding (smaller binary)
+strip = true                      # Strip symbols (prevent reverse engineering)
+
+[profile.bench]
+inherits = "release"
+debug = true                      # Keep debug info for profiling
+
+# Benchmarks will be added in Phase 2 (B32 validation)
+
+# Metadata
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+# DO NOT build docs (proprietary crate)
+
+[package.metadata.proprietary]
+license-key-required = true
+distribution = "binary-only"

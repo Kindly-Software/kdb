@@ -18,7 +18,7 @@
 //! # Framework Compliance
 //! - UCE34: Q1-Q34 (T0 auditable tier selection, builder patterns, Q34 audit trail)
 //! - ASSUM: 99.99% safe (no unsafe code)
-//! - COCA: 100% lockfree (atomic_capsule primitives only)
+//! - Chaos: 100% lockfree (atomic_capsule primitives only)
 //! - I20: 20/20 integration questions (protection + TUI composition)
 
 pub mod args_new;

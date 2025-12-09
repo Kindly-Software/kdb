@@ -1,0 +1,26 @@
+<uce34-audit project="Kindly_Rub" version="0.1" xmlns="urn:primitives:uce34">
+  <summary>Motion sequencer pipeline using computational capsules (Chaos compliant)</summary>
+  <tiers>
+    <tier id="T1">Atomic capsules for motion/presets/timeline/export/renderer coordination</tier>
+    <tier id="T2">Hermite/PCHIP sampler (vel/accel per sample)</tier>
+    <tier id="T5">Streaming HUD/audio generation with density limiting</tier>
+    <tier id="T6">App orchestration metacapsule (pipeline + preview + export)</tier>
+  </tiers>
+  <safety>
+    <coca>100% lockfree, 64B-aligned capsules, generation counters on all state</coca>
+    <density-limit funscript="200 actions/s default" audio="120 grains/s default"/>
+    <validation>Funscript monotone+clamp+density enforced before render; HUD/audio aligned to inflections</validation>
+  </safety>
+  <media-backend>
+    <mux>In-tree media mux registered via set_media_mux_handler (no external FFmpeg)</mux>
+    <export-profile>Simple vs Advanced (bitrate/fps/path) mapped to internal backend</export-profile>
+  </media-backend>
+  <testing>
+    <unit>Sampler stretch snapshot, inflection tuning, mux handler wiring</unit>
+    <property>Monotone/clamp/density across stretch factors; snap/magnet determinism for sampler</property>
+  </testing>
+  <audit>
+    <assum>#ASSUME internal JSON writer only; #ASSUME density caps prevent overload</assume>
+    <verify>#VERIFY funscript validation before mux; #VERIFY media backend is in-tree only</verify>
+  </audit>
+</uce34-audit>

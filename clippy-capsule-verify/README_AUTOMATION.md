@@ -71,7 +71,7 @@ cargo clippy 2>&1 | grep -E "capsule_|missing_capsule" | sort | uniq -c
 ## Framework Compliance
 
 - ✅ UCE34 Q30-Q34 (Validation + Auditability)
-- ✅ COCA (100% lockfree enforcement)
+- ✅ Chaos (100% lockfree enforcement)
 - ✅ B32 (Performance benchmarks)
 - ✅ ASSUM (Safety enforcement)
 - ✅ I20 (Integration validation)

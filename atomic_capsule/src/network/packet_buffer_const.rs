@@ -174,6 +174,7 @@ impl std::error::Error for PacketError {}
 /// }
 /// ```
 #[derive(ComputationalCapsule)]
+#[cfg_attr(feature = "derive", capsule(alignment = 64))]
 #[repr(C, align(64))]
 pub struct PacketBufferConst<const MTU: usize, const QUEUE_DEPTH: u32>
 where

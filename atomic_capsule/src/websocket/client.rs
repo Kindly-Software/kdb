@@ -1,6 +1,6 @@
 //! WebSocket Client Capsule (T8 Network + T1 Atomic)
 //!
-//! **Framework**: UCE34 (Q1-Q34), COCA, ASSUM, B32, T28, I20
+//! **Framework**: UCE34 (Q1-Q34), Chaos, ASSUM, B32, T28, I20
 //! **Tier**: T8 (Network) + T1 (Atomic Coordination)
 //! **Size**: 256 bytes (cache-aligned)
 //! **Performance**: <100μs send/recv
@@ -102,7 +102,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 T8 Network + T1 Atomic, Q33 compile-time verification
-//! - **COCA**: 100% lockfree atomics (no mutex/RwLock)
+//! - **Chaos**: 100% lockfree atomics (no mutex/RwLock)
 //! - **ASSUM**: 99.99% safe (8 documented assumptions)
 //! - **B32**: Fair baselines (tungstenite, websocket-lite), 1000+ iterations, 95% CI
 //! - **T28**: 16+ tests across all tiers

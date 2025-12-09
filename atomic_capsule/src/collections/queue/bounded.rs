@@ -1,4 +1,23 @@
 //! Bounded queue implementations (SPSC and MPMC)
+//!
+//! # MPMC Correctness (LMAX Disruptor Pattern)
+//!
+//! The MPMC implementation uses per-slot sequence numbers to prevent
+//! the classic write-before-read race condition:
+//!
+//! **Without sequences (BROKEN):**
+//! 1. Producer CAS tail 0→1 (claims slot 0)
+//! 2. Consumer sees tail=1, CAS head 0→1 (claims slot 0)
+//! 3. Consumer reads slot 0 → UNINITIALIZED! (producer hasn't written yet)
+//!
+//! **With sequences (CORRECT):**
+//! 1. Slot 0 starts with sequence=0
+//! 2. Producer CAS tail 0→1, writes value, sets slot.sequence=1 (Release)
+//! 3. Consumer CAS head 0→1, checks slot.sequence (Acquire)
+//! 4. If sequence < 1, spin (producer hasn't finished writing)
+//! 5. If sequence == 1, read value, set slot.sequence=capacity+1 (marks slot free for reuse)
+//!
+//! Reference: LMAX Disruptor, Dmitry Vyukov's MPMC bounded queue
 
 use super::QueueMode;
 use core::cell::UnsafeCell;
@@ -25,6 +44,20 @@ pub enum PushError<T> {
     Full(T),
 }
 
+/// Slot with sequence number for MPMC coordination
+///
+/// The sequence number indicates the slot state:
+/// - sequence == slot_index: Slot is empty and ready for producer at position slot_index
+/// - sequence == slot_index + 1: Slot contains valid data for consumer at position slot_index
+/// - sequence > slot_index + 1: Slot has been consumed, ready for reuse
+#[repr(C)]
+struct Slot<T> {
+    /// Per-slot sequence number for write-before-read synchronization
+    sequence: AtomicUsize,
+    /// The actual data storage
+    data: UnsafeCell<MaybeUninit<T>>,
+}
+
 /// Bounded queue capsule with configurable concurrency mode
 ///
 /// # Cache-Line Separation
@@ -38,7 +71,8 @@ pub enum PushError<T> {
 /// - 10-20ns latency (4× faster than Mutex)
 ///
 /// # MPMC Mode
-/// - Generation counters for ABA prevention
+/// - Per-slot sequence numbers (LMAX Disruptor pattern)
+/// - Prevents write-before-read race condition
 /// - Compare-and-swap for coordination
 /// - ~100ns latency (3-10× faster than crossbeam)
 ///
@@ -56,14 +90,19 @@ pub struct QueueCapsule<T, M: QueueMode> {
     tail: AtomicUsize,
     _pad1: [u8; 64 - core::mem::size_of::<AtomicUsize>()],
 
-    // Generation counters (MPMC only)
+    // Generation counters (for external ABA prevention)
     head_gen: AtomicU64,
     tail_gen: AtomicU64,
 
     // Buffer and metadata
     capacity: usize,
     mask: usize,
+
+    /// SPSC buffer (legacy, for SPSC mode only)
     buffer: Vec<UnsafeCell<MaybeUninit<T>>>,
+
+    /// MPMC buffer with per-slot sequences (used when M::MULTI_PRODUCER || M::MULTI_CONSUMER)
+    slots: Vec<Slot<T>>,
 
     _mode: PhantomData<M>,
 }
@@ -111,10 +150,21 @@ impl<T, M: QueueMode> QueueCapsule<T, M> {
             return Err(QueueError::CapacityTooLarge);
         }
 
-        // Allocate buffer
+        // Allocate SPSC buffer (for backward compatibility)
         let mut buffer = Vec::with_capacity(capacity);
         for _ in 0..capacity {
             buffer.push(UnsafeCell::new(MaybeUninit::uninit()));
+        }
+
+        // Allocate MPMC slots with per-slot sequence numbers
+        // Each slot's sequence is initialized to its index, meaning:
+        // - slot[i].sequence == i means slot is ready for producer at position i
+        let mut slots = Vec::with_capacity(capacity);
+        for i in 0..capacity {
+            slots.push(Slot {
+                sequence: AtomicUsize::new(i),
+                data: UnsafeCell::new(MaybeUninit::uninit()),
+            });
         }
 
         Ok(Self {
@@ -127,6 +177,7 @@ impl<T, M: QueueMode> QueueCapsule<T, M> {
             capacity,
             mask: capacity - 1,
             buffer,
+            slots,
             _mode: PhantomData,
         })
     }
@@ -220,76 +271,154 @@ impl<T, M: QueueMode> QueueCapsule<T, M> {
         Some(value)
     }
 
-    // MPMC implementation (AcqRel ordering, CAS with generation counters)
+    // MPMC implementation using per-slot sequence numbers (LMAX Disruptor pattern)
+    //
+    // This prevents the write-before-read race condition:
+    // 1. Producer claims slot via CAS on tail
+    // 2. Producer writes value to slot
+    // 3. Producer sets slot.sequence = tail + 1 (Release) - SIGNALS "data ready"
+    // 4. Consumer claims slot via CAS on head
+    // 5. Consumer waits until slot.sequence == head + 1 (Acquire) - WAITS for data
+    // 6. Consumer reads value
+    // 7. Consumer sets slot.sequence = head + capacity - MARKS "slot free for reuse"
     fn push_mpmc(&self, value: T) -> Result<(), PushError<T>> {
+        let backoff = Backoff::new();
+
         loop {
-            let tail = self.tail.load(Ordering::Acquire);
-            let head = self.head.load(Ordering::Acquire);
+            let tail = self.tail.load(Ordering::Relaxed);
+            let slot_idx = tail & self.mask;
+            let slot = &self.slots[slot_idx];
+            let seq = slot.sequence.load(Ordering::Acquire);
 
-            // Check if full
-            if tail.wrapping_sub(head) >= self.capacity {
-                return Err(PushError::Full(value));
-            }
+            // Check if this slot is ready for us to write
+            // slot.sequence == tail means slot is empty and ready for producer at position `tail`
+            let diff = seq as isize - tail as isize;
 
-            // Try to claim slot
-            match self.tail.compare_exchange_weak(
-                tail,
-                tail.wrapping_add(1),
-                Ordering::AcqRel,
-                Ordering::Acquire,
-            ) {
-                Ok(_) => {
-                    // Claimed slot, write value
-                    let slot = &self.buffer[tail & self.mask];
-                    unsafe {
-                        (*slot.get()).write(value);
+            if diff == 0 {
+                // Slot is ready for writing at this position
+                // Try to claim the slot by advancing tail
+                match self.tail.compare_exchange_weak(
+                    tail,
+                    tail.wrapping_add(1),
+                    Ordering::Relaxed,
+                    Ordering::Relaxed,
+                ) {
+                    Ok(_) => {
+                        // Successfully claimed slot, now write value
+                        unsafe {
+                            (*slot.data.get()).write(value);
+                        }
+
+                        // Signal that data is ready by setting sequence = tail + 1
+                        // This Release pairs with consumer's Acquire
+                        slot.sequence.store(tail.wrapping_add(1), Ordering::Release);
+
+                        // Update external generation counter for ABA prevention
+                        self.tail_gen.fetch_add(1, Ordering::Relaxed);
+
+                        return Ok(());
                     }
-
-                    // Increment generation
-                    self.tail_gen.fetch_add(1, Ordering::Release);
-
-                    return Ok(());
+                    Err(_) => {
+                        // CAS failed, another producer claimed this slot
+                        backoff.spin();
+                        continue;
+                    }
                 }
-                Err(_) => {
-                    // CAS failed, retry
-                    continue;
-                }
+            } else if diff < 0 {
+                // Queue is full: slot's sequence is behind tail, meaning
+                // consumers haven't freed this slot yet
+                return Err(PushError::Full(value));
+            } else {
+                // diff > 0: Another producer is writing to this slot, wait
+                backoff.spin();
             }
         }
     }
 
     fn pop_mpmc(&self) -> Option<T> {
+        let backoff = Backoff::new();
+
         loop {
-            let head = self.head.load(Ordering::Acquire);
-            let tail = self.tail.load(Ordering::Acquire);
+            let head = self.head.load(Ordering::Relaxed);
+            let slot_idx = head & self.mask;
+            let slot = &self.slots[slot_idx];
+            let seq = slot.sequence.load(Ordering::Acquire);
 
-            // Check if empty
-            if head == tail {
-                return None;
-            }
+            // Check if this slot has data ready for us to read
+            // slot.sequence == head + 1 means producer has written and signaled "data ready"
+            let diff = seq as isize - (head.wrapping_add(1)) as isize;
 
-            // Try to claim slot
-            match self.head.compare_exchange_weak(
-                head,
-                head.wrapping_add(1),
-                Ordering::AcqRel,
-                Ordering::Acquire,
-            ) {
-                Ok(_) => {
-                    // Claimed slot, read value
-                    let slot = &self.buffer[head & self.mask];
-                    let value = unsafe { (*slot.get()).assume_init_read() };
+            if diff == 0 {
+                // Data is ready, try to claim the slot by advancing head
+                match self.head.compare_exchange_weak(
+                    head,
+                    head.wrapping_add(1),
+                    Ordering::Relaxed,
+                    Ordering::Relaxed,
+                ) {
+                    Ok(_) => {
+                        // Successfully claimed slot, now read value
+                        // The Acquire on sequence.load above ensures we see the write
+                        let value = unsafe { (*slot.data.get()).assume_init_read() };
 
-                    // Increment generation
-                    self.head_gen.fetch_add(1, Ordering::Release);
+                        // Mark slot as free for reuse at position head + capacity
+                        // This allows producers to reuse this slot in the next cycle
+                        slot.sequence.store(head.wrapping_add(self.capacity), Ordering::Release);
 
-                    return Some(value);
+                        // Update external generation counter
+                        self.head_gen.fetch_add(1, Ordering::Relaxed);
+
+                        return Some(value);
+                    }
+                    Err(_) => {
+                        // CAS failed, another consumer claimed this slot
+                        backoff.spin();
+                        continue;
+                    }
                 }
-                Err(_) => {
-                    // CAS failed, retry
-                    continue;
+            } else if diff < 0 {
+                // Queue is empty or producer hasn't finished writing yet
+                // Check if truly empty by comparing head and tail
+                let tail = self.tail.load(Ordering::Relaxed);
+                if head == tail {
+                    return None; // Queue is empty
                 }
+                // Producer is still writing, spin wait
+                backoff.spin();
+            } else {
+                // diff > 0: Shouldn't happen in correct usage, but handle gracefully
+                backoff.spin();
             }
+        }
+    }
+}
+
+/// Exponential backoff for spin-waiting
+///
+/// Reduces contention by progressively backing off instead of tight spinning.
+struct Backoff {
+    step: core::cell::Cell<u32>,
+}
+
+impl Backoff {
+    const SPIN_LIMIT: u32 = 6;
+
+    fn new() -> Self {
+        Self {
+            step: core::cell::Cell::new(0),
+        }
+    }
+
+    fn spin(&self) {
+        let step = self.step.get();
+        let spins = 1u32 << step.min(Self::SPIN_LIMIT);
+
+        for _ in 0..spins {
+            core::hint::spin_loop();
+        }
+
+        if step < Self::SPIN_LIMIT {
+            self.step.set(step + 1);
         }
     }
 }

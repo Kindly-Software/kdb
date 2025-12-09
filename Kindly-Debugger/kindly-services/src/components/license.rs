@@ -41,7 +41,7 @@ const LICENSE_TIERS: &[LicenseTier] = &[
             "Console interface (CLI)",
             "Community documentation",
         ],
-        support: "GitHub Issues",
+        support: "Community",
         is_featured: false,
         badge: None,
     },
@@ -701,7 +701,7 @@ fn LicenseTierCard(tier: &'static LicenseTier) -> impl IntoView {
             {if tier.name == "Hobby" {
                 view! {
                     <a
-                        href="https://github.com/kindly-software/kdb/releases"
+                        href="#signup"
                         style="display: block; \
                                width: 100%; \
                                padding: 0.875rem; \
@@ -715,7 +715,7 @@ fn LicenseTierCard(tier: &'static LicenseTier) -> impl IntoView {
                                text-decoration: none; \
                                transition: all 0.3s ease;"
                     >
-                        "Download Free"
+                        "Start Free"
                     </a>
                 }.into_any()
             } else if tier.name == "Enterprise" {

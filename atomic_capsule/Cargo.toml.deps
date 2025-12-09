@@ -1,0 +1,7 @@
+
+# T8 Network Security - TLS dependencies
+rustls = { version = "0.21", optional = true, features = ["dangerous_configuration"] }  # TLS 1.3 (network-tls feature)
+tokio-rustls = { version = "0.24", optional = true }  # Tokio integration for rustls (network-tls feature)
+rustls-pemfile = { version = "1.0", optional = true }  # PEM file parsing (network-tls feature)
+thiserror = { version = "1.0" }  # Error handling for security modules
+

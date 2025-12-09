@@ -1,0 +1,41 @@
+╔═══════════════════════════════════════════════════════════════╗
+║           KDB MCP SERVER - QUICK FIX REFERENCE                ║
+╚═══════════════════════════════════════════════════════════════╝
+
+ROOT CAUSE
+──────────────────────────────────────────────────────────────────
+  Conflicting file isolated kdb from other MCP servers:
+  ~/.config/claude-code/mcp_servers.json (ONLY kdb)
+
+FIX APPLIED
+──────────────────────────────────────────────────────────────────
+  ✅ Removed mcp_servers.json (backed up)
+  ✅ Enhanced mcp.json kdb entry with metadata
+  ✅ Verified server works (9 tools exposed)
+
+NEXT STEP
+──────────────────────────────────────────────────────────────────
+  ⚡ RESTART CLAUDE CODE (required for config reload)
+
+VERIFICATION
+──────────────────────────────────────────────────────────────────
+  # All 3 servers present?
+  cat ~/.config/claude-code/mcp.json | jq '.mcpServers | keys'
+
+  # Server responds?
+  echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{"tools":{}},"clientInfo":{"name":"test","version":"1.0"}}}' | /home/samuel/Primitives/target/release/mcp_debug_server 2>&1 | jq '.result.serverInfo.name'
+
+IF STILL FAILS
+──────────────────────────────────────────────────────────────────
+  1. Check if mcp_servers.json was recreated:
+     ls ~/.config/claude-code/mcp_servers.json
+
+  2. Delete it again:
+     rm ~/.config/claude-code/mcp_servers.json
+
+  3. Check full diagnostic report:
+     cat /home/samuel/Primitives/KDB_MCP_DIAGNOSTIC_REPORT.md
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Expected Result: 9 kdb tools appear in Claude Code UI       ║
+╚═══════════════════════════════════════════════════════════════╝

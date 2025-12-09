@@ -1,7 +1,7 @@
 //! MemoryBandwidthCapsule (T3 Fixed-Point, 128B)
 //!
 //! Lockfree memory bandwidth tracking with Q16.16 fixed-point accounting and rolling window statistics.
-//! RFC: Intel GPU COCA Driver Architecture (Section: Power Management Capsules, Capsule ID 29)
+//! RFC: Intel GPU Chaos Driver Architecture (Section: Power Management Capsules, Capsule ID 29)
 //!
 //! Purpose: Track GPU memory bandwidth utilization with deterministic Q16.16 fixed-point metrics,
 //! enabling fast SLPC (Stochastic Learning for Power Control) PID input calculations.
@@ -21,7 +21,7 @@
 //!
 //! Framework Compliance:
 //! - UCE34: Q10 tier selection (T3 Fixed-Point), Q33 automatic verification
-//! - COCA: 100% lockfree (zero mutex/RwLock, all coordination via atomics)
+//! - Chaos: 100% lockfree (zero mutex/RwLock, all coordination via atomics)
 //! - ASSUM: 99.99% safe (memory ordering Acquire/Release, generation counters)
 //! - B32: Fair baselines vs floating-point naive implementation
 //! - T28: 50+ tests across 4 tiers (unit/property/integration/production)
@@ -80,10 +80,8 @@ impl Q16_16 {
         if divisor == 0 {
             return Q16_16(0);
         }
-        let result = (self.0 as u64)
-            .saturating_mul(0x10000)
-            .saturating_div(divisor as u64);
-        Q16_16((result as u32).min(0xFFFF_FFFF))
+        // Q16.16 is already scaled by 2^16, so just divide directly
+        Q16_16(self.0 / divisor)
     }
 }
 
@@ -170,13 +168,15 @@ impl BandwidthSample {
 /// Secondary layout (DualAtomicU64):
 /// - Bits 0-31: Peak bandwidth (Q16.16 GB/s)
 /// - Bits 32-63: Reserved
-#[derive(Debug)]
 pub struct MemoryBandwidthCapsule {
-    /// Primary atomic: transfers_recorded(8) | window_idx(8) | sample_count(16) | generation(32)
-    primary: DualAtomicU64,
+    /// Primary atomic: transfers_recorded(8) | window_idx(8) | sample_count(16) | reserved(32)
+    /// Uses DualAtomicU64:
+    ///   - primary channel: state bits
+    ///   - secondary channel: generation counter
+    state: DualAtomicU64,
 
-    /// Secondary atomic: peak_bandwidth_q16_16(32) | reserved(32)
-    secondary: AtomicU64,
+    /// Peak bandwidth atomic: peak_bandwidth_q16_16(32) | reserved(32)
+    peak_bandwidth: AtomicU64,
 
     /// Rolling window: 32 samples × 4 bytes (u64 pairs)
     /// Each sample: bytes_transferred(u64) | duration_ns(u64)
@@ -184,6 +184,16 @@ pub struct MemoryBandwidthCapsule {
 
     /// Cache padding
     _padding: [u8; 24],
+}
+
+impl core::fmt::Debug for MemoryBandwidthCapsule {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("MemoryBandwidthCapsule")
+            .field("state_primary", &self.state.load_primary(Ordering::Relaxed))
+            .field("state_secondary", &self.state.load_secondary(Ordering::Relaxed))
+            .field("peak_bandwidth", &self.peak_bandwidth.load(Ordering::Relaxed))
+            .finish()
+    }
 }
 
 // Force 128B cache alignment
@@ -194,8 +204,8 @@ impl MemoryBandwidthCapsuleAligned {
     /// Create new bandwidth tracker
     pub fn new() -> Self {
         MemoryBandwidthCapsuleAligned(MemoryBandwidthCapsule {
-            primary: DualAtomicU64::new(0, 0),
-            secondary: AtomicU64::new(0),
+            state: DualAtomicU64::new(0, 0),
+            peak_bandwidth: AtomicU64::new(0),
             samples: [BandwidthSample {
                 bytes_transferred: 0,
                 duration_ns: 0,
@@ -220,26 +230,29 @@ impl MemoryBandwidthCapsuleAligned {
         let bandwidth = sample.calculate_bandwidth_q16_16();
 
         // Load current state (Acquire ordering for visibility)
-        let (primary_val, gen) = self.0.primary.load_acquire();
+        // primary channel: state bits (window_idx, sample_count)
+        // secondary channel: generation counter
+        let primary_val = self.0.state.load_primary(Ordering::Acquire);
+        let gen = self.0.state.load_secondary(Ordering::Acquire);
         let window_idx = ((primary_val >> 8) & 0xFF) as usize;
-        let sample_count = (primary_val >> 16) as u16;
+        let sample_count = ((primary_val >> 16) & 0xFFFF) as u16;
 
         // Update rolling window
         let new_idx = (window_idx + 1) % 32;
         unsafe {
             // SAFETY: Index is always in range [0, 31] due to modulo operation
             // ASSUME: No concurrent raw pointer access to samples array
-            ((&self.0.samples as *const _ as *mut [BandwidthSample; 32])[new_idx] = sample);
+            let samples_ptr = &self.0.samples as *const _ as *mut [BandwidthSample; 32];
+            (*samples_ptr)[new_idx] = sample;
         }
 
         // Update statistics
         let new_sample_count = (sample_count as u32 + 1).min(32) as u16;
 
         // Update peak bandwidth if this transfer exceeded previous peak
-        let mut peak_bw = (self.0.secondary.load(Ordering::Acquire) as u32);
+        let peak_bw = self.0.peak_bandwidth.load(Ordering::Acquire) as u32;
         if bandwidth.0 > peak_bw {
-            peak_bw = bandwidth.0;
-            let _ = self.0.secondary.compare_exchange(
+            let _ = self.0.peak_bandwidth.compare_exchange(
                 peak_bw as u64,
                 bandwidth.0 as u64,
                 Ordering::Release,
@@ -247,20 +260,26 @@ impl MemoryBandwidthCapsuleAligned {
             );
         }
 
-        // Update primary with new window index, sample count, and generation
+        // Update primary with new window index and sample count
         let new_primary = ((new_idx as u64) << 8)
-            | ((new_sample_count as u64) << 16)
-            | ((gen.wrapping_add(1)) as u64);
+            | ((new_sample_count as u64) << 16);
 
         // CAS loop for primary update (Acquire/Release for happens-before)
         loop {
-            match self.0.primary.compare_exchange_release(
-                (primary_val, gen),
-                (new_primary, gen.wrapping_add(1)),
+            let current_primary = self.0.state.load_primary(Ordering::Acquire);
+            match self.0.state.compare_exchange_primary(
+                current_primary,
+                new_primary,
+                Ordering::Release,
+                Ordering::Acquire,
             ) {
-                Ok(_) => break,
-                Err((reloaded_primary, reloaded_gen)) => {
-                    // Retry with new generation
+                Ok(_) => {
+                    // Increment generation counter on success
+                    self.0.state.fetch_add_secondary(1, Ordering::Release);
+                    break;
+                }
+                Err(_) => {
+                    // Retry with new value
                     continue;
                 }
             }
@@ -274,7 +293,7 @@ impl MemoryBandwidthCapsuleAligned {
     ///
     /// # Performance: <50ns
     pub fn get_utilization(&self) -> Q24_8 {
-        let peak_bw = self.0.secondary.load(Ordering::Acquire) as u32;
+        let peak_bw = self.0.peak_bandwidth.load(Ordering::Acquire) as u32;
         let peak_gbps = Q16_16(peak_bw);
 
         // Assume max bandwidth = 256 GB/s for Xe-LP (Iris Xe integrated GPU)
@@ -294,7 +313,7 @@ impl MemoryBandwidthCapsuleAligned {
     ///
     /// # Performance: <50ns
     pub fn get_bandwidth_gbps(&self) -> Q16_16 {
-        let peak_bw = self.0.secondary.load(Ordering::Acquire) as u32;
+        let peak_bw = self.0.peak_bandwidth.load(Ordering::Acquire) as u32;
         Q16_16(peak_bw)
     }
 
@@ -302,7 +321,7 @@ impl MemoryBandwidthCapsuleAligned {
     ///
     /// # Performance: <200ns
     pub fn get_average_bandwidth(&self) -> Q16_16 {
-        let (primary_val, _gen) = self.0.primary.load_acquire();
+        let primary_val = self.0.state.load_primary(Ordering::Acquire);
         let sample_count = ((primary_val >> 16) & 0xFFFF) as u32;
 
         if sample_count == 0 {
@@ -312,12 +331,18 @@ impl MemoryBandwidthCapsuleAligned {
         let mut total_bw = Q16_16(0);
         let window_idx = ((primary_val >> 8) & 0xFF) as usize;
 
+        // window_idx points to the NEXT write position, so iterate backwards
+        // from the most recent sample (window_idx - 1, or wrap to 31 if idx=0)
         for i in 0..sample_count as usize {
-            let idx = (window_idx + i) % 32;
+            let idx = if window_idx >= i {
+                window_idx - i
+            } else {
+                32 + window_idx - i
+            };
             let sample = unsafe {
-                // SAFETY: Index guaranteed in range [0, 31]
-                *(&self.0.samples as *const _ as *const [BandwidthSample; 32])
-                    .get_unchecked(idx)
+                // SAFETY: Index guaranteed in range [0, 31] due to modulo calculation
+                let samples_ptr = self.0.samples.as_ptr();
+                *samples_ptr.add(idx)
             };
             total_bw = total_bw.saturating_add(sample.calculate_bandwidth_q16_16());
         }
@@ -331,7 +356,7 @@ impl MemoryBandwidthCapsuleAligned {
     ///
     /// # Performance: <100ns (3 atomic loads + arithmetic)
     pub fn snapshot(&self) -> (Q16_16, Q24_8, u32) {
-        let (primary_val, _gen) = self.0.primary.load_acquire();
+        let primary_val = self.0.state.load_primary(Ordering::Acquire);
         let sample_count = ((primary_val >> 16) & 0xFFFF) as u32;
 
         let bandwidth = self.get_bandwidth_gbps();
@@ -457,9 +482,10 @@ mod tests {
         let capsule = MemoryBandwidthCapsuleAligned::new();
 
         // Record 3 transfers of 1GB/s each
-        capsule.record_transfer(1_000_000_000, 1_000_000);
-        capsule.record_transfer(1_000_000_000, 1_000_000);
-        capsule.record_transfer(1_000_000_000, 1_000_000);
+        // 1 GB/s = 1,000,000,000 bytes per second = 1 billion nanoseconds per GB
+        capsule.record_transfer(1_000_000_000, 1_000_000_000);
+        capsule.record_transfer(1_000_000_000, 1_000_000_000);
+        capsule.record_transfer(1_000_000_000, 1_000_000_000);
 
         let avg = capsule.get_average_bandwidth();
         assert!(avg.integer_part() >= 1 && avg.integer_part() <= 2);

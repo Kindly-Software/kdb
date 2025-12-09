@@ -1,0 +1,84 @@
+[Unit]
+Description=Atomic Capsule HTTP Server (Production SaaS - MCP)
+Documentation=https://github.com/kindly-ai/atomic_capsule
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=samuel
+Group=samuel
+WorkingDirectory=/home/samuel/Primitives
+
+# Binary with configuration
+ExecStart=/home/samuel/Primitives/target/release/mcp_http_server
+
+# Restart policy (standard production settings)
+Restart=always
+RestartSec=5s
+StartLimitInterval=60s
+StartLimitBurst=3
+
+# Process management
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30s
+
+# Security hardening (systemd sandboxing)
+# Prevent privilege escalation
+NoNewPrivileges=true
+
+# Filesystem isolation
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/samuel/Primitives/data /home/samuel/Primitives/logs /home/samuel/Primitives
+
+# Kernel isolation
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# Network isolation (allow only IPv4/IPv6 and Unix sockets)
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+# Namespace isolation
+RestrictNamespaces=true
+
+# CPU scheduling isolation
+RestrictRealtime=true
+
+# UID/GID isolation
+RestrictSUIDSGID=true
+
+# Memory/message queue isolation
+RemoveIPC=true
+
+# Mount namespace isolation
+PrivateMounts=true
+
+# Device access restriction
+PrivateDevices=true
+
+# Resource limits (critical for production stability)
+LimitNOFILE=1048576
+LimitNPROC=32768
+TasksMax=32768
+
+# CPU and memory caps
+MemoryMax=2G
+MemoryHigh=1536M
+CPUQuota=80%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=atomic-http-server
+SyslogFacility=local7
+
+# Environment variables (optional, customize as needed)
+Environment="RUST_LOG=info"
+Environment="RUST_BACKTRACE=1"
+
+[Install]
+WantedBy=multi-user.target

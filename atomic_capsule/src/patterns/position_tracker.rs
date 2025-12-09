@@ -51,7 +51,7 @@ use crate::patterns::DualAtomicU64;
 /// Padding: 56 bytes to complete second cache line
 /// ```
 ///
-/// # COCA Requirements
+/// # Chaos Requirements
 /// - **100% lockfree**: No mutex/RwLock, only atomic operations
 /// - **Cache-aligned**: 128-byte alignment prevents false sharing
 /// - **Generation counters**: DualAtomicU64 provides TOCTOU prevention via compare_exchange_with_generation

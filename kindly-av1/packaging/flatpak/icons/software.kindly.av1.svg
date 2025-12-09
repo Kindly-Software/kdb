@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Placeholder SVG icon for kindly-av1 -->
+<!-- TODO: Replace with professional icon design -->
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- Byzantine Royal Purple gradient background -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6B46C1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4C1D95;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6B46C1;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect x="16" y="16" width="224" height="224" rx="40" fill="url(#bg)"/>
+
+  <!-- AV1 symbol (stylized) -->
+  <g transform="translate(128,128)">
+    <!-- Letter A -->
+    <path d="M -60,-40 L -40,40 L -25,40 L -5,-40 Z M -50,0 L -35,0 L -42.5,-25 Z"
+          fill="#FFFFFF" stroke="none"/>
+
+    <!-- Letter V -->
+    <path d="M 5,-40 L 25,40 L 40,40 L 60,-40 L 45,-40 L 32.5,20 L 20,-40 Z"
+          fill="url(#accent)" stroke="none"/>
+
+    <!-- Number 1 -->
+    <ellipse cx="0" cy="60" rx="8" ry="8" fill="#FFFFFF"/>
+
+    <!-- GPU indicator (lightning bolt) -->
+    <path d="M -70,-60 L -75,-45 L -65,-45 L -68,-30 L -58,-50 L -68,-50 Z"
+          fill="#FCD34D" stroke="none" opacity="0.8"/>
+  </g>
+
+  <!-- Capsule architecture indicator (hexagon pattern) -->
+  <g opacity="0.15">
+    <polygon points="200,40 220,50 220,70 200,80 180,70 180,50" fill="#FFFFFF"/>
+    <polygon points="200,90 220,100 220,120 200,130 180,120 180,100" fill="#FFFFFF"/>
+    <polygon points="50,190 70,200 70,220 50,230 30,220 30,200" fill="#FFFFFF"/>
+  </g>
+</svg>

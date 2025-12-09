@@ -115,7 +115,7 @@ pub fn Footer() -> impl IntoView {
                         </a>
                         <p style=tagline_style>
                             "The first audit-compliant time-travel debugger. "
-                            "Built for speed and reliability."
+                            "Platform-agnostic via MCP."
                         </p>
                     </div>
 
@@ -130,10 +130,10 @@ pub fn Footer() -> impl IntoView {
                                 <a href="/#pricing" style=link_style>"Pricing"</a>
                             </li>
                             <li style=link_item_style>
-                                <a href="https://github.com/kindly-software/kdb#readme" style=link_style target="_blank">"Documentation"</a>
+                                <a href="#docs" style=link_style>"Documentation"</a>
                             </li>
                             <li style=link_item_style>
-                                <a href="https://github.com/kindly-software/kdb/releases" style=link_style target="_blank">"Changelog"</a>
+                                <a href="#signup" style=link_style>"Get Started"</a>
                             </li>
                         </ul>
                     </div>
@@ -143,7 +143,7 @@ pub fn Footer() -> impl IntoView {
                         <h4 style=column_title_style>"Resources"</h4>
                         <ul style=link_list_style>
                             <li style=link_item_style>
-                                <a href="https://github.com/kindly-software/kdb" style=link_style target="_blank">"GitHub"</a>
+                                <a href="https://api.kindly.software" style=link_style target="_blank">"API"</a>
                             </li>
                             <li style=link_item_style>
                                 <a href="mailto:support@kindly.software" style=link_style>"Support"</a>
@@ -173,8 +173,8 @@ pub fn Footer() -> impl IntoView {
                         "© 2025 Kindly Software Inc. All rights reserved."
                     </p>
                     <div style=social_style>
-                        <a href="https://github.com/kindly-software/kdb" style=social_link_style target="_blank" title="GitHub" aria-label="GitHub">
-                            "📦"
+                        <a href="mailto:support@kindly.software" style=social_link_style title="Contact" aria-label="Contact">
+                            "✉️"
                         </a>
                     </div>
                 </div>

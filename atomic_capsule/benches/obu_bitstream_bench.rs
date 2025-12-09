@@ -17,11 +17,11 @@
 //! # Framework Compliance
 //! - B32: Fair baseline (rav1e API, not strawman), 95% CI, 1000+ iterations
 //! - UCE34: Q10 T5 Streaming tier performance validation
-//! - COCA: 100% lockfree coordination overhead measurement
+//! - Chaos: 100% lockfree coordination overhead measurement
 //! - ASSUM: 99.99% safe (no unsafe code in benchmarks)
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
-use atomic_capsule::encoder::{ObuBitstreamWriterCapsule, ObuType, FrameType};
+use atomic_capsule::encoder::{FrameType, ObuBitstreamWriterCapsule, ObuType};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 
 // ============================================================================
 // GROUP 1: OBU Header Generation (Core Latency)
@@ -45,30 +45,22 @@ fn bench_obu_header_generation(c: &mut Criterion) {
 
     // Sequence header (most common during initialization)
     group.bench_function("sequence_header", |b| {
-        b.iter(|| {
-            black_box(writer.write_obu_header(ObuType::SequenceHeader, true))
-        });
+        b.iter(|| black_box(writer.write_obu_header(ObuType::SequenceHeader, true)));
     });
 
     // Frame header (most common during encoding)
     group.bench_function("frame_header", |b| {
-        b.iter(|| {
-            black_box(writer.write_obu_header(ObuType::FrameHeader, true))
-        });
+        b.iter(|| black_box(writer.write_obu_header(ObuType::FrameHeader, true)));
     });
 
     // Tile group (frequent per frame, 4-16 tiles typical)
     group.bench_function("tile_group", |b| {
-        b.iter(|| {
-            black_box(writer.write_obu_header(ObuType::TileGroup, true))
-        });
+        b.iter(|| black_box(writer.write_obu_header(ObuType::TileGroup, true)));
     });
 
     // Frame OBU (less common, used for complete frame encoding)
     group.bench_function("frame_obu", |b| {
-        b.iter(|| {
-            black_box(writer.write_obu_header(ObuType::Frame, true))
-        });
+        b.iter(|| black_box(writer.write_obu_header(ObuType::Frame, true)));
     });
 
     group.finish();
@@ -95,35 +87,25 @@ fn bench_leb128_encoding(c: &mut Criterion) {
 
     // Small values (1 byte): 0-127
     group.bench_function("small_value_127", |b| {
-        b.iter(|| {
-            black_box(writer.encode_leb128(127))
-        });
+        b.iter(|| black_box(writer.encode_leb128(127)));
     });
 
     // Medium values (2 bytes): 128-16383
     group.bench_function("medium_value_1024", |b| {
-        b.iter(|| {
-            black_box(writer.encode_leb128(1024))
-        });
+        b.iter(|| black_box(writer.encode_leb128(1024)));
     });
 
     group.bench_function("medium_value_16384", |b| {
-        b.iter(|| {
-            black_box(writer.encode_leb128(16384))
-        });
+        b.iter(|| black_box(writer.encode_leb128(16384)));
     });
 
     // Large values (3+ bytes): 16384+
     group.bench_function("large_value_1MB", |b| {
-        b.iter(|| {
-            black_box(writer.encode_leb128(1024 * 1024))
-        });
+        b.iter(|| black_box(writer.encode_leb128(1024 * 1024)));
     });
 
     group.bench_function("large_value_1GB", |b| {
-        b.iter(|| {
-            black_box(writer.encode_leb128(1024 * 1024 * 1024))
-        });
+        b.iter(|| black_box(writer.encode_leb128(1024 * 1024 * 1024)));
     });
 
     group.finish();
@@ -152,36 +134,28 @@ fn bench_checksum_update(c: &mut Criterion) {
     // Small data (8 bytes, typical OBU header size)
     group.throughput(Throughput::Bytes(8));
     group.bench_function("8_bytes", |b| {
-        b.iter(|| {
-            writer.update_checksum(black_box(b"12345678"))
-        });
+        b.iter(|| writer.update_checksum(black_box(b"12345678")));
     });
 
     // Medium data (64 bytes, typical sequence header size)
     group.throughput(Throughput::Bytes(64));
     group.bench_function("64_bytes", |b| {
         let data = vec![0xABu8; 64];
-        b.iter(|| {
-            writer.update_checksum(black_box(&data))
-        });
+        b.iter(|| writer.update_checksum(black_box(&data)));
     });
 
     // Large data (1KB, typical tile group size)
     group.throughput(Throughput::Bytes(1024));
     group.bench_function("1KB", |b| {
         let data = vec![0xCDu8; 1024];
-        b.iter(|| {
-            writer.update_checksum(black_box(&data))
-        });
+        b.iter(|| writer.update_checksum(black_box(&data)));
     });
 
     // Very large data (64KB, large tile group)
     group.throughput(Throughput::Bytes(65536));
     group.bench_function("64KB", |b| {
         let data = vec![0xEFu8; 65536];
-        b.iter(|| {
-            writer.update_checksum(black_box(&data))
-        });
+        b.iter(|| writer.update_checksum(black_box(&data)));
     });
 
     group.finish();
@@ -210,56 +184,42 @@ fn bench_complete_obu_generation(c: &mut Criterion) {
 
     // Sequence header (8-byte payload, written once per video)
     group.bench_function("sequence_header", |b| {
-        b.iter(|| {
-            black_box(writer.write_sequence_header(0, 5))
-        });
+        b.iter(|| black_box(writer.write_sequence_header(0, 5)));
     });
 
     // Frame header (5-byte payload, written per frame)
     group.bench_function("frame_header_key", |b| {
-        b.iter(|| {
-            black_box(writer.write_frame_header(FrameType::KeyFrame, 1920, 1080))
-        });
+        b.iter(|| black_box(writer.write_frame_header(FrameType::KeyFrame, 1920, 1080)));
     });
 
     group.bench_function("frame_header_inter", |b| {
-        b.iter(|| {
-            black_box(writer.write_frame_header(FrameType::InterFrame, 1920, 1080))
-        });
+        b.iter(|| black_box(writer.write_frame_header(FrameType::InterFrame, 1920, 1080)));
     });
 
     // Tile group (various sizes, 4-16 tiles per frame)
     group.throughput(Throughput::Bytes(1024));
     group.bench_function("tile_group_1KB", |b| {
         let tile_data = vec![0u8; 1024];
-        b.iter(|| {
-            black_box(writer.write_tile_group(black_box(&tile_data), 0))
-        });
+        b.iter(|| black_box(writer.write_tile_group(black_box(&tile_data), 0)));
     });
 
     group.throughput(Throughput::Bytes(4096));
     group.bench_function("tile_group_4KB", |b| {
         let tile_data = vec![0u8; 4096];
-        b.iter(|| {
-            black_box(writer.write_tile_group(black_box(&tile_data), 0))
-        });
+        b.iter(|| black_box(writer.write_tile_group(black_box(&tile_data), 0)));
     });
 
     group.throughput(Throughput::Bytes(65536));
     group.bench_function("tile_group_64KB", |b| {
         let tile_data = vec![0u8; 65536];
-        b.iter(|| {
-            black_box(writer.write_tile_group(black_box(&tile_data), 0))
-        });
+        b.iter(|| black_box(writer.write_tile_group(black_box(&tile_data), 0)));
     });
 
     // Frame OBU (complete frame, includes header + all tiles)
     group.throughput(Throughput::Bytes(65536));
     group.bench_function("frame_obu_64KB", |b| {
         let frame_data = vec![0u8; 65536];
-        b.iter(|| {
-            black_box(writer.write_frame_obu(black_box(&frame_data)))
-        });
+        b.iter(|| black_box(writer.write_frame_obu(black_box(&frame_data))));
     });
 
     group.finish();
@@ -286,16 +246,12 @@ fn bench_atomic_coordination_overhead(c: &mut Criterion) {
 
     // OBU counter read (Relaxed ordering)
     group.bench_function("obu_count_read", |b| {
-        b.iter(|| {
-            black_box(writer.obu_count())
-        });
+        b.iter(|| black_box(writer.obu_count()));
     });
 
     // Checksum read (Acquire ordering for Q34 audit)
     group.bench_function("checksum_read", |b| {
-        b.iter(|| {
-            black_box(writer.checksum())
-        });
+        b.iter(|| black_box(writer.checksum()));
     });
 
     // Simulated OBU write coordination (counter + checksum update)
@@ -420,9 +376,7 @@ fn bench_comparison_vs_baseline(c: &mut Criterion) {
 
     // Our implementation (lockfree capsule)
     group.bench_function("capsule_sequence_header", |b| {
-        b.iter(|| {
-            black_box(writer.write_sequence_header(0, 5))
-        });
+        b.iter(|| black_box(writer.write_sequence_header(0, 5)));
     });
 
     // Simulated rav1e baseline (heap allocation + mutex overhead)

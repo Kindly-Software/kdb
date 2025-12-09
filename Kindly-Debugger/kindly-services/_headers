@@ -17,7 +17,7 @@
   # 3. Added static.cloudflareinsights.com to script-src (Cloudflare Analytics)
   # 4. Added cloudflareinsights.com to connect-src (Cloudflare RUM/Analytics)
   # 5. Added blob: to img-src (for WebGL canvas screenshots if needed)
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-aC0aNIajr1NSQTNSKuki7XukQPInVDhccncWtxeYS+I=' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://api.kindly.services https://cloudflareinsights.com; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-aC0aNIajr1NSQTNSKuki7XukQPInVDhccncWtxeYS+I=' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://api.kindly.software https://cloudflareinsights.com; img-src 'self' data: blob:; font-src 'self' https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
 
 # Cache static assets with content hashes
 /*.js

@@ -3,7 +3,7 @@
 
 **Date**: 2025-11-14
 **Status**: Architecture Planning
-**Framework**: UCE34 Q1-Q34, COCA 100% Lockfree
+**Framework**: UCE34 Q1-Q34, Chaos 100% Lockfree
 **Target**: Replace simulated debugging with real ptrace syscalls
 
 ---

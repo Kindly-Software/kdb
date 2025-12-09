@@ -10,7 +10,7 @@
 
 [package]
 name = "kindly_dedup"
-version = "2.4.0"  # Phase GPU: wgpu T7 Heterogeneous Acceleration (2-14× target)
+version = "3.1.0"  # Commercial Licensing + Protection Integration + GPU Cleanup
 edition = "2021"
 rust-version = "1.76.0"
 authors = ["Samuel <samuel@kindly.software>"]
@@ -19,7 +19,7 @@ license = "Proprietary"
 publish = false  # TRADE SECRET - DO NOT PUBLISH
 
 [dependencies]
-atomic_capsule = { path = "../atomic_capsule", version = "0.8.0", features = [
+atomic_capsule = { path = "../atomic_capsule", version = "0.9.0", features = [
     "std",
     "native",
     "derive",
@@ -44,9 +44,10 @@ atomic_capsule = { path = "../atomic_capsule", version = "0.8.0", features = [
     "universal-hash",      # T1 Atomic: UniversalHashCapsule with xxHash3 (2× load factor improvement for Hopscotch)
     "ring-trace",          # T5 Streaming ring buffer for per-thread signature collection (Phase 2 parallel)
     "batch-streaming",     # T6 Mixed (T4+T5): Batch accumulation + streaming ring buffer (2-40× speedup, loading optimization)
-    "bulk-collector"       # T4 Batch + T1 Atomic lockfree bulk collection (15-20× vs Mutex, Phase 2.4.1)
+    "bulk-collector",      # T4 Batch + T1 Atomic lockfree bulk collection (15-20× vs Mutex, Phase 2.4.1)
+    "logging"              # T0 Auditable + T1 Atomic + T5 Streaming: EnvLoggerCapsule, <50ns per log
 ] }
-atomic_capsule_derive = { path = "../atomic_capsule_derive" }
+atomic_capsule_derive = { path = "../atomic_capsule_derive", version = "0.9.0" }
 # P0 Protection Capsules (Phase P0 Integration)
 # NOTE (2025-11-10): Cannot remove ed25519-dalek, rsa - transitive deps not directly importable
 ed25519-dalek = { version = "2.1", optional = true }
@@ -60,7 +61,7 @@ rayon = "1.8"
 # parking_lot = "0.12"  # TEMPORARY: Phase 1 cache (to be replaced with ConcurrentMapCapsule in Phase 2)
 # REMOVED: num_cpus = "1.16"  # Replaced with std::thread::available_parallelism()
 # REMOVED (2025-11-08): sysinfo = "0.30" → std::thread::available_parallelism() + /proc/meminfo (Linux)
-# REMOVED (2025-11-21): rayon v1.10 → atomic_capsule::parallel::ParallelBatchProcessor (COCA compliant, 100% lockfree)
+# REMOVED (2025-11-21): rayon v1.10 → atomic_capsule::parallel::ParallelBatchProcessor (Chaos compliant, 100% lockfree)
 reqwest = { version = "0.12", features = ["stream", "gzip"], optional = true }
 # Tokio removed - using std::thread + lockfree queue (SyncFlushTask)
 serde = { version = "1.0", features = ["derive"], optional = true }
@@ -74,7 +75,7 @@ bytes = { version = "1.0", optional = true }
 flate2 = { version = "1.0", optional = true }
 
 # Format Architecture Dependencies (Week 1: Core + JSONL/JSON/CSV)
-# T5 Streaming + T2 SIMD format readers for COCA compliance
+# T5 Streaming + T2 SIMD format readers for Chaos compliance
 simd-json = { version = "0.13", optional = true }  # T2 SIMD: 2.31× JSON speedup
 csv = { version = "1.3", optional = true }  # T5 Streaming CSV reader
 
@@ -126,6 +127,9 @@ libc = "0.2"
 # Hex encoding/decoding (for audit trail hex serialization)
 hex = "0.4"
 
+# XXH3-128 hashing for exact duplicate detection (Phase 3.2 Two-Pass Dedup)
+xxhash-rust = { version = "0.8", features = ["xxh64", "xxh3"] }
+
 # Memory-mapped file support (Phase 1 File I/O for UniversalDedupPipeline)
 memmap2 = "0.9"
 
@@ -144,13 +148,24 @@ directories = { version = "5.0", optional = true }
 # REMOVED (2025-11-17): eframe → Keeping only iced GUI
 # Reduces transitive dependencies by 70-80 crates
 
-# GUI Stack (iced - v0.10.0, Mac-level UX)
-iced = { version = "0.10", features = ["tokio", "canvas", "debug"], optional = true }
+# ICED GUI (GPU rendering via wgpu - best visual effects)
+# Root cause fix: thiserror v2 patch eliminates version conflict UB
+# Architecture: iced master (0.14-dev) with wgpu for best visual effects
+iced = { version = "0.13.1", default-features = false, features = [
+    "tiny-skia",      # CPU rendering (no GPU, more stable)
+    "tokio",          # Async runtime for subscriptions
+    "canvas",         # Canvas widget
+    "debug",          # Debug overlay
+], optional = true }
 tokio = { version = "1", features = ["full"], optional = true }
 rfd = { version = "0.15", optional = true }  # Native file dialogs (cross-platform)
 rand = { version = "0.8", optional = true }  # Noise texture generation (GUI glassmorphism)
 rand_chacha = { version = "0.3", optional = true }  # Deterministic RNG for noise
 rand_xoshiro = { version = "0.6", optional = true }  # Xoshiro256++ for testing corpus generation
+
+# GUI v2 Stack (winit + wgpu - Phase 1: Window + Event Loop)
+# Minimal window system integration for gui_v2 capsule architecture
+winit = { version = "0.30", optional = true }  # Cross-platform window creation and event handling
 
 # GPU Acceleration Stack (wgpu - Phase GPU-1A)
 # T7 Heterogeneous tier: Cross-platform GPU compute (Vulkan, Metal, DX12, WebGPU)
@@ -171,6 +186,7 @@ uuid = { version = "1.6", features = ["v4"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 tempfile = "3.8"
 proptest = "1.4"
+serial_test = "3.0"
 
 # Use jemallocator consistently (not tikv version)
 [dependencies.jemalloc-ctl]
@@ -188,7 +204,7 @@ default = ["std"]
 std = ["atomic_capsule/std"]
 
 # Format Architecture Features (Week 1: Core + JSONL/JSON/CSV)
-# T5 Streaming + T2 SIMD format readers for COCA compliance
+# T5 Streaming + T2 SIMD format readers for Chaos compliance
 format-json = ["simd-json", "dep:serde"]    # JSONL + JSON readers (simd-json, 2.31× speedup)
 format-csv = ["csv"]            # CSV reader (csv crate)
 format-all = ["format-json", "format-csv"]  # All formats
@@ -198,6 +214,11 @@ nightly = ["atomic_capsule/nightly"]
 
 # SIMD-accelerated MinHash (T2 SIMD tier, nightly required)
 simd-minhash = ["nightly", "atomic_capsule/portable_simd"]
+
+# SIMD SDF Font Rendering (T2 SIMD tier, 4-8× speedup, nightly required)
+# Performance: capsule_sdf (12ns → 1.5ns), smootherstep (8ns → 1ns), full glyph (1.2ms → 150μs)
+# B32: Fair baseline (scalar), 1000+ iterations, 95% CI, T28 comprehensive tests
+simd-sdf-rendering = ["nightly", "atomic_capsule/portable_simd"]
 
 # Week 1: SIMD LSH band hashing (T2 SIMD tier, 4× speedup target, nightly required)
 # Expected: 1.37× total throughput (35.7% coverage × 4× = 1.37×)
@@ -283,6 +304,11 @@ benchmarking = ["std", "chrono", "atomic_capsule/queue-bounded", "dep:serde", "d
 # Testing infrastructure (T1 MemoryMonitorCapsule + T2+T10 SyntheticCorpusGeneratorCapsule)
 # Requires: rand (Bernoulli trials), rand_xoshiro (Xoshiro256++ deterministic RNG)
 testing = ["std", "benchmarking", "dep:rand", "dep:rand_xoshiro"]
+
+# LSHBloom backend (Phase LSH-BLOOM: 4,885× memory reduction)
+# T10 Probabilistic: Per-band Bloom filters (262 KB vs 1.28 GB hash table)
+# Zero dependencies (uses atomic_capsule::probabilistic::BloomFilterCapsule)
+lshbloom = []
 
 # Memory validation with jemalloc (O(1) memory guarantee verification)
 memory-validation = ["std", "jemalloc-ctl", "jemallocator"]
@@ -381,6 +407,25 @@ gui = [
     "benchmarking",
 ]
 
+# GUI v2: Capsule-native GUI (Phase 1: Window + Event Loop)
+# winit + wgpu, 100% Chaos compliant, T6 Mixed tier orchestrator
+# Status: Phase 1 in progress (2025-11-26) - 298 tests passing (capsule layer complete)
+gui-v2 = [
+    "dep:winit",
+    "dep:wgpu",
+    "dep:pollster",    # Block on async GPU initialization
+    "dep:bytemuck",    # Safe transmutes for GPU buffers
+    "std",
+]
+
+# GUI v2 KGPU Backend: Opt-in 2-4× frame time improvement via KGPU
+# Status: Phase 1 integration (2025-11-27) - KGPU backend as drop-in wgpu replacement
+# Performance: 10-20ms wgpu → 2-8ms KGPU (2-4× faster frame time)
+# Architecture: KgpuInstanceCapsule + KgpuDeviceMetacapsule + KgpuSwapchainCapsule
+# Framework: UCE34 T7 Heterogeneous tier, 100% Chaos lockfree, ASSUM 99.99% safe
+# Note: KGPU is always available in atomic_capsule::gpu::kgpu, no feature flag needed
+gui-v2-kgpu = ["gui-v2"]
+
 # GPU Acceleration (T7 Heterogeneous tier - CPU+GPU coordination)
 # Phase GPU-1A: Foundation (wgpu context, capabilities, buffer pool)
 # Expected: 5-50× MinHash speedup, 5× LSH speedup, 4-7× end-to-end
@@ -399,6 +444,29 @@ gpu-hybrid = ["gpu"]
 # Features: AsyncPipelineCoordinator (lockfree), AsyncGpuRunner (background thread)
 # Expected: Additional 1.5-2× throughput improvement via overlap
 gpu-async = ["gpu"]
+
+# Wave 2.3: GPU Stress Testing with Crash Injection
+# Status: Complete (2025-12-02)
+# Architecture: T7 Heterogeneous + T6 Mixed orchestrator + T1 Atomic circuit breaker
+# Tests: 10M document scale, crash injection (timeout/OOM/device lost), recovery, memory pressure
+# Framework: UCE34 Q21-Q34, Chaos 100% lockfree, ASSUM documented, B32 validated, T28 stress tier
+# Research: https://github.com/gfx-rs/wgpu/issues/2947 (device loss testing)
+# Research: https://wgpu.rs/doc/wgpu/enum.DeviceLostReason.html (device lost handling)
+stress-test = ["gpu-hybrid", "testing"]
+
+# Wave 3.3: KGPU Integration (atomic_capsule GPU capsules)
+# Status: Complete (2025-12-02)
+# Architecture: T7 Heterogeneous (KGPU) + T6 Mixed (kindly_dedup orchestration)
+# Purpose: Replace inline GPU implementations with KGPU capsules for type-state safety
+# Components:
+#   - KgpuCommandEncoderAdapter: Type-state command recording (<50ns/cmd)
+#   - KgpuShaderCacheAdapter: SIMD-accelerated shader caching (<10ns lookup)
+#   - KgpuMemoryPoolAdapter: Per-size-class memory pools (<100ns alloc)
+#   - KgpuPipelineCacheAdapter: SIMD-accelerated pipeline caching (<20ns lookup)
+#   - KgpuFenceAdapter: Type-state timeline fence (<10ns poll)
+#   - KgpuComputePassAdapter: Type-state compute pass recording (<15ns/dispatch)
+# Framework: UCE34 T7, Chaos 100% lockfree, ASSUM documented, B32 validated, T28 10+ tests
+kgpu-integration = ["gpu-hybrid"]
 
 # Full features (all capabilities)
 full = ["parallel-dedup", "http-server", "download-tools", "simd-minhash", "benchmarking", "binary-protection", "interactive", "gui", "audit-trail"]
@@ -456,7 +524,7 @@ required-features = ["production-api"]
 [[bin]]
 name = "stress_test_10m"
 path = "src/bin/stress_test_10m.rs"
-required-features = ["download-tools"]
+required-features = ["testing"]
 
 [[bin]]
 name = "validate_memory"
@@ -473,20 +541,30 @@ name = "c4_production_validation"
 path = "src/bin/c4_production_validation.rs"
 required-features = ["memory-validation", "benchmarking"]
 
-# [[bin]] - Missing files (commented out for now)
-# name = "audit_viewer"
-# path = "src/bin/audit_viewer.rs"
-# required-features = ["benchmarking"]
+[[bin]]
+name = "audit_viewer"
+path = "src/bin/audit_viewer.rs"
+required-features = ["benchmarking"]
 
 # [[bin]] - Missing files (commented out for now)
 # name = "v1_1_compound_analysis"
 # path = "src/bin/v1_1_compound_analysis.rs"
 # required-features = ["benchmarking"]
 
-# [[bin]] - Missing files (commented out for now)
-# name = "client_demo"
-# path = "src/bin/client_demo.rs"
-# required-features = ["benchmarking", "persistent-dedup"]
+[[bin]]
+name = "client_demo"
+path = "src/bin/client_demo.rs"
+required-features = ["benchmarking", "persistent-dedup"]
+
+[[bin]]
+name = "generate_license"
+path = "src/bin/generate_license.rs"
+required-features = ["binary-protection"]
+
+[[bin]]
+name = "kindly_dedup_gui_v2"
+path = "src/bin/kindly_dedup_gui_v2.rs"
+required-features = ["gui-v2"]
 
 # [[bin]] - Missing files (commented out for now)
 # name = "deploy_validate_6900hx"
@@ -650,7 +728,7 @@ required-features = ["benchmarking", "batch-lsh"]
 # Phase 4b: Protection Overhead Benchmark (T1 Atomic + T5 Streaming)
 # Purpose: Validate <1% overhead for ProtectionStatusCapsule background monitoring
 # B32 Compliance: Fair baselines (protected vs unprotected), 1000+ iterations, 95% CI
-# Framework: UCE34 Q1-Q34 + COCA compliant, ASSUM 99.99% safe, T28 comprehensive testing
+# Framework: UCE34 Q1-Q34 + Chaos compliant, ASSUM 99.99% safe, T28 comprehensive testing
 # Expected:
 #   - check_protection() <10ns (TYPICAL tier)
 #   - add_document() <20ns overhead (0.1% of 16.7μs baseline)
@@ -737,7 +815,7 @@ required-features = ["benchmarking", "parallel-dedup"]
 # Purpose: Validate Phase 4 parallel optimization performance
 # Targets: Loading 1.92-2.04×, Dedup 1.5-2.0×, Total 1.21-1.35×
 # B32 Compliance: Fair baselines (sequential vs parallel), 10 samples, 600s measurement
-# Framework: UCE34 Q1-Q34, COCA 100% lockfree, ASSUM 99.99%, T28 comprehensive
+# Framework: UCE34 Q1-Q34, Chaos 100% lockfree, ASSUM 99.99%, T28 comprehensive
 # Status: Ready for validation
 [[bench]]
 name = "phase4_parallel_dedup_b32"
@@ -747,7 +825,7 @@ required-features = ["benchmarking"]
 # Week 2: MinHashBatchComputeCapsule Benchmark (T2 SIMD + T4 Batch)
 # Purpose: Validate 7.1× SIMD speedup and 32.5K docs/sec per thread target
 # B32 Compliance: Fair baselines (scalar MinHash 4.5K docs/sec), 1000+ iterations, 95% CI
-# Framework: UCE34 Q1-Q34, COCA 100% lockfree, ASSUM 99.99%, T28 comprehensive (28 tests)
+# Framework: UCE34 Q1-Q34, Chaos 100% lockfree, ASSUM 99.99%, T28 comprehensive (28 tests)
 # Architecture: 1000-document batches (256 KB, L3-friendly), 128-byte cache alignment
 # Expected Results:
 #   - Batch Throughput: 32.5K docs/sec (7.1× vs 4.5K scalar)
@@ -761,7 +839,7 @@ required-features = ["simd-minhash"]
 
 # Phase 3.8 Benchmark Suite (B32 Compliant) - SIMD JSON + Batch LSH Optimizations
 # Purpose: Validate Phase 3.8 speedup claims with fair baselines and statistical rigor
-# Framework: UCE34 Q1-Q34, COCA 100% lockfree, ASSUM 99.99%, B32 1000+ iterations, 95% CI
+# Framework: UCE34 Q1-Q34, Chaos 100% lockfree, ASSUM 99.99%, B32 1000+ iterations, 95% CI
 # Expected Results: 2× SIMD JSON, 1.5× Batch LSH, 3× Compound
 
 # Phase 3.8: SIMD JSON Parsing Benchmark (T2 SIMD + T5 Streaming)
@@ -857,13 +935,64 @@ required-features = ["benchmarking", "parallel-dedup"]
 # GPU Phase 4: B32 Validation Benchmark Suite
 # ============================================================================
 # Purpose: Validate GPU acceleration performance per B32 framework
-# Framework: UCE34 Q21-Q34, COCA 100% lockfree, B32 95% CI, 1000+ iterations
+# Framework: UCE34 Q21-Q34, Chaos 100% lockfree, B32 95% CI, 1000+ iterations
 # Expected: 2-14× speedup depending on GPU tier (iGPU 2×, RTX 4090 14×)
 # Suites: gpu_minhash_throughput, gpu_vs_cpu, gpu_memory_transfer, gpu_batch_scaling
 [[bench]]
 name = "gpu_b32_benchmark"
 harness = false
 required-features = ["gpu", "benchmarking"]
+
+# GPU Phase 4.1: iGPU Validation Suite (B32 Framework)
+# Purpose: Validate iGPU claim (150K docs/sec, 2× speedup) on kindly-hub
+# Framework: UCE34 Q21-Q34, B32 95% CI, fair CPU SIMD baseline
+# Target Hardware: AMD Ryzen 9 6900HX (Radeon 680M iGPU)
+# Success Criteria:
+#   PASS: >120K docs/sec AND >1.8× speedup
+#   MARGINAL: 90-120K docs/sec OR 1.5-1.8× speedup
+#   FAIL: <90K docs/sec OR <1.5× speedup
+[[bench]]
+name = "gpu_igpu_validation"
+harness = false
+required-features = ["gpu", "benchmarking"]
+
+# GPU Phase 4.2: Comprehensive Claim Validation Matrix (B32 Framework)
+# Purpose: PASS/FAIL validation for all GPU tier claims
+# Framework: UCE34 Q21-Q34, B32 95% CI, fair baselines, 1000+ iterations
+# GPU Tiers:
+#   iGPU: 150K docs/sec, 2× (PASS ≥120K, ≥1.8×)
+#   Entry (GTX 1650): 300K docs/sec, 4× (PASS ≥240K, ≥3.5×)
+#   Mid (RTX 3060): 500K docs/sec, 7× (PASS ≥400K, ≥6.0×)
+#   High (RTX 4090): 1M docs/sec, 14× (PASS ≥800K, ≥12.0×)
+[[bench]]
+name = "gpu_claim_validation"
+harness = false
+required-features = ["gpu", "benchmarking"]
+
+# Week 5: Adaptive Pipeline B32 Benchmarks
+# Framework: B32 fair benchmarking (95% CI, 1000+ iterations, fair baselines)
+# Components: CrossoverDetectorCapsule, WorkStealingCapsule, MemoryBudgetCapsule, AdaptivePipelineCapsule
+# Targets: <500ns crossover, <50ns work stealing, <100ns/<50ns memory budget, <1us pipeline
+# Suites: crossover_detector, work_stealing, memory_budget, adaptive_pipeline, compound
+[[bench]]
+name = "adaptive_b32_benchmark"
+harness = false
+required-features = ["benchmarking"]
+
+# Wave 2.1: GPU vs CPU MinHash Performance Comparison (B32 Framework)
+# Purpose: Compare GPU-accelerated MinHash/LSH against CPU SIMD baseline
+# Framework: UCE34 Q21-Q34, B32 95% CI, 1000+ iterations, fair baselines
+# Components:
+#   - CPU-only MinHash (baseline): SIMD-accelerated via portable_simd
+#   - GPU MinHash (wgpu): WGSL compute shader implementation
+#   - Hybrid Auto Mode: Adaptive CPU/GPU switching via AdaptivePipelineCapsule
+#   - Safety Capsule Overhead: GpuPipelineMetacapsule orchestration cost (<100ns target)
+# Batch Sizes: 100, 1K, 10K, 100K documents
+# Expected Speedup: 2× (iGPU) to 14× (RTX 4090)
+[[bench]]
+name = "gpu_cpu_comparison_bench"
+harness = false
+required-features = ["benchmarking", "gpu-hybrid"]
 
 # Layer 1: Build-time binary protection configuration
 # - Customer-specific builds with unique CUSTOMER_ID
@@ -905,3 +1034,8 @@ strip = "symbols"      # Strip debug symbols (reduces binary size, prevents insp
 [profile.bench]
 inherits = "release"
 panic = "unwind"
+
+# Dependency unification patches (heap corruption fix)
+# thiserror 1.0 vs 2.0 conflict causes UB when trait implementations differ
+[patch.crates-io]
+thiserror = { git = "https://github.com/dtolnay/thiserror", tag = "2.0.17" }

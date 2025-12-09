@@ -14,7 +14,7 @@
 // - Secure Aggregation: <200ns (weighted average)
 // - Privacy Budget Tracking: <10ns (atomic load)
 //
-// Framework Compliance: UCE34 (Q1-Q34), COCA (100% lockfree), ASSUM (99.99%), B32, T28, I20
+// Framework Compliance: UCE34 (Q1-Q34), Chaos (100% lockfree), ASSUM (99.99%), B32, T28, I20
 //
 // Research Foundation (2024-2025):
 // - Federated Averaging (FedAvg): McMahan et al., AISTATS 2017

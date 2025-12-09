@@ -3,7 +3,7 @@
 **Status**: ✅ Production Ready (v1.0)
 **Date**: 2025-11-15
 **Tier**: T10 Probabilistic (HyperLogLog cardinality estimation)
-**Framework**: UCE34 + COCA + ASSUM + B32 + T28 + I20
+**Framework**: UCE34 + Chaos + ASSUM + B32 + T28 + I20
 
 ---
 
@@ -170,7 +170,7 @@ fn fnv1a_hash(value: u64) -> u64 {
 - ✅ **Q33**: Verification via compile-time assertions (size, alignment)
 - ✅ **Q34**: Not applicable (no audit trail needed for leak detection)
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 
 - ✅ **Lockfree**: Zero mutex/RwLock (grep: 0 results)
 - ✅ **Atomic-Only**: All coordination via AtomicU32/U64
@@ -452,7 +452,7 @@ Memory Profiler (T6 Mixed) = 100-1,000× vs Valgrind
 ### Frameworks
 - UCE34: `/home/samuel/Primitives/CLAUDE.md` (Tier selection Q10)
 - KEY_INNOVATIONS: `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md` (Probabilistic tier examples)
-- COCA: `/home/samuel/Docs/The Computational Capsule.md` (Lockfree architecture)
+- Chaos: `/home/samuel/Docs/The Computational Capsule.md` (Lockfree architecture)
 
 ### Roadmaps
 - Phase 2: `KDB_AI_ONLY_ROADMAP.md` (Week 4: LeakDetectorCapsule)
@@ -476,6 +476,6 @@ This implementation represents the **first step toward 100-1000× memory profili
 
 **Status**: ✅ Production Ready (v1.0)
 **Date**: 2025-11-15
-**Framework**: UCE34 + COCA + ASSUM + B32 + T28 + I20
+**Framework**: UCE34 + Chaos + ASSUM + B32 + T28 + I20
 **Tier**: T10 Probabilistic
 **Performance**: <50ns overhead, ±0.8% error, 100% lockfree

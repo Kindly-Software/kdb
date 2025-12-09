@@ -22,7 +22,7 @@
 //!
 //! # Framework Compliance
 //! - UCE34: Q10 T9+T5 tier selection, Q34 audit trails
-//! - COCA: 100% lockfree (zero mutex/RwLock, atomic coordination only)
+//! - Chaos: 100% lockfree (zero mutex/RwLock, atomic coordination only)
 //! - ASSUM: 99.99% safe (all assumptions documented)
 //! - B32: Fair baseline (direct file I/O), zero-copy optimizations
 //! - T28: 28 tests (4 tiers: unit/property/integration/production)

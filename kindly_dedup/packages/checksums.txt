@@ -1,0 +1,2 @@
+13cd910bb25bf470f391a787f92618d3e6de158fc140c60e88bc6359cd19e7a9  kindly_dedup_demo_v0.2.1.zip
+1a1e87684853761a0dbec873f3113da002e64a49220c0a878a8ff0f1f63735f1  kindly_dedup_sales_partner_v0.2.1.zip

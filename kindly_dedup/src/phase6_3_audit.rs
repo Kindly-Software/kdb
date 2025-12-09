@@ -6,7 +6,7 @@
 //!
 //! - **ASSUM**: Core Principle - "Every #ASSUME must have a corresponding #VERIFY"
 //! - **Target Safety**: 99.99% (achieved: 100% via zero unsafe code + verification tests)
-//! - **Compliance**: COCA mandate (100% lockfree: no mutex/RwLock, atomic operations only)
+//! - **Compliance**: Chaos mandate (100% lockfree: no mutex/RwLock, atomic operations only)
 //!
 //! # Architecture Under Verification
 //!
@@ -626,7 +626,7 @@ mod assum_verification {
     // #ASSUME_CONCURRENT_MAP_SAFE: Concurrent inserts are thread-safe via CAS
     // #VERIFY_CONCURRENT_MAP_CORRECTNESS: Multiple threads insert simultaneously, no corruption
     //
-    // Safety Target: 100% COCA compliance (zero mutex), concurrent inserts correct
+    // Safety Target: 100% Chaos compliance (zero mutex), concurrent inserts correct
     #[test]
     fn verify_concurrent_map_integration() {
         // Simulate ConcurrentMapCapsule with Arc<AtomicUsize> pairs
@@ -668,7 +668,7 @@ mod assum_verification {
             "Concurrent map inserts lost data"
         );
 
-        // VERDICT: 100% COCA compliance achieved (zero mutex, pure atomic)
+        // VERDICT: 100% Chaos compliance achieved (zero mutex, pure atomic)
     }
 
     // =====================================================================
@@ -766,14 +766,14 @@ mod assum_verification {
 //
 // Framework Compliance:
 // ✓ UCE34 Q1-Q34 (T1 Atomic + T4 Batch tiers)
-// ✓ COCA (100% lockfree, zero mutex)
+// ✓ Chaos (100% lockfree, zero mutex)
 // ✓ ASSUM (99.99% safety target achieved: 100%)
 // ✓ B32 (fair baselines, performance validated)
 // ✓ T28 (15+ executable tests, comprehensive coverage)
 // ✓ I20 (integration safe, deterministic composition)
 //
 // Trade-Offs Analyzed:
-// - ThreadLocal vs ConcurrentMapCapsule: Chose ConcurrentMapCapsule for 100% COCA
+// - ThreadLocal vs ConcurrentMapCapsule: Chose ConcurrentMapCapsule for 100% Chaos
 // - Relaxed vs SeqCst: Justified by 40% speedup + correctness proof
 // - NUMA optimization: Optional (gracefully degraded if unsupported)
 //
@@ -823,6 +823,6 @@ mod assum_summary {
 
         println!("\nSafety Target: 99.99%");
         println!("Achievement:  100% (zero unsafe code + 15 verification proofs)");
-        println!("\nFramework Compliance: COCA + UCE34 + ASSUM + B32 + T28 + I20 = ✓ GOLD");
+        println!("\nFramework Compliance: Chaos + UCE34 + ASSUM + B32 + T28 + I20 = ✓ GOLD");
     }
 }

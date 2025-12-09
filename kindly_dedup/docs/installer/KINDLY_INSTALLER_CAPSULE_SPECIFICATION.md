@@ -5902,7 +5902,7 @@ Week 1: Implementation
 | **T28** | Testing framework: 4-tier pyramid (Unit/Property/Integration/Production) |
 | **I20** | Integration framework: 20-question checklist for safe composition |
 | **Q34** | Auditability question in UCE34: Tamper-evident audit trails for compliance |
-| **COCA** | Computational Capsule (shorthand) |
+| **Chaos** | Computational Capsule (shorthand) |
 
 ### Appendix C: Example Usage Scenarios
 

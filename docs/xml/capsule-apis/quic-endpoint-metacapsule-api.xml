@@ -1,0 +1,543 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- quic-endpoint-metacapsule-api.xml: QuicEndpointMetacapsule API Specification -->
+<!-- Version 1.0.0: T6 Mixed tier metacapsule orchestrating 22 QUIC sub-capsules -->
+<capsule-api xmlns="http://kindly.ai/uce34/v6.0"
+             name="QuicEndpointMetacapsule"
+             tier="T6"
+             size="512B"
+             alignment="64B">
+
+  <!-- ========================================
+       METADATA
+       ======================================== -->
+  <metadata>
+    <version>1.0.0</version>
+    <status>Stable</status>
+    <since>atomic_capsule 0.8.0</since>
+    <authors>Kindly Team</authors>
+    <location>atomic_capsule::quic::endpoint_metacapsule</location>
+    <license>Trade Secret (local commits only)</license>
+    <rfc-compliance>RFC 9000 (QUIC v1), RFC 9002 (Loss Detection), RFC 9114 (HTTP/3), RFC 9204 (QPACK)</rfc-compliance>
+  </metadata>
+
+  <!-- ========================================
+       DESCRIPTION
+       ======================================== -->
+  <description>
+    T6 Mixed tier metacapsule that orchestrates all 22 QUIC sub-capsules for complete
+    QUIC/HTTP3 protocol handling. Provides &lt;10us end-to-end packet processing with
+    lockfree atomic coordination.
+
+    **Key Characteristics**:
+    - Orchestrates 22 sub-capsules (T0/T1/T2/T4/T5 tiers)
+    - &lt;10us packet processing end-to-end
+    - 1M+ packets/sec single-threaded, 10M+ multi-threaded
+    - 100% lockfree (no mutex/RwLock)
+    - RFC 9000/9002/9114/9204 compliant
+
+    **Tier Composition (T6 Mixed)**:
+    - T0 Auditable: QuicAuditTrailCapsule (hash-chain compliance)
+    - T1 Atomic: 10 connection/flow/congestion capsules (&lt;100ns coordination)
+    - T2 SIMD: FrameParserCapsule, QpackEncoder/Decoder (5-10x acceleration)
+    - T4 Batch: StreamStateTable, AckTracker, PacketBuffer (10-50x batch ops)
+    - T5 Streaming: RetransmissionQueue, Http3 streams (O(1) incremental)
+
+    **Use Cases**:
+    - HTTP/3 API servers (replace Quinn/quiche)
+    - CDN edge servers (10M+ packets/sec)
+    - VPN tunneling (lockfree connection migration)
+    - Low-latency video streaming (O(1) frame processing)
+    - IoT gateways (1M+ concurrent connections)
+  </description>
+
+  <!-- ========================================
+       SUB-CAPSULES (22 Total)
+       ======================================== -->
+  <sub-capsules>
+    <group name="T1 Atomic (10 capsules)" tier="T1" purpose="Connection/Flow/Congestion Control">
+      <capsule name="QuicConnectionCapsule" size="128B">Connection state machine (Idle-Established-Draining-Closed)</capsule>
+      <capsule name="ConnectionIdPoolCapsule" size="256B">Connection ID management for migration (8 active CIDs)</capsule>
+      <capsule name="FlowControlCapsule" size="64B">Dual-level flow control (connection + stream, Q16.16)</capsule>
+      <capsule name="QuicStreamCapsule" size="64B">Per-stream state machine</capsule>
+      <capsule name="StreamFlowControlCapsule" size="64B">Credit-based per-stream flow control</capsule>
+      <capsule name="LossDetectionCapsule" size="128B">RTT tracking with Q16.16 (RFC 9002 section 5)</capsule>
+      <capsule name="RttEstimatorCapsule" size="64B">PTO calculation (smoothed RTT, variance)</capsule>
+      <capsule name="CongestionControlCapsule" size="128B">NewReno algorithm (SlowStart/CongestionAvoidance/FastRecovery)</capsule>
+      <capsule name="PacingCapsule" size="64B">Token bucket rate limiting (&lt;50ns)</capsule>
+      <capsule name="PacketNumberSpaceCapsule" size="64B">3 packet number spaces (Initial/Handshake/Application)</capsule>
+    </group>
+
+    <group name="T2 SIMD (3 capsules)" tier="T2" purpose="SIMD-Accelerated Parsing/Compression">
+      <capsule name="FrameParserCapsule" size="256B">SIMD frame boundary detection (5-10x vs scalar)</capsule>
+      <capsule name="QpackEncoderCapsule" size="1KB">Header compression (static table 61 entries, SIMD lookup)</capsule>
+      <capsule name="QpackDecoderCapsule" size="1KB">Header decompression with dynamic table</capsule>
+    </group>
+
+    <group name="T4 Batch (4 capsules)" tier="T4" purpose="Batch Processing">
+      <capsule name="StreamStateTableCapsule" size="32KB">Lockfree hash table for 1000+ streams</capsule>
+      <capsule name="AckTrackerCapsule" size="4KB">Batch ACK range processing (10-50x vs linear)</capsule>
+      <capsule name="PacketBufferCapsule" size="4KB">Ring buffer batching (512 packets)</capsule>
+      <capsule name="ConnectionTableCapsule" size="8KB">Connection lookup table (1024 capacity)</capsule>
+    </group>
+
+    <group name="T5 Streaming (3 capsules)" tier="T5" purpose="O(1) Incremental Processing">
+      <capsule name="RetransmissionQueueCapsule" size="2KB">O(1) FIFO retransmission queue</capsule>
+      <capsule name="Http3ControlStreamCapsule" size="512B">Settings/GOAWAY processing</capsule>
+      <capsule name="Http3RequestStreamCapsule" size="2KB">Chunked body processing</capsule>
+    </group>
+
+    <group name="T0 Auditable (1 capsule)" tier="T0" purpose="Compliance">
+      <capsule name="QuicAuditTrailCapsule" size="256B">Hash-chain audit trail (SOX/SOC2/GDPR/HIPAA)</capsule>
+    </group>
+  </sub-capsules>
+
+  <!-- ========================================
+       MEMORY LAYOUT
+       ======================================== -->
+  <memory-layout>
+    <field offset="0-7" name="state" type="AtomicU64">
+      Packed state: endpoint_state(4 bits) + connection_count(20 bits) +
+      stream_count(20 bits) + flags(8 bits) + generation(12 bits)
+    </field>
+    <field offset="8-15" name="metrics" type="AtomicU64">
+      Packed metrics: bytes_sent(32 bits) + bytes_received(32 bits)
+    </field>
+    <field offset="16-23" name="http3_state" type="AtomicU64">
+      HTTP/3 metadata: method_idx(8 bits) + path_hash(32 bits) + flags(24 bits)
+    </field>
+    <field offset="24-31" name="connection_table_ptr" type="AtomicPtr">
+      Pointer to ConnectionTableCapsule
+    </field>
+    <field offset="32-39" name="stream_table_ptr" type="AtomicPtr">
+      Pointer to StreamStateTableCapsule
+    </field>
+    <field offset="40-47" name="frame_parser_ptr" type="AtomicPtr">
+      Pointer to FrameParserCapsule
+    </field>
+    <field offset="48-511" name="sub_capsule_ptrs" type="[AtomicPtr; ~58]">
+      Pointers to remaining 19 sub-capsules + padding
+    </field>
+    <total-size>512 bytes</total-size>
+    <alignment>64 bytes (L1 cache line)</alignment>
+  </memory-layout>
+
+  <!-- ========================================
+       CONSTRUCTORS
+       ======================================== -->
+  <constructors>
+    <constructor name="new">
+      <signature>pub fn new() -> Result&lt;Self, QuicEndpointError&gt;</signature>
+      <description>Creates new QUIC endpoint with default configuration</description>
+      <preconditions>
+        <condition>Sufficient memory for all 22 sub-capsules (~50KB total)</condition>
+      </preconditions>
+      <postconditions>
+        <condition>All 22 sub-capsules initialized</condition>
+        <condition>Endpoint in Idle state</condition>
+        <condition>Connection count = 0, Stream count = 0</condition>
+        <condition>All pointers valid and non-null</condition>
+      </postconditions>
+      <complexity time="O(1)" space="O(50KB)">
+        Constant-time initialization of pre-sized capsules
+      </complexity>
+      <const-evaluable>No (heap allocation for sub-capsules)</const-evaluable>
+      <errors>
+        QuicEndpointError::NullCapsulePointer - Sub-capsule allocation failed
+      </errors>
+    </constructor>
+  </constructors>
+
+  <!-- ========================================
+       METHODS
+       ======================================== -->
+  <methods>
+    <!-- Read operations -->
+    <method-group category="read">
+      <method name="get_connection_count">
+        <signature>pub fn get_connection_count(&amp;self) -> u32</signature>
+        <description>Returns current number of active connections</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>&lt;10ns (atomic load + unpack)</latency>
+        <memory-ordering>Relaxed</memory-ordering>
+      </method>
+
+      <method name="get_stream_count">
+        <signature>pub fn get_stream_count(&amp;self) -> u32</signature>
+        <description>Returns current number of active streams across all connections</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>&lt;10ns</latency>
+        <memory-ordering>Relaxed</memory-ordering>
+      </method>
+
+      <method name="get_bytes_sent">
+        <signature>pub fn get_bytes_sent(&amp;self) -> u64</signature>
+        <description>Returns total bytes sent across all connections</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>&lt;10ns</latency>
+        <memory-ordering>Relaxed</memory-ordering>
+      </method>
+
+      <method name="get_bytes_received">
+        <signature>pub fn get_bytes_received(&amp;self) -> u64</signature>
+        <description>Returns total bytes received across all connections</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>&lt;10ns</latency>
+        <memory-ordering>Relaxed</memory-ordering>
+      </method>
+
+      <method name="get_http3_method">
+        <signature>pub fn get_http3_method(&amp;self) -> &amp;'static str</signature>
+        <description>Returns HTTP/3 request method from last parsed request</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>&lt;10ns</latency>
+        <memory-ordering>Acquire</memory-ordering>
+        <returns>"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", or "UNKNOWN"</returns>
+      </method>
+
+      <method name="get_http3_path">
+        <signature>pub fn get_http3_path(&amp;self) -> &amp;'static str</signature>
+        <description>Returns HTTP/3 request path from last parsed request</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>&lt;10ns</latency>
+        <memory-ordering>Acquire</memory-ordering>
+      </method>
+
+      <method name="get_http3_headers">
+        <signature>pub fn get_http3_headers(&amp;self) -> Vec&lt;(String, String)&gt;</signature>
+        <description>Returns HTTP/3 headers from last parsed request</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>&lt;1us (QPACK decode + allocation)</latency>
+        <memory-ordering>Acquire</memory-ordering>
+      </method>
+
+      <method name="get_http3_body">
+        <signature>pub fn get_http3_body(&amp;self) -> Vec&lt;u8&gt;</signature>
+        <description>Returns HTTP/3 request body from last parsed request</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>O(body_size)</latency>
+        <memory-ordering>Acquire</memory-ordering>
+      </method>
+    </method-group>
+
+    <!-- Packet processing (core operations) -->
+    <method-group category="packet-processing">
+      <method name="on_packet_received">
+        <signature>pub fn on_packet_received(&amp;self, packet: &amp;[u8]) -> Result&lt;(), QuicEndpointError&gt;</signature>
+        <description>Processes incoming QUIC packet through full pipeline</description>
+        <thread-safety>SWeMR (single writer per connection)</thread-safety>
+        <latency>&lt;10us end-to-end (packet validation + frame parsing + QPACK + protocol detection)</latency>
+        <memory-ordering>AcqRel (full synchronization)</memory-ordering>
+        <parameters>
+          <param name="packet" type="&amp;[u8]">Raw QUIC packet bytes (RFC 9000 section 12.1 format)</param>
+        </parameters>
+        <preconditions>
+          <condition>packet.len() &gt;= 20 (minimum QUIC packet size)</condition>
+          <condition>packet[0] matches QUIC magic (0xC0 or 0x40)</condition>
+        </preconditions>
+        <postconditions>
+          <condition>Packet parsed and state updated</condition>
+          <condition>bytes_received counter incremented</condition>
+          <condition>HTTP/3 request extracted if present</condition>
+          <condition>Audit trail event recorded</condition>
+        </postconditions>
+        <pipeline>
+          1. Validate packet (min 20 bytes, magic byte check) - &lt;100ns
+          2. Parse QUIC frames (SIMD FrameParserCapsule) - &lt;1us
+          3. Update connection state (QuicConnectionCapsule) - &lt;100ns
+          4. Process flow control (FlowControlCapsule) - &lt;20ns
+          5. Track ACKs (AckTrackerCapsule) - &lt;50ns
+          6. Extract HTTP/3 if present (QPACK decode) - &lt;1us
+          7. Detect protocol (REST/GraphQL/gRPC/WebSocket/JSON-RPC/SSE) - &lt;100ns
+          8. Update metrics (bytes_received, stream_count) - &lt;10ns
+          9. Record audit event (QuicAuditTrailCapsule) - &lt;100ns
+        </pipeline>
+        <errors>
+          QuicEndpointError::InvalidPacket - Packet too short or invalid magic
+          QuicEndpointError::FrameParseError - QUIC frame parsing failed
+          QuicEndpointError::ConnectionError - Connection state invalid
+        </errors>
+      </method>
+
+      <method name="on_ack_received">
+        <signature>pub fn on_ack_received(&amp;self, ack_ranges: &amp;[(u64, u64)]) -> Result&lt;(), QuicEndpointError&gt;</signature>
+        <description>Processes ACK frame with batch range handling</description>
+        <thread-safety>SWeMR</thread-safety>
+        <latency>&lt;500ns (batch ACK processing via AckTrackerCapsule)</latency>
+        <memory-ordering>AcqRel</memory-ordering>
+        <parameters>
+          <param name="ack_ranges" type="&amp;[(u64, u64)]">ACK ranges (start, end) pairs</param>
+        </parameters>
+        <postconditions>
+          <condition>Acknowledged packets removed from retransmission queue</condition>
+          <condition>RTT estimate updated</condition>
+          <condition>Congestion window adjusted</condition>
+        </postconditions>
+      </method>
+
+      <method name="on_stream_data">
+        <signature>pub fn on_stream_data(&amp;self, stream_id: u64, payload: &amp;[u8]) -> Result&lt;(), QuicEndpointError&gt;</signature>
+        <description>Processes STREAM frame data</description>
+        <thread-safety>SWeMR</thread-safety>
+        <latency>&lt;1us (stream state + flow control update)</latency>
+        <memory-ordering>AcqRel</memory-ordering>
+        <parameters>
+          <param name="stream_id" type="u64">QUIC stream ID (RFC 9000 section 2.1)</param>
+          <param name="payload" type="&amp;[u8]">Stream payload bytes</param>
+        </parameters>
+        <postconditions>
+          <condition>Stream state updated in StreamStateTableCapsule</condition>
+          <condition>Flow control credits consumed</condition>
+        </postconditions>
+      </method>
+
+      <method name="on_connection_close">
+        <signature>pub fn on_connection_close(&amp;self, connection_id: &amp;[u8]) -> Result&lt;(), QuicEndpointError&gt;</signature>
+        <description>Handles connection close (graceful or error)</description>
+        <thread-safety>SWeMR</thread-safety>
+        <latency>&lt;500ns (state transition + cleanup)</latency>
+        <memory-ordering>AcqRel</memory-ordering>
+        <parameters>
+          <param name="connection_id" type="&amp;[u8]">Connection ID to close</param>
+        </parameters>
+        <postconditions>
+          <condition>Connection transitioned to Draining/Closed state</condition>
+          <condition>Associated streams closed</condition>
+          <condition>connection_count decremented</condition>
+        </postconditions>
+      </method>
+    </method-group>
+
+    <!-- Pointer access (for integration) -->
+    <method-group category="pointer-access">
+      <method name="get_connection_table_ptr">
+        <signature>pub fn get_connection_table_ptr(&amp;self) -> *const u8</signature>
+        <description>Returns raw pointer to ConnectionTableCapsule</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>&lt;5ns</latency>
+        <memory-ordering>Acquire</memory-ordering>
+        <note>For advanced integration only; prefer high-level methods</note>
+      </method>
+
+      <method name="get_stream_table_ptr">
+        <signature>pub fn get_stream_table_ptr(&amp;self) -> *const u8</signature>
+        <description>Returns raw pointer to StreamStateTableCapsule</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>&lt;5ns</latency>
+        <memory-ordering>Acquire</memory-ordering>
+      </method>
+
+      <method name="get_frame_parser_ptr">
+        <signature>pub fn get_frame_parser_ptr(&amp;self) -> *const u8</signature>
+        <description>Returns raw pointer to FrameParserCapsule</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>&lt;5ns</latency>
+        <memory-ordering>Acquire</memory-ordering>
+      </method>
+    </method-group>
+  </methods>
+
+  <!-- ========================================
+       STATE TRANSITIONS
+       ======================================== -->
+  <state-transitions>
+    <description>Endpoint state machine (mirrors QUIC connection state per RFC 9000 section 10)</description>
+    <states>
+      <state id="idle" value="0">No active connections, ready to accept</state>
+      <state id="handshaking" value="1">TLS handshake in progress</state>
+      <state id="established" value="2">Connection established, bidirectional data flow</state>
+      <state id="draining" value="3">Connection draining, no new streams</state>
+      <state id="closed" value="4">Connection closed, cleanup complete</state>
+    </states>
+    <transitions>
+      <transition from="idle" to="handshaking" trigger="ClientHello received"/>
+      <transition from="handshaking" to="established" trigger="Handshake complete (1-RTT)"/>
+      <transition from="established" to="draining" trigger="CONNECTION_CLOSE frame"/>
+      <transition from="draining" to="closed" trigger="Drain timeout (3x PTO)"/>
+      <transition from="*" to="closed" trigger="Fatal error or immediate close"/>
+    </transitions>
+  </state-transitions>
+
+  <!-- ========================================
+       CONNECTIONS
+       ======================================== -->
+  <connections>
+    <description>How QuicEndpointMetacapsule connects to other capsules</description>
+    <input type="socket" from="UdpSocket">
+      <description>Receives raw UDP datagrams containing QUIC packets</description>
+      <protocol>on_packet_received() called per datagram</protocol>
+    </input>
+    <output type="direct" to="UniversalApiMetaCapsule">
+      <description>Forwards extracted HTTP/3 requests for protocol routing</description>
+      <protocol>HTTP/3 method/path/headers/body extracted for REST/GraphQL/gRPC detection</protocol>
+    </output>
+    <output type="event" to="QuicAuditTrailCapsule">
+      <description>Records all QUIC events for compliance</description>
+      <protocol>Hash-chain audit event per packet/connection/error</protocol>
+    </output>
+    <internal to="sub-capsules">
+      <description>Orchestrates all 22 sub-capsules via atomic pointer coordination</description>
+      <protocol>Direct pointer dereference with Acquire/Release ordering</protocol>
+    </internal>
+  </connections>
+
+  <!-- ========================================
+       INVARIANTS
+       ======================================== -->
+  <invariants>
+    <invariant id="I1">size_of::&lt;QuicEndpointMetacapsule&gt;() == 512</invariant>
+    <invariant id="I2">align_of::&lt;QuicEndpointMetacapsule&gt;() &gt;= 64</invariant>
+    <invariant id="I3">All 22 sub-capsule pointers are non-null after construction</invariant>
+    <invariant id="I4">connection_count accurately reflects ConnectionTableCapsule state</invariant>
+    <invariant id="I5">stream_count accurately reflects StreamStateTableCapsule state</invariant>
+    <invariant id="I6">All operations are lockfree (no mutex/RwLock)</invariant>
+    <invariant id="I7">Audit trail is append-only with hash-chain integrity</invariant>
+  </invariants>
+
+  <!-- ========================================
+       ASSUM TAGS
+       ======================================== -->
+  <assum-tags>
+    <assume id="A1" category="POINTER_SAFETY">
+      <text>All sub-capsule pointers remain valid for lifetime of metacapsule</text>
+      <location>Sub-capsule pointer fields</location>
+    </assume>
+    <verify id="V1" references="A1">
+      <text>Pointers initialized in constructor, never modified, Box-owned</text>
+      <test>tests/quic_endpoint_tests.rs::test_pointer_validity</test>
+    </verify>
+
+    <assume id="A2" category="LOCKFREE_COORDINATION">
+      <text>DualAtomicU64 state provides consistent snapshots without locks</text>
+      <location>state and metrics fields</location>
+    </assume>
+    <verify id="V2" references="A2">
+      <text>1000-thread concurrent tests verify no torn reads</text>
+      <test>tests/quic_endpoint_concurrent_tests.rs</test>
+    </verify>
+
+    <assume id="A3" category="RFC_COMPLIANCE">
+      <text>Packet processing follows RFC 9000/9002/9114/9204 specifications</text>
+      <location>on_packet_received pipeline</location>
+    </assume>
+    <verify id="V3" references="A3">
+      <text>Integration tests with Quinn interoperability</text>
+      <test>tests/quic_interop_tests.rs</test>
+    </verify>
+
+    <assume id="A4" category="LATENCY_BOUNDS">
+      <text>End-to-end packet processing completes within 10us</text>
+      <location>on_packet_received</location>
+    </assume>
+    <verify id="V4" references="A4">
+      <text>B32 benchmark validates P99 &lt; 10us</text>
+      <test>benches/quic_http3_end_to_end_bench.rs</test>
+    </verify>
+  </assum-tags>
+
+  <!-- ========================================
+       PERFORMANCE
+       ======================================== -->
+  <performance>
+    <latency-profile>
+      <operation name="on_packet_received()">&lt;10us end-to-end (full pipeline)</operation>
+      <operation name="Packet validation">&lt;100ns</operation>
+      <operation name="Frame parsing (SIMD)">20-40ns for 10 frames</operation>
+      <operation name="QPACK decode">&lt;1us</operation>
+      <operation name="Protocol detection">&lt;100ns</operation>
+      <operation name="Metric updates">&lt;10ns per counter</operation>
+      <operation name="get_* methods">&lt;10ns (atomic loads)</operation>
+    </latency-profile>
+    <throughput>
+      <metric name="single-threaded">1M+ packets/sec</metric>
+      <metric name="multi-threaded (16t)">10M+ packets/sec</metric>
+      <metric name="connections">1M+ concurrent connections</metric>
+      <metric name="streams">100K+ streams per connection</metric>
+    </throughput>
+    <memory>
+      <metric name="orchestrator">512B</metric>
+      <metric name="sub-capsules">~50KB total</metric>
+      <metric name="per-connection overhead">~1KB (connection + streams)</metric>
+    </memory>
+    <claims>
+      <claim speedup="1.76x" baseline="TLS 1.3 TCP" validation="B32-Validated">
+        0-RTT connection establishment (vs 1-RTT TLS 1.3)
+      </claim>
+      <claim speedup="2-5x" baseline="Quinn QUIC" validation="Conservative">
+        100% lockfree coordination vs async/await overhead
+      </claim>
+      <claim speedup="10-20x" baseline="Quinn QUIC" validation="Optimistic">
+        Full SIMD stack (T2 frame parsing + QPACK + protocol detection)
+      </claim>
+    </claims>
+  </performance>
+
+  <!-- ========================================
+       EXAMPLES
+       ======================================== -->
+  <examples>
+    <example name="basic_packet_processing">
+      <description>Processing incoming QUIC packets</description>
+      <code language="rust">
+use atomic_capsule::quic::QuicEndpointMetacapsule;
+
+let endpoint = QuicEndpointMetacapsule::new()?;
+
+// Process incoming UDP datagram
+let packet: &amp;[u8] = receive_udp_datagram();
+endpoint.on_packet_received(packet)?;
+
+// Access HTTP/3 request data
+let method = endpoint.get_http3_method();
+let path = endpoint.get_http3_path();
+println!("HTTP/3 {} {}", method, path);
+
+// Monitor metrics
+println!("Connections: {}", endpoint.get_connection_count());
+println!("Bytes received: {}", endpoint.get_bytes_received());
+      </code>
+    </example>
+
+    <example name="integration_with_universal_api">
+      <description>Connecting QUIC endpoint to protocol router</description>
+      <code language="rust">
+use atomic_capsule::quic::QuicEndpointMetacapsule;
+use atomic_capsule::meta::UniversalApiMetaCapsule;
+
+let quic_endpoint = QuicEndpointMetacapsule::new()?;
+let api_router = UniversalApiMetaCapsule::new();
+
+// Process QUIC packet and route to appropriate handler
+quic_endpoint.on_packet_received(packet)?;
+
+// Extract HTTP/3 request for routing
+let method = quic_endpoint.get_http3_method();
+let path = quic_endpoint.get_http3_path();
+let headers = quic_endpoint.get_http3_headers();
+let body = quic_endpoint.get_http3_body();
+
+// Route to REST/GraphQL/gRPC handler
+api_router.process_http3_request(method, path, &amp;headers, &amp;body)?;
+      </code>
+    </example>
+  </examples>
+
+  <!-- ========================================
+       VALIDATION CHECKLIST
+       ======================================== -->
+  <validation-checklist>
+    <item required="true" status="complete">Metadata (version, RFC compliance)</item>
+    <item required="true" status="complete">Description (purpose, tier composition)</item>
+    <item required="true" status="complete">Sub-capsule inventory (22 capsules)</item>
+    <item required="true" status="complete">Constructor with error handling</item>
+    <item required="true" status="complete">All public methods documented</item>
+    <item required="true" status="complete">Thread-safety for each method</item>
+    <item required="true" status="complete">Latency expectations with pipeline breakdown</item>
+    <item required="true" status="complete">Memory ordering for atomic methods</item>
+    <item required="true" status="complete">Invariants (pointer validity, lockfree)</item>
+    <item required="true" status="complete">ASSUM tags for safety assumptions</item>
+    <item required="false" status="complete">State transitions (QUIC connection FSM)</item>
+    <item required="false" status="complete">Connection points (UDP, UniversalApi, Audit)</item>
+    <item required="false" status="complete">Usage examples</item>
+  </validation-checklist>
+
+</capsule-api>

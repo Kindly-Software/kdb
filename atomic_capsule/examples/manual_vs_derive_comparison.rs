@@ -7,7 +7,7 @@
 //! - **After**: Automatic verification with #[derive(ComputationalCapsule)]
 //! - **Result**: 87.5% code reduction, identical behavior, 0ns runtime cost
 //!
-//! ## COCA Architecture:
+//! ## Chaos Architecture:
 //! - Tier 1 (Atomic): Lockfree coordination capsule
 //! - Compile-time verification: Both approaches verify at build time
 //! - Zero runtime cost: All verification happens during compilation

@@ -130,13 +130,14 @@ stdio-transport = ["std", "atomic-capsule-runtime"]
 # Native async runtime features (atomic_capsule)
 atomic-capsule-runtime = ["std"]
 connection-pool = ["std"]
+sse-transport = ["std"]
 shared-state = ["std", "memmap2"]
 tool-executor = ["std"]
 feature-flags = ["std"]
 ab-testing = ["std"]
 
 # All features (MIGRATED to native async runtime)
-all = ["std", "json-rpc", "api-key-auth", "auth-guard", "auth-token", "totp", "access-control", "operator-challenge", "zero-trust", "capability-checker", "dynamic-pid", "secrets", "memory-encryption", "hsm", "key-rotation", "tls", "acme", "intrusion-detection", "anomaly-detection", "session", "metrics", "tracing", "audit", "audit-rotation", "rate-limiting", "runtime", "http-transport", "stdio-transport", "connection-pool", "shared-state", "tool-executor", "feature-flags", "ab-testing"]
+all = ["std", "json-rpc", "api-key-auth", "auth-guard", "auth-token", "totp", "access-control", "operator-challenge", "zero-trust", "capability-checker", "dynamic-pid", "secrets", "memory-encryption", "hsm", "key-rotation", "tls", "acme", "intrusion-detection", "anomaly-detection", "session", "metrics", "tracing", "audit", "audit-rotation", "rate-limiting", "runtime", "http-transport", "stdio-transport", "sse-transport", "connection-pool", "shared-state", "tool-executor", "feature-flags", "ab-testing"]
 
 [profile.release]
 opt-level = 3
@@ -185,6 +186,11 @@ required-features = ["std", "json-rpc", "runtime", "stdio-transport", "tool-exec
 name = "kdb-mcp-http-server"
 path = "src/bin/mcp_http_server.rs"
 required-features = ["std", "json-rpc", "runtime", "http-transport", "tool-executor", "atomic-capsule-runtime"]
+
+[[bin]]
+name = "mcp_sse_server"
+path = "src/bin/mcp_sse_server.rs"
+required-features = ["std", "json-rpc", "sse-transport"]
 
 [dev-dependencies]
 proptest = "1.4"

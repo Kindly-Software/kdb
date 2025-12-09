@@ -2,7 +2,7 @@
 //!
 //! [TRADE SECRET] - PROPRIETARY AND CONFIDENTIAL
 //!
-//! World's fastest lockfree AV1 encoder built on COCA architecture.
+//! World's fastest lockfree AV1 encoder built on Chaos architecture.
 //! Copyright (c) 2025 Kindly. All rights reserved.
 
 #![feature(portable_simd)]
@@ -13,20 +13,21 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::time::Instant;
 
-use kindly_av1::cli::{
-    branding, parse_args, Command, GlobalOptions, EncodeOptions,
-    execute, WizardMode, determine_wizard_mode,
-};
-use kindly_av1::encoder::{EncoderConfig, EncoderWiringCapsule, KindlyAv1CliMetacapsule};
-use kindly_av1::file::{create_reader, detect_format, check_system_capabilities, InputFormat, PixelFormat};
 use kindly_av1::checkpoint::{
     calculate_input_hash, default_checkpoint_path, recover_from_crash, CheckpointRecovery,
 };
-use kindly_av1::license::LicenseError;
+use kindly_av1::cli::{
+    branding, determine_wizard_mode, execute, parse_args, Command, CommandError, EncodeOptions,
+    GlobalOptions, WizardMode, FriendlyError, format_friendly_error,
+};
+use kindly_av1::encoder::{EncoderConfig, EncoderWiringCapsule, KindlyAv1CliMetacapsule};
+use kindly_av1::file::{
+    check_system_capabilities, create_reader, detect_format, InputFormat, PixelFormat,
+};
+use kindly_av1::license::{LicenseError, LicenseTier, TierEnforcementCapsule};
 use kindly_av1::protection::{
-    HardwareIdCapsule, is_banned, BAN_MESSAGE,
-    init_tamper_detection, run_tamper_detection,
-    get_corruption_mask,
+    get_corruption_mask, init_tamper_detection, is_banned, run_tamper_detection, HardwareIdCapsule,
+    BAN_MESSAGE,
 };
 
 // ============================================================================
@@ -70,24 +71,22 @@ fn prompt_for_wizard() -> std::io::Result<bool> {
     }
 
     // Check response (default to yes if empty)
-    let wants_wizard = input.is_empty()
-        || input.eq_ignore_ascii_case("y")
-        || input.eq_ignore_ascii_case("yes");
+    let wants_wizard =
+        input.is_empty() || input.eq_ignore_ascii_case("y") || input.eq_ignore_ascii_case("yes");
 
     Ok(wants_wizard)
 }
 
 /// Run the interactive wizard flow
 ///
-/// NOTE: This is a placeholder implementation.
-/// Full wizard implementation is in progress (Agent 3A + 4A).
+/// Full TUI wizard with arrow key navigation and automatic hardware detection.
 ///
-/// The wizard will:
-/// 1. Load user preferences (skip wizard if disabled)
-/// 2. Initialize DashboardRunner with wizard mode
-/// 3. Run interactive wizard steps
-/// 4. Map user choices to encoding options
-/// 5. Start encoding with chosen options
+/// # Flow
+/// 1. Hardware detection (CPU, GPU, memory)
+/// 2. Video file selection
+/// 3. Quality goal choice (Smallest/Balanced/Best)
+/// 4. Speed choice (Quick/Normal/Thorough)
+/// 5. Confirmation and encoding start
 ///
 /// # Arguments
 ///
@@ -96,20 +95,161 @@ fn prompt_for_wizard() -> std::io::Result<bool> {
 /// # Returns
 ///
 /// `Ok(())` on success, `Err(String)` on failure
-fn run_wizard(_global: &GlobalOptions) -> Result<(), String> {
-    eprintln!("💜 Kindly-AV1 Wizard");
-    eprintln!();
-    eprintln!("NOTICE: Full wizard implementation is in progress.");
-    eprintln!();
-    eprintln!("The wizard will guide you through:");
-    eprintln!("  1. Selecting a video file");
-    eprintln!("  2. Choosing quality goal (Best Quality / Balanced / Smallest Size)");
-    eprintln!("  3. Choosing encoding speed (Fast / Normal / Slow)");
-    eprintln!("  4. Reviewing and confirming settings");
-    eprintln!();
-    eprintln!("For now, please use direct encoding:");
-    eprintln!("  kindly-av1 encode input.mp4 -o output.av1");
-    eprintln!();
+fn run_wizard(global: &GlobalOptions) -> Result<(), String> {
+    use kindly_av1::cli::wizard::{
+        map_to_encoding_options,
+        steps::WizardContext,
+        tui::{disable_raw_mode, enable_raw_mode, keys, read_key},
+        SpeedChoice, TerminalStateCapsule, WizardFlowCapsule, WizardState, WizardTuiCapsule,
+    };
+
+    // Create wizard components
+    let flow = WizardFlowCapsule::new();
+    let tui = WizardTuiCapsule::new(&flow);
+    let terminal = TerminalStateCapsule::new();
+
+    // Detect hardware
+    let caps = check_system_capabilities();
+    let cpu_threads = std::thread::available_parallelism()
+        .map(|n| n.get() as u32)
+        .unwrap_or(8);
+    let memory_gb = 16; // Placeholder - would need system API
+
+    // Initialize context with hardware info
+    let mut ctx = WizardContext {
+        input_path: None,
+        quality: flow.quality(),
+        speed: flow.speed(),
+        output_path: None,
+        gpu_name: if caps.direct_formats_supported {
+            "ROCm GPU".to_string()
+        } else {
+            "Unknown".to_string()
+        },
+        cpu_threads,
+        memory_gb,
+    };
+
+    // Enter raw mode for keyboard input
+    terminal
+        .enter_raw_mode()
+        .map_err(|e| format!("Failed to enter raw mode: {}", e))?;
+
+    // Ensure terminal is restored on panic
+    struct TerminalGuard<'a>(&'a TerminalStateCapsule);
+    impl Drop for TerminalGuard<'_> {
+        fn drop(&mut self) {
+            let _ = self.0.exit_raw_mode();
+        }
+    }
+    let _guard = TerminalGuard(&terminal);
+
+    // Start wizard
+    flow.start();
+
+    // Main wizard loop
+    loop {
+        // Update context from flow state
+        ctx.quality = flow.quality();
+        ctx.speed = flow.speed();
+        if let Some(path) = flow.input_path() {
+            ctx.input_path = Some(path.clone());
+            // Auto-generate output path
+            let output = std::path::PathBuf::from(&path);
+            if let Some(stem) = output.file_stem() {
+                let mut out_path = output.with_file_name(stem);
+                out_path.set_extension("av1");
+                ctx.output_path = Some(out_path.to_string_lossy().into_owned());
+            }
+        }
+
+        // Render current state
+        if let Err(e) = tui.render(&ctx) {
+            eprintln!("Render error: {}", e);
+            break;
+        }
+
+        // Check for completion or cancellation
+        let state = flow.state();
+        match state {
+            WizardState::Complete => {
+                // Exit raw mode before encoding
+                drop(_guard);
+                terminal
+                    .exit_raw_mode()
+                    .map_err(|e| format!("Failed to exit raw mode: {}", e))?;
+
+                // Get encoding options from wizard choices
+                let encoding_opts = map_to_encoding_options(ctx.quality, ctx.speed);
+
+                // Map speed choice to preset
+                use kindly_av1::cli::Preset;
+                let preset = match ctx.speed {
+                    SpeedChoice::Quick => Preset::Fast,
+                    SpeedChoice::Normal => Preset::Balanced,
+                    SpeedChoice::Thorough => Preset::Quality,
+                };
+
+                // Build EncodeOptions from wizard choices
+                let encode_opts = EncodeOptions {
+                    input: std::path::PathBuf::from(
+                        ctx.input_path.as_ref().ok_or("No input file selected")?,
+                    ),
+                    output: ctx.output_path.as_ref().map(std::path::PathBuf::from),
+                    preset,
+                    crf: encoding_opts.crf,
+                    resume: false,
+                    checkpoint_path: None,
+                    checkpoint_interval: None,
+                    bitrate: 0, // CRF mode
+                    two_pass: false,
+                    start_time: None,
+                    duration: None,
+                    filters: Vec::new(),
+                    width: 0,        // Auto-detect
+                    height: 0,       // Auto-detect
+                    fps: 0.0,        // Auto-detect
+                    overwrite: true, // Auto-overwrite in wizard mode
+                    obs: Default::default(),
+                    wizard: false,
+                };
+
+                // Start encoding
+                return run_encode_integrated(encode_opts, global);
+            }
+            WizardState::Cancelled => {
+                // Exit gracefully
+                drop(_guard);
+                terminal
+                    .exit_raw_mode()
+                    .map_err(|e| format!("Failed to exit raw mode: {}", e))?;
+
+                eprintln!("\nWizard cancelled.");
+                return Ok(());
+            }
+            _ => {}
+        }
+
+        // Read key input (blocking)
+        let key = read_key().map_err(|e| format!("Failed to read key: {}", e))?;
+
+        // Handle Ctrl+C
+        if key == keys::CTRL_C {
+            flow.cancel();
+            continue;
+        }
+
+        // Handle key and check for redraw
+        if tui.handle_key(key) {
+            // Screen needs redraw - loop will re-render
+        }
+    }
+
+    // Should not reach here, but ensure cleanup
+    drop(_guard);
+    terminal
+        .exit_raw_mode()
+        .map_err(|e| format!("Failed to exit raw mode: {}", e))?;
 
     Ok(())
 }
@@ -140,8 +280,14 @@ fn check_hardware_ban() -> Result<(), String> {
             Err(format!(
                 "{}\n\nYour hardware ID: {:02x}{:02x}{:02x}{:02x}...{:02x}{:02x}{:02x}{:02x}",
                 BAN_MESSAGE,
-                hw_id[0], hw_id[1], hw_id[2], hw_id[3],
-                hw_id[28], hw_id[29], hw_id[30], hw_id[31]
+                hw_id[0],
+                hw_id[1],
+                hw_id[2],
+                hw_id[3],
+                hw_id[28],
+                hw_id[29],
+                hw_id[30],
+                hw_id[31]
             ))
         }
         Ok(false) => Ok(()),
@@ -196,6 +342,227 @@ fn check_tamper_status() -> u64 {
     }
 }
 
+// ============================================================================
+// Pre-flight Validation Functions
+// ============================================================================
+
+/// Pre-flight validation result
+#[derive(Debug)]
+pub struct PreflightResult {
+    /// All checks passed
+    pub passed: bool,
+    /// Any warnings (non-fatal)
+    pub warnings: Vec<String>,
+    /// Error if failed (fatal)
+    pub error: Option<FriendlyError>,
+}
+
+impl PreflightResult {
+    fn ok() -> Self {
+        Self {
+            passed: true,
+            warnings: Vec::new(),
+            error: None,
+        }
+    }
+
+    fn warning(mut self, warning: impl Into<String>) -> Self {
+        self.warnings.push(warning.into());
+        self
+    }
+
+    fn fail(error: FriendlyError) -> Self {
+        Self {
+            passed: false,
+            warnings: Vec::new(),
+            error: Some(error),
+        }
+    }
+}
+
+/// Run pre-flight validation for encode command
+///
+/// Checks before encoding starts:
+/// 1. Input file exists and is readable
+/// 2. Input file is a supported format
+/// 3. Output directory is writable
+/// 4. Sufficient disk space for output
+/// 5. GPU availability (if requested)
+/// 6. License validity (warns if demo mode)
+///
+/// Returns user-friendly errors with suggestions.
+fn preflight_validate_encode(opts: &EncodeOptions, global: &GlobalOptions) -> PreflightResult {
+    let mut result = PreflightResult::ok();
+
+    // === Check 1: Input file exists ===
+    if !opts.input.exists() {
+        return PreflightResult::fail(
+            FriendlyError::new(format!("Video file not found: {}", opts.input.display()))
+                .with_explanation(
+                    "The input file you specified doesn't exist or isn't accessible.\n\
+                     This can happen if:\n\
+                     - The file path has a typo\n\
+                     - The file was moved or deleted\n\
+                     - You don't have permission to read it"
+                )
+                .with_suggestion("Check the file path and try again")
+                .with_example(format!("kindly-av1 /path/to/your/video.mp4"))
+        );
+    }
+
+    // === Check 2: Input is a file (not directory) ===
+    if opts.input.is_dir() {
+        return PreflightResult::fail(
+            FriendlyError::new(format!("{} is a directory, not a video file", opts.input.display()))
+                .with_explanation(
+                    "kindly-av1 encodes individual video files, not directories.\n\
+                     If you want to encode multiple files, run kindly-av1 for each one."
+                )
+                .with_suggestion("Provide a video file path instead")
+                .with_example(format!("kindly-av1 {}/video.mp4", opts.input.display()))
+        );
+    }
+
+    // === Check 3: Supported format ===
+    let format = detect_format(&opts.input);
+    if format.is_none() {
+        let extension = opts.input.extension()
+            .map(|e| e.to_string_lossy().to_string())
+            .unwrap_or_else(|| "unknown".to_string());
+
+        return PreflightResult::fail(
+            FriendlyError::new(format!("Unsupported video format: .{}", extension))
+                .with_explanation(
+                    "kindly-av1 supports these video formats:\n\
+                     - MP4 (.mp4, .m4v)\n\
+                     - Matroska (.mkv)\n\
+                     - QuickTime (.mov)\n\
+                     - WebM (.webm)\n\
+                     - AVI (.avi)\n\
+                     - Raw YUV (.y4m, .yuv)"
+                )
+                .with_suggestion("Convert your video to a supported format first")
+                .with_example("ffmpeg -i input.xyz -c:v copy output.mp4")
+        );
+    }
+
+    // === Check 4: Output directory exists and is writable ===
+    let output_path = opts.output_path();
+    if let Some(parent) = output_path.parent() {
+        if !parent.as_os_str().is_empty() && !parent.exists() {
+            return PreflightResult::fail(
+                FriendlyError::new(format!("Output directory doesn't exist: {}", parent.display()))
+                    .with_explanation(
+                        "The directory where you want to save the output file doesn't exist."
+                    )
+                    .with_suggestion("Create the directory first, or choose a different output location")
+                    .with_example(format!("mkdir -p {} && kindly-av1 {} -o {}",
+                        parent.display(),
+                        opts.input.display(),
+                        output_path.display()
+                    ))
+            );
+        }
+
+        // Check if directory is writable by trying to create a temp file
+        if parent.exists() {
+            let test_path = parent.join(".kindly-av1-write-test");
+            match std::fs::File::create(&test_path) {
+                Ok(_) => {
+                    let _ = std::fs::remove_file(&test_path);
+                }
+                Err(_) => {
+                    return PreflightResult::fail(
+                        FriendlyError::new(format!("Cannot write to directory: {}", parent.display()))
+                            .with_explanation(
+                                "You don't have permission to write files to this directory."
+                            )
+                            .with_suggestion("Choose a different output directory, or check permissions")
+                            .with_example(format!("kindly-av1 {} -o ~/Videos/output.av1", opts.input.display()))
+                    );
+                }
+            }
+        }
+    }
+
+    // === Check 5: Output file doesn't exist (unless overwrite) ===
+    if output_path.exists() && !opts.overwrite {
+        result = result.warning(format!(
+            "Output file already exists: {}. Use -y to overwrite.",
+            output_path.display()
+        ));
+    }
+
+    // === Check 6: Disk space check ===
+    // Estimate needed space: input size * 0.5 (AV1 usually compresses well)
+    // Plus some buffer for temp files
+    if let Ok(input_meta) = std::fs::metadata(&opts.input) {
+        let input_size = input_meta.len();
+        let estimated_output = input_size / 2; // Conservative estimate
+        let estimated_total = estimated_output + 100 * 1024 * 1024; // +100MB buffer
+
+        // Check disk space using statvfs on Unix
+        // Note: Full statvfs implementation would require libc bindings
+        // For now, we warn if input is large regardless of actual free space
+        #[cfg(unix)]
+        {
+            let output_dir = output_path.parent().unwrap_or(std::path::Path::new("."));
+            if output_dir.exists() && input_size > 10 * 1024 * 1024 * 1024 {
+                // > 10GB input - warn about disk space needs
+                result = result.warning(format!(
+                    "Large input file ({}). Ensure sufficient disk space (~{} needed)",
+                    format_size(input_size),
+                    format_size(estimated_total)
+                ));
+            }
+        }
+    }
+
+    // === Check 7: GPU availability (if not disabled) ===
+    if !global.no_gpu {
+        let caps = check_system_capabilities();
+        if !caps.direct_formats_supported {
+            result = result.warning(
+                "No GPU detected. Encoding will use CPU only (slower)."
+            );
+        }
+    }
+
+    // === Check 8: CRF range validation ===
+    if opts.crf > 63 {
+        return PreflightResult::fail(
+            FriendlyError::new(format!("CRF {} is out of range", opts.crf))
+                .with_explanation(
+                    "CRF (Constant Rate Factor) must be between 0 and 63.\n\
+                     - Lower values (18-25): Higher quality, larger files\n\
+                     - Medium values (26-35): Balanced quality and size\n\
+                     - Higher values (36-50): Lower quality, smaller files"
+                )
+                .with_suggestion("Use CRF 28-32 for a good balance")
+                .with_example(format!("kindly-av1 {} --crf 30", opts.input.display()))
+        );
+    }
+
+    result
+}
+
+/// Format file size in human-readable format
+fn format_size(bytes: u64) -> String {
+    const KB: u64 = 1024;
+    const MB: u64 = KB * 1024;
+    const GB: u64 = MB * 1024;
+
+    if bytes >= GB {
+        format!("{:.1} GB", bytes as f64 / GB as f64)
+    } else if bytes >= MB {
+        format!("{:.1} MB", bytes as f64 / MB as f64)
+    } else if bytes >= KB {
+        format!("{:.1} KB", bytes as f64 / KB as f64)
+    } else {
+        format!("{} B", bytes)
+    }
+}
+
 /// Main entry point for kindly-av1
 ///
 /// Parses CLI arguments and dispatches to appropriate command handler.
@@ -244,7 +611,7 @@ fn main() -> ExitCode {
                 Ok(false) => {
                     // User declined wizard - show help
                     branding::print_header_with_config(&color_config);
-                    execute(parsed).map_err(|e| e.to_string())
+                    execute(parsed).map_err(|e: CommandError| e.to_string())
                 }
                 Err(e) => Err(format!("Prompt failed: {}", e)),
             }
@@ -266,7 +633,7 @@ fn main() -> ExitCode {
                 }
 
                 // Use the CLI module's execute for other commands
-                _ => execute(parsed).map_err(|e| e.to_string()),
+                _ => execute(parsed).map_err(|e: CommandError| e.to_string()),
             }
         }
     };
@@ -283,10 +650,11 @@ fn main() -> ExitCode {
 /// Integrated encode command with full metacapsule wiring
 ///
 /// This is the production-ready encode implementation that:
-/// 1. Verifies license (metacapsule requires valid license)
-/// 2. Handles checkpoint/resume
-/// 3. Uses KindlyAv1CliMetacapsule for encoding
-/// 4. Provides progress tracking
+/// 1. Runs pre-flight validation with user-friendly errors
+/// 2. Verifies license (metacapsule requires valid license)
+/// 3. Handles checkpoint/resume
+/// 4. Uses KindlyAv1CliMetacapsule for encoding
+/// 5. Provides progress tracking
 fn run_encode_integrated(opts: EncodeOptions, global: &GlobalOptions) -> Result<(), String> {
     let color_config = branding::ColorConfig {
         enabled: global.should_color(),
@@ -297,12 +665,27 @@ fn run_encode_integrated(opts: EncodeOptions, global: &GlobalOptions) -> Result<
         branding::print_header_with_config(&color_config);
     }
 
-    // Validate input file exists
-    if !opts.input.exists() {
-        return Err(format!("Input file not found: {}", opts.input.display()));
+    // =========================================================================
+    // PRE-FLIGHT VALIDATION - User-friendly error checking before we start
+    // =========================================================================
+    let preflight = preflight_validate_encode(&opts, global);
+
+    // Show any warnings (non-fatal issues)
+    for warning in &preflight.warnings {
+        if global.should_output() {
+            branding::print_warning_with_config(warning, &color_config);
+        }
     }
 
-    // Detect input format
+    // Fail with user-friendly error if validation failed
+    if !preflight.passed {
+        if let Some(err) = preflight.error {
+            return Err(format_friendly_error(&err));
+        }
+        return Err("Pre-flight validation failed".into());
+    }
+
+    // Detect input format (already validated in preflight, but needed for later)
     let format = detect_format(&opts.input)
         .ok_or_else(|| format!("Unsupported input format: {}", opts.input.display()))?;
 
@@ -315,57 +698,71 @@ fn run_encode_integrated(opts: EncodeOptions, global: &GlobalOptions) -> Result<
     // Determine output path
     let output_path = opts.output_path();
 
-    // Check if output exists (unless overwrite is set)
-    if output_path.exists() && !opts.overwrite {
-        return Err(format!(
-            "Output file already exists: {} (use -y to overwrite)",
-            output_path.display()
-        ));
-    }
-
     // Print encoding info
     if global.should_output() {
-        let purple = if color_config.enabled { branding::PURPLE } else { "" };
-        let dim = if color_config.enabled { branding::DIM } else { "" };
-        let reset = if color_config.enabled { branding::RESET } else { "" };
+        let purple = if color_config.enabled {
+            branding::PURPLE
+        } else {
+            ""
+        };
+        let dim = if color_config.enabled {
+            branding::DIM
+        } else {
+            ""
+        };
+        let reset = if color_config.enabled {
+            branding::RESET
+        } else {
+            ""
+        };
 
         println!(
             "{}{} Input:{}  {} ({:?})",
-            purple, branding::FOLDER, reset,
-            opts.input.display(), format
+            purple,
+            branding::FOLDER,
+            reset,
+            opts.input.display(),
+            format
         );
         println!(
             "{}{} Output:{} {}",
-            purple, branding::FOLDER, reset,
+            purple,
+            branding::FOLDER,
+            reset,
             output_path.display()
         );
         println!(
             "{}{} Preset:{} {} (speed {})",
-            purple, branding::GEAR, reset,
-            opts.preset.name(), opts.preset.speed()
+            purple,
+            branding::GEAR,
+            reset,
+            opts.preset.name(),
+            opts.preset.speed()
         );
-        println!(
-            "{}{} CRF:{}    {}",
-            purple, branding::GEAR, reset,
-            opts.crf
-        );
+        println!("{}{} CRF:{}    {}", purple, branding::GEAR, reset, opts.crf);
 
         if global.no_gpu {
             println!(
                 "{}{}  Mode:{}   CPU-only (GPU disabled)",
-                dim, branding::INFO, reset
+                dim,
+                branding::INFO,
+                reset
             );
         } else {
             println!(
                 "{}{} Mode:{}   GPU-accelerated (auto)",
-                purple, branding::LIGHTNING, reset
+                purple,
+                branding::LIGHTNING,
+                reset
             );
         }
 
         if opts.resume {
             println!(
                 "{}{} Resume:{} Enabled (checking for checkpoint...)",
-                purple, branding::CLOCK, reset
+                purple,
+                branding::CLOCK,
+                reset
             );
         }
 
@@ -374,7 +771,9 @@ fn run_encode_integrated(opts: EncodeOptions, global: &GlobalOptions) -> Result<
     }
 
     // Handle checkpoint/resume
-    let checkpoint_path = opts.checkpoint.clone()
+    let checkpoint_path = opts
+        .checkpoint_path
+        .clone()
         .unwrap_or_else(|| default_checkpoint_path(&output_path));
 
     let _recovery = if opts.resume && checkpoint_path.exists() {
@@ -387,7 +786,7 @@ fn run_encode_integrated(opts: EncodeOptions, global: &GlobalOptions) -> Result<
                 if recovery.should_resume() && global.should_output() {
                     branding::print_info_with_config(
                         &format!("Resuming from frame {}", recovery.resume_frame),
-                        &color_config
+                        &color_config,
                     );
                 }
                 recovery
@@ -417,7 +816,7 @@ fn run_encode_integrated(opts: EncodeOptions, global: &GlobalOptions) -> Result<
                 if global.should_output() {
                     branding::print_warning_with_config(
                         "No valid license found. Please activate your license.",
-                        &color_config
+                        &color_config,
                     );
                     println!();
                     println!("  To activate, run: kindly-av1 license activate <YOUR_LICENSE_KEY>");
@@ -430,7 +829,10 @@ fn run_encode_integrated(opts: EncodeOptions, global: &GlobalOptions) -> Result<
                 return Err("License is bound to different hardware. Please re-activate.".into());
             }
             LicenseError::Expired => {
-                return Err("License has expired. Please renew at https://kindly.gumroad.com/kindly-av1".into());
+                return Err(
+                    "License has expired. Please renew at https://kindly.gumroad.com/kindly-av1"
+                        .into(),
+                );
             }
             other => {
                 return Err(format!("License error: {}", other));
@@ -479,11 +881,63 @@ fn run_encode_integrated(opts: EncodeOptions, global: &GlobalOptions) -> Result<
         temp_reader.info().clone()
     };
 
+    // =========================================================================
+    // TIER ENFORCEMENT - Check resolution against license tier
+    // =========================================================================
+
+    // Create tier enforcement capsule (T1 Atomic, 256B cache-aligned)
+    // TODO: Read actual tier from license file when tier storage is implemented
+    // For now, default to RegisteredFree (720p) for free tier distribution
+    let tier_capsule = TierEnforcementCapsule::with_tier(LicenseTier::RegisteredFree);
+
+    // Check if video resolution exceeds tier limit
+    if !tier_capsule.check_resolution(video_info.width, video_info.height) {
+        let max_width = tier_capsule.max_width();
+        let tier_name = match tier_capsule.tier() {
+            LicenseTier::AnonymousFree => "Anonymous Free (480p)",
+            LicenseTier::RegisteredFree => "Registered Free (720p)",
+            LicenseTier::Creator => "Creator (1080p)",
+            LicenseTier::Professional => "Professional (4K)",
+            LicenseTier::Enterprise => "Enterprise (8K)",
+        };
+
+        if global.should_output() {
+            branding::print_error_with_config(
+                &format!(
+                    "Resolution {}x{} exceeds {} tier limit (max {}px width)",
+                    video_info.width, video_info.height, tier_name, max_width
+                ),
+                &color_config,
+            );
+            println!();
+            println!("  To encode higher resolutions, upgrade your license:");
+            println!("    Creator (1080p):      $49  - https://kindly.gumroad.com/kindly-av1");
+            println!("    Professional (4K):   $149  - https://kindly.gumroad.com/kindly-av1");
+            println!("    Enterprise (8K):     $499  - https://kindly.gumroad.com/kindly-av1");
+            println!();
+        }
+
+        return Err(format!(
+            "Resolution {}x{} exceeds {} tier limit (max {}px width). Upgrade at https://kindly.gumroad.com/kindly-av1",
+            video_info.width, video_info.height, tier_name, max_width
+        ));
+    }
+
+    if global.should_output() && global.verbose >= 1 {
+        branding::print_success_with_config(
+            &format!(
+                "Resolution {}x{} within tier limit",
+                video_info.width, video_info.height
+            ),
+            &color_config,
+        );
+    }
+
     // Create encoder wiring capsule (T6 Mixed, 128B)
     let mut wiring_capsule = EncoderWiringCapsule::new();
 
     // Initialize with video dimensions and encoding parameters
-    let sub_capsules = wiring_capsule
+    let mut sub_capsules = wiring_capsule
         .initialize(
             video_info.width,
             video_info.height,
@@ -494,9 +948,11 @@ fn run_encode_integrated(opts: EncodeOptions, global: &GlobalOptions) -> Result<
 
     if global.should_output() {
         branding::print_success_with_config(
-            &format!("Wiring capsule initialized ({}x{}, CRF {})",
-                video_info.width, video_info.height, opts.crf),
-            &color_config
+            &format!(
+                "Wiring capsule initialized ({}x{}, CRF {})",
+                video_info.width, video_info.height, opts.crf
+            ),
+            &color_config,
         );
     }
 
@@ -514,13 +970,14 @@ fn run_encode_integrated(opts: EncodeOptions, global: &GlobalOptions) -> Result<
 
     // Seek to resume frame if needed
     if _recovery.should_resume() {
-        reader.seek(_recovery.resume_frame)
+        reader
+            .seek(_recovery.resume_frame)
             .map_err(|e| format!("Failed to seek to resume frame: {}", e))?;
     }
 
     // Open output file with buffered writer
-    let output_file = File::create(&output_path)
-        .map_err(|e| format!("Failed to create output file: {}", e))?;
+    let output_file =
+        File::create(&output_path).map_err(|e| format!("Failed to create output file: {}", e))?;
     let mut writer = BufWriter::with_capacity(1024 * 1024, output_file); // 1MB buffer
 
     // Get total frames for progress
@@ -530,7 +987,7 @@ fn run_encode_integrated(opts: EncodeOptions, global: &GlobalOptions) -> Result<
     if global.should_output() {
         branding::print_info_with_config(
             &format!("Encoding {} frames...", total_frames),
-            &color_config
+            &color_config,
         );
         println!();
     }
@@ -540,11 +997,10 @@ fn run_encode_integrated(opts: EncodeOptions, global: &GlobalOptions) -> Result<
     // =========================================================================
     let mut frames_encoded: u64 = 0;
     let mut total_bytes_written: u64 = 0;
-    let input_size = std::fs::metadata(&opts.input)
-        .map(|m| m.len())
-        .unwrap_or(0);
+    let input_size = std::fs::metadata(&opts.input).map(|m| m.len()).unwrap_or(0);
 
-    while let Some(frame) = reader.read_frame()
+    while let Some(frame) = reader
+        .read_frame()
         .map_err(|e| format!("Failed to read frame: {}", e))?
     {
         // Periodic tamper check (every 1000 frames)
@@ -565,11 +1021,12 @@ fn run_encode_integrated(opts: EncodeOptions, global: &GlobalOptions) -> Result<
 
         // Encode frame via wiring capsule -> atomic_capsule metacapsule
         let encoded_data = wiring_capsule
-            .encode_frame(&yuv_data, &sub_capsules)
+            .encode_frame(&yuv_data, &mut sub_capsules)
             .map_err(|e| format!("Failed to encode frame {}: {}", frame.frame_num, e))?;
 
         // Write encoded data to output
-        writer.write_all(&encoded_data)
+        writer
+            .write_all(&encoded_data)
             .map_err(|e| format!("Failed to write encoded data: {}", e))?;
 
         frames_encoded += 1;
@@ -585,7 +1042,7 @@ fn run_encode_integrated(opts: EncodeOptions, global: &GlobalOptions) -> Result<
                 total_frames,
                 fps,
                 frames_encoded,
-                &color_config
+                &color_config,
             );
         }
 
@@ -613,17 +1070,20 @@ fn run_encode_integrated(opts: EncodeOptions, global: &GlobalOptions) -> Result<
     // =========================================================================
 
     // Flush any remaining frames from encoder
-    let flushed_frames = wiring_capsule.flush(&sub_capsules)
+    let flushed_frames = wiring_capsule
+        .flush(&sub_capsules)
         .map_err(|e| format!("Failed to flush encoder: {}", e))?;
 
     for encoded_data in flushed_frames {
-        writer.write_all(&encoded_data)
+        writer
+            .write_all(&encoded_data)
             .map_err(|e| format!("Failed to write flushed data: {}", e))?;
         total_bytes_written += encoded_data.len() as u64;
     }
 
     // Final flush of output file
-    writer.flush()
+    writer
+        .flush()
         .map_err(|e| format!("Failed to flush output file: {}", e))?;
     drop(writer); // Close the file
 
@@ -652,7 +1112,7 @@ fn run_encode_integrated(opts: EncodeOptions, global: &GlobalOptions) -> Result<
             total_bytes_written,
             elapsed_secs,
             fps,
-            &color_config
+            &color_config,
         );
 
         // Additional stats if verbose
@@ -693,21 +1153,42 @@ fn cmd_license_help(config: &branding::ColorConfig) {
     println!("    kindly-av1 license <SUBCOMMAND>");
     println!();
     println!("{}SUBCOMMANDS:{}", bold, reset);
-    println!("    {}activate <KEY>{}  Activate with license key from Gumroad", gold, reset);
-    println!("    {}status{}          Show current license status", gold, reset);
-    println!("    {}deactivate{}      Remove license from this machine", gold, reset);
+    println!(
+        "    {}activate <KEY>{}  Activate with license key from Gumroad",
+        gold, reset
+    );
+    println!(
+        "    {}status{}          Show current license status",
+        gold, reset
+    );
+    println!(
+        "    {}deactivate{}      Remove license from this machine",
+        gold, reset
+    );
     println!();
     println!("{}EXAMPLES:{}", bold, reset);
     println!("    kindly-av1 license activate KDLY-XXXX-XXXX-XXXX-XXXX");
     println!("    kindly-av1 license status");
     println!();
     println!("{}PURCHASE:{}", bold, reset);
-    println!("    Get your license at: {}https://kindly.gumroad.com/kindly-av1{}", gold, reset);
+    println!(
+        "    Get your license at: {}https://kindly.gumroad.com/kindly-av1{}",
+        gold, reset
+    );
     println!();
     println!("{}LICENSE TIERS:{}", bold, reset);
-    println!("    {}Creator{}      $49  - 1080p max, 2 machines", gold, reset);
-    println!("    {}Professional{} $149 - 4K max, 3 machines", gold, reset);
-    println!("    {}Enterprise{}   $499 - 8K max, 10 machines", gold, reset);
+    println!(
+        "    {}Creator{}      $49  - 1080p max, 2 machines",
+        gold, reset
+    );
+    println!(
+        "    {}Professional{} $149 - 4K max, 3 machines",
+        gold, reset
+    );
+    println!(
+        "    {}Enterprise{}   $499 - 8K max, 10 machines",
+        gold, reset
+    );
     println!();
     branding::print_divider_with_config(config);
 }

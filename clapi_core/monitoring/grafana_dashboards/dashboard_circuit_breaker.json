@@ -1,0 +1,210 @@
+{
+  "dashboard": {
+    "title": "clapi_core - Circuit Breaker",
+    "tags": ["clapi_core", "circuit_breaker", "providers"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "5s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Circuit State (16 Providers)",
+        "type": "table",
+        "gridPos": {"h": 10, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "clapi_circuit_state",
+            "legendFormat": "{{provider_id}}",
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "provider_id": "Provider",
+                "Value": "State"
+              }
+            }
+          }
+        ],
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "State"},
+              "properties": [
+                {
+                  "id": "mappings",
+                  "value": [
+                    {"type": "value", "value": "0", "text": "Closed", "color": "green"},
+                    {"type": "value", "value": "1", "text": "HalfOpen", "color": "yellow"},
+                    {"type": "value", "value": "2", "text": "Open", "color": "red"}
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 2,
+        "title": "Open Circuits Count",
+        "type": "stat",
+        "gridPos": {"h": 5, "w": 6, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "count(clapi_circuit_state == 2)",
+            "legendFormat": "Open Circuits"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 2, "color": "yellow"},
+                {"value": 5, "color": "orange"},
+                {"value": 10, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Circuit Trip Count",
+        "type": "stat",
+        "gridPos": {"h": 5, "w": 6, "x": 18, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(increase(clapi_circuit_trips_total[1h]))",
+            "legendFormat": "Trips (last hour)"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 4,
+        "title": "Failure Rate by Provider (Basis Points)",
+        "type": "graph",
+        "gridPos": {"h": 10, "w": 12, "x": 12, "y": 5},
+        "targets": [
+          {
+            "expr": "clapi_circuit_failure_rate_bp",
+            "legendFormat": "{{provider_id}}"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "short",
+            "label": "Failure Rate (bp)",
+            "min": 0,
+            "max": 10000
+          },
+          {"format": "short", "show": false}
+        ],
+        "seriesOverrides": [
+          {
+            "alias": "/.*/",
+            "lines": true,
+            "linewidth": 2
+          }
+        ],
+        "thresholds": [
+          {"value": 500, "colorMode": "critical", "op": "gt", "fill": false, "line": true, "yaxis": "left"},
+          {"value": 1000, "colorMode": "critical", "op": "gt", "fill": true, "line": true, "yaxis": "left"}
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Circuit Recovery Time",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(clapi_circuit_recovery_time_ns_bucket[5m])) / 1e9",
+            "legendFormat": "P50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(clapi_circuit_recovery_time_ns_bucket[5m])) / 1e9",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(clapi_circuit_recovery_time_ns_bucket[5m])) / 1e9",
+            "legendFormat": "P99"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Recovery Time (seconds)"},
+          {"format": "short", "show": false}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Failover Efficiency",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 15},
+        "targets": [
+          {
+            "expr": "(1 - (rate(clapi_proxy_all_circuits_open_total[1h]) / rate(clapi_proxy_requests_total[1h]))) * 100",
+            "legendFormat": "Failover Success %"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "label": "Success Rate", "min": 95, "max": 100},
+          {"format": "short", "show": false}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [99.5], "type": "lt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "1h", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "Failover Success < 99.5%",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 7,
+        "title": "Provider Success/Failure Counts",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 18},
+        "targets": [
+          {
+            "expr": "rate(clapi_provider_requests_success_total[1m])",
+            "legendFormat": "{{provider_id}} - Success"
+          },
+          {
+            "expr": "rate(clapi_provider_requests_failure_total[1m])",
+            "legendFormat": "{{provider_id}} - Failure"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Requests/sec"},
+          {"format": "short", "show": false}
+        ]
+      }
+    ]
+  }
+}

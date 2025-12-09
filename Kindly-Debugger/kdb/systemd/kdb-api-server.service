@@ -1,6 +1,6 @@
 [Unit]
 Description=KDB API Server - Kindly Debugger REST API
-Documentation=https://kindly.services/kdb
+Documentation=https://kindly.software/kdb
 After=network.target
 Wants=network-online.target
 

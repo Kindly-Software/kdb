@@ -24,12 +24,11 @@
 //! 3. H-H → Identity (2→0 gates, eliminated)
 //! 4. T4 → S (4→1 gates, 4× reduction)
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 
 #[cfg(feature = "quantum-pure")]
 use atomic_capsule::quantum_pure::{
-    QuantumCircuitCapsule, QuantumGateCapsule,
-    circuit_rewriter::CircuitRewriterCapsule,
+    circuit_rewriter::CircuitRewriterCapsule, QuantumCircuitCapsule, QuantumGateCapsule,
 };
 
 // ============================================================================
@@ -72,7 +71,10 @@ fn create_circuit_with_identities(num_qubits: usize, num_pairs: usize) -> Quantu
 }
 
 #[cfg(feature = "quantum-pure")]
-fn create_circuit_with_hadamard_pairs(num_qubits: usize, num_pairs: usize) -> QuantumCircuitCapsule {
+fn create_circuit_with_hadamard_pairs(
+    num_qubits: usize,
+    num_pairs: usize,
+) -> QuantumCircuitCapsule {
     let mut circuit = QuantumCircuitCapsule::new(num_qubits as u32).unwrap();
 
     // Add H-H pairs (should eliminate to identity)
@@ -344,7 +346,9 @@ fn bench_statistics_overhead(c: &mut Criterion) {
             rewriter.total_fusions.fetch_add(1, Ordering::Relaxed);
             rewriter.gates_eliminated.fetch_add(3, Ordering::Relaxed);
             rewriter.rewrite_count.fetch_add(1, Ordering::Relaxed);
-            rewriter.cumulative_latency_ns.fetch_add(100, Ordering::Relaxed);
+            rewriter
+                .cumulative_latency_ns
+                .fetch_add(100, Ordering::Relaxed);
         });
     });
 

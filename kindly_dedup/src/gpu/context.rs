@@ -10,7 +10,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: T7 Heterogeneous tier (CPU-GPU coordination)
-//! - **COCA**: Lockfree context capsule (AtomicU64 state)
+//! - **Chaos**: Lockfree context capsule (AtomicU64 state)
 //! - **ASSUM**: Documented GPU assumptions
 //! - **B32**: N/A (context initialization, not hot path)
 //! - **T28**: Unit tests, fallback tests
@@ -24,13 +24,20 @@
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 
 use wgpu::{Device, Queue};
 
+/// Default GPU initialization timeout (5 seconds)
+/// Can be overridden via KINDLY_GPU_TIMEOUT_SECS environment variable
+const DEFAULT_GPU_TIMEOUT_SECS: u64 = 5;
+use wgpu::util::DeviceExt;
+
 use super::capabilities::GpuCapabilities;
 use super::error::{GpuError, GpuResult};
+use super::fed_params::FedHashParamsCapsule;
 
-/// GPU context state (atomic for COCA compliance)
+/// GPU context state (atomic for Chaos compliance)
 #[repr(u64)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GpuContextState {
@@ -80,7 +87,7 @@ impl From<u64> for GpuContextState {
 /// ```
 #[repr(C, align(64))]
 pub struct GpuContextCapsule {
-    /// Atomic state for COCA compliance
+    /// Atomic state for Chaos compliance
     state: AtomicU64,
     /// wgpu device (compute operations)
     device: Option<Arc<Device>>,
@@ -88,6 +95,10 @@ pub struct GpuContextCapsule {
     queue: Option<Arc<Queue>>,
     /// GPU capabilities
     capabilities: Option<GpuCapabilities>,
+    /// FED hash parameters (precomputed, uploaded once)
+    fed_params: Option<FedHashParamsCapsule>,
+    /// FED params GPU buffer (uniform buffer)
+    fed_params_buffer: Option<wgpu::Buffer>,
     /// Padding for 64-byte cache line alignment
     _padding: [u8; 8],
 }
@@ -150,19 +161,130 @@ impl GpuContextCapsule {
             device: Some(Arc::new(device)),
             queue: Some(Arc::new(queue)),
             capabilities: Some(capabilities),
+            fed_params: None,
+            fed_params_buffer: None,
             _padding: [0; 8],
         })
     }
 
-    /// Create GPU context (blocking)
+    /// Initialize FED hash parameters for MinHash optimization
     ///
-    /// Convenience method for synchronous code.
+    /// Precomputes hash parameters on CPU and uploads to GPU uniform buffer.
+    ///
+    /// # Arguments
+    ///
+    /// - `seed`: Random seed for parameter generation (use PID + timestamp)
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())`: FED params initialized successfully
+    /// - `Err(GpuError)`: Device not initialized
+    ///
+    /// # Performance
+    ///
+    /// - One-time cost: <1μs (parameter generation)
+    /// - Upload: <10μs (1KB buffer to GPU)
+    /// - Expected speedup: 6-24× MinHash performance
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use kindly_dedup::gpu::GpuContextCapsule;
+    /// use std::time::{SystemTime, UNIX_EPOCH};
+    ///
+    /// let mut ctx = GpuContextCapsule::new_blocking()?;
+    ///
+    /// // High-entropy seed: PID + timestamp
+    /// let seed = (std::process::id() as u64) << 32
+    ///     | SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos() as u64;
+    ///
+    /// ctx.init_fed_params(seed)?;
+    /// ```
+    pub fn init_fed_params(&mut self, seed: u64) -> GpuResult<()> {
+        let device = self.device.as_ref().ok_or(GpuError::NotInitialized)?;
+
+        // Generate FED parameters on CPU
+        let params = FedHashParamsCapsule::generate(seed);
+
+        // Upload to GPU storage buffer (storage buffers allow 4-byte array stride)
+        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("FED Params Buffer"),
+            contents: &params.to_gpu_buffer(),
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+        });
+
+        self.fed_params = Some(params);
+        self.fed_params_buffer = Some(buffer);
+
+        Ok(())
+    }
+
+    /// Get FED params buffer reference (for binding to shader)
+    pub fn fed_params_buffer(&self) -> Option<&wgpu::Buffer> {
+        self.fed_params_buffer.as_ref()
+    }
+
+    /// Get FED params (for CPU reference testing)
+    pub fn fed_params(&self) -> Option<&FedHashParamsCapsule> {
+        self.fed_params.as_ref()
+    }
+
+    /// Create GPU context with timeout (blocking)
+    ///
+    /// Uses a separate thread to avoid blocking the caller indefinitely.
+    /// If GPU initialization takes longer than the timeout, returns Timeout error.
+    ///
+    /// # Arguments
+    /// - `timeout`: Maximum time to wait for GPU initialization
+    ///
+    /// # Returns
+    /// - `Ok(GpuContextCapsule)` if GPU is available and initialized within timeout
+    /// - `Err(GpuError::Timeout)` if initialization takes too long
+    /// - `Err(GpuError::ThreadPanicked)` if initialization thread panics
+    /// - `Err(GpuError)` if no suitable GPU found
+    ///
+    /// # ASSUM Safety
+    /// - `#ASSUME_TIMEOUT_PREVENTS_HANG`: Thread-based timeout prevents indefinite blocking
+    /// - `#VERIFY_TIMEOUT_PREVENTS_HANG`: Uses channel recv_timeout for guaranteed return
+    pub fn new_with_timeout(timeout: Duration) -> GpuResult<Self> {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let timeout_secs = timeout.as_secs();
+
+        // Spawn initialization in separate thread
+        std::thread::spawn(move || {
+            let result = pollster::block_on(Self::new());
+            // Ignore send error if receiver dropped (timeout expired)
+            let _ = tx.send(result);
+        });
+
+        // Wait with timeout
+        match rx.recv_timeout(timeout) {
+            Ok(result) => result,
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                Err(GpuError::Timeout { timeout_secs })
+            }
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+                Err(GpuError::ThreadPanicked)
+            }
+        }
+    }
+
+    /// Create GPU context (blocking with default timeout)
+    ///
+    /// Convenience method for synchronous code with 5-second timeout.
+    /// Timeout can be adjusted via KINDLY_GPU_TIMEOUT_SECS environment variable.
     ///
     /// # Returns
     /// - `Ok(GpuContextCapsule)` if GPU is available and initialized
+    /// - `Err(GpuError::Timeout)` if initialization takes too long
     /// - `Err(GpuError)` if no suitable GPU found
     pub fn new_blocking() -> GpuResult<Self> {
-        pollster::block_on(Self::new())
+        let timeout_secs = std::env::var("KINDLY_GPU_TIMEOUT_SECS")
+            .ok()
+            .and_then(|s| s.parse::<u64>().ok())
+            .unwrap_or(DEFAULT_GPU_TIMEOUT_SECS);
+
+        Self::new_with_timeout(Duration::from_secs(timeout_secs))
     }
 
     /// Get current state
@@ -175,11 +297,39 @@ impl GpuContextCapsule {
         self.state() == GpuContextState::Ready
     }
 
-    /// Get GPU capabilities
+    /// Try to get GPU capabilities (fallible accessor)
+    ///
+    /// Returns `None` if the GPU context has not been initialized.
+    /// This is the safe alternative to [`capabilities()`] which panics
+    /// on uninitialized contexts.
+    ///
+    /// # ASSUM Safety
+    ///
+    /// - `#ASSUME_OPTION_PATTERN`: Option<&T> provides safe null handling
+    /// - `#VERIFY_OPTION_PATTERN`: Compiler enforces Option unwrapping
+    #[inline]
+    pub fn try_capabilities(&self) -> Option<&GpuCapabilities> {
+        self.capabilities.as_ref()
+    }
+
+    /// Get GPU capabilities (panics if uninitialized)
+    ///
+    /// # Panics
+    ///
+    /// Panics if called on an uninitialized `GpuContextCapsule`.
+    /// Use [`try_capabilities()`] for a fallible alternative, or
+    /// check [`is_ready()`] before calling this method.
+    ///
+    /// # ASSUM Safety
+    ///
+    /// - `#ASSUME_INITIALIZED`: Caller guarantees context is initialized
+    /// - `#VERIFY_INITIALIZED`: Use is_ready() or try_capabilities() to verify
     pub fn capabilities(&self) -> &GpuCapabilities {
-        self.capabilities
-            .as_ref()
-            .expect("GpuContextCapsule not initialized")
+        self.capabilities.as_ref().expect(
+            "GpuContextCapsule not initialized: call GpuContextCapsule::new() or \
+             GpuContextCapsule::new_blocking() first, or use try_capabilities() for \
+             fallible access, or check is_ready() before calling capabilities()",
+        )
     }
 
     /// Get device reference
@@ -252,6 +402,8 @@ impl Default for GpuContextCapsule {
             device: None,
             queue: None,
             capabilities: None,
+            fed_params: None,
+            fed_params_buffer: None,
             _padding: [0; 8],
         }
     }
@@ -289,6 +441,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Requires GPU hardware - run with --ignored on GPU-equipped machines"]
     fn test_gpu_context_creation() {
         // Try to create GPU context
         // This test will pass on systems with GPU, skip gracefully otherwise
@@ -322,6 +475,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Requires GPU hardware - run with --ignored on GPU-equipped machines"]
     fn test_gpu_capabilities_methods() {
         // Create mock capabilities for testing
         match GpuContextCapsule::new_blocking() {
@@ -359,6 +513,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Requires GPU hardware - run with --ignored on GPU-equipped machines"]
     fn test_gpu_context_arc_sharing() {
         match GpuContextCapsule::new_blocking() {
             Ok(ctx) => {

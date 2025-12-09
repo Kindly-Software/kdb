@@ -1,0 +1,5 @@
+[lints.clippy]
+capsule_mutex_violation = "deny"
+capsule_unaligned_violation = "deny"
+capsule_missing_generation = "deny"
+capsule_non_atomic_field = "deny"

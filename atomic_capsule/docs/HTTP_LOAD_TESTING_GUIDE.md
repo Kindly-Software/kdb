@@ -3,7 +3,7 @@
 **Author**: Agent 8 - Production Load Testing Framework
 **Date**: 2025-11-21
 **Status**: Production-Ready (Phase Q3.8)
-**Framework**: UCE34 + COCA + B32 + T28 + ASSUM + I20
+**Framework**: UCE34 + Chaos + B32 + T28 + ASSUM + I20
 
 ---
 
@@ -701,7 +701,7 @@ No unsafe code required (100% ASSUM safe).
 | **Q33** (Verification) | Compile-time checks via Rust types | ✅ No derive needed |
 | **Q34** (Auditability) | Monitoring intervals every 5 min | ✅ Optional Q34 integration |
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 
 - ✅ 100% lockfree coordination (no mutex/RwLock)
 - ✅ Atomic types only (AtomicU64, Vec<AtomicU64>)
@@ -771,7 +771,7 @@ fn test_custom_scenario() {
 
 - **HTTP Parser**: `/home/samuel/Primitives/atomic_capsule/src/http/parser.rs`
 - **Metrics Implementation**: `/home/samuel/Primitives/atomic_capsule/tests/http_load_test.rs`
-- **Framework**: `/home/samuel/CLAUDE.md` (UCE34, COCA, B32, T28, ASSUM, I20)
+- **Framework**: `/home/samuel/CLAUDE.md` (UCE34, Chaos, B32, T28, ASSUM, I20)
 
 ---
 

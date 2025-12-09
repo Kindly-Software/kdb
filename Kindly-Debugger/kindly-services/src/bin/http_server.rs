@@ -1,6 +1,6 @@
 //! # Kindly Services HTTP Server - T6 Mixed Capsule Architecture
 //!
-//! **Production-ready static file server using UCE34/COCA capsule primitives**
+//! **Production-ready static file server using UCE34/Chaos capsule primitives**
 //!
 //! ## Architecture
 //! - **Tier T6 (Mixed)**: Combines T1 (Atomic coordination) + T2 (SIMD MIME detection)
@@ -41,7 +41,7 @@
 //!
 //! ```rust
 //! const PORT: u16 = 8082;
-//! const DIST_DIR: &str = "/home/samuel/Primitives/kindly-services/dist/";
+//! const DIST_DIR: &str = "/home/samuel/Primitives/Kindly-Debugger/kindly-services/dist/";
 //! const MAX_REQUEST_SIZE: usize = 8192;
 //! ```
 
@@ -104,14 +104,14 @@ use atomic_capsule::capsules::security::AdaptiveRateLimiterCapsule;
 ))]
 use lazy_static::lazy_static;
 
-// Import COCA primitives from atomic_capsule
+// Import Chaos primitives from atomic_capsule
 // Note: These are the production capsule primitives
 // MimeTypeIndex provides SIMD-accelerated MIME detection
 // PathValidator provides secure path canonicalization
 
 /// Server configuration constants
 const PORT: u16 = 8082;
-const DIST_DIR: &str = "/home/samuel/Primitives/kindly-services/dist/";
+const DIST_DIR: &str = "/home/samuel/Primitives/Kindly-Debugger/kindly-services/dist/";
 const MAX_REQUEST_SIZE: usize = 8192;
 const SERVER_NAME: &str = "Kindly-Services/1.0";
 
@@ -144,7 +144,7 @@ lazy_static! {
             // - default-src 'self': Restrict all resources to same origin
             // - script-src 'self' 'wasm-unsafe-eval': Allow WASM execution
             // - style-src 'self' 'unsafe-inline': Allow Leptos inline styles
-            // - connect-src 'self' https://api.kindly.services: Allow API calls
+            // - connect-src 'self' https://api.kindly.software: Allow API calls
             // - img-src 'self' data:: Allow same-origin + data URIs
             // - font-src 'self': Restrict fonts to same origin
             // - object-src 'none': Block plugins (Flash, Java, etc.)
@@ -156,7 +156,7 @@ lazy_static! {
             csp_policy: "default-src 'self'; \
                         script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline' https://static.cloudflareinsights.com; \
                         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; \
-                        connect-src 'self' https://api.kindly.services https://cloudflareinsights.com; \
+                        connect-src 'self' https://api.kindly.software https://cloudflareinsights.com; \
                         img-src 'self' data: blob:; \
                         font-src 'self' https://fonts.gstatic.com; \
                         object-src 'none'; \

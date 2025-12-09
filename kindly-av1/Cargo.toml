@@ -21,10 +21,20 @@ atomic_capsule = { path = "../atomic_capsule", features = [
     "audit-q34"
 ] }
 blake3 = "1.5"
+sha1 = "0.10"
 sha2 = "0.10"
+base64 = "0.22"
 dirs = "5.0"
 ed25519-dalek = { version = "2.1", features = ["std"] }
 hex = "0.4"
+libc = "0.2"
+
+# TLS for Gumroad API (license verification)
+# Using rustls for pure-Rust TLS (no OpenSSL dependency)
+# Based on SOTA patterns: https://lib.rs/crates/rustls
+rustls = { version = "0.23", default-features = false, features = ["std", "tls12", "ring"] }
+webpki-roots = "0.26"
+rustls-pki-types = "1.10"
 
 # Vulkan GPU acceleration (optional)
 ash = { version = "0.38", optional = true }
@@ -46,6 +56,7 @@ optional = true
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
 proptest = "1.4"
+tempfile = "3.8"
 
 [features]
 default = ["std", "bounds-checking"]
@@ -55,12 +66,17 @@ std = ["atomic_capsule/std"]
 # Disable for maximum performance in production after thorough testing
 bounds-checking = []
 
+# SIMD acceleration via portable_simd (nightly required)
+# Enables T2 SIMD capsules: LrfCapsule, FilmGrainCapsule, SuperresolutionCapsule,
+# IntraPredictionCapsule, InterPredictionCapsule, LoopFilterCapsule, CdefFilterCapsule
+portable_simd = ["atomic_capsule/portable_simd"]
+
 # Interactive CLI dashboard with keyboard controls
 # When disabled, dashboard is display-only (no user input)
-# Priority: cli-kindly-term (COCA compliant, 100% lockfree) > cli-crossterm (deprecated)
+# Priority: cli-kindly-term (Chaos compliant, 100% lockfree) > cli-crossterm (deprecated)
 cli-interactive = ["cli-kindly-term"]
 
-# Kindly-term: COCA-compliant terminal via atomic_capsule::terminal
+# Kindly-term: Chaos-compliant terminal via atomic_capsule::terminal
 # 100% lockfree, <100ns event poll, T6 Metacapsule orchestration
 # Requires: tui-terminal (module export) + terminal-full (all subfeatures)
 cli-kindly-term = ["atomic_capsule/tui-terminal", "atomic_capsule/terminal-full"]
@@ -103,6 +119,11 @@ obs-overlay = []  # Phase 2: HTTP server + WebSocket (pure std::net implementati
 obs-websocket = []  # Phase 3: OBS WebSocket Protocol 5.0 client (pure std::net)
 obs-all = ["obs-status", "obs-overlay", "obs-websocket"]  # All OBS features
 
+# Phase 4: Tile Parallelism
+# Enables TileParallelEncoderCapsule with work-stealing dispatch (3-14× speedup)
+# Note: atomic_capsule::parallel is always available (no feature flag needed)
+tile-parallel = []
+
 [lib]
 name = "kindly_av1"
 path = "src/lib.rs"
@@ -123,6 +144,34 @@ harness = false
 name = "gpu_stress_bench"
 harness = false
 
+[[bench]]
+name = "encoder_bench"
+harness = false
+
+[[bench]]
+name = "tile_parallel_bench"
+harness = false
+
+[[bench]]
+name = "reference_cascade_bench"
+harness = false
+
+[[bench]]
+name = "reconstruction_bench"
+harness = false
+
+[[bench]]
+name = "motion_estimation_b32_comparison"
+harness = false
+
+[[bench]]
+name = "svt_av1_comparison_bench"
+harness = false
+
+[[bench]]
+name = "regression_bench"
+harness = false
+
 [profile.release]
 lto = "fat"
 codegen-units = 1
@@ -131,9 +180,10 @@ strip = "symbols"
 opt-level = 3
 
 [profile.bench]
-# Note: panic = "abort" required to match atomic_capsule dependency
-# Criterion works fine with abort - isolation not needed for benchmarks
-panic = "abort"
+# Note: panic = "unwind" required to match atomic_capsule dependency
+# Criterion requires unwinding to handle test failures and panics properly.
+# Without this, benchmarks fail to compile when dependency uses panic = "unwind".
+panic = "unwind"
 
 [profile.release-with-debug]
 inherits = "release"

@@ -1,6 +1,6 @@
 # Error Message Design Guide
 
-**clippy-capsule-verify v0.2.0** - World-class diagnostic messages for COCA compliance
+**clippy-capsule-verify v0.2.0** - World-class diagnostic messages for Chaos compliance
 
 ## Philosophy
 
@@ -11,7 +11,7 @@ Every error message should:
 2. **Show WHAT'S wrong** (highlight the offending code)
 3. **Provide HOW to fix** (with copy-paste ready code)
 4. **Include METRICS** (honest performance data from B32 framework)
-5. **Link to DOCS** (direct paths to COCA patterns)
+5. **Link to DOCS** (direct paths to Chaos patterns)
 
 ## Design Principles
 
@@ -239,7 +239,7 @@ Formats framework compliance checklist.
 
 ```rust
 for line in format_framework_compliance(&[
-    ("COCA", "100% lockfree mandate"),
+    ("Chaos", "100% lockfree mandate"),
     ("UCE34 Q33", "Atomic capsule verification"),
     ("B32", "10-100× proven speedups"),
 ]) {
@@ -248,7 +248,7 @@ for line in format_framework_compliance(&[
 // Output:
 // Framework Compliance:
 //
-//   - COCA: 100% lockfree mandate
+//   - Chaos: 100% lockfree mandate
 //   - UCE34 Q33: Atomic capsule verification
 //   - B32: 10-100× proven speedups
 ```

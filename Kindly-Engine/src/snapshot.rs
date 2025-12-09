@@ -3,6 +3,7 @@ use crate::order::CommandDelaySnapshot;
 use crate::province_economy::{BuildOrderSnapshot, EconomySnapshot};
 use crate::formation::FormationCapsule;
 use crate::order::OrderQueueCapsule;
+use crate::siege::SiegeSectionSnapshot;
 use crate::strategic_map::{StrategicEventKind, StrategicEventSnapshot, StrategicSnapshot};
 use crate::structure::{StructureCapsule, StructureSnapshot};
 use crate::telemetry::{TelemetryCapsule, TelemetrySnapshot};
@@ -12,7 +13,7 @@ use atomic_capsule::verify_capsule_properties;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 const SNAP_MAGIC: u32 = 0x574C4457; // "WLDW"
-const SNAP_VERSION: u32 = 10;
+const SNAP_VERSION: u32 = 12;
 
 /// Optional strategic payload persisted alongside tactical snapshots.
 #[derive(Debug, Clone)]
@@ -44,10 +45,26 @@ pub struct EconomyPersistSnapshot {
     pub orders: Vec<BuildOrderSnapshot>,
 }
 
+/// Optional campaign payload persisted alongside tactical snapshots.
+#[derive(Debug, Clone)]
+pub struct CampaignPersistSnapshot {
+    pub tick: u64,
+    pub generation: u64,
+    pub hash_chain: u64,
+    pub prev_hash_chain: u64,
+    pub war_exhaustion_avg_q16: u32,
+}
+
 /// Optional command delay buffer snapshot persisted alongside tactical snapshots.
 #[derive(Debug, Clone)]
 pub struct CommandDelayPersistSnapshot {
     pub pending: Vec<CommandDelaySnapshot>,
+}
+
+/// Optional siege payload persisted alongside tactical snapshots.
+#[derive(Debug, Clone)]
+pub struct SiegePersistSnapshot {
+    pub sections: Vec<SiegeSectionSnapshot>,
 }
 
 /// Rehydrate a command delay buffer from a persisted snapshot.
@@ -85,7 +102,9 @@ impl CampaignSnapshotCapsule {
         strategic: Option<&StrategicSnapshot>,
         diplomatic: Option<&DiplomaticSnapshot>,
         economy: Option<&EconomySnapshot>,
+        campaign: Option<&crate::campaign::CampaignFrame>,
         command_delays: Option<&crate::order::CommandDelayBufferCapsule>,
+        siege: Option<&crate::siege::SiegeSnapshot>,
         prev_hash: u64,
     ) -> Vec<u8> {
         let stats = orders.stats();
@@ -241,6 +260,24 @@ impl CampaignSnapshotCapsule {
             buf.extend_from_slice(&order.remaining_ticks.to_le_bytes());
             buf.extend_from_slice(&order.generation.to_le_bytes());
         }
+        // Campaign block (optional).
+        let (camp_tick, camp_gen, camp_hash, camp_prev, camp_war_exh) =
+            if let Some(camp) = campaign {
+                (
+                    camp.tick,
+                    camp.generation,
+                    camp.hash_chain,
+                    camp.prev_hash_chain,
+                    camp.war_exhaustion_avg_q16,
+                )
+            } else {
+                (0, 0, 0, 0, 0)
+            };
+        buf.extend_from_slice(&camp_tick.to_le_bytes());
+        buf.extend_from_slice(&camp_gen.to_le_bytes());
+        buf.extend_from_slice(&camp_hash.to_le_bytes());
+        buf.extend_from_slice(&camp_prev.to_le_bytes());
+        buf.extend_from_slice(&camp_war_exh.to_le_bytes());
         // Command delay buffer (optional).
         let empty_delays: [CommandDelaySnapshot; 0] = [];
         let delay_orders = if let Some(delays) = command_delays {
@@ -256,6 +293,24 @@ impl CampaignSnapshotCapsule {
             buf.extend_from_slice(&d.order.generation.to_le_bytes());
             buf.extend_from_slice(&d.order.payload_a.to_le_bytes());
             buf.extend_from_slice(&d.order.payload_b.to_le_bytes());
+        }
+        // Siege sections (optional).
+        let empty_siege: [SiegeSectionSnapshot; 0] = [];
+        let siege_sections = if let Some(s) = siege {
+            s.sections.as_slice()
+        } else {
+            empty_siege.as_slice()
+        };
+        buf.extend_from_slice(&(siege_sections.len() as u32).to_le_bytes());
+        for sec in siege_sections {
+            buf.extend_from_slice(&sec.structure_id.to_le_bytes());
+            buf.push(sec.face_idx);
+            buf.extend_from_slice(&sec.base_integrity_q16.to_le_bytes());
+            buf.extend_from_slice(&sec.integrity_q16.to_le_bytes());
+            buf.extend_from_slice(&sec.breach_progress_q16.to_le_bytes());
+            buf.extend_from_slice(&sec.sapper_attrition_q16.to_le_bytes());
+            buf.push(sec.breached as u8);
+            buf.extend_from_slice(&sec.generation.to_le_bytes());
         }
         let hash = hash64(prev_hash, &buf);
         buf.extend_from_slice(&hash.to_le_bytes());
@@ -275,7 +330,9 @@ impl CampaignSnapshotCapsule {
         Option<StrategicPersistSnapshot>,
         Option<DiplomaticPersistSnapshot>,
         Option<EconomyPersistSnapshot>,
+        Option<CampaignPersistSnapshot>,
         Option<CommandDelayPersistSnapshot>,
+        Option<SiegePersistSnapshot>,
     )> {
         // Minimum length for versioned snapshots (header + queue stats + telemetry + footer).
         if bytes.len() < 156 {
@@ -640,6 +697,27 @@ impl CampaignSnapshotCapsule {
             None
         };
 
+        let campaign = if version >= 12 {
+            let tick = read_u64(body, &mut cursor)?;
+            let generation = read_u64(body, &mut cursor)?;
+            let hash_chain = read_u64(body, &mut cursor)?;
+            let prev_hash_chain = read_u64(body, &mut cursor)?;
+            let war_exhaustion_avg_q16 = read_u32(body, &mut cursor)?;
+            if tick == 0 && generation == 0 && hash_chain == 0 {
+                None
+            } else {
+                Some(CampaignPersistSnapshot {
+                    tick,
+                    generation,
+                    hash_chain,
+                    prev_hash_chain,
+                    war_exhaustion_avg_q16,
+                })
+            }
+        } else {
+            None
+        };
+
         let command_delays = if version >= 10 {
             let delay_count = read_u32(body, &mut cursor)? as usize;
             let mut pending = Vec::with_capacity(delay_count);
@@ -672,6 +750,38 @@ impl CampaignSnapshotCapsule {
             None
         };
 
+        let siege = if version >= 11 {
+            let section_count = read_u32(body, &mut cursor)? as usize;
+            let mut sections = Vec::with_capacity(section_count);
+            for _ in 0..section_count {
+                let structure_id = read_u32(body, &mut cursor)?;
+                let face_idx = read_u8(body, &mut cursor)? as u8;
+                let base_integrity_q16 = read_u32(body, &mut cursor)?;
+                let integrity_q16 = read_u32(body, &mut cursor)?;
+                let breach_progress_q16 = read_u32(body, &mut cursor)?;
+                let sapper_attrition_q16 = read_u32(body, &mut cursor)?;
+                let breached = read_u8(body, &mut cursor)? != 0;
+                let generation = read_u32(body, &mut cursor)?;
+                sections.push(SiegeSectionSnapshot {
+                    structure_id,
+                    face_idx,
+                    base_integrity_q16,
+                    integrity_q16,
+                    breach_progress_q16,
+                    sapper_attrition_q16,
+                    breached,
+                    generation,
+                });
+            }
+            if sections.is_empty() {
+                None
+            } else {
+                Some(SiegePersistSnapshot { sections })
+            }
+        } else {
+            None
+        };
+
         Some((
             tele,
             crate::order::QueueStats {
@@ -685,7 +795,9 @@ impl CampaignSnapshotCapsule {
             strategic,
             diplomatic,
             economy,
+            campaign,
             command_delays,
+            siege,
         ))
     }
 
@@ -707,12 +819,14 @@ impl CampaignSnapshotCapsule {
         Option<StrategicPersistSnapshot>,
         Option<DiplomaticPersistSnapshot>,
         Option<EconomyPersistSnapshot>,
+        Option<CampaignPersistSnapshot>,
         Option<CommandDelayPersistSnapshot>,
+        Option<SiegePersistSnapshot>,
         usize,
     )> {
         let decoded = self.deserialize_formations(bytes, world, prev_hash)?;
         let restored_count = if let Some(buf) = command_delays {
-            restore_command_delays(decoded.7.as_ref(), buf)
+            restore_command_delays(decoded.8.as_ref(), buf)
         } else {
             0
         };
@@ -724,7 +838,9 @@ impl CampaignSnapshotCapsule {
             decoded.4,
             decoded.5,
             decoded.6,
-            decoded.7,
+            decoded.7, // campaign
+            decoded.8, // command delays
+            decoded.9, // siege
             restored_count,
         ))
     }
@@ -871,10 +987,21 @@ mod tests {
         let orders = OrderQueueCapsule::new();
         let telemetry = TelemetryCapsule::new();
         let snapper = CampaignSnapshotCapsule::new();
-        let buf =
-            snapper.serialize(&formations, &orders, &telemetry, &[], None, None, None, None, 0);
+        let buf = snapper.serialize(
+            &formations,
+            &orders,
+            &telemetry,
+            &[],
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            0,
+        );
         let mut world = WorldSlabCapsule::new(1);
-        let (tele, stats, forms, structures, strat, dip, econ, delays) =
+        let (tele, stats, forms, structures, strat, dip, econ, campaign, delays, siege) =
             snapper.deserialize_formations(&buf, &mut world, 0).unwrap();
         assert_eq!(tele.events, 0);
         assert_eq!(world.len(), 2);
@@ -885,7 +1012,9 @@ mod tests {
         assert!(strat.is_none());
         assert!(dip.is_none());
         assert!(econ.is_none());
+        assert!(campaign.is_none());
         assert!(delays.is_none());
+        assert!(siege.is_none());
     }
 
     #[test]
@@ -907,12 +1036,15 @@ mod tests {
             Some(&dip_snap),
             None,
             None,
+            None,
+            None,
             0,
         );
         let mut world = WorldSlabCapsule::new(1);
-        let (_tele, _stats, _forms, _structs, strat, dip_out, econ_out, delays_out) =
+        let (_tele, _stats, _forms, _structs, strat, dip_out, econ_out, campaign_out, delays_out, siege_out) =
             snapper.deserialize_formations(&buf, &mut world, 0).unwrap();
         assert!(strat.is_none());
+        assert!(campaign_out.is_none());
         let dip_decoded = dip_out.expect("diplomatic snapshot");
         assert_eq!(dip_decoded.tick, dip_snap.tick);
         assert_eq!(dip_decoded.hash_chain, dip_snap.hash_chain);
@@ -920,6 +1052,7 @@ mod tests {
         assert_eq!(dip_decoded.relations[0].state, dip_snap.relations[0].state);
         assert!(econ_out.is_none());
         assert!(delays_out.is_none());
+        assert!(siege_out.is_none());
     }
 
     #[test]
@@ -946,16 +1079,19 @@ mod tests {
             None,
             None,
             None,
+            None,
             Some(&delays),
+            None,
             0,
         );
         let mut world = WorldSlabCapsule::new(1);
-        let (_tele, _stats, _forms, _structs, _strat, _dip, _econ, delays_snap) =
+        let (_tele, _stats, _forms, _structs, _strat, _dip, _econ, _camp, delays_snap, siege_snap) =
             snapper.deserialize_formations(&buf, &mut world, 0).unwrap();
         let delays_snap = delays_snap.expect("delays snapshot");
         assert_eq!(delays_snap.pending.len(), 1);
         assert_eq!(delays_snap.pending[0].ready_tick, 42);
         assert_eq!(delays_snap.pending[0].order.kind, OrderKind::Move);
+        assert!(siege_snap.is_none());
 
         // Restore into a fresh buffer and drain at the ready tick.
         let restored = CommandDelayBufferCapsule::new();
@@ -991,17 +1127,31 @@ mod tests {
             None,
             None,
             None,
+            None,
             Some(&delays),
+            None,
             0,
         );
         let mut world = WorldSlabCapsule::new(1);
         let restored_buffer = CommandDelayBufferCapsule::new();
-        let (_tele, _stats, _forms, _structs, _strat, _dip, _econ, delays_snap, restored_count) =
-            snapper
-                .deserialize_into_world(&buf, &mut world, 0, Some(&restored_buffer))
-                .expect("snapshot decode");
+        let (
+            _tele,
+            _stats,
+            _forms,
+            _structs,
+            _strat,
+            _dip,
+            _econ,
+            _campaign,
+            delays_snap,
+            siege_snap,
+            restored_count,
+        ) = snapper
+            .deserialize_into_world(&buf, &mut world, 0, Some(&restored_buffer))
+            .expect("snapshot decode");
         assert_eq!(restored_count, 1);
         assert!(delays_snap.is_some());
+        assert!(siege_snap.is_none());
         let mut out = Vec::new();
         restored_buffer.drain_ready(7, &mut out);
         assert_eq!(out.len(), 1);
@@ -1016,7 +1166,7 @@ mod tests {
         let telemetry = TelemetryCapsule::new();
         let snapper = CampaignSnapshotCapsule::new();
         let buf =
-            snapper.serialize(&formations, &orders, &telemetry, &[], None, None, None, None, 0);
+            snapper.serialize(&formations, &orders, &telemetry, &[], None, None, None, None, None, None, 0);
 
         let tmp_path = std::env::temp_dir().join("kindly_engine_snapshot.bin");
         let mut mmap_capsule =
@@ -1044,7 +1194,7 @@ mod tests {
         let telemetry = TelemetryCapsule::new();
         let snapper = CampaignSnapshotCapsule::new();
         let buf =
-            snapper.serialize(&formations, &orders, &telemetry, &[], None, None, None, None, 123);
+            snapper.serialize(&formations, &orders, &telemetry, &[], None, None, None, None, None, None, 123);
         let tmp_path = std::env::temp_dir().join("kindly_engine_snapshot2.bin");
         let mut mmap_capsule =
             SnapshotMmapCapsule::new(&tmp_path, 1_048_576, 1).expect("create snapshot mmap");

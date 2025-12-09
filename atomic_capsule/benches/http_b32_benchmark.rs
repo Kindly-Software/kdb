@@ -190,23 +190,17 @@ fn bench_request_parsing(c: &mut Criterion) {
         // B3: atomic_capsule adaptive (same sizes) - use find_colon as a representative operation
         group.throughput(Throughput::Bytes(MINIMAL_REQUEST.len() as u64));
         group.bench_function("atomic_capsule_adaptive/minimal_100b", |b| {
-            b.iter(|| {
-                find_colon(black_box(MINIMAL_REQUEST))
-            })
+            b.iter(|| find_colon(black_box(MINIMAL_REQUEST)))
         });
 
         group.throughput(Throughput::Bytes(TYPICAL_GET_REQUEST.len() as u64));
         group.bench_function("atomic_capsule_adaptive/typical_get_500b", |b| {
-            b.iter(|| {
-                find_colon(black_box(TYPICAL_GET_REQUEST))
-            })
+            b.iter(|| find_colon(black_box(TYPICAL_GET_REQUEST)))
         });
 
         group.throughput(Throughput::Bytes(LARGE_POST_REQUEST.len() as u64));
         group.bench_function("atomic_capsule_adaptive/large_post_2kb", |b| {
-            b.iter(|| {
-                find_colon(black_box(LARGE_POST_REQUEST))
-            })
+            b.iter(|| find_colon(black_box(LARGE_POST_REQUEST)))
         });
     }
 

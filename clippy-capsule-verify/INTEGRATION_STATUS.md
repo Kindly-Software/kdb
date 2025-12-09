@@ -5,7 +5,7 @@
 
 ## Executive Summary
 
-Successfully integrated **9 custom clippy lints** for COCA (Computational Capsule) enforcement:
+Successfully integrated **9 custom clippy lints** for Chaos (Computational Capsule) enforcement:
 - **4 P0 Critical lints** (Deny level) - Block compilation
 - **3 P1 High lints** (Warn level) - Strong recommendations
 - **2 P2 Medium lints** (Allow level) - Opt-in best practices
@@ -241,7 +241,7 @@ P2.3 (CAPSULE_TOCTOU_RACE) was implemented (433 lines) but deleted by system cle
 | Framework | Status | Notes |
 |-----------|--------|-------|
 | **UCE34** | ✅ 100% | Q10 (tier selection), Q33 (verification), Q34 (auditability) |
-| **COCA** | ✅ 100% | 100% lockfree enforcement, cache-aligned patterns |
+| **Chaos** | ✅ 100% | 100% lockfree enforcement, cache-aligned patterns |
 | **ASSUM** | ✅ 99.99% | All assumptions documented, safety verified |
 | **B32** | ✅ 100% | Performance claims validated (90-95% accuracy) |
 | **T28** | ⏳ Pending | UI tests created, awaiting trybuild integration |
@@ -253,7 +253,7 @@ P2.3 (CAPSULE_TOCTOU_RACE) was implemented (433 lines) but deleted by system cle
 
 **Mission Accomplished**: 9/9 lints implemented, integrated, and compiling successfully.
 
-The clippy-capsule-verify project is now **production-ready** with comprehensive COCA enforcement across 3 priority levels. All critical (P0) violations are blocked at compile-time, high-priority (P1) best practices emit warnings, and advanced (P2) opt-ins are available for experienced users.
+The clippy-capsule-verify project is now **production-ready** with comprehensive Chaos enforcement across 3 priority levels. All critical (P0) violations are blocked at compile-time, high-priority (P1) best practices emit warnings, and advanced (P2) opt-ins are available for experienced users.
 
 **Key Achievement**: Eliminated the need for 10th lint (repr_c_violation) by recognizing existing coverage in capsule_lint.rs, demonstrating thorough understanding of the codebase.
 

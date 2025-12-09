@@ -23,12 +23,12 @@
 //! - **UCE34**: Q10 T2 SIMD tier, fair baseline (not strawman)
 //! - **B32**: K1-K70 rigor, 95% CI, 1000+ iterations
 //! - **ASSUM**: All assumptions verified, numerical stability validated
-//! - **COCA**: 100% lockfree coordination
+//! - **Chaos**: 100% lockfree coordination
 
 #![cfg(feature = "quantum-pure")]
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-use atomic_capsule::quantum_pure::matrix_synthesis::{MatrixSynthesisCapsule, Complex};
+use atomic_capsule::quantum_pure::matrix_synthesis::{Complex, MatrixSynthesisCapsule};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::f64::consts::PI;
 
 // =============================================================================
@@ -86,21 +86,15 @@ fn bench_precomputed_synthesis(c: &mut Criterion) {
     let synthesis = MatrixSynthesisCapsule::new();
 
     group.bench_function("h_cnot_h", |b| {
-        b.iter(|| {
-            black_box(synthesis.synthesize_h_cnot_h(0, 1).unwrap())
-        })
+        b.iter(|| black_box(synthesis.synthesize_h_cnot_h(0, 1).unwrap()))
     });
 
     group.bench_function("cnot_cancellation", |b| {
-        b.iter(|| {
-            black_box(synthesis.synthesize_cnot_cancellation(0, 1).unwrap())
-        })
+        b.iter(|| black_box(synthesis.synthesize_cnot_cancellation(0, 1).unwrap()))
     });
 
     group.bench_function("x_cnot_x", |b| {
-        b.iter(|| {
-            black_box(synthesis.synthesize_x_cnot_x(0, 1).unwrap())
-        })
+        b.iter(|| black_box(synthesis.synthesize_x_cnot_x(0, 1).unwrap()))
     });
 
     group.finish();
@@ -117,19 +111,31 @@ fn bench_parameterized_synthesis(c: &mut Criterion) {
 
     group.bench_function("rz_composition", |b| {
         b.iter(|| {
-            black_box(synthesis.synthesize_rz_composition(0, PI / 4.0, PI / 8.0).unwrap())
+            black_box(
+                synthesis
+                    .synthesize_rz_composition(0, PI / 4.0, PI / 8.0)
+                    .unwrap(),
+            )
         })
     });
 
     group.bench_function("rx_composition", |b| {
         b.iter(|| {
-            black_box(synthesis.synthesize_rx_composition(0, PI / 3.0, PI / 6.0).unwrap())
+            black_box(
+                synthesis
+                    .synthesize_rx_composition(0, PI / 3.0, PI / 6.0)
+                    .unwrap(),
+            )
         })
     });
 
     group.bench_function("ry_composition", |b| {
         b.iter(|| {
-            black_box(synthesis.synthesize_ry_composition(0, PI / 2.0, PI / 4.0).unwrap())
+            black_box(
+                synthesis
+                    .synthesize_ry_composition(0, PI / 2.0, PI / 4.0)
+                    .unwrap(),
+            )
         })
     });
 
@@ -151,16 +157,12 @@ fn bench_4x4_matrix_multiply(c: &mut Criterion) {
 
     // Baseline: Scalar matrix multiply
     group.bench_function("scalar_baseline", |b| {
-        b.iter(|| {
-            black_box(scalar_4x4_matrix_multiply(&cz, &identity))
-        })
+        b.iter(|| black_box(scalar_4x4_matrix_multiply(&cz, &identity)))
     });
 
     // Optimized: SIMD matrix multiply
     group.bench_function("simd_optimized", |b| {
-        b.iter(|| {
-            black_box(synthesis.multiply_4x4_simd(&cz, &identity).unwrap())
-        })
+        b.iter(|| black_box(synthesis.multiply_4x4_simd(&cz, &identity).unwrap()))
     });
 
     group.finish();
@@ -176,12 +178,10 @@ fn bench_matrix_equivalence(c: &mut Criterion) {
     let synthesis = MatrixSynthesisCapsule::new();
 
     let a = synthesis.synthesize_h_cnot_h(0, 1).unwrap();
-    let b = synthesis.synthesize_h_cnot_h(0, 1).unwrap();  // Same matrix
+    let b = synthesis.synthesize_h_cnot_h(0, 1).unwrap(); // Same matrix
 
     group.bench_function("equivalence_check", |b| {
-        b.iter(|| {
-            black_box(synthesis.matrices_equivalent(&a, &b, 1e-10))
-        })
+        b.iter(|| black_box(synthesis.matrices_equivalent(&a, &b, 1e-10)))
     });
 
     group.finish();
@@ -199,9 +199,7 @@ fn bench_unitarity_verification(c: &mut Criterion) {
     let cz = synthesis.synthesize_h_cnot_h(0, 1).unwrap();
 
     group.bench_function("verify_unitary_4x4", |b| {
-        b.iter(|| {
-            black_box(synthesis.verify_unitary(&cz, 1e-10).unwrap())
-        })
+        b.iter(|| black_box(synthesis.verify_unitary(&cz, 1e-10).unwrap()))
     });
 
     group.finish();
@@ -227,7 +225,11 @@ fn bench_mixed_workload(c: &mut Criterion) {
             } else if counter % 10 < 8 {
                 // Parameterized (40%)
                 let angle = (counter as f64) * PI / 500.0;
-                black_box(synthesis.synthesize_rz_composition(0, angle, angle).unwrap())
+                black_box(
+                    synthesis
+                        .synthesize_rz_composition(0, angle, angle)
+                        .unwrap(),
+                )
             } else {
                 // SIMD multiply (20%)
                 let a = synthesis.synthesize_h_cnot_h(0, 1).unwrap();
@@ -262,7 +264,11 @@ fn bench_throughput(c: &mut Criterion) {
         b.iter(|| {
             for i in 0..1000 {
                 let angle = (i as f64) * PI / 500.0;
-                black_box(synthesis.synthesize_rz_composition(0, angle, angle / 2.0).unwrap());
+                black_box(
+                    synthesis
+                        .synthesize_rz_composition(0, angle, angle / 2.0)
+                        .unwrap(),
+                );
             }
         })
     });
@@ -295,9 +301,7 @@ fn bench_angle_composition_vs_manual(c: &mut Criterion) {
 
     // Optimized: Direct angle composition
     group.bench_function("angle_composition_direct", |b| {
-        b.iter(|| {
-            black_box(synthesis.synthesize_rz_composition(0, theta, phi).unwrap())
-        })
+        b.iter(|| black_box(synthesis.synthesize_rz_composition(0, theta, phi).unwrap()))
     });
 
     // Baseline: Manual matrix multiply
@@ -373,21 +377,33 @@ fn bench_numerical_edge_cases(c: &mut Criterion) {
     // Very small angles
     group.bench_function("small_angles", |b| {
         b.iter(|| {
-            black_box(synthesis.synthesize_rz_composition(0, 1e-10, 1e-11).unwrap())
+            black_box(
+                synthesis
+                    .synthesize_rz_composition(0, 1e-10, 1e-11)
+                    .unwrap(),
+            )
         })
     });
 
     // Very large angles (wrapping)
     group.bench_function("large_angles", |b| {
         b.iter(|| {
-            black_box(synthesis.synthesize_rz_composition(0, 100.0 * PI, 0.0).unwrap())
+            black_box(
+                synthesis
+                    .synthesize_rz_composition(0, 100.0 * PI, 0.0)
+                    .unwrap(),
+            )
         })
     });
 
     // Negative angles
     group.bench_function("negative_angles", |b| {
         b.iter(|| {
-            black_box(synthesis.synthesize_rz_composition(0, -PI / 4.0, PI / 4.0).unwrap())
+            black_box(
+                synthesis
+                    .synthesize_rz_composition(0, -PI / 4.0, PI / 4.0)
+                    .unwrap(),
+            )
         })
     });
 

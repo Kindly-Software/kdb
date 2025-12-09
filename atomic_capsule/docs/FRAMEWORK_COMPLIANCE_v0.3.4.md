@@ -18,7 +18,7 @@
 | **B32** | ✅ Complete | 32/32 | +5 new baselines (fair comparison) |
 | **T28** | ✅ Complete | 546 tests | +16 new tests (100% pass) |
 | **I20** | ✅ Complete | Q1-Q20 | I20-Capsule integration strategy |
-| **COCA** | ✅ 100% Lockfree | 113/113 | Atomic bit operations |
+| **Chaos** | ✅ 100% Lockfree | 113/113 | Atomic bit operations |
 
 **New in v0.3.4**: BloomFilterCapsule compliance analysis (12 assumptions, 16 tests, 5 benchmarks)
 
@@ -73,7 +73,7 @@
 | Question | Answer | Status |
 |----------|--------|--------|
 | **Q22: State** | 8,192 × AtomicU8 (65,536 bits) | ✅ Immutable |
-| **Q23: Concurrency** | 100% lockfree (atomic fetch_or) | ✅ COCA |
+| **Q23: Concurrency** | 100% lockfree (atomic fetch_or) | ✅ Chaos |
 | **Q24: Memory** | 128B-aligned, sequential queries, random inserts | ✅ Cache-friendly |
 | **Q25: Verification** | `#[derive(ComputationalCapsule)]` | ✅ Compile-time |
 | **Q26: Optimization** | SIMD bit checks, parallel hash | ✅ Planned |
@@ -243,7 +243,7 @@
 
 | Question | Answer | Status |
 |----------|--------|--------|
-| **Q6: Architecture** | 100% lockfree atomic operations | ✅ COCA |
+| **Q6: Architecture** | 100% lockfree atomic operations | ✅ Chaos |
 | **Q7: Performance** | <30ns query, <50ns insert | ✅ Validated |
 | **Q8: Resources** | 8KB memory (fixed) | ✅ Acceptable |
 | **Q9: Conflicts** | None (pure addition, no breaking changes) | ✅ Safe |
@@ -275,11 +275,11 @@
 
 ---
 
-## 6. COCA Framework (Computational Capsule Architecture)
+## 6. Chaos Framework (Computational Capsule Architecture)
 
 ### Principles: 100% Lockfree (113/113 primitives)
 
-#### Bloom Filter COCA Compliance
+#### Bloom Filter Chaos Compliance
 
 **Principle 1: 100% Lockfree**
 - ✅ No mutex/RwLock (atomic operations only)
@@ -308,7 +308,7 @@
 - ✅ T10.2 + T9 Persistent (mmap-backed)
 - ✅ T10.2 + T2 SIMD (5.95× hash speedup)
 
-**COCA Compliance**: 5/5 principles satisfied ✅
+**Chaos Compliance**: 5/5 principles satisfied ✅
 
 ---
 
@@ -316,14 +316,14 @@
 
 ### Integration Matrix
 
-| Framework | UCE34 | ASSUM | B32 | T28 | I20 | COCA |
+| Framework | UCE34 | ASSUM | B32 | T28 | I20 | Chaos |
 |-----------|-------|-------|-----|-----|-----|------|
 | **UCE34** | - | Q33 | Q28 | Q17 | Q16-Q20 | Q10 |
 | **ASSUM** | Q25 | - | Honest | Tests | Q11 | Safety |
 | **B32** | Q30 | Claims | - | Tests | Q17 | Perf |
 | **T28** | Q17 | Verify | Valid | - | Q16 | Tests |
 | **I20** | Q29 | Q11 | Q17 | Q16 | - | Q6 |
-| **COCA** | Q10-Q12 | Safety | Perf | Tests | Arch | - |
+| **Chaos** | Q10-Q12 | Safety | Perf | Tests | Arch | - |
 
 **Cross-Validation**: All 6 frameworks reference and validate each other ✅
 
@@ -340,7 +340,7 @@
 | **B32** | 37/32 | 32/32 | 37/37 | +5 baselines |
 | **T28** | 546/546 | 530/530 | 546/546 | +16 tests |
 | **I20** | 20/20 | 20/20 | 20/20 | 0 (maintained) |
-| **COCA** | 113/113 | 110/110 | 113/113 | +3 primitives |
+| **Chaos** | 113/113 | 110/110 | 113/113 | +3 primitives |
 
 **Overall Improvement**: +36 compliance items (12 assumptions + 5 baselines + 16 tests + 3 primitives)
 
@@ -377,7 +377,7 @@
 **Modified**:
 - UCE34 Q10: T10.2 tier selection documented
 - I20 Q19: I20-Capsule integration strategy
-- COCA: 100% lockfree (atomic bit operations)
+- Chaos: 100% lockfree (atomic bit operations)
 
 **No Breaking Changes**: 100% backward compatible
 
@@ -414,7 +414,7 @@
 3. **B32**: 5 fair baselines (honest claims, no strawman)
 4. **T28**: 16 comprehensive tests (100% pass)
 5. **I20**: Q1-Q20 complete (I20-Capsule strategy)
-6. **COCA**: 100% lockfree (atomic operations only)
+6. **Chaos**: 100% lockfree (atomic operations only)
 
 **Production Readiness**: ✅ **APPROVED** (October 2025)
 

@@ -2,7 +2,7 @@
 //!
 //! **Detects non-atomic fields in T1 (Atomic) tier computational capsules.**
 //!
-//! ## UCE34 Q10 & COCA Mandate
+//! ## UCE34 Q10 & Chaos Mandate
 //!
 //! T1 (Atomic) capsules MUST use only atomic types for lockfree guarantees:
 //! - AtomicU64, AtomicU32, AtomicU16, AtomicU8, AtomicBool, AtomicPtr
@@ -239,7 +239,7 @@ fn emit_non_atomic_field_diagnostic<'tcx>(
             lint.note("  • Non-atomic fields cause data races (memory model violation)");
             lint.note("  • Undefined behavior: crashes, corruption, security exploits");
             lint.note("  • Defeats lockfree guarantee: T1 capsule promise broken");
-            lint.note("  • Violates COCA mandate: 100% atomic operations required");
+            lint.note("  • Violates Chaos mandate: 100% atomic operations required");
 
             // === PERFORMANCE IMPACT ===
             lint.note("");
@@ -308,7 +308,7 @@ fn emit_non_atomic_field_diagnostic<'tcx>(
             // === FRAMEWORK COMPLIANCE ===
             lint.note("");
             lint.note("FRAMEWORK COMPLIANCE:");
-            lint.note("  • COCA: Computational Capsule mandate (100% lockfree)");
+            lint.note("  • Chaos: Computational Capsule mandate (100% lockfree)");
             lint.note("  • UCE34 Q33: Atomic field verification (compile-time)");
             lint.note("  • #[derive(ComputationalCapsule)]: Requires atomic types");
             lint.note("  • Memory Ordering: Acquire/Release/SeqCst (see docs)");

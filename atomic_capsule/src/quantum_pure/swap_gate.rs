@@ -55,7 +55,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 T2 SIMD tier, Q12 nightly (`portable_simd`)
-//! - **COCA**: 100% lockfree, cache-aligned (128B)
+//! - **Chaos**: 100% lockfree, cache-aligned (128B)
 //! - **ASSUM**: 99.99%+ safety, documented assumptions
 //! - **B32**: Fair baselines, 2-3× validated speedup
 //! - **T28**: 28 comprehensive tests
@@ -94,6 +94,7 @@ use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 /// rather than matrix multiplication for better performance.
 #[repr(C, align(128))]
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
+#[cfg_attr(feature = "derive", capsule(alignment = 128))]
 pub struct SWAPGateCapsule {
     /// First qubit index
     qubit1: AtomicU32,

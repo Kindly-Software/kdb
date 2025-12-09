@@ -1,0 +1,239 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/atomic_network_gateway/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/kiang/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+    Blocking waiting for file lock on build directory
+warning: unused `Result` that must be used
+   --> atomic_capsule_map/benches/basic_ops.rs:302:17
+    |
+302 |                 black_box(map.compare_and_swap(&key, old, new));
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+    = note: `#[warn(unused_must_use)]` (part of `#[warn(unused)]`) on by default
+help: use `let _ = ...` to ignore the resulting value
+    |
+302 |                 let _ = black_box(map.compare_and_swap(&key, old, new));
+    |                 +++++++
+
+warning: unused `Result` that must be used
+   --> atomic_capsule_map/benches/basic_ops.rs:317:17
+    |
+317 |                 black_box(map.compare_and_swap(&key, old, new));
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+317 |                 let _ = black_box(map.compare_and_swap(&key, old, new));
+    |                 +++++++
+
+warning: `atomic_capsule_map` (bench "basic_ops") generated 2 warnings
+    Finished `bench` profile [optimized] target(s) in 15.84s
+     Running benches/basic_ops.rs (/home/samuel/Primitives/target/release/deps/basic_ops-e7222f068f99f41f)
+Gnuplot not found, using plotters backend
+Benchmarking insert/uncontended
+Benchmarking insert/uncontended: Warming up for 2.0000 s
+Benchmarking insert/uncontended: Collecting 1000 samples in estimated 5.1623 s (8.5M iterations)
+Benchmarking insert/uncontended: Analyzing
+insert/uncontended      time:   [474.27 ns 481.83 ns 490.26 ns]
+                        change: [+103.81% +106.92% +110.21%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 143 outliers among 1000 measurements (14.30%)
+  33 (3.30%) low severe
+  96 (9.60%) low mild
+  2 (0.20%) high mild
+  12 (1.20%) high severe
+Benchmarking insert/preloaded_100
+Benchmarking insert/preloaded_100: Warming up for 2.0000 s
+Benchmarking insert/preloaded_100: Collecting 1000 samples in estimated 5.2283 s (8.0M iterations)
+Benchmarking insert/preloaded_100: Analyzing
+insert/preloaded_100    time:   [585.23 ns 606.93 ns 628.98 ns]
+                        change: [+210.54% +221.15% +232.49%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 109 outliers among 1000 measurements (10.90%)
+  12 (1.20%) low mild
+  24 (2.40%) high mild
+  73 (7.30%) high severe
+Benchmarking insert/preloaded_1000
+Benchmarking insert/preloaded_1000: Warming up for 2.0000 s
+Benchmarking insert/preloaded_1000: Collecting 1000 samples in estimated 5.2696 s (8.0M iterations)
+Benchmarking insert/preloaded_1000: Analyzing
+insert/preloaded_1000   time:   [507.95 ns 510.56 ns 513.29 ns]
+                        change: [+195.20% +203.47% +211.66%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 106 outliers among 1000 measurements (10.60%)
+  85 (8.50%) high mild
+  21 (2.10%) high severe
+Benchmarking insert/preloaded_10000
+Benchmarking insert/preloaded_10000: Warming up for 2.0000 s
+Benchmarking insert/preloaded_10000: Collecting 1000 samples in estimated 5.1985 s (6.0M iterations)
+Benchmarking insert/preloaded_10000: Analyzing
+insert/preloaded_10000  time:   [755.27 ns 773.68 ns 792.98 ns]
+                        change: [-32.870% -31.427% -29.907%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 112 outliers among 1000 measurements (11.20%)
+  50 (5.00%) high mild
+  62 (6.20%) high severe
+
+Benchmarking get/10
+Benchmarking get/10: Warming up for 2.0000 s
+Benchmarking get/10: Collecting 1000 samples in estimated 5.0063 s (339M iterations)
+Benchmarking get/10: Analyzing
+get/10                  time:   [9.5160 ns 9.6603 ns 9.8171 ns]
+                        change: [-17.368% -15.373% -13.533%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 3 outliers among 1000 measurements (0.30%)
+  3 (0.30%) high mild
+Benchmarking get/100
+Benchmarking get/100: Warming up for 2.0000 s
+Benchmarking get/100: Collecting 1000 samples in estimated 5.0043 s (346M iterations)
+Benchmarking get/100: Analyzing
+get/100                 time:   [8.6196 ns 8.8569 ns 9.1063 ns]
+Found 90 outliers among 1000 measurements (9.00%)
+  43 (4.30%) high mild
+  47 (4.70%) high severe
+Benchmarking get/1000
+Benchmarking get/1000: Warming up for 2.0000 s
+Benchmarking get/1000: Collecting 1000 samples in estimated 5.0068 s (347M iterations)
+Benchmarking get/1000: Analyzing
+get/1000                time:   [7.6324 ns 7.6565 ns 7.6833 ns]
+                        change: [-41.344% -39.753% -38.125%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 39 outliers among 1000 measurements (3.90%)
+  36 (3.60%) high mild
+  3 (0.30%) high severe
+Benchmarking get/10000
+Benchmarking get/10000: Warming up for 2.0000 s
+Benchmarking get/10000: Collecting 1000 samples in estimated 5.0153 s (98M iterations)
+Benchmarking get/10000: Analyzing
+get/10000               time:   [52.969 ns 54.415 ns 56.027 ns]
+                        change: [-5.2093% -1.7219% +1.8155%] (p = 0.34 > 0.05)
+                        No change in performance detected.
+Found 142 outliers among 1000 measurements (14.20%)
+  41 (4.10%) low severe
+  4 (0.40%) low mild
+  16 (1.60%) high mild
+  81 (8.10%) high severe
+Benchmarking get/hit
+Benchmarking get/hit: Warming up for 2.0000 s
+Benchmarking get/hit: Collecting 1000 samples in estimated 5.0010 s (430M iterations)
+Benchmarking get/hit: Analyzing
+get/hit                 time:   [8.5519 ns 8.7295 ns 8.9232 ns]
+                        change: [-4.3101% -2.1926% -0.1438%] (p = 0.05 > 0.05)
+                        No change in performance detected.
+Found 92 outliers among 1000 measurements (9.20%)
+  17 (1.70%) high mild
+  75 (7.50%) high severe
+Benchmarking get/miss
+Benchmarking get/miss: Warming up for 2.0000 s
+Benchmarking get/miss: Collecting 1000 samples in estimated 5.0017 s (513M iterations)
+Benchmarking get/miss: Analyzing
+get/miss                time:   [7.7353 ns 7.8494 ns 7.9742 ns]
+                        change: [-4.5264% -1.6531% +1.3560%] (p = 0.28 > 0.05)
+                        No change in performance detected.
+Found 149 outliers among 1000 measurements (14.90%)
+  5 (0.50%) low mild
+  23 (2.30%) high mild
+  121 (12.10%) high severe
+
+Benchmarking remove/remove_100
+Benchmarking remove/remove_100: Warming up for 2.0000 s
+Benchmarking remove/remove_100: Collecting 1000 samples in estimated 5.0259 s (84k iterations)
+Benchmarking remove/remove_100: Analyzing
+remove/remove_100       time:   [477.72 ns 482.41 ns 487.39 ns]
+                        change: [+3.6030% +4.7860% +5.8619%] (p = 0.00 < 0.05)
+                        Performance has regressed.
+Found 182 outliers among 1000 measurements (18.20%)
+  41 (4.10%) high mild
+  141 (14.10%) high severe
+Benchmarking remove/remove_1000
+Benchmarking remove/remove_1000: Warming up for 2.0000 s
+Benchmarking remove/remove_1000: Collecting 1000 samples in estimated 5.0227 s (16k iterations)
+Benchmarking remove/remove_1000: Analyzing
+remove/remove_1000      time:   [1.3450 µs 1.3584 µs 1.3727 µs]
+                        change: [-16.036% -13.940% -11.862%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 90 outliers among 1000 measurements (9.00%)
+  33 (3.30%) high mild
+  57 (5.70%) high severe
+Benchmarking remove/remove_10000
+Benchmarking remove/remove_10000: Warming up for 2.0000 s
+Benchmarking remove/remove_10000: Collecting 1000 samples in estimated 8.4463 s (2000 iterations)
+Benchmarking remove/remove_10000: Analyzing
+remove/remove_10000     time:   [2.6453 µs 2.6686 µs 2.6939 µs]
+                        change: [-14.493% -12.261% -10.043%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 57 outliers among 1000 measurements (5.70%)
+  10 (1.00%) high mild
+  47 (4.70%) high severe
+
+Benchmarking update/100
+Benchmarking update/100: Warming up for 2.0000 s
+Benchmarking update/100: Collecting 1000 samples in estimated 5.0223 s (98M iterations)
+Benchmarking update/100: Analyzing
+update/100              time:   [30.377 ns 30.503 ns 30.652 ns]
+                        change: [-81.961% -81.341% -80.703%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 107 outliers among 1000 measurements (10.70%)
+  7 (0.70%) low mild
+  57 (5.70%) high mild
+  43 (4.30%) high severe
+Benchmarking update/1000
+Benchmarking update/1000: Warming up for 2.0000 s
+Benchmarking update/1000: Collecting 1000 samples in estimated 5.0059 s (111M iterations)
+Benchmarking update/1000: Analyzing
+update/1000             time:   [36.614 ns 36.982 ns 37.384 ns]
+                        change: [-72.896% -71.707% -70.518%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Benchmarking update/10000
+Benchmarking update/10000: Warming up for 2.0000 s
+Benchmarking update/10000: Collecting 1000 samples in estimated 5.0349 s (28M iterations)
+Benchmarking update/10000: Analyzing
+update/10000            time:   [156.27 ns 157.36 ns 158.44 ns]
+                        change: [-58.539% -57.258% -55.902%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 153 outliers among 1000 measurements (15.30%)
+  130 (13.00%) low severe
+  18 (1.80%) low mild
+  3 (0.30%) high mild
+  2 (0.20%) high severe
+
+Benchmarking get_or_insert/existing
+Benchmarking get_or_insert/existing: Warming up for 2.0000 s
+Benchmarking get_or_insert/existing: Collecting 1000 samples in estimated 5.0004 s (238M iterations)
+Benchmarking get_or_insert/existing: Analyzing
+get_or_insert/existing  time:   [15.917 ns 15.966 ns 16.045 ns]
+                        change: [-70.984% -69.661% -68.263%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 16 outliers among 1000 measurements (1.60%)
+  1 (0.10%) low mild
+  6 (0.60%) high mild
+  9 (0.90%) high severe
+Benchmarking get_or_insert/new
+Benchmarking get_or_insert/new: Warming up for 2.0000 s
+Benchmarking get_or_insert/new: Collecting 1000 samples in estimated 5.1810 s (9.5M iterations)
+Benchmarking get_or_insert/new: Analyzing
+get_or_insert/new       time:   [263.11 ns 268.21 ns 272.98 ns]
+
+Benchmarking compare_and_swap/success
+Benchmarking compare_and_swap/success: Warming up for 2.0000 s
+Benchmarking compare_and_swap/success: Collecting 1000 samples in estimated 5.0128 s (171M iterations)
+Benchmarking compare_and_swap/success: Analyzing
+compare_and_swap/success
+                        time:   [16.193 ns 16.251 ns 16.309 ns]
+Found 218 outliers among 1000 measurements (21.80%)
+  61 (6.10%) low mild
+  35 (3.50%) high mild
+  122 (12.20%) high severe
+Benchmarking compare_and_swap/failure
+Benchmarking compare_and_swap/failure: Warming up for 2.0000 s
+Benchmarking compare_and_swap/failure: Collecting 1000 samples in estimated 5.0004 s (117M iterations)
+Benchmarking compare_and_swap/failure: Analyzing
+compare_and_swap/failure
+                        time:   [23.838 ns 23.973 ns 24.125 ns]
+Found 5 outliers among 1000 measurements (0.50%)
+  5 (0.50%) high severe
+

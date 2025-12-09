@@ -41,7 +41,7 @@
 //! #ASSUME_ATOMIC_ORDERING: Atomic operations use correct memory ordering
 //! #VERIFY_ATOMIC_ORDERING: Release writes, Acquire reads for state transitions
 //!
-//! # COCA Verification
+//! # Chaos Verification
 //!
 //! ```ignore
 //! #[derive(ComputationalCapsule)]
@@ -143,7 +143,7 @@ impl Default for FlushPolicy {
 /// 256 total
 /// ```
 ///
-/// # COCA Alignment
+/// # Chaos Alignment
 ///
 /// - Size: 256 bytes (optimal for L3 cache boundary)
 /// - Alignment: 64 bytes (single cache line)

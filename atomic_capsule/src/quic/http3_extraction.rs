@@ -60,7 +60,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 T2+T4 tier selection, composition validation
-//! - **COCA**: 100% lockfree (atomic frame parsing, no mutex in extraction)
+//! - **Chaos**: 100% lockfree (atomic frame parsing, no mutex in extraction)
 //! - **ASSUM**: 99.99% safe (index bounds, allocation safety, UTF-8 validation)
 //! - **B32**: Fair baselines (traditional QPACK decoders, scalar frame parsing)
 //! - **T28**: Unit/property/integration/production testing

@@ -91,7 +91,7 @@
 4. **Zero-Copy**: Memory-mapped I/O avoids buffer copies
 5. **Time-Travel Integration**: Works seamlessly with ReplayEngineCapsule
 
-### Lockfree COCA Compliance
+### Lockfree Chaos Compliance
 - **Zero Mutex/RwLock**: grep verified 0 hits
 - **Atomic Coordination**: AtomicU32, AtomicI32 only
 - **Cache Alignment**: 256B main struct, 4096B snapshots
@@ -206,7 +206,7 @@
 - ✅ Q33: #[derive(ComputationalCapsule)] ready
 - ✅ Q34: CRC32 hash-chain for auditability
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 - ✅ Zero mutex/RwLock (verified)
 - ✅ Atomic primitives only (AtomicU32/I32)
 - ✅ Cache-aligned (256B + 4096B)

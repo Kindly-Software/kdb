@@ -204,7 +204,7 @@ Migration is **opt-in**: Existing code requires zero changes.
 - **Q31-Q34**: Validation + Auditability (Q34 audit trails compatible)
 - Status: ✅ COMPLETE
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 - **100% Lockfree**: Zero mutex/RwLock (verified: grep 0 mutex)
 - **Tier Stack**: T0 (Audit) + T1 (Atomic) + T2 (SIMD) + T5 (Streaming)
 - **Advanced Patterns**: DualAtomicU64, generation counters, cache alignment (64B)
@@ -334,7 +334,7 @@ Opt-in upgrade provides 14.46× speedup with identical API surface.
 
 ### Frameworks
 - ✅ **UCE34** - Systematic discovery (Q1-Q34 complete)
-- ✅ **COCA** - Computational Capsule (T0-T5 lockfree)
+- ✅ **Chaos** - Computational Capsule (T0-T5 lockfree)
 - ✅ **ASSUM** - Safe assumptions (99.99% verified)
 - ✅ **B32** - Fair benchmarking (EXCEPTIONAL tier validated)
 - ✅ **T28** - Comprehensive testing (11/11 tests passing)
@@ -409,7 +409,7 @@ Ready for immediate production deployment.
 ## References
 
 - **Tier Stack**: T0 (Audit) + T1 (Atomic) + T2 (SIMD) + T5 (Streaming)
-- **Frameworks**: UCE34, COCA, ASSUM, B32, T28, I20
+- **Frameworks**: UCE34, Chaos, ASSUM, B32, T28, I20
 - **Key Innovations**: Queue batching (T5), Worker pool (T4), Adaptive LSH (T10)
 - **Documentation**: `/home/samuel/Primitives/CLAUDE.md`, `/home/samuel/CLAUDE.md`
 

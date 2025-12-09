@@ -49,8 +49,8 @@ use atomic_capsule_derive::ComputationalCapsule;
     capsule(alignment = 64, size = 64, tier = "Atomic")
 )]
 pub struct MmapRegion {
-    /// Base offset in mmap file (immutable)
-    base_offset: u64,
+    /// Base offset in mmap file (immutable after init, atomic for Chaos compliance)
+    base_offset: AtomicU64,
 
     /// Region capacity in bytes (immutable)
     capacity: AtomicU32,
@@ -87,7 +87,7 @@ impl MmapRegion {
     /// #ASSUME_CAPACITY_VALID: capacity must be ≤ mmap file size - base_offset
     pub fn new(base_offset: u64, capacity: u32) -> Self {
         Self {
-            base_offset,
+            base_offset: AtomicU64::new(base_offset),
             capacity: AtomicU32::new(capacity),
             allocated: AtomicU32::new(0),
             generation: AtomicU64::new(0),
@@ -140,7 +140,7 @@ impl MmapRegion {
                     self.generation.fetch_add(1, Ordering::Release);
 
                     // Return absolute offset in mmap file
-                    return Ok(self.base_offset + current as u64);
+                    return Ok(self.base_offset.load(Ordering::Relaxed) + current as u64);
                 }
                 Err(_) => {
                     retries += 1;

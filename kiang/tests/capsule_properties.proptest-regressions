@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc f2bc314ab2bcc09fcfa23957ad20bd0a701b58d506440ad16b6611c5dcebca85 # shrinks to gpu_id = 0, freq = 800, power = 10000, temp = 30, util = 0

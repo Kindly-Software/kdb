@@ -46,7 +46,7 @@
 //! - **ASSUM**: 99.99% safe (7 assumptions verified, zero unsafe in hot paths)
 //! - **B32**: Fair baselines (scalar MinHash 4.5K docs/sec, 7.1× SIMD proven)
 //! - **T28**: Comprehensive testing (28 tests: unit/property/integration/production)
-//! - **COCA**: 100% lockfree (AtomicU64 only, no mutex/RwLock)
+//! - **Chaos**: 100% lockfree (AtomicU64 only, no mutex/RwLock)
 //!
 //! ## Usage Example
 //!

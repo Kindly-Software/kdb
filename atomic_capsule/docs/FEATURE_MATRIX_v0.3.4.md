@@ -3,7 +3,7 @@
 **Version**: 0.3.4
 **Date**: 2025-10-28
 **Status**: Production-Ready
-**Framework**: UCE34 (Q1-Q34), ASSUM (99.99%), B32, T28, I20, COCA
+**Framework**: UCE34 (Q1-Q34), ASSUM (99.99%), B32, T28, I20, Chaos
 
 ---
 
@@ -194,7 +194,7 @@
 - B32: Fair baselines (vs HashSet), 95% CI, 1000+ iterations
 - T28: 4-tier testing (unit/property/integration/production)
 - I20: All 20 integration questions validated
-- COCA: 100% lockfree (atomic bit operations)
+- Chaos: 100% lockfree (atomic bit operations)
 
 ---
 
@@ -373,7 +373,7 @@
 | **B32** | 32 benchmarks | ✅ Complete | +5 new baselines (Bloom vs HashSet) |
 | **T28** | 4-tier testing | ✅ 546 tests | +16 new tests (Bloom filter) |
 | **I20** | Q1-Q20 integration | ✅ Complete | Q19 I20-Capsule strategy |
-| **COCA** | 100% lockfree | ✅ Complete | Atomic bit operations |
+| **Chaos** | 100% lockfree | ✅ Complete | Atomic bit operations |
 
 ---
 

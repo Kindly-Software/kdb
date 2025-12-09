@@ -81,7 +81,12 @@ pub struct DedupMetaCapsule {
     operation_count: AtomicU64,
 
     // ========== PADDING (to 256B) ==========
-    _padding: [u8; 77],
+    // HardwareId: #[repr(C, align(64))] with 32B hash + 32B padding = 64 bytes
+    // PufEntropy: #[repr(C, align(64))] with 32B entropy + 8B stability + 8B AtomicU64 = 64 bytes
+    // AtomicU64 × 3 = 24 bytes
+    // Total fields = 64 + 64 + 24 = 152 bytes
+    // Padding = 256 - 152 = 104 bytes
+    _padding: [u8; 104],
 }
 
 impl DedupMetaCapsule {
@@ -114,7 +119,7 @@ impl DedupMetaCapsule {
             access_nonce: AtomicU64::new(0),
             last_decrypt: AtomicU64::new(0),
             operation_count: AtomicU64::new(0),
-            _padding: [0; 77],
+            _padding: [0; 104],
         };
 
         Ok((capsule, encrypted_config))

@@ -338,4 +338,4 @@ For issues or questions:
 ---
 
 **Last Updated**: 2025-11-17
-**Framework Compliance**: UCE34, T28, ASSUM, B32, COCA
+**Framework Compliance**: UCE34, T28, ASSUM, B32, Chaos

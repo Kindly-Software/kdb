@@ -236,7 +236,7 @@ impl QuotaEntry {
 /// - **Thread-safety**: 100% lockfree, zero-copy reads
 /// - **Memory ordering**: Relaxed for independent counters, Acquire/Release for coordination
 ///
-/// # COCA Requirements
+/// # Chaos Requirements
 /// - ✅ 100% lockfree: No mutex/RwLock, only atomic operations
 /// - ✅ Cache-aligned: 64-byte alignment prevents false sharing
 /// - ✅ Generation counters: TOCTOU prevention via CAS + generation field

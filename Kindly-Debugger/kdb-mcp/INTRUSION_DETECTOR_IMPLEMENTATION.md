@@ -490,7 +490,7 @@ Ready for immediate deployment in atomic_mcp_server v0.1.0+.
 ### Framework Documentation
 
 - UCE34: `/home/samuel/Docs/UCE34_FRAMEWORK.md`
-- COCA: `/home/samuel/Docs/The Computational Capsule.md`
+- Chaos: `/home/samuel/Docs/The Computational Capsule.md`
 - B32: Performance validation framework
 - T28: Testing framework (4 tiers)
 - ASSUM: Safety verification framework

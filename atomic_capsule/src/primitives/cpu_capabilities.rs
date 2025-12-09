@@ -19,7 +19,7 @@
 // - B32: <10ns overhead (amortized over program lifetime)
 // - T28: 95+ tests (unit/property/integration/production)
 // - I20: Q1-Q20 integration framework (reusable primitive)
-// - COCA: 100% lockfree (no mutex/RwLock, AtomicBool only)
+// - Chaos: 100% lockfree (no mutex/RwLock, AtomicBool only)
 //
 // **Usage**:
 // ```rust

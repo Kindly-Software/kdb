@@ -32,7 +32,7 @@
 // - B32: Fair benchmarking against flate2 (no strawman comparisons)
 // - T28: 20+ unit tests (T28 Q1-Q7 coverage)
 // - I20: Zero breaking changes (new module)
-// - COCA: 100% lockfree atomic operations
+// - Chaos: 100% lockfree atomic operations
 //
 // **Trade-Offs**:
 // - Complexity: Custom LZ77/Huffman implementations (vs mature flate2)

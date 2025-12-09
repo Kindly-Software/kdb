@@ -1,0 +1,127 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/atomic_network_gateway/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/kiang/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+   Compiling atomic_capsule_map v0.1.0 (/home/samuel/Primitives/atomic_capsule_map)
+warning: methods `is_inline`, `is_heap`, and `heap_ptr` are never used
+   --> atomic_capsule_map/src/bucket.rs:152:12
+    |
+135 | impl BucketSnapshot {
+    | ------------------- methods in this implementation
+...
+152 |     pub fn is_inline(&self) -> bool {
+    |            ^^^^^^^^^
+...
+158 |     pub fn is_heap(&self) -> bool {
+    |            ^^^^^^^
+...
+172 |     pub unsafe fn heap_ptr<T>(&self) -> *mut T {
+    |                   ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated items `pack_w3`, `split_ptr`, `publish_heap`, and `extract_heap_ptr` are never used
+   --> atomic_capsule_map/src/bucket.rs:284:8
+    |
+242 | impl BucketCapsule {
+    | ------------------ associated items in this implementation
+...
+284 |     fn pack_w3(tail_version: u8, tail_generation: u32) -> u64 {
+    |        ^^^^^^^
+...
+336 |     fn split_ptr<T>(ptr: *mut T) -> (u32, u32) {
+    |        ^^^^^^^^^
+...
+539 |     pub fn publish_heap<T>(&self, key_hash: u32, key_data: u64, value_ptr: *mut T) {
+    |            ^^^^^^^^^^^^
+...
+602 |     pub fn extract_heap_ptr<T>(&self) -> Option<(*mut T, u32)> {
+    |            ^^^^^^^^^^^^^^^^
+
+warning: `atomic_capsule_map` (lib test) generated 2 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.23s
+     Running unittests src/lib.rs (/home/samuel/Primitives/target/debug/deps/atomic_capsule_map-0a8bbfde4556290d)
+
+running 57 tests
+test bucket::tests::bucket_64bit_storage_32bit_values ... ok
+test bucket::tests::bucket_64bit_storage_48bit_pointers ... ok
+test bucket::tests::bucket_64bit_storage_57bit_max ... ok
+test bucket::tests::bucket_64bit_storage_multiple_updates ... ok
+test bucket::tests::bucket_64bit_storage_truncation_warning ... ok
+test bucket::tests::bucket_cas_update_failure ... ok
+test bucket::tests::bucket_cas_update_success ... ok
+test bucket::tests::bucket_generation_increments ... ok
+test bucket::tests::bucket_new_empty ... ok
+test bucket::tests::bucket_publish_read ... ok
+test bucket::tests::bucket_remove ... ok
+test generation::tests::compare_exchange_failure ... ok
+test generation::tests::compare_exchange_success ... ok
+test generation::tests::generation_wrapping ... ok
+test generation::tests::monotonic_gen_increment ... ok
+test generation::tests::pack_unpack_gen_high ... ok
+test generation::tests::pack_unpack_gen_low ... ok
+test map::tests::map_arc_minimal ... ok
+test map::tests::map_arc_refcount_management ... ok
+test map::tests::map_arc_string_values ... ok
+test map::tests::map_arc_u64_values ... ok
+test map::tests::map_arc_update ... ok
+test generation::tests::concurrent_increments ... ok
+test map::tests::map_contains_key ... ok
+test map::tests::map_insert_get ... ok
+test map::tests::map_insert_update ... ok
+test map::tests::map_load_factor ... ok
+test map::tests::map_new ... ok
+test map::tests::map_metrics ... ok
+test map::tests::map_remove ... ok
+test map::tests::map_u32_values ... ok
+test map::tests::map_multiple_entries ... ok
+test safety::tests::test_generation_guard_increment ... ok
+test safety::tests::test_invariant_checker_alignment ... ok
+test safety::tests::test_invariant_checker_generation_monotonic ... ok
+test safety::tests::test_ordering_validator ... ok
+test safety::tests::test_two_phase_validator ... ok
+test safety::tests::test_invariant_checker_generation_not_monotonic - should panic ... ok
+test safety::tests::test_versioned_value_aba_prevention ... ok
+test safety::tests::test_versioned_value_pack_unpack ... ok
+test serializable::tests::test_arc_refcount_management ... FAILED
+test serializable::tests::test_arc_trait_roundtrip ... ok
+test serializable::tests::test_f32_trait_roundtrip ... ok
+test serializable::tests::test_f64_trait_roundtrip ... ok
+test serializable::tests::test_float_types_implement_trait ... ok
+test serializable::tests::test_i64_trait_roundtrip ... ok
+test serializable::tests::test_integer_types_implement_trait ... ok
+test serializable::tests::test_size_types_implement_trait ... ok
+test serializable::tests::test_u32_trait_roundtrip ... ok
+test serializable::tests::test_u64_trait_roundtrip ... ok
+test table::tests::table_insert_get ... ok
+test table::tests::table_insert_remove ... ok
+test table::tests::table_metrics ... ok
+test table::tests::table_new ... ok
+test table::tests::table_update_existing ... ok
+test table::tests::table_multiple_entries ... ok
+test map::tests::map_concurrent_reads ... ok
+
+failures:
+
+---- serializable::tests::test_arc_refcount_management stdout ----
+[to_storage] Arc ptr: 0x5f98300c7040 -> u64: 0x5f98300c7040
+[from_storage] u64: 0x5f98300c7040
+[from_storage] Reconstructing Arc from ptr: 0x5f98300c7040
+[from_storage] Arc reconstructed, about to clone
+[from_storage] Clone created
+[from_storage] Returning clone
+
+thread 'serializable::tests::test_arc_refcount_management' (1066590) panicked at atomic_capsule_map/src/serializable.rs:473:9:
+assertion `left == right` failed
+  left: 2
+ right: 1
+
+
+failures:
+    serializable::tests::test_arc_refcount_management
+
+test result: FAILED. 56 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+error: test failed, to rerun pass `--lib`

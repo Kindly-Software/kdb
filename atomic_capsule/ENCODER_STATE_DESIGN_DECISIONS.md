@@ -376,6 +376,6 @@ The capsule demonstrates that careful low-level design can achieve **3-10× spee
 ---
 
 **Design Analysis Date**: 2025-11-23
-**Framework**: UCE34 Q10 Profiling-First, COCA 100% Lockfree
+**Framework**: UCE34 Q10 Profiling-First, Chaos 100% Lockfree
 **Tier**: T1 Atomic (DualAtomicU64 Coordination)
 

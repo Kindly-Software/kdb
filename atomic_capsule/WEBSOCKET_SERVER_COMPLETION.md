@@ -1,7 +1,7 @@
 # WebSocket Server Capsule - Implementation Complete
 
 **Agent**: Agent 42 (RETRY)
-**Framework**: UCE34 (T8 Network + T1 Atomic + T4 Batch + T5 Streaming), COCA, ASSUM, B32, T28, I20
+**Framework**: UCE34 (T8 Network + T1 Atomic + T4 Batch + T5 Streaming), Chaos, ASSUM, B32, T28, I20
 **Status**: ✅ Production-Ready
 **Date**: 2025-11-21
 
@@ -100,7 +100,7 @@ pub fn stop(&self) -> Result<()>
 - **Q33**: #[derive(ComputationalCapsule)] for compile-time verification ✅
 - **Q34**: Q34 audit trails for compliance (audit log in broadcast) ✅
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 - **100% Lockfree**: Zero mutex/RwLock, all state via atomics ✅
 - **Cache-aligned**: 512B → 8 × 64B cache lines ✅
 - **Generation counters**: ABA prevention via `state` field ✅
@@ -423,7 +423,7 @@ Bytes received: 89234
 This implementation is certified as:
 
 - ✅ **RFC 6455 Compliant**: Full WebSocket protocol support
-- ✅ **COCA Compliant**: 100% lockfree, cache-aligned, zero mutex
+- ✅ **Chaos Compliant**: 100% lockfree, cache-aligned, zero mutex
 - ✅ **UCE34 Framework**: Q1-Q34 complete systematic discovery
 - ✅ **ASSUM Safe**: 99.99% confidence (5 assumptions verified)
 - ✅ **B32 Validated**: Fair benchmarking, 50× target speedup (EXCEPTIONAL tier)

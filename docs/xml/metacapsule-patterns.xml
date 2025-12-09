@@ -1,0 +1,851 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- metacapsule-patterns.xml: Comprehensive metacapsule orchestration patterns -->
+<!-- Version 1.0: Defines 4 patterns, 4 topologies, 8 lifecycle states, 4 coordination protocols -->
+<metacapsule-patterns xmlns="http://kindly.ai/uce34/v6.0"
+                      version="1.0">
+
+  <!-- ========================================
+       METACAPSULE PATTERN CATALOG
+       4 canonical patterns for multi-capsule orchestration
+       ======================================== -->
+  <pattern-catalog>
+    <description>
+      Metacapsules are T6 Mixed tier orchestrating capsules that coordinate 3-22 sub-capsules
+      for multi-stage pipelines. They provide atomic snapshot, hierarchical state coordination,
+      and compile-time impossible state prevention via DualAtomicU64 + phase bitmasks.
+    </description>
+
+    <!-- Pattern 1: Encoder Metacapsule -->
+    <pattern id="encoder" name="Encoder Metacapsule">
+      <description>Multi-stage codec orchestration for media encoding (AV1, PNG, JPEG, H.265, VP9)</description>
+      <tier>T6 Mixed</tier>
+      <topology>pipeline</topology>
+      <sub-capsule-count min="3" max="18"/>
+      <coordination>DualAtomicU64 with phase bitmasks (64-bit state + 64-bit generation)</coordination>
+      <size-range>256B-1024B orchestrator (sub-capsules separate)</size-range>
+
+      <canonical-example>
+        <name>Av1EncoderMetacapsule</name>
+        <sub-capsules count="18">
+          <capsule tier="T5">FrameBufferCapsule (input staging)</capsule>
+          <capsule tier="T2">DctTransformCapsule (SIMD transforms)</capsule>
+          <capsule tier="T2">QuantizationCapsule (SIMD quantization)</capsule>
+          <capsule tier="T1">EntropyCapsule (atomic state coordination)</capsule>
+          <capsule tier="T5">BitstreamCapsule (output streaming)</capsule>
+          <capsule tier="T2">IntraPredictionCapsule (SIMD prediction)</capsule>
+          <capsule tier="T2">MotionEstimationCapsule (SIMD motion search)</capsule>
+          <capsule tier="T1">RateControlCapsule (atomic rate decisions)</capsule>
+          <capsule tier="T4">ParallelTileEncoderCapsule (batch tile encoding)</capsule>
+          <capsule tier="T1">GopCoordinatorCapsule (GOP structure)</capsule>
+          <capsule tier="T2">CdefFilterCapsule (SIMD deblocking)</capsule>
+          <capsule tier="T2">LrfCapsule (SIMD loop restoration)</capsule>
+          <capsule tier="T2">FilmGrainCapsule (SIMD grain synthesis)</capsule>
+          <capsule tier="T2">SuperresolutionCapsule (SIMD upscaling)</capsule>
+          <capsule tier="T1">ReferenceFrameCapsule (atomic frame management)</capsule>
+          <capsule tier="T3">TemporalRdoCapsule (fixed-point RDO)</capsule>
+          <capsule tier="T2">LookaheadCapsule (SIMD scene analysis)</capsule>
+          <capsule tier="T5">FileIoCapsule (streaming I/O)</capsule>
+        </sub-capsules>
+        <speedup>2-20x vs single-threaded encoder</speedup>
+        <validation>B32-Validated, T28 5-tier tested</validation>
+      </canonical-example>
+
+      <stages>
+        <stage order="1" name="input">
+          <capsule>FrameBufferCapsule</capsule>
+          <responsibility>Frame buffering, format conversion, lookahead analysis</responsibility>
+          <latency>&lt;100us per frame</latency>
+        </stage>
+        <stage order="2" name="analysis">
+          <capsule>LookaheadCapsule, MotionEstimationCapsule</capsule>
+          <responsibility>Scene detection, motion vectors, rate control hints</responsibility>
+          <latency>&lt;1ms per frame</latency>
+        </stage>
+        <stage order="3" name="transform">
+          <capsule>DctTransformCapsule, IntraPredictionCapsule</capsule>
+          <responsibility>DCT/WHT transforms, intra prediction modes</responsibility>
+          <latency>&lt;500us per tile</latency>
+        </stage>
+        <stage order="4" name="quantization">
+          <capsule>QuantizationCapsule, TemporalRdoCapsule</capsule>
+          <responsibility>Quantization, RDO mode decisions</responsibility>
+          <latency>&lt;200us per tile</latency>
+        </stage>
+        <stage order="5" name="entropy">
+          <capsule>EntropyCapsule</capsule>
+          <responsibility>ANS entropy coding, symbol coding</responsibility>
+          <latency>&lt;100us per tile</latency>
+        </stage>
+        <stage order="6" name="filtering">
+          <capsule>CdefFilterCapsule, LrfCapsule, FilmGrainCapsule</capsule>
+          <responsibility>In-loop filtering, restoration, grain synthesis</responsibility>
+          <latency>&lt;500us per frame</latency>
+        </stage>
+        <stage order="7" name="output">
+          <capsule>BitstreamCapsule, FileIoCapsule</capsule>
+          <responsibility>Bitstream assembly, OBU packaging, file output</responsibility>
+          <latency>&lt;100us per frame</latency>
+        </stage>
+      </stages>
+
+      <state-machine>
+        <states>
+          <state id="idle">No frame in flight</state>
+          <state id="buffering">Accumulating input frames</state>
+          <state id="encoding">Active encoding pipeline</state>
+          <state id="flushing">Draining remaining frames</state>
+        </states>
+        <phase-bitmask>
+          <bit position="0-2">Current stage (0-6)</bit>
+          <bit position="3-7">Active tiles (bitmask)</bit>
+          <bit position="8-15">Frame number (mod 256)</bit>
+          <bit position="16-31">Error code</bit>
+          <bit position="32-63">Generation counter</bit>
+        </phase-bitmask>
+      </state-machine>
+
+      <error-recovery>
+        <strategy>Per-stage rollback with checkpoint</strategy>
+        <checkpoint-frequency>Every GOP boundary</checkpoint-frequency>
+        <max-retries>3 per stage</max-retries>
+      </error-recovery>
+    </pattern>
+
+    <!-- Pattern 2: Transport Metacapsule -->
+    <pattern id="transport" name="Transport Metacapsule">
+      <description>Network protocol orchestration for transport layer (QUIC, HTTP/3, WebSocket, TLS)</description>
+      <tier>T6 Mixed (T1+T2+T5+T8)</tier>
+      <topology>mesh</topology>
+      <sub-capsule-count min="6" max="22"/>
+      <coordination>DualAtomicU64 with connection state machine</coordination>
+      <size-range>512B-1024B orchestrator</size-range>
+
+      <canonical-example>
+        <name>QuicEndpointMetacapsule</name>
+        <sub-capsules count="22">
+          <capsule tier="T1">ConnectionStateCapsule (atomic state machine)</capsule>
+          <capsule tier="T1">StreamStateCapsule (atomic stream management)</capsule>
+          <capsule tier="T2">FrameParserCapsule (SIMD frame parsing)</capsule>
+          <capsule tier="T2">PacketAssemblyCapsule (SIMD packet construction)</capsule>
+          <capsule tier="T5">CryptoStreamCapsule (streaming encryption)</capsule>
+          <capsule tier="T1">FlowControlCapsule (atomic flow control)</capsule>
+          <capsule tier="T1">CongestionControlCapsule (atomic congestion state)</capsule>
+          <capsule tier="T1">LossDetectionCapsule (atomic loss tracking)</capsule>
+          <capsule tier="T1">RttEstimatorCapsule (atomic RTT calculation)</capsule>
+          <capsule tier="T5">RetransmissionQueueCapsule (streaming retransmit)</capsule>
+          <capsule tier="T1">ConnectionIdPoolCapsule (atomic CID management)</capsule>
+          <capsule tier="T1">PacingCapsule (atomic send pacing)</capsule>
+          <capsule tier="T2">QpackEncoderCapsule (SIMD header compression)</capsule>
+          <capsule tier="T2">QpackDecoderCapsule (SIMD header decompression)</capsule>
+          <capsule tier="T5">Http3ControlStreamCapsule (streaming control)</capsule>
+          <capsule tier="T5">Http3RequestStreamCapsule (streaming requests)</capsule>
+          <capsule tier="T1">StreamPriorityCapsule (atomic priority queue)</capsule>
+          <capsule tier="T1">AckManagerCapsule (atomic ACK generation)</capsule>
+          <capsule tier="T1">PathManagerCapsule (atomic path validation)</capsule>
+          <capsule tier="T5">DatagramCapsule (streaming datagrams)</capsule>
+          <capsule tier="T1">TokenManagerCapsule (atomic token handling)</capsule>
+          <capsule tier="T8">SocketCapsule (zero-copy I/O)</capsule>
+        </sub-capsules>
+        <speedup>1.76x vs TLS 1.3 (0-RTT + multiplexing)</speedup>
+        <validation>RFC 9000/9114/9221 compliant, 56/56 tests</validation>
+      </canonical-example>
+
+      <layers>
+        <layer name="connection" order="1">
+          <capsules>ConnectionStateCapsule, ConnectionIdPoolCapsule, PathManagerCapsule</capsules>
+          <responsibility>Connection lifecycle, handshake, migration</responsibility>
+        </layer>
+        <layer name="stream" order="2">
+          <capsules>StreamStateCapsule, FlowControlCapsule, StreamPriorityCapsule</capsules>
+          <responsibility>Stream multiplexing, flow control, prioritization</responsibility>
+        </layer>
+        <layer name="frame" order="3">
+          <capsules>FrameParserCapsule, QpackEncoderCapsule, QpackDecoderCapsule</capsules>
+          <responsibility>Frame parsing, header compression</responsibility>
+        </layer>
+        <layer name="packet" order="4">
+          <capsules>PacketAssemblyCapsule, CryptoStreamCapsule, AckManagerCapsule</capsules>
+          <responsibility>Packet assembly, encryption, acknowledgment</responsibility>
+        </layer>
+        <layer name="transport" order="5">
+          <capsules>CongestionControlCapsule, LossDetectionCapsule, PacingCapsule, RttEstimatorCapsule</capsules>
+          <responsibility>Congestion control, loss detection, pacing</responsibility>
+        </layer>
+        <layer name="io" order="6">
+          <capsules>SocketCapsule, DatagramCapsule</capsules>
+          <responsibility>Socket I/O, zero-copy send/recv</responsibility>
+        </layer>
+      </layers>
+
+      <state-machine>
+        <states>
+          <state id="idle">No connection</state>
+          <state id="connecting">Handshake in progress</state>
+          <state id="connected">Active connection</state>
+          <state id="draining">Connection draining</state>
+          <state id="closed">Connection closed</state>
+        </states>
+        <phase-bitmask>
+          <bit position="0-3">Connection state (5 states)</bit>
+          <bit position="4-7">Handshake phase (0-3)</bit>
+          <bit position="8-15">Active streams count</bit>
+          <bit position="16-23">Congestion window (KB)</bit>
+          <bit position="24-31">RTT estimate (ms)</bit>
+          <bit position="32-63">Generation counter</bit>
+        </phase-bitmask>
+      </state-machine>
+    </pattern>
+
+    <!-- Pattern 3: API Gateway Metacapsule -->
+    <pattern id="api-gateway" name="API Gateway Metacapsule">
+      <description>Multi-protocol API routing for unified service endpoints</description>
+      <tier>T6 Mixed (T1+T5+T8)</tier>
+      <topology>fanout</topology>
+      <sub-capsule-count min="4" max="10"/>
+      <coordination>TransportType enum + ALPN detection + protocol routing</coordination>
+      <size-range>256B-512B orchestrator</size-range>
+
+      <canonical-example>
+        <name>UniversalApiMetaCapsule</name>
+        <sub-capsules count="6">
+          <capsule tier="T5">RestHandlerCapsule (HTTP/1.1, HTTP/2 REST)</capsule>
+          <capsule tier="T5">GraphqlExecutorCapsule (GraphQL federation)</capsule>
+          <capsule tier="T5">GrpcMultiplexerCapsule (gRPC/protobuf)</capsule>
+          <capsule tier="T5">WebsocketStateCapsule (bidirectional streaming)</capsule>
+          <capsule tier="T5">JsonRpcHandlerCapsule (JSON-RPC 2.0 batch)</capsule>
+          <capsule tier="T5">SseHandlerCapsule (server-sent events)</capsule>
+        </sub-capsules>
+        <speedup>&lt;12ns protocol routing, &lt;10us RPC latency</speedup>
+        <validation>28/28 tests, multi-protocol interop verified</validation>
+      </canonical-example>
+
+      <protocols>
+        <protocol name="REST">
+          <versions>HTTP/1.1, HTTP/2</versions>
+          <content-types>application/json, application/xml, multipart/form-data</content-types>
+          <capsule>RestHandlerCapsule</capsule>
+        </protocol>
+        <protocol name="GraphQL">
+          <versions>June 2018 spec</versions>
+          <features>Query, Mutation, Subscription, Federation</features>
+          <capsule>GraphqlExecutorCapsule</capsule>
+        </protocol>
+        <protocol name="gRPC">
+          <versions>gRPC, gRPC-Web</versions>
+          <features>Unary, Server streaming, Client streaming, Bidirectional</features>
+          <capsule>GrpcMultiplexerCapsule</capsule>
+        </protocol>
+        <protocol name="WebSocket">
+          <versions>RFC 6455</versions>
+          <features>Text frames, Binary frames, Ping/Pong, Close</features>
+          <capsule>WebsocketStateCapsule</capsule>
+        </protocol>
+        <protocol name="JSON-RPC">
+          <versions>2.0</versions>
+          <features>Single request, Batch request, Notifications</features>
+          <capsule>JsonRpcHandlerCapsule</capsule>
+        </protocol>
+        <protocol name="SSE">
+          <versions>W3C EventSource</versions>
+          <features>Event stream, Reconnection, Event IDs</features>
+          <capsule>SseHandlerCapsule</capsule>
+        </protocol>
+      </protocols>
+
+      <routing-logic>
+        <step order="1">ALPN detection (h2, h3, http/1.1)</step>
+        <step order="2">Content-Type inspection</step>
+        <step order="3">Path prefix matching (/graphql, /grpc, /ws)</step>
+        <step order="4">Upgrade header detection (websocket)</step>
+        <step order="5">Accept header analysis</step>
+      </routing-logic>
+    </pattern>
+
+    <!-- Pattern 4: Processing Pipeline Metacapsule -->
+    <pattern id="processing-pipeline" name="Processing Pipeline Metacapsule">
+      <description>Data transformation pipeline for ETL, ML inference, stream processing</description>
+      <tier>T6 Mixed (T2+T4+T5)</tier>
+      <topology>pipeline</topology>
+      <sub-capsule-count min="3" max="12"/>
+      <coordination>DualAtomicU64 with batch tracking and watermarks</coordination>
+      <size-range>256B-512B orchestrator</size-range>
+
+      <canonical-example>
+        <name>LlmDedupMetacapsule</name>
+        <sub-capsules count="6">
+          <capsule tier="T5">DocumentLoaderCapsule (streaming input)</capsule>
+          <capsule tier="T2">ShingleGeneratorCapsule (SIMD tokenization)</capsule>
+          <capsule tier="T10">MinHashSignatureCapsule (probabilistic hashing)</capsule>
+          <capsule tier="T10">LshBucketCapsule (locality-sensitive hashing)</capsule>
+          <capsule tier="T1">UnionFindCapsule (atomic cluster merging)</capsule>
+          <capsule tier="T5">OutputWriterCapsule (streaming output)</capsule>
+        </sub-capsules>
+        <speedup>38x single-threaded, 190x multi-threaded vs Python datasketch</speedup>
+        <validation>92-99% recall, B32-Validated</validation>
+      </canonical-example>
+
+      <stages>
+        <stage order="1" name="input">
+          <responsibility>Load and validate input data</responsibility>
+          <capsule>DocumentLoaderCapsule or similar</capsule>
+          <backpressure>Bounded queue, drop oldest on overflow</backpressure>
+        </stage>
+        <stage order="2" name="transform">
+          <responsibility>Data transformation, feature extraction</responsibility>
+          <capsule>SIMD-accelerated transformer</capsule>
+          <parallelism>Data parallel across batch</parallelism>
+        </stage>
+        <stage order="3" name="process">
+          <responsibility>Core processing logic</responsibility>
+          <capsule>Domain-specific processor</capsule>
+          <checkpointing>Per-batch checkpoints for recovery</checkpointing>
+        </stage>
+        <stage order="4" name="aggregate">
+          <responsibility>Combine results, compute statistics</responsibility>
+          <capsule>Atomic aggregator</capsule>
+          <consistency>Exactly-once semantics</consistency>
+        </stage>
+        <stage order="5" name="output">
+          <responsibility>Format and emit results</responsibility>
+          <capsule>Streaming writer</capsule>
+          <delivery>At-least-once with dedup</delivery>
+        </stage>
+      </stages>
+
+      <batch-coordination>
+        <batch-size min="64" max="4096" default="512"/>
+        <watermark-tracking>Per-stage watermarks for progress</watermark-tracking>
+        <checkpoint-interval>Every 1000 batches or 60 seconds</checkpoint-interval>
+      </batch-coordination>
+    </pattern>
+
+  </pattern-catalog>
+
+  <!-- ========================================
+       TOPOLOGY DEFINITIONS
+       4 canonical topologies for capsule interconnection
+       ======================================== -->
+  <topology-definitions>
+    <description>
+      Topologies define how sub-capsules are connected within a metacapsule.
+      Choice affects latency, throughput, fault tolerance, and complexity.
+    </description>
+
+    <topology id="pipeline">
+      <name>Pipeline Topology</name>
+      <description>Linear chain of capsules, data flows one direction through ordered stages</description>
+      <diagram>A → B → C → D → E</diagram>
+
+      <characteristics>
+        <latency>O(stages × stage_latency) for single item</latency>
+        <throughput>Limited by slowest stage (bottleneck)</throughput>
+        <parallelism>Pipeline parallelism (multiple items in flight)</parallelism>
+        <fault-tolerance>Single point of failure per stage</fault-tolerance>
+        <complexity>O(n) connections for n stages</complexity>
+      </characteristics>
+
+      <optimizations>
+        <optimization>Batch mode: Amortize stage transition overhead</optimization>
+        <optimization>Async handoff: Non-blocking inter-stage queues</optimization>
+        <optimization>Stage fusion: Combine adjacent stages with similar characteristics</optimization>
+      </optimizations>
+
+      <use-cases>
+        <use-case>Encoder pipelines (input → transform → quantize → entropy → output)</use-case>
+        <use-case>ETL workflows (extract → transform → load)</use-case>
+        <use-case>Image processing (decode → resize → filter → encode)</use-case>
+      </use-cases>
+    </topology>
+
+    <topology id="mesh">
+      <name>Mesh Topology</name>
+      <description>Fully or partially connected network, bidirectional communication between capsules</description>
+      <diagram>
+A ↔ B
+↕ × ↕
+C ↔ D
+      </diagram>
+
+      <characteristics>
+        <latency>O(1) direct, O(hops) indirect</latency>
+        <throughput>Aggregate of all connections</throughput>
+        <parallelism>True concurrent communication</parallelism>
+        <fault-tolerance>Multiple paths, graceful degradation</fault-tolerance>
+        <complexity>O(n²) connections for full mesh, O(n) for partial</complexity>
+      </characteristics>
+
+      <variants>
+        <variant name="full-mesh">All pairs connected, highest redundancy</variant>
+        <variant name="partial-mesh">Strategic connections, balanced complexity</variant>
+        <variant name="ring">Circular, O(n/2) max hops</variant>
+      </variants>
+
+      <use-cases>
+        <use-case>Protocol layers (connection ↔ stream ↔ frame ↔ packet)</use-case>
+        <use-case>Consensus algorithms (leader ↔ followers)</use-case>
+        <use-case>Distributed coordination (peer-to-peer)</use-case>
+      </use-cases>
+    </topology>
+
+    <topology id="fanout">
+      <name>Fanout Topology</name>
+      <description>Single source distributes to multiple independent sinks</description>
+      <diagram>
+    B
+   ↗
+A → C
+   ↘
+    D
+      </diagram>
+
+      <characteristics>
+        <latency>O(1) parallel dispatch</latency>
+        <throughput>Sum of sink capacities</throughput>
+        <parallelism>True parallel processing at sinks</parallelism>
+        <fault-tolerance>Sink failures independent</fault-tolerance>
+        <complexity>O(n) connections for n sinks</complexity>
+      </characteristics>
+
+      <variants>
+        <variant name="broadcast">Same data to all sinks</variant>
+        <variant name="partition">Different data to different sinks (sharding)</variant>
+        <variant name="round-robin">Load balancing across sinks</variant>
+      </variants>
+
+      <use-cases>
+        <use-case>API gateway (route to REST/GraphQL/gRPC/WebSocket handlers)</use-case>
+        <use-case>Event distribution (price updates to multiple consumers)</use-case>
+        <use-case>Pub/sub (publish to subscribers)</use-case>
+      </use-cases>
+    </topology>
+
+    <topology id="hierarchical">
+      <name>Hierarchical Topology</name>
+      <description>Tree structure with parent-child relationships, aggregation at each level</description>
+      <diagram>
+       A
+      / \
+     B   C
+    /|   |\
+   D E   F G
+      </diagram>
+
+      <characteristics>
+        <latency>O(depth) for leaf-to-root</latency>
+        <throughput>Aggregate at each level</throughput>
+        <parallelism>Parallel within levels</parallelism>
+        <fault-tolerance>Subtree isolation</fault-tolerance>
+        <complexity>O(n) connections for n nodes</complexity>
+      </characteristics>
+
+      <variants>
+        <variant name="binary-tree">2 children per node</variant>
+        <variant name="n-ary-tree">N children per node</variant>
+        <variant name="dag">Directed acyclic graph (shared children)</variant>
+      </variants>
+
+      <use-cases>
+        <use-case>Aggregation (leaf values → intermediate sums → root total)</use-case>
+        <use-case>Distributed reduce (MapReduce pattern)</use-case>
+        <use-case>Organizational structure (manager → reports)</use-case>
+      </use-cases>
+    </topology>
+
+  </topology-definitions>
+
+  <!-- ========================================
+       LIFECYCLE STATES
+       8 canonical states for metacapsule lifecycle
+       ======================================== -->
+  <lifecycle-states>
+    <description>
+      Metacapsule lifecycle states ensure consistent behavior across all patterns.
+      State transitions are atomic via DualAtomicU64 CAS operations.
+    </description>
+
+    <states>
+      <state id="uninitialized">
+        <description>Metacapsule allocated but sub-capsules not yet created</description>
+        <valid-operations>init()</valid-operations>
+        <invariants>No sub-capsules exist</invariants>
+      </state>
+
+      <state id="initializing">
+        <description>Sub-capsules being constructed and wired</description>
+        <valid-operations>abort()</valid-operations>
+        <invariants>Partial sub-capsule construction</invariants>
+        <timeout>30 seconds default</timeout>
+      </state>
+
+      <state id="ready">
+        <description>All sub-capsules initialized, accepting work</description>
+        <valid-operations>submit(), snapshot(), drain(), close()</valid-operations>
+        <invariants>All sub-capsules in ready state</invariants>
+      </state>
+
+      <state id="processing">
+        <description>Active work in progress</description>
+        <valid-operations>submit(), snapshot(), drain()</valid-operations>
+        <invariants>At least one work item in flight</invariants>
+      </state>
+
+      <state id="draining">
+        <description>Completing in-flight work, rejecting new submissions</description>
+        <valid-operations>snapshot(), abort()</valid-operations>
+        <invariants>No new work accepted, existing work completing</invariants>
+        <timeout>60 seconds default, then force abort</timeout>
+      </state>
+
+      <state id="stopped">
+        <description>No active processing, can restart</description>
+        <valid-operations>restart(), close()</valid-operations>
+        <invariants>All in-flight work completed or aborted</invariants>
+      </state>
+
+      <state id="error">
+        <description>Recoverable error state</description>
+        <valid-operations>recover(), close(), snapshot()</valid-operations>
+        <invariants>Error condition recorded, state preserved for diagnosis</invariants>
+        <recovery>Automatic retry with exponential backoff</recovery>
+      </state>
+
+      <state id="failed">
+        <description>Unrecoverable error, requires reconstruction</description>
+        <valid-operations>close(), snapshot()</valid-operations>
+        <invariants>Terminal state, no recovery possible</invariants>
+        <action>Must construct new metacapsule instance</action>
+      </state>
+    </states>
+
+    <transitions>
+      <transition from="uninitialized" to="initializing">
+        <trigger>init(config)</trigger>
+        <guard>config.is_valid()</guard>
+        <action>Begin sub-capsule construction</action>
+      </transition>
+
+      <transition from="initializing" to="ready">
+        <trigger>all_sub_capsules_ready</trigger>
+        <guard>All sub-capsules report ready</guard>
+        <action>Wire connections, start health monitoring</action>
+      </transition>
+
+      <transition from="initializing" to="failed">
+        <trigger>init_timeout OR sub_capsule_failed</trigger>
+        <guard>Timeout exceeded OR unrecoverable sub-capsule error</guard>
+        <action>Cleanup partial state, record error</action>
+      </transition>
+
+      <transition from="ready" to="processing">
+        <trigger>submit(work)</trigger>
+        <guard>work.is_valid()</guard>
+        <action>Dispatch to first stage</action>
+      </transition>
+
+      <transition from="processing" to="ready">
+        <trigger>all_work_complete</trigger>
+        <guard>in_flight_count == 0</guard>
+        <action>Reset stage counters</action>
+      </transition>
+
+      <transition from="processing" to="draining">
+        <trigger>drain()</trigger>
+        <guard>None (always valid)</guard>
+        <action>Stop accepting new work, continue existing</action>
+      </transition>
+
+      <transition from="draining" to="stopped">
+        <trigger>drain_complete</trigger>
+        <guard>in_flight_count == 0</guard>
+        <action>Signal completion to waiters</action>
+      </transition>
+
+      <transition from="stopped" to="ready">
+        <trigger>restart()</trigger>
+        <guard>No unrecoverable errors</guard>
+        <action>Reset state, re-enable submissions</action>
+      </transition>
+
+      <transition from="*" to="error">
+        <trigger>recoverable_error</trigger>
+        <guard>Error is recoverable</guard>
+        <action>Preserve state, record error details</action>
+        <source-states>ready, processing, draining</source-states>
+      </transition>
+
+      <transition from="error" to="ready">
+        <trigger>recover()</trigger>
+        <guard>Recovery strategy succeeded</guard>
+        <action>Clear error, resume normal operation</action>
+      </transition>
+
+      <transition from="error" to="failed">
+        <trigger>recovery_failed OR max_retries_exceeded</trigger>
+        <guard>Recovery impossible</guard>
+        <action>Record permanent failure</action>
+      </transition>
+
+      <transition from="*" to="failed">
+        <trigger>unrecoverable_error</trigger>
+        <guard>Error is not recoverable</guard>
+        <action>Immediate transition, preserve diagnostics</action>
+        <source-states>initializing, ready, processing, draining, error</source-states>
+      </transition>
+
+      <transition from="*" to="closed">
+        <trigger>close()</trigger>
+        <guard>None (always valid)</guard>
+        <action>Release all resources, drop sub-capsules</action>
+        <source-states>stopped, error, failed</source-states>
+      </transition>
+    </transitions>
+
+    <implementation-pattern>
+      <code language="rust">
+/// Atomic state representation using DualAtomicU64
+struct MetacapsuleState {
+    /// Lower 64 bits: state + phase + counters
+    /// Upper 64 bits: generation counter
+    state: DualAtomicU64,
+}
+
+impl MetacapsuleState {
+    const STATE_MASK: u64 = 0x0000_0000_0000_000F; // 4 bits for 8 states
+    const PHASE_MASK: u64 = 0x0000_0000_0000_00F0; // 4 bits for phase
+    const COUNT_MASK: u64 = 0x0000_0000_FFFF_FF00; // 24 bits for in-flight count
+
+    fn transition(&amp;self, from: State, to: State) -> Result&lt;(), TransitionError&gt; {
+        loop {
+            let snapshot = self.state.load(Acquire);
+            let current_state = (snapshot.primary &amp; Self::STATE_MASK) as u8;
+
+            if State::from(current_state) != from {
+                return Err(TransitionError::InvalidState);
+            }
+
+            let new_primary = (snapshot.primary &amp; !Self::STATE_MASK) | (to as u64);
+            let new_generation = snapshot.secondary + 1;
+
+            match self.state.compare_exchange(
+                snapshot,
+                DualAtomicSnapshot { primary: new_primary, secondary: new_generation },
+                AcqRel,
+                Acquire,
+            ) {
+                Ok(_) => return Ok(()),
+                Err(_) => continue, // Retry on contention
+            }
+        }
+    }
+}
+      </code>
+    </implementation-pattern>
+  </lifecycle-states>
+
+  <!-- ========================================
+       COORDINATION PROTOCOLS
+       4 canonical protocols for sub-capsule coordination
+       ======================================== -->
+  <coordination-protocols>
+    <description>
+      Coordination protocols define how sub-capsules execute relative to each other.
+      Choice affects latency, throughput, resource utilization, and error handling.
+    </description>
+
+    <protocol id="sequential">
+      <name>Sequential Protocol</name>
+      <description>Sub-capsules execute in strict order, one at a time</description>
+
+      <characteristics>
+        <latency>Sum of all sub-capsule latencies</latency>
+        <throughput>1/latency (single item at a time)</throughput>
+        <resource-utilization>Low (one active at a time)</resource-utilization>
+        <ordering>Strict total ordering</ordering>
+      </characteristics>
+
+      <use-cases>
+        <use-case>Dependent transformations where output of N is input to N+1</use-case>
+        <use-case>State machines with strict ordering requirements</use-case>
+        <use-case>Debugging and testing (deterministic execution)</use-case>
+      </use-cases>
+
+      <implementation>
+        <pattern>await capsule_a.process(); await capsule_b.process(); ...</pattern>
+        <error-handling>Fail-fast: abort entire sequence on any error</error-handling>
+      </implementation>
+    </protocol>
+
+    <protocol id="parallel">
+      <name>Parallel Protocol</name>
+      <description>Independent sub-capsules execute concurrently</description>
+
+      <characteristics>
+        <latency>Max of concurrent sub-capsule latencies</latency>
+        <throughput>Sum of individual throughputs</throughput>
+        <resource-utilization>High (all active simultaneously)</resource-utilization>
+        <ordering>No ordering (independent)</ordering>
+      </characteristics>
+
+      <use-cases>
+        <use-case>Embarrassingly parallel workloads</use-case>
+        <use-case>Independent API handlers (REST + GraphQL + gRPC)</use-case>
+        <use-case>Fan-out processing</use-case>
+      </use-cases>
+
+      <implementation>
+        <pattern>join!(capsule_a.process(), capsule_b.process(), capsule_c.process())</pattern>
+        <error-handling>Configurable: fail-fast, fail-slow (collect all), or best-effort</error-handling>
+      </implementation>
+    </protocol>
+
+    <protocol id="pipelined">
+      <name>Pipelined Protocol</name>
+      <description>Overlapped execution with bounded inter-stage queues</description>
+
+      <characteristics>
+        <latency>Latency of slowest stage (after warmup)</latency>
+        <throughput>Throughput of slowest stage (bottleneck)</throughput>
+        <resource-utilization>High (all stages active)</resource-utilization>
+        <ordering>Per-item FIFO, batch reordering possible</ordering>
+      </characteristics>
+
+      <use-cases>
+        <use-case>Streaming data processing</use-case>
+        <use-case>Encoder/decoder pipelines</use-case>
+        <use-case>ETL workflows with continuous input</use-case>
+      </use-cases>
+
+      <implementation>
+        <pattern>Bounded SPSC queues between stages, async poll loops</pattern>
+        <backpressure>Queue full → block producer or drop</backpressure>
+        <error-handling>Per-stage error isolation, continue other items</error-handling>
+      </implementation>
+
+      <optimizations>
+        <optimization name="stage-fusion">Combine stages with similar latency</optimization>
+        <optimization name="batch-mode">Process N items per stage transition</optimization>
+        <optimization name="adaptive-batching">Adjust batch size based on queue depth</optimization>
+      </optimizations>
+    </protocol>
+
+    <protocol id="speculative">
+      <name>Speculative Protocol</name>
+      <description>Execute ahead optimistically, rollback on mispredict</description>
+
+      <characteristics>
+        <latency>Best case: overlapped | Worst case: latency + rollback</latency>
+        <throughput>Improved average case (if prediction accurate)</throughput>
+        <resource-utilization>Variable (wasted work on mispredict)</resource-utilization>
+        <ordering>Speculative then committed</ordering>
+      </characteristics>
+
+      <use-cases>
+        <use-case>Branch prediction in data-dependent pipelines</use-case>
+        <use-case>Optimistic concurrency control</use-case>
+        <use-case>Prefetching and precomputation</use-case>
+      </use-cases>
+
+      <implementation>
+        <pattern>checkpoint → speculate → validate → commit OR rollback</pattern>
+        <checkpoint>Snapshot state before speculation</checkpoint>
+        <rollback>Restore checkpoint on mispredict</rollback>
+        <error-handling>Mispredict is not error, just rollback and retry</error-handling>
+      </implementation>
+
+      <requirements>
+        <requirement>Cheap checkpoint (atomic snapshot)</requirement>
+        <requirement>Deterministic rollback</requirement>
+        <requirement>High prediction accuracy (>80% for benefit)</requirement>
+      </requirements>
+    </protocol>
+
+  </coordination-protocols>
+
+  <!-- ========================================
+       DESIGN GUIDELINES
+       Best practices for metacapsule design
+       ======================================== -->
+  <design-guidelines>
+    <guideline id="size-limit">
+      <rule>Orchestrator capsule should be 256B-1024B</rule>
+      <rationale>Fit in L1 cache, minimize coordination overhead</rationale>
+    </guideline>
+
+    <guideline id="sub-capsule-limit">
+      <rule>Limit sub-capsules to 3-22 per metacapsule</rule>
+      <rationale>&lt;3: Use simple capsule instead | >22: Consider hierarchical decomposition</rationale>
+    </guideline>
+
+    <guideline id="acyclic-dependencies">
+      <rule>Sub-capsule dependency graph must be acyclic (DAG)</rule>
+      <rationale>Cycles cause deadlocks in pipelined execution</rationale>
+    </guideline>
+
+    <guideline id="atomic-snapshot">
+      <rule>Always capture atomic snapshot before state transition</rule>
+      <rationale>Enables rollback, debugging, audit trail</rationale>
+    </guideline>
+
+    <guideline id="generation-counters">
+      <rule>Use generation counters on DualAtomicU64 for all coordination</rule>
+      <rationale>Prevents ABA problem, enables optimistic concurrency</rationale>
+    </guideline>
+
+    <guideline id="phase-bitmasks">
+      <rule>Use phase bitmasks for FSM states (not enums)</rule>
+      <rationale>Atomic transitions, compound state representation</rationale>
+    </guideline>
+
+    <guideline id="t28-testing">
+      <rule>Metacapsules require T28 5-tier testing (including Q29-Q35 determinism)</rule>
+      <rationale>Complex coordination requires comprehensive testing</rationale>
+    </guideline>
+
+    <guideline id="error-isolation">
+      <rule>Isolate sub-capsule errors, don't propagate blindly</rule>
+      <rationale>One sub-capsule failure shouldn't crash entire metacapsule</rationale>
+    </guideline>
+  </design-guidelines>
+
+  <!-- ========================================
+       ANTI-PATTERNS
+       Common mistakes to avoid
+       ======================================== -->
+  <anti-patterns>
+    <anti-pattern id="mutex-coordination">
+      <name>Mutex Coordination</name>
+      <description>Using Mutex/RwLock instead of atomic coordination</description>
+      <problem>100× slower, defeats lockfree benefits</problem>
+      <solution>Use DualAtomicU64 with CAS loops</solution>
+    </anti-pattern>
+
+    <anti-pattern id="scattered-atomics">
+      <name>Scattered Atomics</name>
+      <description>Multiple atomic fields updated independently</description>
+      <problem>Inconsistent snapshots, torn reads</problem>
+      <solution>Pack related fields into DualAtomicU64</solution>
+    </anti-pattern>
+
+    <anti-pattern id="cyclic-dependencies">
+      <name>Cyclic Dependencies</name>
+      <description>Sub-capsules with circular dependencies</description>
+      <problem>Deadlocks, infinite loops in pipeline</problem>
+      <solution>Refactor to DAG, introduce coordinator capsule</solution>
+    </anti-pattern>
+
+    <anti-pattern id="god-metacapsule">
+      <name>God Metacapsule</name>
+      <description>Single metacapsule with 50+ sub-capsules</description>
+      <problem>Unmanageable complexity, poor isolation</problem>
+      <solution>Hierarchical decomposition into smaller metacapsules</solution>
+    </anti-pattern>
+
+    <anti-pattern id="missing-backpressure">
+      <name>Missing Backpressure</name>
+      <description>Unbounded queues between pipeline stages</description>
+      <problem>Memory exhaustion, latency spikes</problem>
+      <solution>Bounded queues with explicit backpressure handling</solution>
+    </anti-pattern>
+  </anti-patterns>
+
+</metacapsule-patterns>

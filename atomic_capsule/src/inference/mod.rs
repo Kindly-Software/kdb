@@ -42,6 +42,18 @@
 #[cfg(feature = "inference-matmul")]
 pub mod matmul;
 
+// RMSNorm module (T2 SIMD) - RMS Normalization for Qwen3/LLaMA
+#[cfg(feature = "inference-rmsnorm")]
+pub mod rmsnorm;
+
+// SwiGLU activation module (T2 SIMD)
+#[cfg(feature = "inference-swiglu")]
+pub mod swiglu;
+
+// RoPE module (T2 SIMD rotary position embedding for Qwen3/LLaMA)
+#[cfg(feature = "inference-rope")]
+pub mod rope;
+
 // Attention module (T2+T5 SIMD + Streaming) - TODO
 // #[cfg(feature = "inference-attention")]
 // pub mod attention;
@@ -74,9 +86,25 @@ pub mod prefetch_scheduler;
 #[cfg(feature = "inference-llm-metacapsule")]
 pub mod llm_inference_metacapsule;
 
+// BPE tokenizer module (T4 Batch - parallel BPE with thread-local buffers)
+#[cfg(feature = "inference-bpe-tokenizer")]
+pub mod bpe_tokenizer;
+
 // Re-export matmul types
 #[cfg(feature = "inference-matmul")]
 pub use matmul::MatMulCapsule;
+
+// Re-export rmsnorm types
+#[cfg(feature = "inference-rmsnorm")]
+pub use rmsnorm::RMSNormCapsule;
+
+// Re-export swiglu types
+#[cfg(feature = "inference-swiglu")]
+pub use swiglu::SwiGLUCapsule;
+
+// Re-export rope types
+#[cfg(feature = "inference-rope")]
+pub use rope::RoPECapsule;
 
 // Re-export kv-cache-compression types
 #[cfg(feature = "inference-kv-cache-compression")]
@@ -111,4 +139,56 @@ pub use prefetch_scheduler::{
 pub use llm_inference_metacapsule::{
     CompressionFlags, GenerateResult, GenerationConfig, InferenceMode, InferenceStatistics,
     LLMInferenceMetacapsule, Phase,
+};
+
+// Re-export bpe-tokenizer types
+#[cfg(feature = "inference-bpe-tokenizer")]
+pub use bpe_tokenizer::{
+    BPETokenizerCapsule, MergePair, TokenEntry, TokenizerError,
+};
+
+// Lockfree Vector Quantization module (T1+T2 Atomic + SIMD)
+#[cfg(feature = "inference-vector-quant")]
+pub mod lockfree_vector_quant;
+
+// Re-export lockfree-vector-quant types
+#[cfg(feature = "inference-vector-quant")]
+pub use lockfree_vector_quant::{
+    LockfreeVectorQuantCapsule, VQConfig, VQError, MAX_CODEBOOKS, DEFAULT_CODEBOOK_SIZE,
+    DEFAULT_VECTOR_DIM,
+};
+
+// Qwen3 Architecture Capsule (T6 Mixed tier metacapsule)
+// Complete Qwen3 8B/30B architecture binding for inference
+#[cfg(feature = "inference-qwen3")]
+pub mod qwen3_architecture;
+
+// Re-export qwen3-architecture types
+#[cfg(feature = "inference-qwen3")]
+pub use qwen3_architecture::{
+    EmbeddingCapsule, GenerationConfig, InferencePhase, KVCache, LoadError,
+    Qwen3ArchitectureCapsule, Qwen3Config, Qwen3LayerCapsule,
+};
+
+// Ternary MatMul module (T2+T3 SIMD + Fixed-Point)
+// BitNet b1.58 breakthrough: 2.71x speedup via addition-only matmul
+#[cfg(feature = "inference-ternary-matmul")]
+pub mod ternary_matmul;
+
+// Re-export ternary-matmul types
+#[cfg(feature = "inference-ternary-matmul")]
+pub use ternary_matmul::{
+    TernaryMatMulCapsule, TernaryMatMulError, TernaryValue,
+};
+
+// Streaming KV module (T5+T10 StreamingLLM + MiniKV + H2O)
+// Combines attention sink, sliding window, heavy-hitter oracle, and 2-bit quantization
+// for 86% memory reduction with unlimited context
+#[cfg(feature = "inference-streaming-kv")]
+pub mod streaming_kv;
+
+// Re-export streaming-kv types
+#[cfg(feature = "inference-streaming-kv")]
+pub use streaming_kv::{
+    CompressedKVEntry, KVEntry, StreamingKVCapsule, StreamingKVConfig, StreamingKVSnapshot,
 };

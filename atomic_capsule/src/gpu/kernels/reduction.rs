@@ -22,7 +22,7 @@ pub struct GpuReductionCapsule {
     reduction_count: AtomicU64,
     device_id: AtomicU64,
     backend: GpuBackend,
-    _padding: [u8; 240],
+    _padding: [u8; 239],
 }
 
 const _: () = { assert!(core::mem::size_of::<GpuReductionCapsule>() == 256); };
@@ -33,7 +33,7 @@ impl GpuReductionCapsule {
             reduction_count: AtomicU64::new(0),
             device_id: AtomicU64::new(device_id as u64),
             backend: if cfg!(feature = "gpu-cuda") { GpuBackend::Cuda } else { GpuBackend::CpuFallback },
-            _padding: [0; 240],
+            _padding: [0; 239],
         })
     }
 

@@ -7,7 +7,7 @@
     <version>1.7.1</version>
     <date>2025-11-05</date>
     <compiler>rustc 1.84.0-nightly (2025-11-01)</compiler>
-    <framework>UCE34 + COCA + ASSUM</framework>
+    <framework>UCE34 + Chaos + ASSUM</framework>
   </metadata>
 
   <!-- ========================================

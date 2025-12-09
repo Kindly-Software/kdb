@@ -28,7 +28,7 @@
 //! - Remove: <50ns average
 //! - Load factor: 75% max (6144 entries)
 //!
-//! # COCA Compliance
+//! # Chaos Compliance
 //!
 //! - 100% lockfree (no mutex/RwLock)
 //! - 128-byte header alignment

@@ -1,0 +1,10 @@
+{
+  "file_path": "test_data/custom_format/corpus_500k.jsonl",
+  "timestamp": 1761845843,
+  "doc_count": 500000,
+  "load_time_secs": 0.319,
+  "pipeline_time_secs": 3.317,
+  "throughput_docs_per_sec": 150757,
+  "cluster_count": 1735,
+  "threshold": 0.85
+}

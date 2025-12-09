@@ -1,0 +1,147 @@
+# GitLab CI Configuration for clippy-capsule-verify
+# Framework: UCE34 Q30-Q34 (Validation + Auditability)
+# Installation: cp .gitlab-ci.yml.template .gitlab-ci.yml
+
+stages:
+  - build
+  - test
+  - lint
+  - report
+
+variables:
+  CARGO_HOME: ${CI_PROJECT_DIR}/.cargo
+  RUST_BACKTRACE: "1"
+  CARGO_TERM_COLOR: always
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .cargo/
+    - target/
+
+before_script:
+  - rustc --version
+  - cargo --version
+
+# P0 Critical Lints (Fast Fail)
+clippy-p0-critical:
+  stage: lint
+  image: rustlang/rust:nightly
+  script:
+    - |
+      cargo clippy --all-targets -- \
+        -D clippy::capsule_mutex_violation \
+        -D clippy::capsule_unaligned_violation \
+        -D clippy::capsule_missing_generation \
+        -D clippy::capsule_non_atomic_field
+  allow_failure: false
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Full Lint Suite (P0 + P1)
+clippy-full:
+  stage: lint
+  image: rustlang/rust:nightly
+  needs: ["clippy-p0-critical"]
+  script:
+    - |
+      cargo clippy --all-targets --all-features -- \
+        -D clippy::capsule_mutex_violation \
+        -D clippy::capsule_unaligned_violation \
+        -D clippy::capsule_missing_generation \
+        -D clippy::capsule_non_atomic_field \
+        -W clippy::missing_capsule_verification
+  allow_failure: false
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Stable Rust compatibility check
+clippy-stable:
+  stage: lint
+  image: rust:latest
+  needs: ["clippy-p0-critical"]
+  script:
+    - |
+      cargo clippy --all-targets --all-features -- \
+        -D clippy::capsule_mutex_violation \
+        -D clippy::capsule_unaligned_violation \
+        -D clippy::capsule_missing_generation \
+        -D clippy::capsule_non_atomic_field
+  allow_failure: true
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Run tests
+test:
+  stage: test
+  image: rustlang/rust:nightly
+  script:
+    - cargo test --all-features --verbose
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Check formatting
+fmt-check:
+  stage: lint
+  image: rustlang/rust:nightly
+  script:
+    - cargo fmt --all -- --check
+  allow_failure: false
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Build documentation
+docs:
+  stage: build
+  image: rustlang/rust:nightly
+  script:
+    - cargo doc --no-deps --all-features
+  artifacts:
+    paths:
+      - target/doc/
+    expire_in: 30 days
+  only:
+    - main
+
+# Generate lint report
+lint-report:
+  stage: report
+  image: rustlang/rust:nightly
+  script:
+    - cargo clippy --all-targets --all-features --message-format=json 2>&1 | tee clippy-report.json || true
+    - echo "Generating violation summary..."
+    - grep -E "capsule_|missing_capsule" clippy-report.json | wc -l > violation-count.txt || echo "0" > violation-count.txt
+  artifacts:
+    paths:
+      - clippy-report.json
+      - violation-count.txt
+    reports:
+      junit: clippy-report.json
+    expire_in: 30 days
+  when: always
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Security audit
+security-audit:
+  stage: test
+  image: rustlang/rust:nightly
+  script:
+    - cargo install cargo-audit || true
+    - cargo audit
+  allow_failure: true
+  only:
+    - main
+    - schedules

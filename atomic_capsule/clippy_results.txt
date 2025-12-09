@@ -1,0 +1,796 @@
+warning: /home/samuel/Primitives/Cargo.toml: `panic` setting is ignored for `bench` profile
+warning[E0602]: unknown lint: `clippy::missing_capsule_verification`
+  |
+  = note: requested on the command line with `-D clippy::missing_capsule_verification`
+  = note: `#[warn(unknown_lints)]` on by default
+
+For more information about this error, try `rustc --explain E0602`.
+warning: `atomic_capsule` (build script) generated 1 warning
+    Checking atomic_capsule v0.6.1 (/home/samuel/Primitives/atomic_capsule)
+error: unused import: `std::io`
+  --> src/error.rs:11:5
+   |
+11 | use std::io;
+   |     ^^^^^^^
+   |
+   = note: `-D unused-imports` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(unused_imports)]`
+
+error: unneeded unit expression
+   --> src/install/download_progress.rs:155:42
+    |
+155 |             const _: () = if CONDITION { () } else { panic!($msg) };
+    |                                          ^^ help: remove the final `()`
+...
+217 |     const_assert!(ALIGNMENT == 256, "DownloadProgressCapsule alignment must be 256 bytes");
+    |     -------------------------------------------------------------------------------------- in this macro invocation
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unused_unit
+    = note: `-D clippy::unused-unit` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unused_unit)]`
+    = note: this error originates in the macro `const_assert` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: unneeded unit expression
+   --> src/install/download_progress.rs:155:42
+    |
+155 |             const _: () = if CONDITION { () } else { panic!($msg) };
+    |                                          ^^ help: remove the final `()`
+...
+220 |     const_assert!(SIZE == 256, "DownloadProgressCapsule size must be 256 bytes");
+    |     ---------------------------------------------------------------------------- in this macro invocation
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unused_unit
+    = note: this error originates in the macro `const_assert` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: unused import: `core::time::Duration`
+  --> src/install/installer_state.rs:74:5
+   |
+74 | use core::time::Duration;
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+error: unused imports: `Barrier` and `Mutex`
+  --> src/parallel/hybrid_batch_pool.rs:37:22
+   |
+37 | use std::sync::{Arc, Barrier, Mutex};
+   |                      ^^^^^^^  ^^^^^
+
+error: unneeded unit expression
+   --> src/tui/screen_state.rs:169:9
+    |
+169 |         ()
+    |         ^^ help: remove the final `()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unused_unit
+
+error: unknown lint: `clippy::missing_docs`
+  --> src/tui/configuration.rs:80:5
+   |
+80 |     clippy::missing_docs
+   |     ^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `-D unknown-lints` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(unknown_lints)]`
+help: a lint with a similar name exists in `rustc` lints
+   |
+80 -     clippy::missing_docs
+80 +     missing_docs
+   |
+
+error: hidden lifetime parameters in types are deprecated
+  --> src/daemon/lock.rs:63:47
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard> {
+   |                                               ^^^^^^^^^ expected lifetime parameter
+   |
+   = note: `-D elided-lifetimes-in-paths` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(elided_lifetimes_in_paths)]`
+help: indicate the anonymous lifetime
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard<'_>> {
+   |                                                        ++++
+
+error: unnecessary parentheses around assigned value
+   --> src/daemon/lock.rs:163:29
+    |
+163 |             let new_state = ((gen as u64 + 1) << 32);
+    |                             ^                      ^
+    |
+    = note: `-D unused-parens` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(unused_parens)]`
+help: remove these parentheses
+    |
+163 -             let new_state = ((gen as u64 + 1) << 32);
+163 +             let new_state = (gen as u64 + 1) << 32;
+    |
+
+error: unused variable: `queue_capacity`
+   --> src/daemon/coordinator.rs:101:33
+    |
+101 |     pub fn new(timeout_ns: u64, queue_capacity: usize) -> DaemonResult<Self> {
+    |                                 ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_queue_capacity`
+    |
+    = note: `-D unused-variables` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(unused_variables)]`
+
+error: constant `SECONDS_PER_MONTH` is never used
+  --> src/patterns/quota_tracker.rs:80:7
+   |
+80 | const SECONDS_PER_MONTH: u64 = 30 * 24 * 60 * 60;
+   |       ^^^^^^^^^^^^^^^^^
+   |
+   = note: `-D dead-code` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(dead_code)]`
+
+error: constant `PHASE_BITS` is never used
+  --> src/install/installer_state.rs:80:7
+   |
+80 | const PHASE_BITS: u32 = 4;
+   |       ^^^^^^^^^^
+
+error: method `free_slot` is never used
+   --> src/parallel/atomic_slot_pool.rs:331:8
+    |
+112 | impl AtomicSlotPool {
+    | ------------------- method in this implementation
+...
+331 |     fn free_slot(&self, slot_idx: usize) {
+    |        ^^^^^^^^^
+
+error: method `is_occupied` is never used
+   --> src/collections/append_only_map_optimized.rs:100:8
+    |
+ 88 | impl<K, V> MapEntry<K, V> {
+    | ------------------------- method in this implementation
+...
+100 |     fn is_occupied(&self) -> bool {
+    |        ^^^^^^^^^^^
+
+error: method `try_claim` is never used
+   --> src/collections/concurrent_map.rs:216:8
+    |
+168 | impl<K, V> MapEntry<K, V> {
+    | ------------------------- method in this implementation
+...
+216 |     fn try_claim(&self, hash: u64, value: *mut V) -> Result<(), u64> {
+    |        ^^^^^^^^^
+
+error: method `try_get` is never used
+   --> src/collections/entry.rs:453:19
+    |
+348 | / impl<'a, K, V> OccupiedEntry<'a, K, V>
+349 | | where
+350 | |     K: Hash + Eq + Clone + Send + Sync,
+351 | |     V: Send + Sync,
+    | |___________________- method in this implementation
+...
+453 |       pub(crate) fn try_get(&self) -> Option<&V> {
+    |                     ^^^^^^^
+
+error: function `assert_alignment` is never used
+   --> src/mcp/tool_registry.rs:205:14
+    |
+205 |     const fn assert_alignment() {
+    |              ^^^^^^^^^^^^^^^^
+
+error: constant `ASSERT` is never used
+   --> src/tui/file_navigator.rs:137:11
+    |
+137 |     const ASSERT: () = assert!(
+    |           ^^^^^^
+
+error: constant `ASSERT_ALIGN` is never used
+   --> src/tui/file_navigator.rs:141:11
+    |
+141 |     const ASSERT_ALIGN: () = assert!(
+    |           ^^^^^^^^^^^^
+
+error: this operation has no effect
+  --> src/patterns/rate_limiter.rs:73:5
+   |
+73 |     ((value * 65536.0) as u64) & 0xFFFFFFFFFFFFFFFF
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider reducing it to: `((value * 65536.0) as u64)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#identity_op
+   = note: `-D clippy::identity-op` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::identity_op)]`
+
+error: this operation has no effect
+   --> src/patterns/rate_limiter.rs:413:9
+    |
+413 |         ((product / 1_000_000_000u128) as u64) & 0xFFFFFFFFFFFFFFFF
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider reducing it to: `((product / 1_000_000_000u128) as u64)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#identity_op
+
+error: casting to the same type is unnecessary (`u64` -> `u64`)
+   --> src/patterns/quota_tracker.rs:764:27
+    |
+764 |         let year = 1970 + (months_since_epoch / 12) as u64;
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `(months_since_epoch / 12)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+    = note: `-D clippy::unnecessary-cast` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unnecessary_cast)]`
+
+error: casting to the same type is unnecessary (`u64` -> `u64`)
+   --> src/patterns/quota_tracker.rs:765:25
+    |
+765 |         let month = 1 + (months_since_epoch % 12) as u64;
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `(months_since_epoch % 12)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+error: doc list item without indentation
+  --> src/install/mod.rs:65:5
+   |
+65 | //! **Total**: 38 tests for v1 phase
+   |     ^
+   |
+   = help: if this is supposed to be its own paragraph, add a blank line
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#doc_lazy_continuation
+   = note: `-D clippy::doc-lazy-continuation` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::doc_lazy_continuation)]`
+help: indent this line
+   |
+65 | //!   **Total**: 38 tests for v1 phase
+   |     ++
+
+error: unnecessary use of `.write(true)` because there is `.append(true)`
+   --> src/install/install_audit.rs:261:13
+    |
+261 |             .write(true)
+    |             ^^^^^^^^^^^^ help: remove `.write(true)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ineffective_open_options
+    = note: `-D clippy::ineffective-open-options` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::ineffective_open_options)]`
+
+error: literal with an empty format string
+   --> src/install/install_audit.rs:443:45
+    |
+443 |             writeln!(file, r#"      {}{}"#, "}", comma)?;
+    |                                             ^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#write_literal
+    = note: `-D clippy::write-literal` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::write_literal)]`
+help: try
+    |
+443 -             writeln!(file, r#"      {}{}"#, "}", comma)?;
+443 +             writeln!(file, r#"      }}{}"#, comma)?;
+    |
+
+error: unnecessary use of `.write(true)` because there is `.append(true)`
+   --> src/install/install_audit.rs:532:13
+    |
+532 |             .write(true)
+    |             ^^^^^^^^^^^^ help: remove `.write(true)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ineffective_open_options
+
+error: the loop variable `i` is used to index `slots`
+   --> src/parallel/atomic_slot_pool.rs:211:18
+    |
+211 |         for i in 0..(capacity - 1) {
+    |                  ^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+    = note: `-D clippy::needless-range-loop` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator and enumerate()
+    |
+211 -         for i in 0..(capacity - 1) {
+211 +         for (i, <item>) in slots.iter().enumerate().take((capacity - 1)) {
+    |
+
+error: explicit call to `.into_iter()` in function argument accepting `IntoIterator`
+   --> src/parallel/iter.rs:657:18
+    |
+657 |             .zip(results_arc.into_iter())
+    |                  ^^^^^^^^^^^------------
+    |                             |
+    |                             help: consider removing the `.into_iter()`
+    |
+note: this parameter accepts any `IntoIterator`, so you don't need to call `.into_iter()`
+   --> /home/samuel/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/iter/traits/iterator.rs:616:12
+    |
+616 |         U: IntoIterator,
+    |            ^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#useless_conversion
+    = note: `-D clippy::useless-conversion` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::useless_conversion)]`
+
+error: redundant closure
+   --> src/parallel/iter.rs:685:59
+    |
+685 |                 return self.slice.iter().fold(identity(), |acc, item| fold_op(acc, item));
+    |                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace the closure with the function itself: `&fold_op`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#redundant_closure
+    = note: `-D clippy::redundant-closure` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::redundant_closure)]`
+
+error: the loop variable `i` is only used to index `accumulators_vec`
+   --> src/parallel/iter.rs:770:18
+    |
+770 |         for i in 0..actual_workers {
+    |                  ^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+    |
+770 -         for i in 0..actual_workers {
+770 +         for <item> in accumulators_vec.iter().take(actual_workers) {
+    |
+
+error: redundant closure
+   --> src/parallel/iter.rs:793:13
+    |
+793 |             |a, b| op(a, b),
+    |             ^^^^^^^^^^^^^^^ help: replace the closure with the function itself: `op`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#redundant_closure
+
+error: the loop variable `i` is used to index `slice_ref`
+   --> src/parallel/iter.rs:956:34
+    |
+956 |                         for i in start..end {
+    |                                  ^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+956 -                         for i in start..end {
+956 +                         for (i, <item>) in slice_ref.iter().enumerate().take(end).skip(start) {
+    |
+
+error: the loop variable `i` is used to index `slice_ref`
+   --> src/parallel/iter.rs:998:42
+    |
+998 | ...                   for i in start..end {
+    |                                ^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+998 -                                 for i in start..end {
+998 +                                 for (i, <item>) in slice_ref.iter().enumerate().take(end).skip(start) {
+    |
+
+error: the loop variable `i` is used to index `slice_ref`
+    --> src/parallel/iter.rs:1035:38
+     |
+1035 | ...                   for i in start..end {
+     |                                ^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+     |
+1035 -                             for i in start..end {
+1035 +                             for (i, <item>) in slice_ref.iter().enumerate().take(end).skip(start) {
+     |
+
+error: initializer for `thread_local` value can be made `const`
+  --> src/parallel/segmented_mpmc.rs:47:42
+   |
+47 |     static THREAD_SEGMENT: Cell<usize> = Cell::new(usize::MAX);
+   |                                          ^^^^^^^^^^^^^^^^^^^^^ help: replace with: `const { Cell::new(usize::MAX) }`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#missing_const_for_thread_local
+   = note: `-D clippy::missing-const-for-thread-local` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::missing_const_for_thread_local)]`
+
+error: transmute used without annotations
+   --> src/parallel/segmented_mpmc.rs:200:31
+    |
+200 |                     std::mem::transmute::<_, u64>(thread_id)
+    |                               ^^^^^^^^^^^^^^^^^^^ help: consider adding missing annotations: `transmute::<std::thread::ThreadId, u64>`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#missing_transmute_annotations
+    = note: `-D clippy::missing-transmute-annotations` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::missing_transmute_annotations)]`
+
+error: very complex type used. Consider factoring parts into `type` definitions
+   --> src/parallel/result_aggregator.rs:131:13
+    |
+131 |     shards: [Arc<Mutex<HashMap<K, Vec<V>>>>; NUM_SHARDS],
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#type_complexity
+    = note: `-D clippy::type-complexity` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::type_complexity)]`
+
+error: manually reimplementing `div_ceil`
+   --> src/parallel/result_aggregator.rs:199:30
+    |
+199 |         let shard_capacity = (total_capacity + NUM_SHARDS - 1) / NUM_SHARDS; // Round up
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: consider using `.div_ceil()`: `total_capacity.div_ceil(NUM_SHARDS)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_div_ceil
+    = note: `-D clippy::manual-div-ceil` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::manual_div_ceil)]`
+
+error: use of `or_insert_with` to construct default value
+   --> src/parallel/result_aggregator.rs:257:24
+    |
+257 |         map.entry(key).or_insert_with(Vec::new).push(value);
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `or_default()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unwrap_or_default
+    = note: `-D clippy::unwrap-or-default` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unwrap_or_default)]`
+
+error: this returns a `Result<_, ()>`
+   --> src/collections/append_only_map.rs:238:5
+    |
+238 |     pub fn insert(&self, key: K, value: V) -> Result<(), ()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: use a custom `Error` type instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#result_unit_err
+    = note: `-D clippy::result-unit-err` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::result_unit_err)]`
+
+error: this returns a `Result<_, ()>`
+   --> src/collections/append_only_map_optimized.rs:265:5
+    |
+265 |     pub fn insert(&self, key: K, value: V) -> Result<(), ()> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: use a custom `Error` type instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#result_unit_err
+
+error: this returns a `Result<_, ()>`
+   --> src/collections/append_only_map_optimized.rs:314:5
+    |
+314 |     pub fn insert_batch(&self, pairs: &[(K, V)]) -> Result<(), ()>
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: use a custom `Error` type instead
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#result_unit_err
+
+error: using `clone` on type `K` which implements the `Copy` trait
+   --> src/collections/append_only_map_optimized.rs:349:50
+    |
+349 |             let key_ptr = Box::into_raw(Box::new(key.clone()));
+    |                                                  ^^^^^^^^^^^ help: try dereferencing it: `*key`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#clone_on_copy
+    = note: `-D clippy::clone-on-copy` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::clone_on_copy)]`
+
+error: this `if` statement can be collapsed
+    --> src/collections/lockfree_table.rs:1166:29
+     |
+1166 | / ...                   if gen_before == gen_after && (gen_after & 1 == 0) {
+1167 | | ...                       if !key_ptr.is_null() && !val_ptr.is_null() {
+1168 | | ...                           let key = &*key_ptr;
+1169 | | ...                           let value = &*val_ptr;
+...    |
+1180 | | ...                   }
+     | |_______________________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_if
+     = note: `-D clippy::collapsible-if` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::collapsible_if)]`
+help: collapse nested if block
+     |
+1166 ~                             if gen_before == gen_after && (gen_after & 1 == 0)
+1167 ~                                 && !key_ptr.is_null() && !val_ptr.is_null() {
+1168 |                                     let key = &*key_ptr;
+ ...
+1178 |                                     return Some((key, value));
+1179 ~                                 }
+     |
+
+error: this `if` statement can be collapsed
+    --> src/collections/lockfree_table.rs:1230:25
+     |
+1230 | /                         if gen_before == gen_after && (gen_after & 1 == 0) {
+1231 | |                             if !key_ptr.is_null() && !val_ptr.is_null() {
+1232 | |                                 let key = &*key_ptr;
+1233 | |                                 let value = &*val_ptr;
+...    |
+1242 | |                         }
+     | |_________________________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_if
+help: collapse nested if block
+     |
+1230 ~                         if gen_before == gen_after && (gen_after & 1 == 0)
+1231 ~                             && !key_ptr.is_null() && !val_ptr.is_null() {
+1232 |                                 let key = &*key_ptr;
+ ...
+1240 |                                 return Some((key, value));
+1241 ~                             }
+     |
+
+error: doc list item overindented
+   --> src/collections/ring_broadcast.rs:151:5
+    |
+151 | ///           #VERIFY_HEAP_ALLOCATION: MaybeUninit ensures no drop on uninitialized slots
+    |     ^^^^^^^^^^ help: try using `  ` (2 spaces)
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#doc_overindented_list_items
+    = note: `-D clippy::doc-overindented-list-items` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::doc_overindented_list_items)]`
+
+error: current MSRV (Minimum Supported Rust Version) is `1.76.0` but this item is stable since `1.82.0`
+   --> src/collections/ring_broadcast.rs:204:13
+    |
+204 |             Box::new_uninit_slice(RING_CAPACITY);
+    |             ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: you may want to conditionally increase the MSRV considered by Clippy using the `clippy::msrv` attribute
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#incompatible_msrv
+    = note: `-D clippy::incompatible-msrv` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::incompatible_msrv)]`
+
+error: transmute from a type (`std::boxed::Box<[std::cell::UnsafeCell<std::mem::MaybeUninit<T>>]>`) to itself
+   --> src/collections/ring_broadcast.rs:217:13
+    |
+217 |             core::mem::transmute(buffer_uninit.assume_init())
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#useless_transmute
+    = note: `-D clippy::useless-transmute` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::useless_transmute)]`
+
+error: current MSRV (Minimum Supported Rust Version) is `1.76.0` but this item is stable since `1.82.0`
+   --> src/collections/ring_broadcast.rs:217:48
+    |
+217 |             core::mem::transmute(buffer_uninit.assume_init())
+    |                                                ^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#incompatible_msrv
+
+error: manual implementation of `BuildHasher::hash_one`
+   --> src/collections/cache_integrated.rs:335:9
+    |
+335 |         hasher.finish()
+    |         ^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_hash_one
+    = note: `-D clippy::manual-hash-one` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::manual_hash_one)]`
+help: try
+    |
+333 ~         
+334 ~         
+335 ~         random_state.hash_one(&key)
+    |
+
+error: returning the result of a `let` binding from a block
+   --> src/mcp/tool_registry.rs:391:9
+    |
+382 |         let tools = Vec::new();
+    |         ----------------------- unnecessary `let` binding
+...
+391 |         tools
+    |         ^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#let_and_return
+    = note: `-D clippy::let-and-return` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::let_and_return)]`
+help: return the expression directly
+    |
+382 ~         
+383 |
+...
+390 |         // The actual implementation would iterate through the hash table
+391 ~         Vec::new()
+    |
+
+error: an implementation of `From` is preferred since it gives you `Into<_>` for free where the reverse isn't true
+  --> src/tui/screen_state.rs:93:1
+   |
+93 | impl Into<u8> for ScreenId {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: `impl From<Local> for Foreign` is allowed by the orphan rules, for more information see
+           https://doc.rust-lang.org/reference/items/implementations.html#trait-implementation-coherence
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#from_over_into
+   = note: `-D clippy::from-over-into` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::from_over_into)]`
+help: replace the `Into` implementation with `From<tui::screen_state::ScreenId>`
+   |
+93 ~ impl From<ScreenId> for u8 {
+94 ~     fn from(val: ScreenId) -> Self {
+95 ~         val as u8
+   |
+
+error: length comparison to zero
+   --> src/protection/precommit_guard.rs:149:12
+    |
+149 |         if deleted_files.len() > 0 {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^ help: using `!is_empty` is clearer and more explicit: `!deleted_files.is_empty()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#len_zero
+    = note: `-D clippy::len-zero` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::len_zero)]`
+
+error: casting to the same type is unnecessary (`u32` -> `u32`)
+   --> src/daemon/coordinator.rs:147:19
+    |
+147 |         let pid = std::process::id() as u32;
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `std::process::id()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+error: casting to the same type is unnecessary (`u32` -> `u32`)
+   --> src/daemon/coordinator.rs:204:19
+    |
+204 |         let pid = std::process::id() as u32;
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `std::process::id()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+error: casting to the same type is unnecessary (`u32` -> `u32`)
+   --> src/daemon/coordinator.rs:400:19
+    |
+400 |         let pid = std::process::id() as u32;
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `std::process::id()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+error: very complex type used. Consider factoring parts into `type` definitions
+   --> src/cli/mod.rs:586:10
+    |
+586 |     ) -> Result<(Vec<(String, String)>, Vec<String>), CliError> {
+    |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#type_complexity
+
+error: the loop variable `i` is used to index `matrix`
+   --> src/cli/mod.rs:814:14
+    |
+814 |     for i in 0..=a_len {
+    |              ^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+814 -     for i in 0..=a_len {
+814 +     for (i, <item>) in matrix.iter_mut().enumerate().take(a_len + 1) {
+    |
+
+error: the loop variable `j` is used to index `matrix`
+   --> src/cli/mod.rs:817:14
+    |
+817 |     for j in 0..=b_len {
+    |              ^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+817 -     for j in 0..=b_len {
+817 +     for (j, <item>) in matrix.iter_mut().enumerate().take(b_len + 1) {
+    |
+
+error: useless use of `vec!`
+   --> src/daemon/git.rs:216:24
+    |
+216 |             let args = vec!["log", "-n", &count_str];
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: you can use an array directly: `["log", "-n", &count_str]`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#useless_vec
+    = note: `-D clippy::useless-vec` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::useless_vec)]`
+
+error: missing documentation for a struct field
+   --> src/install/install_audit.rs:167:22
+    |
+167 |     TamperDetected { event: u64, reason: String },
+    |                      ^^^^^^^^^^
+    |
+    = note: `-D missing-docs` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(missing_docs)]`
+
+error: missing documentation for a struct field
+   --> src/install/install_audit.rs:167:34
+    |
+167 |     TamperDetected { event: u64, reason: String },
+    |                                  ^^^^^^^^^^^^^^
+
+error: missing documentation for a constant
+   --> src/tui/file_navigator.rs:149:5
+    |
+149 |     pub const HIDE_HIDDEN: u32 = 1 << 0;  // Hide files starting with .
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a constant
+   --> src/tui/file_navigator.rs:150:5
+    |
+150 |     pub const HIDE_READONLY: u32 = 1 << 1; // Hide readonly files
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a constant
+   --> src/tui/file_navigator.rs:151:5
+    |
+151 |     pub const HIDE_SYMLINKS: u32 = 1 << 2;  // Hide symbolic links
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a constant
+   --> src/tui/file_navigator.rs:152:5
+    |
+152 |     pub const RECURSIVE: u32 = 1 << 3;      // Enable recursive directory descent
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> src/daemon/error.rs:22:16
+   |
+22 |     LockHeld { holder_pid: u32 },
+   |                ^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> src/daemon/error.rs:27:19
+   |
+27 |     LockTimeout { waited_ns: u64 },
+   |                   ^^^^^^^^^^^^^^
+
+error: missing documentation for a struct field
+  --> src/daemon/error.rs:32:17
+   |
+32 |     QueueFull { capacity: usize },
+   |                 ^^^^^^^^^^^^^^^
+
+error: missing documentation for an associated function
+  --> src/daemon/lock.rs:51:5
+   |
+51 |     pub const fn new(timeout_ns: u64) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a method
+  --> src/daemon/lock.rs:63:5
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: hiding a lifetime that's elided elsewhere is confusing
+  --> src/daemon/lock.rs:63:24
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard> {
+   |                        ^^^^^                  ^^^^^^^^^ the same lifetime is hidden here
+   |                        |
+   |                        the lifetime is elided here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `-D mismatched-lifetime-syntaxes` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(mismatched_lifetime_syntaxes)]`
+help: use `'_` for type paths
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard<'_>> {
+   |                                                        ++++
+
+error: missing documentation for a method
+   --> src/daemon/lock.rs:121:5
+    |
+121 |     pub fn is_locked(&self) -> bool {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a method
+   --> src/daemon/lock.rs:127:5
+    |
+127 |     pub fn holder(&self) -> Option<u32> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a method
+   --> src/daemon/lock.rs:137:5
+    |
+137 |     pub fn stats(&self) -> (u64, u64, u64) {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a method
+   --> src/daemon/lock.rs:146:5
+    |
+146 |     pub fn timeout_ns(&self) -> u64 {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: missing documentation for a struct
+   --> src/daemon/lock.rs:151:1
+    |
+151 | pub struct LockGuard<'a> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `atomic_capsule` (lib) generated 1 warning (1 duplicate)
+error: could not compile `atomic_capsule` (lib) due to 78 previous errors; 1 warning emitted

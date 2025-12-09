@@ -24,7 +24,7 @@
 //! - **UCE34**: Q10 (T4 Batch tier), Q33 (verified), Q34 (audit trail)
 //! - **ASSUM**: 99.5%+ safe (Vec pool correctness, no unsafe)
 //! - **B32**: Fair baselines, statistical rigor, honest measurement
-//! - **COCA**: 100% lockfree (ConcurrentMapCapsule + thread_local)
+//! - **Chaos**: 100% lockfree (ConcurrentMapCapsule + thread_local)
 //!
 //! # Architecture (T4 Batch Tier)
 //!

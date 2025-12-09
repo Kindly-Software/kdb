@@ -15,7 +15,7 @@
 //! - **ASSUM**: 99.99% safety (all assumptions documented and verified)
 //! - **B32**: Fair benchmarking framework (1000+ iterations, 95% CI, deterministic)
 //! - **T28**: Comprehensive testing (unit, property, integration, production tests)
-//! - **COCA**: 100% computational capsules (no mutex, zero unsafe code in hot paths)
+//! - **Chaos**: 100% computational capsules (no mutex, zero unsafe code in hot paths)
 
 pub mod benchmark;
 pub mod corpus_generator;

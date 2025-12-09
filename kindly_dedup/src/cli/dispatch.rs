@@ -237,6 +237,7 @@ mod tests {
             audit: None,
             checkpoint: None,
             checkpoint_interval: 0,
+            universal: false,
         };
         let cmd = Commands::Dedup(args);
         let hash = dispatch(&cmd);

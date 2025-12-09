@@ -6,7 +6,7 @@
 //
 // Framework Compliance:
 // - UCE34: Q1-Q34 systematic discovery, Q10 T6 tier selection
-// - COCA: 100% lockfree (zero mutex/RwLock), cache-aligned (512B)
+// - Chaos: 100% lockfree (zero mutex/RwLock), cache-aligned (512B)
 // - ASSUM: 99.99% safe (all assumptions documented)
 // - B32: Fair baselines, 95% CI, 2-10× expected speedup
 // - T28: Comprehensive testing (unit/property/integration/production)
@@ -561,7 +561,7 @@ impl UniversalApiMetaCapsule {
     /// - #ASSUME_ENDPOINT_POINTER_VALID: Endpoint ptr checked non-zero, valid for capsule lifetime
     /// - #ASSUME_PACKET_BUFFER_VALID: Packet buffer valid for packet lifetime
     /// - #ASSUME_QUIC_RFC_COMPLIANT: QUIC packets RFC 9000 compliant
-    /// - #ASSUME_LOCKFREE_COORDINATION: All updates via atomics (100% COCA)
+    /// - #ASSUME_LOCKFREE_COORDINATION: All updates via atomics (100% Chaos)
     ///
     /// **I20 Integration**:
     /// - Zero breaking changes to existing API
@@ -572,7 +572,7 @@ impl UniversalApiMetaCapsule {
     /// - `Unsupported`: HTTP/3 endpoint not initialized (endpoint_ptr == 0)
     /// - `ParseError`: Invalid QUIC packet format or frame parsing failed
     ///
-    /// **Framework Compliance**: UCE34 (T6 Mixed tier), COCA (lockfree), ASSUM (99.99%), B32 (<10μs), T28 (28 tests), I20 (zero breaking)
+    /// **Framework Compliance**: UCE34 (T6 Mixed tier), Chaos (lockfree), ASSUM (99.99%), B32 (<10μs), T28 (28 tests), I20 (zero breaking)
     #[cfg(feature = "quic")]
     pub fn process_quic_packet(
         &self,

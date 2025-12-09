@@ -6,8 +6,8 @@
 //!
 //! Run with: cargo bench --bench frame_buffer_bench --features std
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use atomic_capsule::encoder::{FrameBufferCapsule, FrameType};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 // ============================================================================
 // Group 1: Metadata Query Operations (<50ns target)

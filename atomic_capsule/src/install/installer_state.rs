@@ -52,7 +52,7 @@
 //! Padding: 56 bytes
 //! ```
 //!
-//! ## COCA Requirements
+//! ## Chaos Requirements
 //!
 //! - **100% lockfree**: No mutex/RwLock, only atomic operations
 //! - **Cache-aligned**: 128-byte alignment prevents false sharing
@@ -103,7 +103,7 @@ const TIMESTAMP_NOT_SET: u64 = 0;
 /// Byte 200-255: padding (56 bytes)
 /// ```
 ///
-/// # COCA Requirements
+/// # Chaos Requirements
 ///
 /// - **100% lockfree**: Only atomic operations, no mutex/RwLock
 /// - **Cache-aligned**: 128-byte alignment prevents false sharing

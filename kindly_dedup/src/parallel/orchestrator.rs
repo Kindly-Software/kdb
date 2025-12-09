@@ -4,6 +4,8 @@
 //!
 //! **Purpose**: Coordinates 5-phase deduplication pipeline with hybrid sequential-parallel execution.
 
+#![allow(dead_code)]
+
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 
@@ -833,7 +835,7 @@ impl ParallelDedupOrchestrator {
         }
 
         // Helper function: find root with path halving (non-closure to avoid borrow issues)
-        let mut find_root = |table: &mut std::collections::HashMap<u32, u32>, mut x: u32| -> u32 {
+        let find_root = |table: &mut std::collections::HashMap<u32, u32>, mut x: u32| -> u32 {
             loop {
                 let parent = *table.get(&x).unwrap_or(&x);
                 if parent == x {
@@ -852,8 +854,8 @@ impl ParallelDedupOrchestrator {
             // Connect all pairs in bucket
             for i in 0..doc_ids.len() {
                 for j in (i + 1)..doc_ids.len() {
-                    let mut x = find_root(&mut union_find, doc_ids[i]);
-                    let mut y = find_root(&mut union_find, doc_ids[j]);
+                    let x = find_root(&mut union_find, doc_ids[i]);
+                    let y = find_root(&mut union_find, doc_ids[j]);
                     if x != y {
                         union_find.insert(x, y);
                     }
@@ -908,7 +910,7 @@ impl ParallelDedupOrchestrator {
     ///
     /// **Framework Compliance**:
     /// - **UCE34**: Q10 (T0-T5+T10 tier selection), Q33 (deterministic), Q34 (audit)
-    /// - **COCA**: 100% lockfree coordination (Arc, atomics, no mutex in fast paths)
+    /// - **Chaos**: 100% lockfree coordination (Arc, atomics, no mutex in fast paths)
     /// - **ASSUM**: 99.99% safe (assumptions documented per phase)
     /// - **B32**: Fair baseline (DedupPipeline), reproducible (seeded RNG)
     /// - **T28**: Comprehensive testing (unit/property/integration)
@@ -983,7 +985,7 @@ impl ParallelDedupOrchestrator {
     /// # Framework Compliance
     ///
     /// - **UCE34**: Q10 (T5+T4+T1 tier selection), Q33 (deterministic JSONL format), Q34 (generation counter)
-    /// - **COCA**: 100% lockfree (BatchQueueCapsule + ProgressTrackerCapsule + AtomicU64 state)
+    /// - **Chaos**: 100% lockfree (BatchQueueCapsule + ProgressTrackerCapsule + AtomicU64 state)
     /// - **ASSUM**: 99.99% safe (4 assumptions with verification tests)
     /// - **B32**: 15.2× speedup target @ 16 threads (validated by Amdahl's Law)
     /// - **T28**: Deterministic output validation (output order independence)
@@ -1536,7 +1538,7 @@ mod tests {
         // - Medium corpus (1000 docs, 50% duplicates)
         // - Large corpus (10K docs, 70% duplicates)
         //
-        // **Framework**: UCE34 (Q1-Q34), COCA (100% lockfree), ASSUM (99.99% safe),
+        // **Framework**: UCE34 (Q1-Q34), Chaos (100% lockfree), ASSUM (99.99% safe),
         // B32 (fair comparison), T28 (comprehensive testing)
 
         println!("\n=== Parallel vs Sequential Determinism Property Test ===\n");

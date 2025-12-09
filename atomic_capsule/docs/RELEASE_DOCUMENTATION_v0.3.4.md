@@ -13,7 +13,7 @@
 
 1. ✅ **Feature Matrix** - 113 primitives reference (10 tiers complete)
 2. ✅ **Performance Summary** - B32 benchmarks + honest claims
-3. ✅ **Framework Compliance** - UCE34/ASSUM/B32/T28/I20/COCA (100%)
+3. ✅ **Framework Compliance** - UCE34/ASSUM/B32/T28/I20/Chaos (100%)
 4. ✅ **Migration Guide** - Zero-effort upgrade (100% backward compatible)
 5. ✅ **README Landing Page** - Quick start + use cases + examples
 
@@ -127,7 +127,7 @@
   - Compatibility analysis (Q6-Q10)
   - Safety & correctness (Q11-Q15)
   - Validation & rollout (Q16-Q20)
-- **Section 6**: COCA Framework (113 primitives)
+- **Section 6**: Chaos Framework (113 primitives)
   - 5 core principles validated
   - 100% lockfree architecture
 - **Section 7**: Cross-framework validation matrix
@@ -239,7 +239,7 @@
 | File | Lines | Size | Purpose |
 |------|-------|------|---------|
 | **FEATURE_MATRIX_v0.3.4.md** | 619 | 21KB | Complete primitives reference |
-| **FRAMEWORK_COMPLIANCE_v0.3.4.md** | 588 | 18KB | UCE34/ASSUM/B32/T28/I20/COCA |
+| **FRAMEWORK_COMPLIANCE_v0.3.4.md** | 588 | 18KB | UCE34/ASSUM/B32/T28/I20/Chaos |
 | **PERFORMANCE_SUMMARY_v0.3.4.md** | 555 | 16KB | B32 benchmarks + honest claims |
 | **MIGRATION_v0_3_3_TO_v0_3_4.md** | 484 | 17KB | Zero-effort upgrade guide |
 | **README.md** | 515 | 14KB | Landing page + quick start |
@@ -337,7 +337,7 @@ All 5 deliverables ready:
 - B32: 37/37 baselines ✅
 - T28: 546/546 tests ✅
 - I20: Q1-Q20 (20/20) ✅
-- COCA: 113/113 primitives ✅
+- Chaos: 113/113 primitives ✅
 
 ### Production Readiness ✅ COMPLETE
 

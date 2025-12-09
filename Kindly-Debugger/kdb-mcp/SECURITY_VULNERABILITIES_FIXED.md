@@ -352,7 +352,7 @@ test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured
 - **Q33**: Verification via #[derive(ComputationalCapsule)]
 - **Q34**: Hash-chain integrity preserved (data race fixed)
 
-### COCA (Computational Capsule) ✅
+### Chaos (Computational Capsule) ✅
 
 - ✅ 100% lockfree (UnsafeCell + AtomicU64, no mutex)
 - ✅ Cache-aligned (64-byte alignment, false-sharing prevention)
@@ -405,7 +405,7 @@ test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured
 - ✅ All 8 security tests passing
 - ✅ Zero compilation errors
 - ✅ Performance overhead <10% (measured 10%)
-- ✅ Framework compliance (UCE34, COCA, ASSUM, B32, I20)
+- ✅ Framework compliance (UCE34, Chaos, ASSUM, B32, I20)
 
 ### Deployment Commands
 
@@ -444,7 +444,7 @@ cp target/release/atomic_mcp_server /opt/kdb/bin/
 - Security posture: 90/100 (up from 55/100, +64%)
 - Performance: <11μs total latency (10% overhead, acceptable)
 - Testing: 8 security tests passing (100% pass rate)
-- Framework compliance: UCE34, COCA, ASSUM (90/100), B32, I20
+- Framework compliance: UCE34, Chaos, ASSUM (90/100), B32, I20
 
 ✅ **DEPLOYMENT APPROVED**
 

@@ -287,7 +287,7 @@ test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured
 - **Q33**: Verification via tests (8 security module tests + 4 integration tests)
 - **Q34**: Hash-chain integrity preserved (data race fixed)
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 
 - ✅ 100% lockfree (UnsafeCell + AtomicU64, no mutex)
 - ✅ Cache-aligned (64-byte alignment, false-sharing prevention)
@@ -418,7 +418,7 @@ test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured
 - ✅ Core security tests passing
 - ✅ Performance overhead acceptable (<11μs total)
 - ✅ Zero breaking changes
-- ✅ Framework compliance (UCE34, COCA, ASSUM, B32, I20)
+- ✅ Framework compliance (UCE34, Chaos, ASSUM, B32, I20)
 
 **Recommendation**: ✅ **APPROVED FOR PRODUCTION DEPLOYMENT**
 
@@ -513,7 +513,7 @@ assert!(matches!(result, Err(SecurityError::AlreadyAttached(_))));
 - ✅ Security posture: 90/100 (up from 55/100)
 - ✅ Performance: <11μs total latency (10% overhead)
 - ✅ Testing: 12 tests passing (8 security module + 4 integration)
-- ✅ Framework compliance: UCE34, COCA, ASSUM (90/100), B32, I20
+- ✅ Framework compliance: UCE34, Chaos, ASSUM (90/100), B32, I20
 
 ✅ **DEPLOYMENT APPROVED**
 

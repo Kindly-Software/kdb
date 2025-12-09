@@ -192,7 +192,7 @@
 //!
 //! ## See Also
 //!
-//! - [COCA Framework](../../docs/The%20Computational%20Capsule.md) - Foundational patterns
+//! - [Chaos Framework](../../docs/The%20Computational%20Capsule.md) - Foundational patterns
 //! - [UCE34 Framework](../../docs/UCE34_FRAMEWORK.md) - Systematic discovery methodology
 //! - [B32 Benchmarking](../../docs/B32_BENCHMARKING.md) - Performance validation
 //! - [T28 Testing](../../docs/T28_TESTING.md) - Comprehensive testing strategy

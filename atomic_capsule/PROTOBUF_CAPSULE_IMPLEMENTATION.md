@@ -246,7 +246,7 @@ cargo build --features "std,capsule-serialize"
 | **B32** | ✅ Fair | <5ns varint, <30ns field (inline, no strawman) |
 | **T28** | ✅ 25 tests | Unit/property/integration tiers |
 | **I20** | ✅ Compatible | Zero breaking changes, backward compatible |
-| **COCA** | ✅ Simplified | No atomics, single-pass reader |
+| **Chaos** | ✅ Simplified | No atomics, single-pass reader |
 
 ## Production Readiness Checklist
 
@@ -258,7 +258,7 @@ cargo build --features "std,capsule-serialize"
 - [x] Performance validation (B32 benchmarking)
 - [x] Documentation (inline examples, wire format explanation)
 - [x] ASSUM safety model (99.99%, all assumptions verified)
-- [x] Framework compliance (UCE34, T28, ASSUM, B32, I20, COCA)
+- [x] Framework compliance (UCE34, T28, ASSUM, B32, I20, Chaos)
 - [x] No external dependencies (core Rust only)
 
 ## Non-Features (Intentional Omissions)
@@ -378,7 +378,7 @@ fn audit_cluster(cluster_id: u32, docs: &[DocId]) -> Result<Vec<u8>, ProtobufErr
 - **Protocol Buffers v3**: https://protobuf.dev (Official spec)
 - **Wire Format**: https://protobuf.dev/programming-guides/encoding
 - **UCE34 Framework**: Systematic discovery (Q1-Q34)
-- **COCA Philosophy**: Computational capsule architecture
+- **Chaos Philosophy**: Computational capsule architecture
 - **B32 Framework**: Fair benchmarking standards
 
 ---

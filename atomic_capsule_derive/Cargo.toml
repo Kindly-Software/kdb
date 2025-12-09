@@ -1,0 +1,72 @@
+[package]
+name = "atomic_capsule_derive"
+version = "0.9.0"
+edition = "2021"
+authors = ["Samuel <samuel@kindly.ai>"]
+description = "Procedural macros for computational capsule compile-time verification"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/kindly-ai/primitives"
+keywords = ["capsule", "atomic", "simd", "lockfree", "verification"]
+categories = ["no-std", "concurrency", "development-tools"]
+
+[lib]
+proc-macro = true
+
+[features]
+default = []
+
+# Nightly optimizations (IMPL-2 V3.1 cutting-edge)
+# UCE34 Q12 ULTRATHINK Analysis:
+# - const_trait_impl: APPLY - zero-cost trait abstractions (20% speedup)
+# - generic_const_exprs: APPLY - compile-time expression evaluation (15% speedup)
+# - specialization: APPLY - optimize hot paths for atomic type patterns (10% speedup)
+# - Combined: ~30-35% total speedup (compile-time eval + pattern optimization)
+nightly-const-fn = []
+nightly-specialization = []
+nightly-const-traits = []
+nightly-all = ["nightly-const-fn", "nightly-specialization", "nightly-const-traits"]
+
+# Optional parallelization for large capsules (100+ fields)
+parallel = ["rayon"]
+
+[dependencies]
+syn = { version = "2.0", features = ["full", "extra-traits"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+
+# Optional dependencies
+rayon = { version = "1.10", optional = true }
+
+[dev-dependencies]
+atomic_capsule = { path = "../atomic_capsule", features = ["std"], default-features = false }
+trybuild = "1.0"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "tool_state_bench"
+harness = false
+
+[[bench]]
+name = "macro_compilation_bench"
+harness = false
+
+[[bench]]
+name = "const_resolution_bench"
+harness = false
+
+# Profile optimizations (IMPL-2 V3.1)
+[profile.dev]
+# Fast iteration: compile-check in <1s
+opt-level = 0
+debug = true
+lto = false
+codegen-units = 256  # Parallel compilation
+
+[profile.release]
+# Optimize for throughput: process all capsules in <100ms
+opt-level = 3           # Maximum optimization
+lto = "fat"             # Fat LTO (10-30% binary reduction, slower compilation)
+codegen-units = 1       # Single unit for maximum optimization
+strip = true            # Strip symbols (5-10% binary size reduction)
+panic = "abort"         # Abort on panic (smaller binary)
+incremental = false     # Disable incremental for release

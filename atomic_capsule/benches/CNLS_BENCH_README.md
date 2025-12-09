@@ -350,7 +350,7 @@ Speedup: 13.3× (68.456ns / 5.145ns)
 | **ASSUM** | 99.9% safe | ✅ Verified | Zero unsafe code |
 | **T28** | 4-tier testing | ⏳ Pending | Benchmarks implemented, tests separate |
 | **I20** | Q1-Q20 | ✅ Complete | Integration validated |
-| **COCA** | 100% lockfree | ✅ Verified | Zero mutex/RwLock |
+| **Chaos** | 100% lockfree | ✅ Verified | Zero mutex/RwLock |
 
 ### UCE34 Q1-Q34 Detailed
 
@@ -423,7 +423,7 @@ Speedup: 13.3× (68.456ns / 5.145ns)
 
 **Total Lines**: 700+ lines of benchmark code (including documentation)
 **Compilation**: ✅ Zero errors, zero warnings
-**Framework Compliance**: UCE34, B32, ASSUM, T28, I20, COCA
+**Framework Compliance**: UCE34, B32, ASSUM, T28, I20, Chaos
 **B32 Classification**: EXCEPTIONAL tier (10-13× SIMD claims require extensive validation)
 
 ---

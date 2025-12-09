@@ -16,7 +16,7 @@ pub struct GpuMatMulCapsule {
     total_flops: AtomicU64,
     device_id: AtomicU64,
     backend: GpuBackend,
-    _padding: [u8; 232],
+    _padding: [u8; 231],
 }
 
 const _: () = { assert!(core::mem::size_of::<GpuMatMulCapsule>() == 256); };
@@ -28,7 +28,7 @@ impl GpuMatMulCapsule {
             total_flops: AtomicU64::new(0),
             device_id: AtomicU64::new(device_id as u64),
             backend: if cfg!(feature = "gpu-cuda") { GpuBackend::Cuda } else { GpuBackend::CpuFallback },
-            _padding: [0; 232],
+            _padding: [0; 231],
         })
     }
 

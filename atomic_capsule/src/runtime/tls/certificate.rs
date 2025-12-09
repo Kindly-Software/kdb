@@ -2,7 +2,7 @@
 //!
 //! **Tier**: T1 Atomic (atomic pointer swaps for zero-downtime reload)
 //! **Size**: 128 bytes (cache-aligned, repr(C, align(128)))
-//! **Framework**: UCE34 (Q1-Q34), COCA (100% lockfree), ASSUM (99.99%), B32, T28 (28+ tests), I20
+//! **Framework**: UCE34 (Q1-Q34), Chaos (100% lockfree), ASSUM (99.99%), B32, T28 (28+ tests), I20
 //!
 //! This module provides thread-safe, high-performance X.509 certificate management
 //! with atomic reload capabilities for zero-downtime HTTPS certificate updates.
@@ -83,7 +83,7 @@
 //! - **Q13-Q28**: Implementation (28+ tests, comprehensive coverage)
 //! - **Q29-Q34**: Validation (ASSUM safety, B32 benchmarks, I20 integration)
 //!
-//! ## COCA (Computational Capsule Architecture)
+//! ## Chaos (Computational Capsule Architecture)
 //! - 100% lockfree (atomic operations only, no mutex/RwLock)
 //! - Cache-aligned (128 bytes)
 //! - Verified via #[derive(ComputationalCapsule)]

@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Format check
+        run: cargo fmt -- --check
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+  test-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        features:
+          - "--no-default-features --features std"
+          - "--no-default-features --features compact48 std"
+          - "--features std"
+          - "--features std serde"
+          - "--features std mpmc"
+          - "--features std serde mpmc"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Cargo test ${{ matrix.features }}
+        run: cargo test ${{ matrix.features }}
+
+  coverage:
+    runs-on: ubuntu-latest
+    needs: test-matrix
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Install tarpaulin
+        run: cargo install cargo-tarpaulin
+      - name: Run coverage matrix
+        run: ci/coverage_matrix.sh
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tarpaulin-reports
+          path: target/tarpaulin/*.xml
+
+  bench:
+    runs-on: ubuntu-latest
+    needs: test-matrix
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Run benchmarks (sanity)
+        run: cargo bench --features "std mpmc" -- --warm-up-time 1 --measurement-time 2

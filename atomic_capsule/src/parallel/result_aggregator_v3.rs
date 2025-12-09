@@ -113,7 +113,7 @@ const BUFFER_SIZE: usize = 256;
 /// let results = agg.merge();
 /// ```
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 /// - ✅ 100% lockfree (ZERO mutex, ZERO RwLock in data path)
 /// - ✅ Thread-local buffers (zero shared contention)
 /// - ✅ Atomic-only coordination

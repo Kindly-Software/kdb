@@ -42,7 +42,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10(T1 Atomic), Q11(Rust zero-copy), Q33(verification), Q34(audit trails)
-//! - **COCA**: 100% computational capsule, no mutex/RwLock
+//! - **Chaos**: 100% computational capsule, no mutex/RwLock
 //! - **ASSUM**: 99.99% safe (8 explicit assumptions, all verified with tests)
 //! - **B32**: Fair baseline (nginx CORS 2-2.5μs), expected 40-100× speedup
 //! - **T28**: 5 comprehensive tests (unit/property/integration/production)

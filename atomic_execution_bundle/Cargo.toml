@@ -1,0 +1,36 @@
+[package]
+name = "atomic_execution_bundle"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.76"
+authors = ["Samuel <maintainer@example.com>"]
+description = "AEB-512 atomic execution bundle capsule for entry legs, OCO brackets, and risk routes"
+license = "Apache-2.0 OR MIT"
+repository = "https://example.com/atomic_execution_bundle"
+keywords = ["atomic", "trading", "execution", "bundle"]
+categories = ["concurrency", "finance"]
+readme = "README.md"
+
+[features]
+default = ["checksum", "require-cas"]
+checksum = []
+require-cas = ["portable-atomic/require-cas"]
+sim = ["serde", "serde_json"]
+network = []
+
+[dependencies]
+portable-atomic = { version = "1.6", default-features = false, features = ["fallback"] }
+atomic_breaker = { path = "../atomic_breaker" }
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", optional = true }
+
+[dev-dependencies]
+core_affinity = "0.8"
+criterion = "0.5"
+
+[package.metadata.docs.rs]
+all-features = true
+
+[[bench]]
+name = "hot_loop"
+harness = false

@@ -1,6 +1,6 @@
 # CI/CD Integration Guide
 
-**clippy-capsule-verify** - Automated COCA compliance enforcement in CI/CD pipelines.
+**clippy-capsule-verify** - Automated Chaos compliance enforcement in CI/CD pipelines.
 
 ## Quick Start
 
@@ -8,7 +8,7 @@
 
 ```yaml
 # .github/workflows/clippy-capsule-verify.yml
-name: COCA Compliance Check
+name: Chaos Compliance Check
 
 on:
   push:
@@ -169,7 +169,7 @@ pipeline {
             }
         }
 
-        stage('COCA P0 Critical Checks') {
+        stage('Chaos P0 Critical Checks') {
             steps {
                 sh '''
                     cargo +nightly clippy --all-features --all-targets -- \
@@ -181,7 +181,7 @@ pipeline {
             }
         }
 
-        stage('COCA P1 Warnings') {
+        stage('Chaos P1 Warnings') {
             steps {
                 sh '''
                     cargo +nightly clippy --all-features --all-targets -- \
@@ -223,7 +223,7 @@ Install locally for instant feedback before commit:
 #!/bin/bash
 # .git/hooks/pre-commit
 
-echo "Running COCA compliance checks..."
+echo "Running Chaos compliance checks..."
 
 # Run P0 critical lints
 if ! cargo clippy --all-features --all-targets -- \
@@ -232,7 +232,7 @@ if ! cargo clippy --all-features --all-targets -- \
     -D clippy::capsule_non_atomic_field \
     -D clippy::capsule_missing_generation 2>&1 | tee /tmp/clippy-coca.log; then
 
-    echo "❌ COCA P0 Critical violations detected!"
+    echo "❌ Chaos P0 Critical violations detected!"
     echo "Fix violations before committing:"
     cat /tmp/clippy-coca.log
     exit 1
@@ -244,7 +244,7 @@ cargo clippy --all-features --all-targets -- \
     -W clippy::capsule_scattered_atomics \
     -W clippy::capsule_incorrect_padding || true
 
-echo "✅ COCA compliance checks passed!"
+echo "✅ Chaos compliance checks passed!"
 exit 0
 ```
 
@@ -337,10 +337,10 @@ struct ExternalFFIType {
 
 ```bash
 # Development: Warnings only
-CLIPPY_COCA_LEVEL=warn cargo clippy
+CLIPPY_Chaos_LEVEL=warn cargo clippy
 
 # CI/CD: Deny level
-CLIPPY_COCA_LEVEL=deny cargo clippy
+CLIPPY_Chaos_LEVEL=deny cargo clippy
 
 # Production: Full enforcement + P2 opt-in
 cargo clippy --all-features -- \
@@ -360,7 +360,7 @@ cargo clippy --all-features -- \
 
 If lint incorrectly flags valid code:
 
-1. **Verify COCA compliance**: Check if code actually violates mandate
+1. **Verify Chaos compliance**: Check if code actually violates mandate
 2. **Add suppression with justification**:
    ```rust
    #[allow(clippy::capsule_scattered_atomics)] // Justification: DualAtomicU64 pattern

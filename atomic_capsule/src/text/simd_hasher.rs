@@ -93,7 +93,7 @@ pub struct SimdTextHasher {
     _padding: [u8; 56],
 }
 
-// Compile-time verification (manual COCA compliance)
+// Compile-time verification (manual Chaos compliance)
 const _: () = {
     assert!(std::mem::align_of::<SimdTextHasher>() == 64, "SimdTextHasher must be 64-byte aligned");
     assert!(std::mem::size_of::<SimdTextHasher>() == 64, "SimdTextHasher must be exactly 64 bytes");

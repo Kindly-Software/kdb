@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-**AllocationTrackerCapsule** is a production-ready T1 Atomic computational capsule for tracking malloc/free operations with <10ns overhead. Designed for integration into the memory profiling subsystem of KDB (The Kindly Debugger) following UCE34 + COCA methodology.
+**AllocationTrackerCapsule** is a production-ready T1 Atomic computational capsule for tracking malloc/free operations with <10ns overhead. Designed for integration into the memory profiling subsystem of KDB (The Kindly Debugger) following UCE34 + Chaos methodology.
 
 ### Key Metrics
 
@@ -183,7 +183,7 @@ tracker.track_free(0x1000_0000, 4096)?;
 - **Q33**: `#[derive(ComputationalCapsule)]` ready (0ns runtime, <20ms compile)
 - **Q34**: Audit-ready (CRC64 hash-chain compatibility)
 
-### ✅ COCA (Computational Capsule)
+### ✅ Chaos (Computational Capsule)
 
 - **Lockfree**: 100% (grep: zero "Mutex" or "RwLock" occurrences)
 - **Atomicity**: All coordination via `AtomicU64::fetch_add`, `fetch_sub`, `store`, `load`
@@ -348,7 +348,7 @@ The capsule powers these MCP tools:
 
 - ✅ Code complete and tested (828 lines, 20 tests)
 - ✅ Compiles without errors (allocation_tracker.rs)
-- ✅ Framework compliance verified (UCE34, COCA, ASSUM, B32, T28, I20)
+- ✅ Framework compliance verified (UCE34, Chaos, ASSUM, B32, T28, I20)
 - ✅ Documentation complete (this file + inline comments)
 - ✅ Performance targets validated (<10ns achieved)
 - ✅ Safety assumptions documented (#ASSUME tags)

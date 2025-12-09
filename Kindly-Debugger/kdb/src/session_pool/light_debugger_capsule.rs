@@ -15,7 +15,7 @@
 //! # Architecture
 //!
 //! T1 Atomic tier with T5 Streaming mini-replay for time-travel debugging.
-//! 100% lockfree (COCA compliant), DualAtomicU64 for coordinated state.
+//! 100% lockfree (Chaos compliant), DualAtomicU64 for coordinated state.
 //!
 //! # Upgrade Triggers
 //!

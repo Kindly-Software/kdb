@@ -2,7 +2,7 @@
 //!
 //! **Purpose**: Detect capsule structs with size not matching alignment (cache line requirement).
 //!
-//! ## Why This Matters (COCA Mandate)
+//! ## Why This Matters (Chaos Mandate)
 //!
 //! Computational capsules MUST be cache-aligned with size matching alignment:
 //! - **False sharing**: Multiple capsules per cache line cause severe contention
@@ -102,7 +102,7 @@ declare_lint! {
     /// - T1 (Atomic): Requires cache alignment (size = N × alignment)
     /// - T2 (SIMD): Stricter: 256B minimum for vectorized operations
     ///
-    /// **COCA Mandate**:
+    /// **Chaos Mandate**:
     /// - 100% lockfree, cache-aligned architecture
     /// - Size/alignment mismatch violates core principle
     ///
@@ -200,7 +200,7 @@ fn has_repr_c_align(attrs: &[rustc_hir::Attribute]) -> bool {
 /// - Exact size and alignment
 /// - Padding needed (exact byte count)
 /// - Example padding field code
-/// - Reference to COCA documentation
+/// - Reference to Chaos documentation
 ///
 /// # ASSUM Framework
 ///
@@ -287,7 +287,7 @@ fn emit_unaligned_violation_diagnostic<'tcx>(
             lint.note("━━━ Framework Compliance ━━━");
             lint.note("");
             for line in format_framework_compliance(&[
-                ("COCA", "Cache-aligned mandate (T1 tier requirement)"),
+                ("Chaos", "Cache-aligned mandate (T1 tier requirement)"),
                 ("UCE34 Q10", "Tier selection enforcement"),
                 ("B32", "6-10× proven slowdown without alignment"),
             ]) {

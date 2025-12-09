@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+         xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+         xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+         xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+         IgnorableNamespaces="uap rescap desktop">
+
+  <Identity Name="Kindly.KindlyAV1"
+            Publisher="CN=Kindly"
+            Version="1.0.0.0" />
+
+  <Properties>
+    <DisplayName>kindly-av1</DisplayName>
+    <PublisherDisplayName>Kindly</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <Description>World's fastest GPU-accelerated AV1 encoder with real-time performance monitoring and professional-grade quality settings</Description>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.22621.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="KindlyAV1" Executable="kindly-av1.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+          DisplayName="kindly-av1"
+          Description="World's fastest GPU-accelerated AV1 encoder"
+          BackgroundColor="#9B59B6"
+          Square150x150Logo="Assets\Square150x150Logo.png"
+          Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"
+                         Square310x310Logo="Assets\LargeTile.png">
+          <uap:ShowNameOnTiles>
+            <uap:ShowOn Tile="square150x150Logo" />
+            <uap:ShowOn Tile="wide310x150Logo" />
+            <uap:ShowOn Tile="square310x310Logo" />
+          </uap:ShowNameOnTiles>
+        </uap:DefaultTile>
+        <uap:SplashScreen Image="Assets\Wide310x150Logo.png" BackgroundColor="#9B59B6" />
+      </uap:VisualElements>
+
+      <!-- File Type Associations (Input Formats) -->
+      <Extensions>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="videofiles">
+            <uap:SupportedFileTypes>
+              <uap:FileType>.mp4</uap:FileType>
+              <uap:FileType>.mkv</uap:FileType>
+              <uap:FileType>.avi</uap:FileType>
+              <uap:FileType>.mov</uap:FileType>
+              <uap:FileType>.webm</uap:FileType>
+              <uap:FileType>.y4m</uap:FileType>
+            </uap:SupportedFileTypes>
+            <uap:DisplayName>Video File</uap:DisplayName>
+            <uap:Logo>Assets\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Encode video with kindly-av1</uap:InfoTip>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+
+        <!-- Protocol Handler for License Activation -->
+        <uap:Extension Category="windows.protocol">
+          <uap:Protocol Name="kindly-av1">
+            <uap:DisplayName>kindly-av1 Protocol</uap:DisplayName>
+            <uap:Logo>Assets\Square44x44Logo.png</uap:Logo>
+          </uap:Protocol>
+        </uap:Extension>
+
+        <!-- Desktop Bridge for Full Trust -->
+        <desktop:Extension Category="windows.fullTrustProcess" Executable="kindly-av1.exe" />
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+
+</Package>

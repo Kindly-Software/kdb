@@ -1,0 +1,2635 @@
+warning: /home/samuel/Primitives/Cargo.toml: `panic` setting is ignored for `bench` profile
+   Compiling atomic_capsule v0.6.1 (/home/samuel/Primitives/atomic_capsule)
+warning: unused import: `std::time::Duration`
+   --> src/primitives/coordination/tests.rs:253:9
+    |
+253 |     use std::time::Duration;
+    |         ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/primitives/mod.rs:180:9
+    |
+180 |     use super::*;
+    |         ^^^^^^^^
+
+warning: unused import: `std::io`
+  --> src/error.rs:11:5
+   |
+11 | use std::io;
+   |     ^^^^^^^
+
+warning: unexpected `cfg` condition value: `proptest-disabled`
+   --> src/hash/const_hash.rs:281:21
+    |
+281 |     #[cfg(all(test, feature = "proptest-disabled"))]
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `DISABLED_PENDING_TRAIT_UPDATE`, `adaptive-parallel`, `alloc`, `anomaly-detection`, `async-broadcast`, `async-channels`, `async-log`, `async-mpsc`, `async-oneshot`, `async-watch`, `atomic-core`, `audit-q34`, `audit-trail`, `auto_tune`, `batch-native`, `batch-wasm`, `bloom-filter`, `bloom-filter-all`, `bloom-filter-persistent`, `bloom-filter-simd`, `btree-batch`, `btree-cow`, `btree-cow-simd`, `btree-simd`, `cache`, `cache-encryption`, `cache-hmac`, `cache-multi-tenant`, `cache-security-full`, `capsule-mmap`, `capsule-os`, `capsule-serialize`, `circuit-breaker-adaptive`, `circuit-breaker-auto-tune`, and `circuit-breaker-compact48` and 139 more
+    = help: consider adding `proptest-disabled` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: requested on the command line with `-W unexpected-cfgs`
+
+warning: unexpected `cfg` condition value: `proptest-disabled`
+   --> src/hash/simd_hash.rs:319:21
+    |
+319 |     #[cfg(all(test, feature = "proptest-disabled"))]
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `DISABLED_PENDING_TRAIT_UPDATE`, `adaptive-parallel`, `alloc`, `anomaly-detection`, `async-broadcast`, `async-channels`, `async-log`, `async-mpsc`, `async-oneshot`, `async-watch`, `atomic-core`, `audit-q34`, `audit-trail`, `auto_tune`, `batch-native`, `batch-wasm`, `bloom-filter`, `bloom-filter-all`, `bloom-filter-persistent`, `bloom-filter-simd`, `btree-batch`, `btree-cow`, `btree-cow-simd`, `btree-simd`, `cache`, `cache-encryption`, `cache-hmac`, `cache-multi-tenant`, `cache-security-full`, `capsule-mmap`, `capsule-os`, `capsule-serialize`, `circuit-breaker-adaptive`, `circuit-breaker-auto-tune`, and `circuit-breaker-compact48` and 139 more
+    = help: consider adding `proptest-disabled` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unused import: `core::time::Duration`
+  --> src/install/installer_state.rs:74:5
+   |
+74 | use core::time::Duration;
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Barrier` and `Mutex`
+  --> src/parallel/hybrid_batch_pool.rs:37:22
+   |
+37 | use std::sync::{Arc, Barrier, Mutex};
+   |                      ^^^^^^^  ^^^^^
+
+warning: unused import: `std::sync::Arc`
+   --> src/parallel/result_aggregator_v2.rs:707:9
+    |
+707 |     use std::sync::Arc;
+    |         ^^^^^^^^^^^^^^
+
+warning: unused import: `ParallelError`
+  --> src/parallel/tests/parallel_contention_minimal.rs:15:23
+   |
+15 | use crate::parallel::{ParallelError, ThreadPool};
+   |                       ^^^^^^^^^^^^^
+
+warning: unused import: `ParallelError`
+  --> src/parallel/tests/parallel_panic_minimal.rs:14:23
+   |
+14 | use crate::parallel::{ParallelError, ThreadPool};
+   |                       ^^^^^^^^^^^^^
+
+warning: unused import: `ParallelError`
+  --> src/parallel/tests/parallel_shutdown_minimal.rs:14:23
+   |
+14 | use crate::parallel::{ParallelError, ThreadPool};
+   |                       ^^^^^^^^^^^^^
+
+warning: hidden lifetime parameters in types are deprecated
+   --> src/daemon/lock.rs:63:47
+    |
+ 63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard> {
+    |                                               ^^^^^^^^^ expected lifetime parameter
+    |
+note: the lint level is defined here
+   --> src/lib.rs:124:23
+    |
+124 | #![warn(missing_docs, rust_2018_idioms)]
+    |                       ^^^^^^^^^^^^^^^^
+    = note: `#[warn(elided_lifetimes_in_paths)]` implied by `#[warn(rust_2018_idioms)]`
+help: indicate the anonymous lifetime
+    |
+ 63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard<'_>> {
+    |                                                        ++++
+
+warning: unnecessary parentheses around assigned value
+   --> src/daemon/lock.rs:163:29
+    |
+163 |             let new_state = ((gen as u64 + 1) << 32);
+    |                             ^                      ^
+    |
+    = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+    |
+163 -             let new_state = ((gen as u64 + 1) << 32);
+163 +             let new_state = (gen as u64 + 1) << 32;
+    |
+
+warning: hidden lifetime parameters in types are deprecated
+  --> src/daemon/mod.rs:86:49
+   |
+86 |         let _guard_type = std::any::type_name::<LockGuard>();
+   |                                                 ^^^^^^^^^ expected lifetime parameter
+   |
+help: indicate the anonymous lifetime
+   |
+86 |         let _guard_type = std::any::type_name::<LockGuard<'_>>();
+   |                                                          ++++
+
+warning: unused variable: `speed1`
+   --> src/install/download_progress.rs:547:13
+    |
+547 |         let speed1 = progress.speed_bps();
+    |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_speed1`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `i`
+   --> src/parallel/segmented_mpmc.rs:448:13
+    |
+448 |         for i in 0..10 {
+    |             ^ help: if this is intentional, prefix it with an underscore: `_i`
+
+warning: variable `total_executed` is assigned to, but never used
+   --> src/parallel/segmented_mpmc.rs:622:13
+    |
+622 |         let mut total_executed = 0;
+    |             ^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider using `_total_executed` instead
+
+warning: value assigned to `total_executed` is never read
+   --> src/parallel/segmented_mpmc.rs:624:13
+    |
+624 |             total_executed += h.join().unwrap();
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `thread_id`
+   --> src/parallel/segmented_mpmc.rs:789:19
+    |
+789 |             .map(|thread_id| {
+    |                   ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_thread_id`
+
+warning: unused variable: `result`
+   --> src/parallel/tests/parallel_panic_minimal.rs:106:9
+    |
+106 |     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_result`
+
+warning: unused variable: `e`
+   --> src/parallel/tests/parallel_shutdown_minimal.rs:210:9
+    |
+210 |     let e = executed.clone();
+    |         ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `queue_capacity`
+   --> src/daemon/coordinator.rs:101:33
+    |
+101 |     pub fn new(timeout_ns: u64, queue_capacity: usize) -> DaemonResult<Self> {
+    |                                 ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_queue_capacity`
+
+warning: constant `SECONDS_PER_MONTH` is never used
+  --> src/patterns/quota_tracker.rs:80:7
+   |
+80 | const SECONDS_PER_MONTH: u64 = 30 * 24 * 60 * 60;
+   |       ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `PHASE_BITS` is never used
+  --> src/install/installer_state.rs:80:7
+   |
+80 | const PHASE_BITS: u32 = 4;
+   |       ^^^^^^^^^^
+
+warning: method `free_slot` is never used
+   --> src/parallel/atomic_slot_pool.rs:331:8
+    |
+112 | impl AtomicSlotPool {
+    | ------------------- method in this implementation
+...
+331 |     fn free_slot(&self, slot_idx: usize) {
+    |        ^^^^^^^^^
+
+warning: field `id` is never read
+   --> src/parallel/tests/iter_tests.rs:573:9
+    |
+572 |     struct Record {
+    |            ------ field in this struct
+573 |         id: usize,
+    |         ^^
+    |
+    = note: `Record` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: function `assert_send` is never used
+   --> src/collections/error.rs:265:8
+    |
+265 |     fn assert_send<T: Send>() {}
+    |        ^^^^^^^^^^^
+
+warning: function `assert_sync` is never used
+   --> src/collections/error.rs:266:8
+    |
+266 |     fn assert_sync<T: Sync>() {}
+    |        ^^^^^^^^^^^
+
+warning: function `verify_error_traits` is never used
+   --> src/collections/error.rs:268:8
+    |
+268 |     fn verify_error_traits() {
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: method `is_occupied` is never used
+   --> src/collections/append_only_map_optimized.rs:100:8
+    |
+ 88 | impl<K, V> MapEntry<K, V> {
+    | ------------------------- method in this implementation
+...
+100 |     fn is_occupied(&self) -> bool {
+    |        ^^^^^^^^^^^
+
+warning: method `try_claim` is never used
+   --> src/collections/concurrent_map.rs:216:8
+    |
+168 | impl<K, V> MapEntry<K, V> {
+    | ------------------------- method in this implementation
+...
+216 |     fn try_claim(&self, hash: u64, value: *mut V) -> Result<(), u64> {
+    |        ^^^^^^^^^
+
+warning: field `period_ns` is never read
+    --> src/collections/concurrent_map.rs:2075:13
+     |
+2073 |         struct Config {
+     |                ------ field in this struct
+2074 |             capacity: u32,
+2075 |             period_ns: u64,
+     |             ^^^^^^^^^
+
+warning: method `try_get` is never used
+   --> src/collections/entry.rs:453:19
+    |
+348 | / impl<'a, K, V> OccupiedEntry<'a, K, V>
+349 | | where
+350 | |     K: Hash + Eq + Clone + Send + Sync,
+351 | |     V: Send + Sync,
+    | |___________________- method in this implementation
+...
+453 |       pub(crate) fn try_get(&self) -> Option<&V> {
+    |                     ^^^^^^^
+
+warning: function `assert_alignment` is never used
+   --> src/mcp/tool_registry.rs:205:14
+    |
+205 |     const fn assert_alignment() {
+    |              ^^^^^^^^^^^^^^^^
+
+warning: constant `ASSERT` is never used
+   --> src/tui/file_navigator.rs:137:11
+    |
+137 |     const ASSERT: () = assert!(
+    |           ^^^^^^
+
+warning: constant `ASSERT_ALIGN` is never used
+   --> src/tui/file_navigator.rs:141:11
+    |
+141 |     const ASSERT_ALIGN: () = assert!(
+    |           ^^^^^^^^^^^^
+
+warning: comparison is useless due to type limits
+   --> src/patterns/quota_tracker.rs:960:17
+    |
+960 |         assert!(tracker.total_violations() >= 0);
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_comparisons)]` on by default
+
+warning: comparison is useless due to type limits
+   --> src/install/download_progress.rs:701:17
+    |
+701 |         assert!(speed >= 0, "Speed should never be negative");
+    |                 ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/install/install_audit.rs:167:22
+    |
+167 |     TamperDetected { event: u64, reason: String },
+    |                      ^^^^^^^^^^
+    |
+note: the lint level is defined here
+   --> src/lib.rs:124:9
+    |
+124 | #![warn(missing_docs, rust_2018_idioms)]
+    |         ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/install/install_audit.rs:167:34
+    |
+167 |     TamperDetected { event: u64, reason: String },
+    |                                  ^^^^^^^^^^^^^^
+
+warning: unused `std::result::Result` that must be used
+  --> src/parallel/tests/parallel_contention_minimal.rs:47:13
+   |
+47 | /             s.spawn(move || {
+48 | |                 // Minimal work to keep contention high
+49 | |                 black_box(42);
+50 | |                 c.fetch_add(1, SeqCst);
+...  |
+54 | |             });
+   | |______________^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+   = note: `#[warn(unused_must_use)]` (part of `#[warn(unused)]`) on by default
+help: use `let _ = ...` to ignore the resulting value
+   |
+47 |             let _ = s.spawn(move || {
+   |             +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_contention_minimal.rs:112:17
+    |
+112 | /                 s.spawn(move || {
+113 | |                     black_box(42);
+114 | |                     c.fetch_add(1, SeqCst);
+115 | |                 });
+    | |__________________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+112 |                 let _ = s.spawn(move || {
+    |                 +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_contention_minimal.rs:160:17
+    |
+160 | /                 s.spawn(move || {
+161 | |                     black_box(42);
+162 | |                     c.fetch_add(1, SeqCst);
+163 | |                 });
+    | |__________________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+160 |                 let _ = s.spawn(move || {
+    |                 +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_contention_minimal.rs:200:13
+    |
+200 | /             s.spawn(move || {
+201 | |                 black_box(42);
+202 | |                 c.fetch_add(1, SeqCst);
+203 | |             });
+    | |______________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+200 |             let _ = s.spawn(move || {
+    |             +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_contention_minimal.rs:221:13
+    |
+221 | /             s.spawn(move || {
+222 | |                 black_box(42);
+223 | |                 c.fetch_add(1, SeqCst);
+224 | |             });
+    | |______________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+221 |             let _ = s.spawn(move || {
+    |             +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_contention_minimal.rs:263:13
+    |
+263 | /             s.spawn(move || {
+264 | |                 black_box(42);
+265 | |                 c.fetch_add(1, SeqCst);
+266 | |                 if i % 10_000 == 0 {
+...   |
+269 | |             });
+    | |______________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+263 |             let _ = s.spawn(move || {
+    |             +++++++
+
+warning: unused `std::result::Result` that must be used
+  --> src/parallel/tests/parallel_panic_minimal.rs:45:13
+   |
+45 | /             s.spawn(move || {
+46 | |                 c0.fetch_add(1, SeqCst);
+47 | |                 eprintln!("[Task 0] Completed normally");
+48 | |             });
+   | |______________^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+   |
+45 |             let _ = s.spawn(move || {
+   |             +++++++
+
+warning: unused `std::result::Result` that must be used
+  --> src/parallel/tests/parallel_panic_minimal.rs:51:13
+   |
+51 | /             s.spawn(|| {
+52 | |                 eprintln!("[Task 1] About to panic...");
+53 | |                 panic!("Expected panic - testing queue corruption");
+54 | |             });
+   | |______________^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+   |
+51 |             let _ = s.spawn(|| {
+   |             +++++++
+
+warning: unused `std::result::Result` that must be used
+  --> src/parallel/tests/parallel_panic_minimal.rs:58:13
+   |
+58 | /             s.spawn(move || {
+59 | |                 c2.fetch_add(1, SeqCst);
+60 | |                 eprintln!("[Task 2] Completed normally");
+61 | |             });
+   | |______________^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+   |
+58 |             let _ = s.spawn(move || {
+   |             +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_panic_minimal.rs:111:17
+    |
+111 | /                 s.spawn(move || {
+112 | |                     if i % 3 == 0 {
+113 | |                         panic!("Panic in task {}", i);
+114 | |                     } else {
+...   |
+118 | |                 });
+    | |__________________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+111 |                 let _ = s.spawn(move || {
+    |                 +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_panic_minimal.rs:160:13
+    |
+160 | /             s.spawn(|| {
+161 | |                 panic!("Intentional panic");
+162 | |             });
+    | |______________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+160 |             let _ = s.spawn(|| {
+    |             +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_panic_minimal.rs:173:13
+    |
+173 | /             s.spawn(move || {
+174 | |                 c.fetch_add(1, SeqCst);
+175 | |                 eprintln!("[Task {}] Completed in phase 2", i);
+176 | |             });
+    | |______________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+173 |             let _ = s.spawn(move || {
+    |             +++++++
+
+warning: unused `std::result::Result` that must be used
+  --> src/parallel/tests/parallel_shutdown_minimal.rs:46:13
+   |
+46 | /             s.spawn(move || {
+47 | |                 // Simulate 1ms work
+48 | |                 thread::sleep(Duration::from_millis(1));
+49 | |                 e.fetch_add(1, SeqCst);
+...  |
+53 | |             });
+   | |______________^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+   |
+46 |             let _ = s.spawn(move || {
+   |             +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_shutdown_minimal.rs:109:13
+    |
+109 | /             s.spawn(move || {
+110 | |                 // Minimal work (maximize steal attempts)
+111 | |                 e.fetch_add(1, SeqCst);
+112 | |                 if i % 1000 == 0 {
+...   |
+115 | |             });
+    | |______________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+109 |             let _ = s.spawn(move || {
+    |             +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_shutdown_minimal.rs:166:17
+    |
+166 | /                 s.spawn(move || {
+167 | |                     thread::sleep(Duration::from_micros(100));
+168 | |                     e.fetch_add(1, SeqCst);
+169 | |                 });
+    | |__________________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+166 |                 let _ = s.spawn(move || {
+    |                 +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_shutdown_minimal.rs:236:5
+    |
+236 |     submit_handle.join();
+    |     ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+236 |     let _ = submit_handle.join();
+    |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2244:5
+     |
+2244 |     map.insert("hello".to_string(), 42);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2244 |     let _ = map.insert("hello".to_string(), 42);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2245:5
+     |
+2245 |     map.insert("world".to_string(), 100);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2245 |     let _ = map.insert("world".to_string(), 100);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2258:5
+     |
+2258 |     map.insert("key1".to_string(), 1);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2258 |     let _ = map.insert("key1".to_string(), 1);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2259:5
+     |
+2259 |     map.insert("key2".to_string(), 2);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2259 |     let _ = map.insert("key2".to_string(), 2);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2272:5
+     |
+2272 |     map.insert("hello".to_string(), 42);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2272 |     let _ = map.insert("hello".to_string(), 42);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2288:5
+     |
+2288 |     map.insert(key1.clone(), "value1".to_string());
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2288 |     let _ = map.insert(key1.clone(), "value1".to_string());
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2289:5
+     |
+2289 |     map.insert(key2.clone(), "value2".to_string());
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2289 |     let _ = map.insert(key2.clone(), "value2".to_string());
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2308:5
+     |
+2308 |     map.insert("test".to_string(), 123);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2308 |     let _ = map.insert("test".to_string(), 123);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2339:5
+     |
+2339 |     map.insert("alpha".to_string(), 1);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2339 |     let _ = map.insert("alpha".to_string(), 1);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2345:5
+     |
+2345 |     map.insert("alpha".to_string(), 2);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2345 |     let _ = map.insert("alpha".to_string(), 2);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2367:9
+     |
+2367 |         map.insert(format!("key{}", i), i);
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2367 |         let _ = map.insert(format!("key{}", i), i);
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2394:5
+     |
+2394 |     map.insert("".to_string(), 0);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2394 |     let _ = map.insert("".to_string(), 0);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2407:5
+     |
+2407 |     map.insert(long_key.clone(), 999);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2407 |     let _ = map.insert(long_key.clone(), 999);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2419:5
+     |
+2419 |     map.insert("こんにちは".to_string(), 1);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2419 |     let _ = map.insert("こんにちは".to_string(), 1);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2420:5
+     |
+2420 |     map.insert("🦀 Rust".to_string(), 2);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2420 |     let _ = map.insert("🦀 Rust".to_string(), 2);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2421:5
+     |
+2421 |     map.insert("Привет".to_string(), 3);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2421 |     let _ = map.insert("Привет".to_string(), 3);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2433:5
+     |
+2433 |     map.insert(" ".to_string(), 1);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2433 |     let _ = map.insert(" ".to_string(), 1);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2434:5
+     |
+2434 |     map.insert("\t".to_string(), 2);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2434 |     let _ = map.insert("\t".to_string(), 2);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2435:5
+     |
+2435 |     map.insert("\n".to_string(), 3);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2435 |     let _ = map.insert("\n".to_string(), 3);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2436:5
+     |
+2436 |     map.insert("  spaces  ".to_string(), 4);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2436 |     let _ = map.insert("  spaces  ".to_string(), 4);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2449:5
+     |
+2449 |     map.insert("key".to_string(), 100);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2449 |     let _ = map.insert("key".to_string(), 100);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2456:5
+     |
+2456 |     map.insert("key".to_string(), 200);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2456 |     let _ = map.insert("key".to_string(), 200);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2475:17
+     |
+2475 |                 map_clone.insert(format!("key{}", i), i);
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2475 |                 let _ = map_clone.insert(format!("key{}", i), i);
+     |                 +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2520:5
+     |
+2520 |     map.insert("Hello".to_string(), 1);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2520 |     let _ = map.insert("Hello".to_string(), 1);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2521:5
+     |
+2521 |     map.insert("hello".to_string(), 2);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2521 |     let _ = map.insert("hello".to_string(), 2);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2522:5
+     |
+2522 |     map.insert("HELLO".to_string(), 3);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2522 |     let _ = map.insert("HELLO".to_string(), 3);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2534:5
+     |
+2534 |     map.insert("key@123".to_string(), 1);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2534 |     let _ = map.insert("key@123".to_string(), 1);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2535:5
+     |
+2535 |     map.insert("key#456".to_string(), 2);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2535 |     let _ = map.insert("key#456".to_string(), 2);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2536:5
+     |
+2536 |     map.insert("key$789".to_string(), 3);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2536 |     let _ = map.insert("key$789".to_string(), 3);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2549:5
+     |
+2549 |     map.insert(key.clone(), 42);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2549 |     let _ = map.insert(key.clone(), 42);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2564:9
+     |
+2564 |         map.insert(format!("key{:04}", i), i);
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2564 |         let _ = map.insert(format!("key{:04}", i), i);
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2593:9
+     |
+2593 |         map.insert("reused_key".to_string(), iteration);
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2593 |         let _ = map.insert("reused_key".to_string(), iteration);
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2605:5
+     |
+2605 |     map.insert("a".to_string(), 1);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2605 |     let _ = map.insert("a".to_string(), 1);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2606:5
+     |
+2606 |     map.insert("ab".to_string(), 2);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2606 |     let _ = map.insert("ab".to_string(), 2);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2607:5
+     |
+2607 |     map.insert("abc".to_string(), 3);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2607 |     let _ = map.insert("abc".to_string(), 3);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2608:5
+     |
+2608 |     map.insert("abcd".to_string(), 4);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2608 |     let _ = map.insert("abcd".to_string(), 4);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:1378:9
+     |
+1378 |         map.insert(1, "hello".to_string());
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1378 |         let _ = map.insert(1, "hello".to_string());
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:1379:9
+     |
+1379 |         map.insert(2, "world".to_string());
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1379 |         let _ = map.insert(2, "world".to_string());
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:1390:9
+     |
+1390 |         map.insert(1, "hello".to_string());
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1390 |         let _ = map.insert(1, "hello".to_string());
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:1456:21
+     |
+1456 |                     map_clone.insert(key, key * 10);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1456 |                     let _ = map_clone.insert(key, key * 10);
+     |                     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:1549:21
+     |
+1549 |                     map_clone.insert(i, i * 10);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1549 |                     let _ = map_clone.insert(i, i * 10);
+     |                     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:1559:21
+     |
+1559 |                     map_clone.insert(i, i * 10);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1559 |                     let _ = map_clone.insert(i, i * 10);
+     |                     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2046:25
+     |
+2046 |                         map_clone.insert(50 + i, (50 + i) * 10);
+     |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2046 |                         let _ = map_clone.insert(50 + i, (50 + i) * 10);
+     |                         +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/collections/entry.rs:905:9
+    |
+905 |         map.insert(42, String::from("existing"));
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+905 |         let _ = map.insert(42, String::from("existing"));
+    |         +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/collections/entry.rs:923:9
+    |
+923 |         map.insert(42, 50);
+    |         ^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+923 |         let _ = map.insert(42, 50);
+    |         +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/collections/entry.rs:946:9
+    |
+946 |         map.insert(42, 100);
+    |         ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+946 |         let _ = map.insert(42, 100);
+    |         +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/collections/entry.rs:992:9
+    |
+992 |         map.insert(42, String::from("value"));
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+992 |         let _ = map.insert(42, String::from("value"));
+    |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/entry.rs:1004:9
+     |
+1004 |         map.insert(42, String::from("value"));
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1004 |         let _ = map.insert(42, String::from("value"));
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/entry.rs:1017:9
+     |
+1017 |         map.insert(42, String::from("old"));
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1017 |         let _ = map.insert(42, String::from("old"));
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/entry.rs:1031:9
+     |
+1031 |         map.insert(42, String::from("value"));
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1031 |         let _ = map.insert(42, String::from("value"));
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/entry.rs:1046:9
+     |
+1046 |         map.insert(42, String::from("value"));
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1046 |         let _ = map.insert(42, String::from("value"));
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1409:9
+     |
+1409 |         table.insert(1u64, "value".to_string());
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1409 |         let _ = table.insert(1u64, "value".to_string());
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1420:9
+     |
+1420 |         table.insert(key.clone(), 100);
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1420 |         let _ = table.insert(key.clone(), 100);
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1432:9
+     |
+1432 |         table.insert(key.clone(), 42);
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1432 |         let _ = table.insert(key.clone(), 42);
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1444:13
+     |
+1444 |             table.insert(key.clone(), i * 2);
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1444 |             let _ = table.insert(key.clone(), i * 2);
+     |             +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1460:9
+     |
+1460 |         table.insert(key.clone(), 42);
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1460 |         let _ = table.insert(key.clone(), 42);
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1469:9
+     |
+1469 |         table.insert(key.clone(), 42);
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1469 |         let _ = table.insert(key.clone(), 42);
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1481:9
+     |
+1481 |         table.insert(key.clone(), 100);
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1481 |         let _ = table.insert(key.clone(), 100);
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1570:21
+     |
+1570 |                     table_clone.insert(key, i);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1570 |                     let _ = table_clone.insert(key, i);
+     |                     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1631:21
+     |
+1631 |                     table_clone.insert(key, key * 2);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1631 |                     let _ = table_clone.insert(key, key * 2);
+     |                     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1665:21
+     |
+1665 |                     table_clone.insert(key, i * 2);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1665 |                     let _ = table_clone.insert(key, i * 2);
+     |                     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1708:29
+     |
+1708 | ...                   table_clone.insert(i, new_val);
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1708 |                             let _ = table_clone.insert(i, new_val);
+     |                             +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1771:21
+     |
+1771 |                     table_clone.insert(key, key);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1771 |                     let _ = table_clone.insert(key, key);
+     |                     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1798:9
+     |
+1798 |         table.insert(42, "value".to_string());
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1798 |         let _ = table.insert(42, "value".to_string());
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1979:17
+     |
+1979 |                 table_clone.insert(i, i);
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1979 |                 let _ = table_clone.insert(i, i);
+     |                 +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:2045:21
+     |
+2045 |                     table_clone.insert(key, key * 2);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2045 |                     let _ = table_clone.insert(key, key * 2);
+     |                     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:2075:21
+     |
+2075 |                     table_clone.insert(key, i);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2075 |                     let _ = table_clone.insert(key, i);
+     |                     +++++++
+
+warning: comparison is useless due to type limits
+   --> src/tui/audit_log.rs:869:17
+    |
+869 |         assert!(audit.prev_hash() >= 0);         // ✓
+    |                 ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/tui/file_navigator.rs:149:5
+    |
+149 |     pub const HIDE_HIDDEN: u32 = 1 << 0;  // Hide files starting with .
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/tui/file_navigator.rs:150:5
+    |
+150 |     pub const HIDE_READONLY: u32 = 1 << 1; // Hide readonly files
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/tui/file_navigator.rs:151:5
+    |
+151 |     pub const HIDE_SYMLINKS: u32 = 1 << 2;  // Hide symbolic links
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/tui/file_navigator.rs:152:5
+    |
+152 |     pub const RECURSIVE: u32 = 1 << 3;      // Enable recursive directory descent
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/daemon/error.rs:22:16
+   |
+22 |     LockHeld { holder_pid: u32 },
+   |                ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/daemon/error.rs:27:19
+   |
+27 |     LockTimeout { waited_ns: u64 },
+   |                   ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/daemon/error.rs:32:17
+   |
+32 |     QueueFull { capacity: usize },
+   |                 ^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+  --> src/daemon/lock.rs:51:5
+   |
+51 |     pub const fn new(timeout_ns: u64) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> src/daemon/lock.rs:63:5
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> src/daemon/lock.rs:63:24
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard> {
+   |                        ^^^^^                  ^^^^^^^^^ the same lifetime is hidden here
+   |                        |
+   |                        the lifetime is elided here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard<'_>> {
+   |                                                        ++++
+
+warning: missing documentation for a method
+   --> src/daemon/lock.rs:121:5
+    |
+121 |     pub fn is_locked(&self) -> bool {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/daemon/lock.rs:127:5
+    |
+127 |     pub fn holder(&self) -> Option<u32> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/daemon/lock.rs:137:5
+    |
+137 |     pub fn stats(&self) -> (u64, u64, u64) {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/daemon/lock.rs:146:5
+    |
+146 |     pub fn timeout_ns(&self) -> u64 {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct
+   --> src/daemon/lock.rs:151:1
+    |
+151 | pub struct LockGuard<'a> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `atomic_capsule` (lib test) generated 139 warnings (run `cargo fix --lib -p atomic_capsule --tests` to apply 17 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.64s
+     Running unittests src/lib.rs (target/debug/deps/atomic_capsule-ea55231ac73f282e)
+
+running 1470 tests
+test alignment::tests::test_alignment_marker ... ok
+test alignment::tests::test_all_tiers_in_range ... ok
+test alignment::tests::test_cold_tier ... ok
+test alignment::tests::test_all_tiers_power_of_two ... ok
+test alignment::tests::test_hot_tier ... ok
+test auditable::hex::tests::test_decode_empty ... ok
+test alignment::tests::test_warm_tier ... ok
+test auditable::hex::tests::test_decode_invalid_chars_error ... ok
+test auditable::hex::tests::test_decode_odd_length_error ... ok
+test auditable::hex::tests::test_decode_mixed_case ... ok
+test auditable::hex::tests::test_decode_multiple_bytes ... ok
+test auditable::hex::tests::test_decode_uppercase ... ok
+test auditable::hex::tests::test_decode_single_byte ... ok
+test auditable::hex::tests::test_deterministic_encoding ... ok
+test auditable::hex::tests::test_encode_empty ... ok
+test auditable::hex::tests::test_encode_lowercase ... ok
+test auditable::hex::tests::test_encode_all_bytes ... ok
+test auditable::hex::tests::test_encode_decode_roundtrip ... ok
+test auditable::hex::tests::test_encode_multiple_bytes ... ok
+test auditable::hex::tests::test_encode_single_byte ... ok
+test cli::tests::test_boolean_flag_with_empty_default ... ok
+test cli::tests::test_builtin_range_0_1_passes ... ok
+test cli::tests::test_builtin_non_empty_fails ... ok
+test cli::tests::test_builtin_range_0_1_fails_below ... ok
+test cli::tests::test_command_suggestion ... ok
+test cli::tests::test_builtin_non_empty_passes ... ok
+test cli::tests::test_default_overridden_by_user ... ok
+test cli::tests::test_default_applied_when_flag_not_provided ... ok
+test cli::tests::test_default_shown_in_help ... ok
+test cli::tests::test_builtin_non_negative_int_passes_zero ... ok
+test cli::tests::test_cli_flag_overrides_env_var ... ok
+test cli::tests::test_default_used_when_env_var_not_set ... ok
+test cli::tests::test_defaults_with_positional_args ... ok
+test cli::tests::test_defaults_with_required_flags ... ok
+test cli::tests::test_env_mapping_added_to_spec ... ok
+test cli::tests::test_builtin_positive_int_fails_negative ... ok
+test cli::tests::test_env_var_combined_with_default ... ok
+test cli::tests::test_env_var_used_when_flag_not_provided ... ok
+test cli::tests::test_env_var_validation_fails ... ok
+test cli::tests::test_env_var_with_validator ... ok
+test cli::tests::test_builtin_range_0_1_passes_boundaries ... ok
+test cli::tests::test_flag_missing_value_equals ... ok
+test cli::tests::test_flag_missing_value_space_separated ... ok
+test cli::tests::test_builtin_range_0_1_fails_above ... ok
+test cli::tests::test_flag_parsing_equals ... ok
+test cli::tests::test_flag_parsing_space_separated ... ok
+test cli::tests::test_global_flag_added_to_spec ... ok
+test cli::tests::test_builtin_positive_int_passes ... ok
+test cli::tests::test_builtin_positive_int_fails_zero ... ok
+test cli::tests::test_has_flag ... ok
+test cli::tests::test_long_flags ... ok
+test cli::tests::test_levenshtein_distance ... ok
+test cli::tests::test_help_generation ... ok
+test cli::tests::test_missing_required_arg_error ... ok
+test cli::tests::test_missing_required_flag_error ... ok
+test cli::tests::test_mixed_flags_and_positional ... ok
+test cli::tests::test_multiple_defaults ... ok
+test cli::tests::test_multiple_env_mappings ... ok
+test cli::tests::test_multiple_global_flags ... ok
+test cli::tests::test_multiple_validators ... ok
+test cli::tests::test_no_command_error ... ok
+test cli::tests::test_positional_args ... ok
+test cli::tests::test_selective_defaults ... ok
+test cli::tests::test_simple_command_parsing ... ok
+test cli::tests::test_unknown_command_error ... ok
+test cli::tests::test_validator_fails ... ok
+test cli::tests::test_validator_fails_for_invalid_default ... ok
+test cli::tests::test_validator_passes ... ok
+test cli::tests::test_validator_with_default ... ok
+test collections::append_only_map::battletest::t28_battletest::test_edge_hash_collisions ... ok
+test collections::append_only_map::battletest::t28_battletest::test_q11_overflow_handling ... ok
+test collections::append_only_map::battletest::t28_battletest::test_q12_key_equality_edge_cases ... ok
+test collections::append_only_map::battletest::t28_battletest::test_edge_alignment_violations ... ok
+test collections::append_only_map::battletest::t28_battletest::test_q13_value_semantics ... ok
+test collections::append_only_map::battletest::t28_battletest::test_q23_memory_pressure ... ignored
+test collections::append_only_map::battletest::t28_battletest::test_q19_error_propagation ... ok
+test collections::append_only_map::battletest::t28_battletest::test_q21_cross_module_usage ... ok
+test collections::append_only_map::battletest::t28_battletest::test_q28_long_running_stability ... ignored
+test collections::append_only_map::tests::test_alignment ... ok
+test collections::append_only_map::tests::test_capacity_exceeded ... ok
+test collections::append_only_map::battletest::t28_battletest::test_q27_power_failure_simulation ... ok
+test collections::append_only_map::battletest::t28_battletest::test_q20_lifecycle_management ... ok
+test collections::append_only_map::tests::test_determinism ... ok
+test collections::append_only_map::tests::test_insert_get ... ok
+test collections::append_only_map::tests::test_empty_map ... ok
+test collections::append_only_map::tests::test_len ... ok
+test collections::append_only_map::tests::test_new ... ok
+test collections::append_only_map::tests::test_overwrite_same_key ... ok
+test collections::append_only_map_optimized::tests::test_new ... ok
+test collections::append_only_map::tests::test_no_duplicate_keys_detected ... ok
+test collections::append_only_map_optimized::tests::test_alignment ... ok
+test collections::append_only_map_optimized::tests::test_binary_search ... ok
+test collections::append_only_map_optimized::tests::test_insert_get ... ok
+test collections::append_only_map::battletest::t28_battletest::test_edge_drop_during_concurrent_access ... ok
+test collections::async_log::tests::test_concurrent_append ... ok
+test collections::append_only_map::tests::test_sequential_insert_pattern ... ok
+test collections::async_log::tests::test_ring_full ... ok
+test collections::async_log::tests::test_concurrent_append_drain ... ok
+test collections::append_only_map_optimized::tests::test_batch_insert ... ok
+test collections::async_log::tests::test_drop_cleanup ... ok
+test collections::cache::tests::test_cache_slot_alignment ... ok
+
+thread 'collections::cache::tests::test_hash_determinism' (1607255) panicked at src/collections/cache.rs:173:5:
+compute_hash requires 'cache' feature
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'collections::cache::tests::test_cache_slot_size' (1607254) panicked at src/collections/cache.rs:691:9:
+assertion `left == right` failed
+  left: 512
+ right: 256
+
+thread 'collections::append_only_map::battletest::t28_battletest::test_q22_performance_regression' (1607100) panicked at src/collections/append_only_map_battletest.rs:324:9:
+Insert performance regression: 2736ns > 1000ns
+test collections::cache::tests::test_cache_slot_clear ... ok
+test collections::cache::tests::test_hash_determinism ... FAILED
+test collections::async_log::tests::test_fifo_order ... ok
+test collections::async_log::tests::test_entry_truncation ... ok
+test collections::cache::tests::test_cache_slot_hmac_field ... ok
+test collections::cache::tests::test_cache_slot_size ... FAILED
+test collections::async_log::tests::test_single_thread_append_drain ... ok
+test collections::cache::tests::test_cache_slot_new ... ok
+test collections::cache::tests::test_cache_slot_clear_resets_hmac ... ok
+
+thread 'collections::append_only_map::battletest::t28_battletest::test_q25_false_sharing_detection' (1607102) panicked at src/collections/append_only_map_battletest.rs:441:9:
+False sharing detected: 11.925042ms > 10ms
+
+thread 'collections::cache::tests::test_hash_non_zero' (1607306) panicked at src/collections/cache.rs:173:5:
+compute_hash requires 'cache' feature
+test collections::cache::tests::test_lru_score ... ok
+test collections::cache_batch::tests::test_batch_evict_lru_empty_cache ... ok
+test collections::cache_batch::tests::test_batch_evict_lru_zero_count ... ok
+test collections::cache::tests::test_q16_16_conversion ... ok
+test collections::cache_batch::tests::test_batch_expire_ttl_empty_cache ... ok
+test collections::cache_batch::tests::test_cache_container_new ... ok
+test collections::cache::tests::test_hash_non_zero ... FAILED
+test collections::append_only_map_optimized::tests::test_concurrent_inserts ... ok
+test collections::cache_batch::tests::test_batch_evict_more_than_available ... ok
+test collections::cache_batch::tests::test_concurrent_generation_updates ... ok
+test collections::cache_batch::tests::test_lru_score_ordering ... ok
+test collections::append_only_map::battletest::t28_battletest::test_q25_false_sharing_detection ... FAILED
+test collections::cache_integrated::tests::test_cache_slot_alignment ... ok
+test collections::cache_integrated::tests::test_cache_slot_new ... ok
+test collections::cache_integrated::tests::test_cache_slot_size ... ok
+test collections::cache_integrated::tests::test_insert_get_basic ... ok
+test collections::cache_integrated::tests::test_random_siphash_different_keys ... ok
+test collections::cache_batch::tests::test_next_generation ... ok
+test collections::cache_integrated::tests::test_ttl_expiration ... ok
+test collections::cache_integration_helpers::tests::test_clear_hmac ... ok
+test collections::cache_integration_helpers::tests::test_fallback_store_verify ... ok
+test collections::append_only_map::battletest::t28_battletest::test_q22_performance_regression ... FAILED
+test collections::concurrent_map::test_borrow_consistency ... ok
+test collections::concurrent_map::test_borrow_different_lengths ... ok
+test collections::concurrent_map::test_borrow_empty_string ... ok
+test collections::concurrent_map::test_borrow_remove_and_reinsert ... ok
+test collections::concurrent_map::test_borrow_contains_key_string_with_str ... ok
+test collections::concurrent_map::test_borrow_backward_compatibility ... ok
+test collections::concurrent_map::test_borrow_long_strings ... ok
+test collections::concurrent_map::test_borrow_hash_collision_handling ... ok
+test collections::concurrent_map::test_borrow_remove_string_with_str ... ok
+test collections::concurrent_map::test_borrow_mixed_operations ... ok
+test collections::append_only_map::battletest::t28_battletest::test_q14_memory_ordering_validation ... ok
+test collections::concurrent_map::test_borrow_special_characters ... ok
+test collections::concurrent_map::test_borrow_case_sensitive ... ok
+test collections::concurrent_map::test_borrow_whitespace_strings ... ok
+test collections::concurrent_map::test_borrow_unicode_strings ... ok
+test collections::concurrent_map::test_borrow_vec_with_slice ... ok
+test collections::concurrent_map::test_borrow_concurrent_string_lookups ... ok
+test collections::concurrent_map::test_borrow_tombstone_reuse ... ok
+test collections::concurrent_map::test_borrow_stress_many_keys ... ok
+test collections::concurrent_map::tests::test_hybrid_probe_deterministic ... ok
+test collections::concurrent_map::tests::test_hybrid_probe_distribution ... ok
+test collections::concurrent_map::tests::test_hybrid_probe_finds_all_slots ... ok
+test collections::concurrent_map::tests::test_insert_new ... ok
+test collections::concurrent_map::tests::test_clear ... ok
+test collections::concurrent_map::tests::test_hybrid_probe_correctness ... ok
+test collections::concurrent_map::tests::test_insert_replace ... ok
+test collections::concurrent_map::test_borrow_string_with_str ... ok
+test collections::concurrent_map::tests::test_contains_key ... ok
+test collections::concurrent_map::tests::test_get ... ok
+test collections::concurrent_map::tests::test_iter_empty_map ... ok
+
+thread 'collections::concurrent_map::tests::test_non_power_of_two_capacity' (1607460) panicked at src/collections/concurrent_map.rs:411:9:
+Capacity must be power of 2
+test collections::concurrent_map::tests::test_multiple_inserts ... ok
+test collections::concurrent_map::tests::test_iter_single_entry ... ok
+test collections::concurrent_map::tests::test_iter_collected ... ok
+test collections::concurrent_map::tests::test_non_power_of_two_capacity - should panic ... ok
+test collections::concurrent_map::tests::test_concurrent_values_collection ... ok
+test collections::concurrent_map::tests::test_new ... ok
+test collections::concurrent_map::tests::test_iter_multiple_entries ... ok
+test collections::concurrent_map::test_borrow_multiple_threads_mixed_ops ... ok
+test collections::concurrent_map::tests::test_or_insert_with_arc_values ... ok
+test collections::concurrent_map::tests::test_concurrent_or_insert_with ... ok
+test collections::concurrent_map::tests::test_or_insert_with_new_entry ... ok
+test collections::concurrent_map::tests::test_or_insert_with_existing_entry ... ok
+test collections::concurrent_map::tests::test_or_insert_with_closure_not_called ... ok
+test collections::concurrent_map::tests::test_concurrent_insert ... ok
+test collections::concurrent_map::tests::test_concurrent_remove ... ok
+test collections::concurrent_map::tests::test_remove ... ok
+
+thread 'collections::concurrent_map::tests::test_zero_capacity' (1607549) panicked at src/collections/concurrent_map.rs:410:9:
+Capacity must be > 0
+test collections::concurrent_map::tests::test_or_insert_with_multiple_keys ... ok
+test collections::concurrent_map::tests::test_zero_capacity - should panic ... ok
+test collections::concurrent_map::tests::test_values_multiple_entries ... ok
+test collections::concurrent_map::tests::test_with_capacity ... ok
+test collections::concurrent_map::tests::test_values_single_entry ... ok
+test collections::concurrent_map::tests::test_values_empty_map ... ok
+test collections::concurrent_map::tests::test_values_after_removals ... ok
+test collections::concurrent_map::tests::test_concurrent_get ... ok
+test collections::append_only_map::tests::test_large_capacity ... ok
+test collections::concurrent_map_v2::tests::test_contains_key ... ok
+test collections::concurrent_map_v2::tests::test_insert_and_get ... ok
+test collections::concurrent_map_v2::tests::test_capacity_limit ... ok
+test collections::concurrent_map_v2::tests::test_clear ... ok
+test collections::concurrent_map_v2::tests::test_hash_collision_handling ... ok
+test collections::concurrent_map_v2::tests::test_concurrent_get ... ok
+test collections::concurrent_map::tests::test_concurrent_mixed_operations ... ok
+test collections::concurrent_map::tests::test_prefetch_correctness ... ok
+test collections::concurrent_map_v2::tests::test_insert_replace ... ok
+test collections::concurrent_map_v2::tests::test_iter_empty ... ok
+test collections::concurrent_map_v2::tests::test_iter_multiple_entries ... ok
+test collections::concurrent_map_v2::tests::test_keys ... ok
+test collections::entry::tests::test_entry_and_modify_chain_or_insert ... ok
+test collections::entry::tests::test_entry_and_modify_occupied ... ok
+test collections::entry::tests::test_entry_and_modify_vacant_noop ... ok
+test collections::concurrent_map_v2::tests::test_concurrent_mixed_operations ... ok
+test collections::entry::tests::test_entry_key ... ok
+test collections::concurrent_map_v2::tests::test_remove ... ok
+test collections::concurrent_map_v2::tests::test_tombstone_reuse ... ok
+test collections::concurrent_map_v2::tests::test_values ... ok
+test collections::concurrent_map_v2::tests::test_concurrent_insert ... ok
+test collections::concurrent_map_v2::tests::test_new ... ok
+test collections::entry::tests::test_entry_occupied_or_insert ... ok
+test collections::entry::tests::test_entry_or_insert_with_vacant ... ok
+test collections::entry::tests::test_entry_concurrent_or_insert_same_key ... ok
+test collections::entry::tests::test_entry_vacant_or_insert ... ok
+test collections::entry::tests::test_entry_or_insert_with_key ... ok
+test collections::concurrent_map_v2::tests::test_concurrent_remove ... ok
+test collections::entry::tests::test_entry_or_default ... ok
+test collections::entry::tests::test_entry_or_insert_with_occupied ... ok
+test collections::entry::tests::test_entry_multiple_keys ... ok
+test collections::entry::tests::test_occupied_entry_get ... ok
+test collections::entry::tests::test_occupied_entry_get_mut ... ok
+test collections::entry::tests::test_occupied_entry_insert ... ok
+test collections::error::tests::test_all_variants_covered ... ok
+test collections::error::integration_tests::test_concurrent_map_capacity_exceeded ... ok
+test collections::error::tests::test_circuit_open_message ... ok
+test collections::entry::tests::test_vacant_entry_key ... ok
+ConcurrentModification errors: 0
+test collections::entry::tests::test_vacant_entry_into_key ... ok
+test collections::entry::tests::test_vacant_entry_insert ... ok
+test collections::error::tests::test_capacity_exceeded_message ... ok
+test collections::entry::tests::test_occupied_entry_remove ... ok
+test collections::entry::tests::test_occupied_entry_into_ref ... ok
+test collections::error::integration_tests::test_error_recovery_retry_pattern ... ok
+test collections::error::tests::test_concurrent_modification_message ... ok
+test collections::error::integration_tests::test_lockfree_table_concurrent_modification ... ok
+test collections::concurrent_map_v2::tests::test_stress_large_dataset ... ok
+test collections::error::tests::test_error_display ... ok
+test collections::error::tests::test_error_equality ... ok
+test collections::error::tests::test_error_clone ... ok
+test collections::error::tests::test_error_copy ... ok
+test collections::error::tests::test_error_debug ... ok
+test collections::error::tests::test_error_size ... ok
+test collections::concurrent_map::tests::test_prefetch_high_contention ... ok
+test collections::error::tests::test_error_into_result ... ok
+test collections::error::tests::test_error_trait ... ok
+test collections::error::tests::test_error_variants_unique ... ok
+test collections::error::tests::test_error_match_pattern ... ok
+test collections::error::tests::test_error_send_sync ... ok
+test collections::error::tests::test_error_consistency_across_threads ... ok
+test collections::error::tests::test_error_send_across_threads ... ok
+test collections::error::tests::test_error_in_result_chain ... ok
+test collections::error::tests::test_invalid_state_message ... ok
+test collections::error::tests::test_result_type ... ok
+test collections::error::tests::test_io_error_message ... ok
+test collections::generation_counter::tests::test_bump_generation_normal ... ok
+test collections::error::tests::test_error_not_lost_in_concurrent_operations ... ok
+test collections::error::tests::test_error_shared_across_threads ... ok
+test collections::generation_counter::tests::test_max_values ... ok
+test collections::generation_counter::tests::test_pack_gen_index ... ok
+test collections::generation_counter::tests::test_bump_generation_wraparound ... ok
+test collections::generation_counter::tests::test_extract_gen ... ok
+test collections::lockfree_table::tests::test_collision_handling_string ... ok
+test collections::generation_counter::tests::test_pack_unpack_roundtrip ... ok
+test collections::generation_counter::tests::test_zero_values ... ok
+test collections::lockfree_table::tests::test_alignment_and_size ... ok
+test collections::lockfree_table::tests::test_clear ... ok
+test collections::generation_counter::tests::test_extract_index ... ok
+test collections::lockfree_table::tests::test_hash_consistency ... ok
+test collections::lockfree_table::tests::test_custom_struct_key ... ok
+test collections::lockfree_table::tests::test_contains_key_string ... ok
+test collections::lockfree_table::tests::test_empty_string_key ... ok
+test collections::lockfree_table::tests::test_insert_and_get_string ... ok
+test collections::lockfree_table::tests::test_iter_empty ... ok
+test collections::lockfree_table::tests::test_insert_and_get_u64 ... ok
+test collections::lockfree_table::tests::test_hash_never_zero ... ok
+test collections::lockfree_table::tests::test_iter_multiple ... ok
+test collections::lockfree_table::tests::test_insert_and_get_custom ... ok
+test collections::lockfree_table::tests::test_iter_concurrent_insert ... ok
+test collections::lockfree_table::tests::test_multiple_entries_string ... ok
+test collections::lockfree_table::tests::test_new_custom_keys ... ok
+test collections::lockfree_table::tests::test_new_string_keys ... ok
+test collections::lockfree_table::tests::test_new_u64_keys ... ok
+test collections::lockfree_table::tests::test_iter_single ... ok
+test collections::lockfree_table::tests::test_iter_with_collisions ... ok
+test collections::lockfree_table::tests::test_iter_string_keys ... ok
+test collections::lockfree_table::tests::test_key_uniqueness_string ... ok
+test collections::lockfree_table::tests::test_long_string_key ... ok
+test collections::lockfree_table::tests::test_remove_string ... ok
+test collections::lockfree_table::tests::test_retain_filter ... ok
+test collections::lockfree_table::tests::test_remove_u64 ... ok
+test collections::lockfree_table::tests::test_retain_with_collisions ... ok
+test collections::lockfree_table::tests::test_retain_none ... ok
+test collections::lockfree_table::tests::test_retain_empty ... ok
+test collections::lockfree_table::tests::test_retain_all ... ok
+test collections::lockfree_table::tests::test_concurrent_removes ... ok
+test collections::lockfree_table::tests::test_stress_100k_entries ... ignored
+test collections::lockfree_table::tests::test_stress_string_keys ... ignored
+test collections::lockfree_table::tests::test_concurrent_mixed_operations ... ok
+test collections::lockfree_table::tests::test_no_lost_entries_concurrent_string ... ok
+test collections::lockfree_table::tests::test_retain_concurrent ... ok
+test collections::append_only_map::battletest::t28_battletest::test_edge_mixed_operation_patterns ... ok
+test collections::append_only_map::battletest::t28_battletest::test_q24_cache_efficiency ... ok
+test collections::lockfree_table::tests::test_update_u64 ... ok
+test collections::ring_broadcast::tests::test_fifo_order ... ok
+test collections::lockfree_table::tests::test_concurrent_inserts_string ... ok
+test collections::ring_broadcast::tests::test_concurrent_access ... ok
+test collections::lockfree_table::tests::test_update_string ... ok
+test collections::ring_broadcast::tests::test_independent_receivers ... ok
+test collections::lockfree_table::tests::test_concurrent_inserts_u64 ... ok
+test collections::ring_broadcast::tests::test_throughput ... ignored
+test collections::entry::tests::test_entry_concurrent_different_keys ... ok
+test collections::append_only_map::battletest::t28_battletest::test_q18_integration_with_other_capsules ... ok
+test collections::serializable::tests::test_arc_stress_many_clones ... ok
+test collections::serializable::tests::test_bool_all_patterns ... ok
+test collections::ring_broadcast::tests::test_lossless ... ok
+test collections::ring_broadcast::tests::test_multi_consumer ... ok
+test collections::ring_broadcast::tests::test_single_message ... ok
+test collections::serializable::tests::test_arc_complex_type ... ok
+test collections::serializable::tests::test_arc_roundtrip ... ok
+test collections::serializable::tests::test_arc_multiple_reads ... ok
+test collections::serializable::tests::test_arc_no_double_free ... ok
+test collections::serializable::tests::test_arc_no_memory_leak ... ok
+test collections::serializable::tests::test_arc_refcount_management ... ok
+test collections::serializable::tests::test_arc_cleanup ... ok
+test collections::serializable::tests::test_concurrent_arc_access_pattern ... ok
+test collections::serializable::tests::test_i16_roundtrip ... ok
+test collections::serializable::tests::test_i64_roundtrip ... ok
+test collections::serializable::tests::test_mixed_primitive_and_arc ... ok
+test collections::serializable::tests::test_primitive_all_bit_patterns ... ok
+test collections::serializable::tests::test_primitive_identity_property ... ok
+test collections::serializable::tests::test_size_types_implement_trait ... ok
+test collections::serializable::tests::test_string_as_map_key_pattern ... ok
+test collections::serializable::tests::test_string_empty ... ok
+test collections::serializable::tests::test_string_multiple_reads ... ok
+test collections::serializable::tests::test_string_no_memory_leak ... ok
+test collections::serializable::tests::test_string_roundtrip ... ok
+test collections::serializable::tests::test_f64_roundtrip ... ok
+test collections::serializable::tests::test_float_types_implement_trait ... ok
+test collections::serializable::tests::test_bool_implement_trait ... ok
+test collections::serializable::tests::test_i8_roundtrip ... ok
+test collections::serializable::tests::test_string_stress_large_strings ... ok
+test collections::serializable::tests::test_string_unicode ... ok
+test collections::serializable::tests::test_integer_types_implement_trait ... ok
+test collections::serializable::tests::test_isize_roundtrip ... ok
+test collections::serializable::tests::test_bool_roundtrip ... ok
+test collections::serializable::tests::test_u16_roundtrip ... ok
+test collections::serializable::tests::test_f32_nan_roundtrip ... ok
+test collections::serializable::tests::test_f32_roundtrip ... ok
+test collections::serializable::tests::test_f64_nan_roundtrip ... ok
+test collections::serializable::tests::test_i32_roundtrip ... ok
+test collections::serializable::tests::test_u32_roundtrip ... ok
+test collections::serializable::tests::test_u64_roundtrip ... ok
+test collections::serializable::tests::test_u8_roundtrip ... ok
+test collections::serializable::tests::test_usize_roundtrip ... ok
+test collections::stats_capsule::tests::test_capsule_alignment ... ok
+test collections::stats_capsule::tests::test_capsule_send_sync ... ok
+test collections::stats_capsule::tests::test_capsule_size ... ok
+test collections::stats_capsule::tests::test_computational_capsule_trait ... ok
+test collections::stats_capsule::tests::test_default_trait ... ok
+test collections::stats_capsule::tests::test_stats_capsule_increment_requests ... ok
+test collections::stats_capsule::tests::test_stats_capsule_new ... ok
+test collections::stats_capsule::tests::test_concurrent_increments ... ok
+test collections::stats_capsule::tests::test_stats_capsule_record_latency ... ok
+test collections::stats_capsule::tests::test_stats_capsule_record_success ... ok
+test collections::stats_capsule::tests::test_stats_capsule_reset ... ok
+test collections::stats_capsule::tests::test_stats_snapshot_avg_latency ... ok
+test collections::stats_capsule::tests::test_stats_snapshot_success_rate ... ok
+test collections::stats_capsule::tests::test_stats_capsule_record_failure ... ok
+test daemon::audit::tests::test_action_enum ... ok
+test collections::stats_capsule::tests::test_stats_snapshot_empty ... ok
+test daemon::audit::tests::test_audit_entry_creation ... ok
+test daemon::audit::tests::test_audit_entry_metadata ... ok
+test daemon::audit::tests::test_chain_head_changes ... ok
+test daemon::audit::tests::test_all_audit_actions ... ok
+test daemon::audit::tests::test_error_logging ... ok
+test daemon::audit::tests::test_chain_verification ... ok
+test collections::stats_capsule::tests::test_concurrent_latency_tracking ... ok
+test daemon::audit::tests::test_log_acquire ... ok
+test daemon::audit::tests::test_queue_timeout ... ok
+test daemon::audit::tests::test_watchdog_heartbeat ... ok
+Actual size: 1024, alignment: 256
+test daemon::coordinator::tests::test_multiple_sequential_operations ... ok
+test daemon::coordinator::tests::test_queue_utilization ... ok
+test daemon::coordinator::tests::test_sequential_with_lock ... ok
+test daemon::coordinator::tests::test_acquire_release ... ok
+test daemon::coordinator::tests::test_contention_ratio ... ok
+test daemon::coordinator::tests::test_lock_timeout_accessor ... ok
+test daemon::coordinator::tests::test_sequential_acquires ... ok
+test daemon::coordinator::tests::test_size_and_alignment ... ok
+test daemon::coordinator::tests::test_coordinator_creation ... ok
+test daemon::coordinator::tests::test_default_acquire_timeout ... ok
+test daemon::audit::tests::test_stale_recovery_logs_both ... ok
+test daemon::audit::tests::test_log_release ... ok
+test daemon::audit::tests::test_multiple_actions ... ok
+test daemon::audit::tests::test_verification_failure_tracking ... ok
+test daemon::coordinator::tests::test_stats_basic ... ok
+test daemon::coordinator::tests::test_try_acquire_contention ... ok
+test daemon::coordinator::tests::test_try_acquire_success ... ok
+test daemon::coordinator::tests::test_with_lock_closure ... ok
+test daemon::git::tests::test_git_daemon_invalid_repo ... ok
+test daemon::lock::tests::test_acquire_release ... ok
+
+thread 'daemon::git::tests::test_with_lock_closure' (1608674) panicked at src/daemon/git.rs:304:14:
+Failed to init git repo: Os { code: 2, kind: NotFound, message: "No such file or directory" }
+test daemon::git::tests::test_with_lock_closure ... FAILED
+test daemon::lock::tests::test_sequential_acquires ... ok
+test daemon::lock::tests::test_timeout_accessor ... ok
+test daemon::tests::test_daemon_error_variants ... ok
+test daemon::lock::tests::test_double_acquire_fails ... ok
+test daemon::lock::tests::test_holder_none_when_free ... ok
+test daemon::tests::test_daemon_lock_capsule_creation ... ok
+test daemon::lock::tests::test_holder_pid_when_held ... ok
+test daemon::tests::test_lock_guard_type_exists ... ok
+test error::tests::test_chain_mismatch_display ... ok
+test error::tests::test_error_equality ... ok
+test error::tests::test_generation_anomaly_display ... ok
+test error::tests::test_integrity_failed_display ... ok
+test error::tests::test_timestamp_anomaly_display ... ok
+test forensics::compliance::tests::test_compliance_framework_new ... ok
+test forensics::compliance::tests::test_compliance_status_display ... ok
+test daemon::lock::tests::test_size_and_alignment ... ok
+test forensics::compliance::tests::test_gdpr_forget_request ... ok
+test forensics::compliance::tests::test_gdpr_pii_redaction ... ok
+test forensics::compliance::tests::test_soc2_timestamp ... ok
+test forensics::compliance::tests::test_gdpr_pii_detection ... ok
+test forensics::compliance::tests::test_sox_retention_policy ... ok
+fatal: Unable to create '/tmp/git_test_1607018/.git/index.lock': File exists.
+
+Another git process seems to be running in this repository, e.g.
+an editor opened by 'git commit'. Please make sure all processes
+are terminated then try again. If it still fails, a git process
+may have crashed in this repository earlier:
+remove the file manually to continue.
+
+thread 'daemon::git::tests::test_git_add_commit' (1608660) panicked at src/daemon/git.rs:352:39:
+Failed to add file: InvalidState
+test forensics::compliance::tests::test_sox_transaction_id ... ok
+test forensics::pii_redaction::tests::test_pii_count ... ok
+test forensics::pii_redaction::tests::test_pii_contains ... ok
+test forensics::pii_redaction::tests::test_pii_custom_mask ... ok
+test daemon::git::tests::test_git_add_commit ... FAILED
+fatal: Unable to create '/tmp/git_test_1607018/.git/index.lock': File exists.
+
+Another git process seems to be running in this repository, e.g.
+an editor opened by 'git commit'. Please make sure all processes
+are terminated then try again. If it still fails, a git process
+may have crashed in this repository earlier:
+remove the file manually to continue.
+
+thread '<unnamed>' (1608773) panicked at src/daemon/git.rs:443:26:
+Failed to add file: InvalidState
+fatal: Unable to create '/tmp/git_test_1607018/.git/index.lock': File exists.
+
+Another git process seems to be running in this repository, e.g.
+an editor opened by 'git commit'. Please make sure all processes
+are terminated then try again. If it still fails, a git process
+may have crashed in this repository earlier:
+remove the file manually to continue.
+
+thread '<unnamed>' (1608793) panicked at src/daemon/git.rs:446:26:
+Failed to commit: InvalidState
+test daemon::git::tests::test_lock_is_held ... ok
+test forensics::pii_redaction::tests::test_pii_redact_phone ... ok
+test forensics::pii_redaction::tests::test_pii_redact_ssn ... ok
+test forensics::pii_redaction::tests::test_pii_no_false_positives ... ok
+test forensics::pii_redaction::tests::test_pii_redact_credit_card ... ok
+test forensics::pii_redaction::tests::test_pii_redact_email ... ok
+test forensics::retention_policy::tests::test_retention_policy_custom ... ok
+test daemon::git::tests::test_multiple_daemons_same_repo ... ok
+test daemon::git::tests::test_coordinator_statistics ... ok
+test daemon::git::tests::test_git_daemon_creation ... ok
+test daemon::git::tests::test_git_diff ... ok
+test forensics::retention_policy::tests::test_retention_policy_expiry ... ok
+test forensics::right_to_forget::tests::test_forget_request_complete ... ok
+
+thread 'forensics::retention_policy::tests::test_retention_policy_zero_years_panics' (1608813) panicked at src/forensics/retention_policy.rs:68:9:
+Retention period must be at least 1 year
+test forensics::retention_policy::tests::test_retention_policy_with_timestamp ... ok
+test forensics::right_to_forget::tests::test_forget_request_new ... ok
+test forensics::right_to_forget::tests::test_forget_request_partial ... ok
+test forensics::sox_transaction_id::tests::test_sox_id_display ... ok
+test forensics::right_to_forget::tests::test_forget_status_display ... ok
+test forensics::retention_policy::tests::test_retention_policy_remaining_seconds ... ok
+test forensics::retention_policy::tests::test_retention_policy_should_retain ... ok
+test forensics::retention_policy::tests::test_retention_policy_sox_compliant ... ok
+fatal: Unable to create '/tmp/git_test_1607018/.git/index.lock': File exists.
+
+Another git process seems to be running in this repository, e.g.
+an editor opened by 'git commit'. Please make sure all processes
+are terminated then try again. If it still fails, a git process
+may have crashed in this repository earlier:
+remove the file manually to continue.
+
+thread '<unnamed>' (1608776) panicked at src/daemon/git.rs:443:26:
+Failed to add file: InvalidState
+test forensics::retention_policy::tests::test_retention_policy_zero_years_panics - should panic ... ok
+test forensics::right_to_forget::tests::test_forget_reason_display ... ok
+test forensics::right_to_forget::tests::test_forget_request_acknowledge ... ok
+test forensics::sox_transaction_id::tests::test_sox_id_monotonic ... ok
+test forensics::sox_transaction_id::tests::test_sox_id_ordering ... ok
+test forensics::sox_transaction_id::tests::test_sox_id_verify_valid ... ok
+test forensics::tests::test_forensics_module_structure ... ok
+test forensics::timestamp_verification::tests::test_timestamp_add_seconds ... ok
+test forensics::timestamp_verification::tests::test_timestamp_add_years ... ok
+test forensics::sox_transaction_id::tests::test_sox_id_verify_zero_invalid ... ok
+test daemon::git::tests::test_git_status ... ok
+test forensics::timestamp_verification::tests::test_timestamp_display ... ok
+test forensics::timestamp_verification::tests::test_timestamp_now ... ok
+test forensics::timestamp_verification::tests::test_timestamp_ordering ... ok
+test forensics::timestamp_verification::tests::test_timestamp_verify_soc2_future ... ok
+test forensics::timestamp_verification::tests::test_timestamp_verify_soc2_too_old ... ok
+test forensics::timestamp_verification::tests::test_timestamp_verify_soc2_valid ... ok
+test hash::atomic::tests::test_atomic_hash256_alignment ... ok
+test hash::atomic::tests::test_atomic_hash256_default ... ok
+test hash::atomic::tests::test_atomic_hash256_different_patterns ... ok
+test hash::atomic::tests::test_atomic_hash256_new ... ok
+test hash::atomic::tests::test_atomic_hash64_compare_exchange_fail ... ok
+test hash::atomic::tests::test_atomic_hash64_new ... ok
+test hash::atomic::tests::test_atomic_hash64_store_load ... ok
+test hash::atomic::tests::test_atomic_hash256_store_load ... ok
+test hash::atomic::tests::test_atomic_hash64_compare_exchange_success ... ok
+test hash::const_capsule::tests::test_const_hash_capsule_new ... ok
+
+thread 'hash::const_capsule::tests::test_const_hash_capsule_zero_runtime_cost' (1608900) panicked at src/hash/const_capsule.rs:324:9:
+Hash retrieval should be <1ns, got 20 ns/call
+
+thread '<unnamed>' (1608768) panicked at src/daemon/git.rs:446:26:
+Failed to commit: InvalidState
+test daemon::git::tests::test_git_log ... ok
+test hash::const_capsule::tests::test_const_hash_capsule_different_types ... ok
+test hash::const_capsule::tests::test_const_hash_capsule_zero_runtime_cost ... FAILED
+test hash::const_capsule::tests::test_const_hash_capsule_value ... ok
+test hash::const_capsule::tests::test_const_hash_capsule_verify_integrity ... ok
+test hash::const_capsule::tests::test_const_hash_capsule_hash ... ok
+test hash::const_hash::tests::test_const_fast_hash_deterministic ... ok
+test hash::const_hash::tests::test_const_fast_hash_different_inputs ... ok
+test hash::const_hash::tests::test_const_fast_hash_empty ... ok
+test hash::atomic::tests::test_atomic_hash256_generation_counter ... ok
+
+thread 'daemon::git::tests::test_concurrent_operations' (1608658) panicked at src/daemon/git.rs:452:22:
+Thread panicked: Any { .. }
+test hash::atomic::tests::test_atomic_hash64_default ... ok
+test daemon::git::tests::test_concurrent_operations ... FAILED
+test hash::const_hash::tests::test_const_fast_hash_fields_different ... ok
+test hash::const_hash::tests::test_const_fast_hash_fields_deterministic ... ok
+test hash::const_hash::tests::test_const_fast_hash_large_input ... ok
+test hash::const_hash::tests::test_const_fast_hash_order_sensitive ... ok
+test hash::const_hash::tests::test_const_fast_hash_runtime_equivalence ... ok
+test hash::const_hash::tests::test_const_fast_hash_fields_empty ... ok
+SeqLock Performance:
+  Load:  410 ns/op (target: <150ns)
+  Store: 135 ns/op (target: <100ns)
+
+thread 'hash::atomic::tests::test_atomic_hash256_performance' (1608862) panicked at src/hash/atomic.rs:663:9:
+Load performance degraded: 410 ns (expected <180ns for SeqLock with 6 atomics, +20% CI tolerance)
+test hash::atomic::tests::test_atomic_hash64_concurrent ... ok
+test hash::const_hash::tests::test_const_fast_hash_single_byte ... ok
+test hash::const_hash::tests::test_const_fast_hash_fields_single ... ok
+test hash::const_hash::tests::test_const_hashable_trait ... ok
+test hash::simd_hash::tests::test_best_hash_dispatcher ... ok
+test hash::atomic::tests::test_atomic_hash256_performance ... FAILED
+test hash::simd_hash::tests::test_scalar_fast_hash_order_sensitive ... ok
+test hash::simd_hash::tests::test_scalar_fast_hash_empty ... ok
+test hash::simd_hash::tests::test_scalar_fast_hash_single ... ok
+test hash::simd_hash::tests::test_scalar_fast_hash_deterministic ... ok
+test hash::simd_hash::tests::test_scalar_fast_hash_different_inputs ... ok
+test install::download_progress::tests::prop_eta_decreases_with_progress ... ok
+test install::download_progress::tests::test_backwards_compatibility_constant_speed ... ok
+test install::download_progress::tests::test_alignment_256_bytes ... ok
+test install::download_progress::tests::prop_remaining_bytes_decreases ... ok
+test install::download_progress::tests::prop_progress_percent_range ... ok
+test hash::atomic::tests::test_atomic_hash256_concurrent ... ok
+test install::download_progress::tests::prop_monotonic_progress ... ok
+test install::download_progress::tests::test_bytes_remaining ... ok
+test install::download_progress::tests::prop_speed_non_negative ... ok
+8-thread contention test completed in 2.073371ms
+test install::download_progress::tests::test_default_trait_implementation ... ok
+test install::download_progress::tests::test_eta_basic ... ok
+test install::download_progress::tests::test_bytes_remaining_saturating_subtraction ... ok
+test install::download_progress::tests::test_alignment_false_sharing_prevention ... ok
+test install::download_progress::tests::test_eta_zero_speed_returns_max ... ok
+test install::download_progress::tests::test_eta_with_partial_download ... ok
+test install::download_progress::tests::test_large_file_download ... ok
+test install::download_progress::tests::test_single_update ... ok
+test install::download_progress::tests::test_speed_mbps_conversion ... ok
+test install::download_progress::tests::test_new_initialization ... ok
+test install::download_progress::tests::test_progress_percent_calculation ... ok
+test collections::lockfree_table::tests::test_concurrent_updates ... ok
+test install::download_progress::tests::test_speed_zero_when_no_progress ... ok
+test install::download_progress::tests::test_reset ... ok
+test install::download_progress::tests::test_concurrent_updates ... ok
+test install::download_progress::tests::test_zero_total_bytes_division_by_zero ... ok
+test install::install_audit::tests::test_alignment_512 ... ok
+test install::download_progress::tests::test_zero_speed_division ... ok
+test install::download_progress::tests::test_stress_rapid_updates ... ok
+test install::download_progress::tests::test_speed_calculation_basic ... ok
+test install::install_audit::tests::test_event_count_monotonic ... ok
+
+thread 'install::install_audit::tests::test_create_new' (1609149) panicked at src/install/install_audit.rs:568:9:
+assertion `left == right` failed
+  left: 0
+ right: 1
+test install::install_audit::tests::test_create_new ... FAILED
+test install::install_audit::tests::test_cache_events_collected ... ok
+test install::install_audit::tests::test_error_logging ... ok
+test install::install_audit::tests::test_error_msg_truncation ... ok
+test install::install_audit::tests::test_integration_error_recovery ... ok
+
+thread 'install::install_audit::tests::test_hash_chain_starts' (1609161) panicked at src/install/install_audit.rs:626:9:
+assertion `left != right` failed
+  left: [0, 0, 0, 0, 0, 0, 0, 0]
+ right: [0, 0, 0, 0, 0, 0, 0, 0]
+test install::install_audit::tests::test_hash_chain_starts ... FAILED
+test install::install_audit::tests::test_integration_full_install_flow ... ok
+test install::install_audit::tests::test_integration_multiple_errors ... ok
+test install::install_audit::tests::test_integration_export_audit ... ok
+
+thread 'install::install_audit::tests::test_phase_range_valid' (1609259) panicked at src/install/install_audit.rs:636:9:
+assertion `left == right` failed
+  left: 10
+ right: 11
+test install::install_audit::tests::test_phase_range_valid ... FAILED
+
+thread 'install::install_audit::tests::test_production_high_volume_events' (1609270) panicked at src/install/install_audit.rs:841:9:
+assertion failed: audit.event_count() > 1000
+test install::install_audit::tests::test_production_crash_recovery_simulation ... ok
+
+thread 'install::install_audit::tests::test_phase_logging' (1609257) panicked at src/install/install_audit.rs:577:9:
+assertion `left == right` failed
+  left: 1
+ right: 2
+test install::install_audit::tests::test_production_atomicity_event_ordering ... ok
+test install::install_audit::tests::test_production_memory_size ... ok
+test install::install_audit::tests::test_production_high_volume_events ... FAILED
+test install::install_audit::tests::test_phase_logging ... FAILED
+test install::install_audit::tests::test_production_q34_compliance_chain ... ok
+test install::install_audit::tests::test_integration_file_persistence ... ok
+test install::install_audit::tests::test_property_hash_changes_per_event ... ok
+test install::install_audit::tests::test_property_error_code_update ... ok
+test install::install_audit::tests::test_property_event_count_increases ... ok
+test install::install_audit::tests::test_property_phase_transitions_valid ... ok
+test install::install_audit::tests::test_verify_chain_valid_genesis ... ok
+test install::install_audit::tests::test_timestamp_monotonic ... ok
+test install::install_audit::tests::test_with_file ... ok
+test install::install_audit::tests::test_production_timestamp_consistency ... ok
+test install::install_audit::tests::test_property_concurrent_phase_and_error ... ok
+test install::installer_state::tests::test_elapsed_seconds_not_started ... ok
+SeqLock Test Results:
+  Total writes: 162488
+  Total reads: 346247
+  Torn reads detected: 0
+test install::installer_state::tests::test_elapsed_seconds_10_seconds ... ok
+test install::installer_state::tests::test_elapsed_seconds_before_start_returns_zero ... ok
+test install::installer_state::tests::test_elapsed_seconds_zero_at_start ... ok
+test hash::atomic::tests::test_atomic_hash256_no_torn_reads ... ok
+test install::installer_state::tests::test_error_code_0_9 ... ok
+test install::installer_state::tests::test_error_code_preserves_bytes_total ... ok
+test install::installer_state::tests::test_eta_seconds_halfway_through ... ok
+test install::installer_state::tests::test_eta_seconds_no_progress ... ok
+
+thread 'install::installer_state::tests::test_phase_0_to_9_transitions' (1609365) panicked at src/install/installer_state.rs:673:13:
+assertion `left == right` failed: Phase transition failed for 2
+  left: 3
+ right: 2
+test install::installer_state::tests::test_elapsed_seconds_2_seconds ... ok
+
+thread 'install::installer_state::tests::test_phase_transitions_preserve_bytes_downloaded' (1609366) panicked at src/install/installer_state.rs:690:13:
+assertion `left == right` failed: Bytes corrupted during phase 1 transition
+  left: 1152921504606847488
+ right: 512
+test install::installer_state::tests::test_eta_seconds_quarter_through ... ok
+test install::installer_state::tests::test_initial_phase_is_zero ... ok
+test install::installer_state::tests::test_phase_0_to_9_transitions ... FAILED
+test install::installer_state::tests::test_phase_with_initial_constructor ... ok
+test install::installer_state::tests::test_phase_transitions_preserve_bytes_downloaded ... FAILED
+test install::installer_state::tests::test_phase_wraparound_clamping ... ok
+test install::installer_state::tests::test_progress_50_percent ... ok
+test install::installer_state::tests::test_progress_capped_at_100_percent ... ok
+test install::installer_state::tests::test_progress_with_zero_total ... ok
+test install::installer_state::tests::test_progress_zero_at_start ... ok
+test install::signature_verifier::size_checks::check_size ... ok
+test install::installer_state::tests::test_progress_100_percent ... ok
+test install::signature_verifier::tests::test_audit_chain_linking ... ok
+
+thread 'install::installer_state::tests::test_concurrent_phase_and_progress_updates' (1609328) panicked at src/install/installer_state.rs:913:9:
+assertion `left == right` failed
+  left: 0
+ right: 100000
+test install::signature_verifier::tests::test_audit_event_recording ... ok
+test install::download_progress::tests::test_resume_scenario ... ok
+test install::signature_verifier::tests::test_cache_detection ... ok
+test install::signature_verifier::tests::test_capsule_size_alignment ... ok
+test install::signature_verifier::tests::test_error_message_format ... ok
+test install::installer_state::tests::test_concurrent_phase_and_progress_updates ... FAILED
+test install::signature_verifier::tests::test_initial_state ... ok
+test install::signature_verifier::tests::test_multiple_verifications ... ok
+test install::signature_verifier::tests::test_new_invalid_hex ... ok
+test install::signature_verifier::tests::test_atomic_thread_safety ... ok
+test install::signature_verifier::tests::test_siphash_differentiation ... ok
+test install::signature_verifier::tests::test_tamper_detection_flag ... ok
+test install::signature_verifier::tests::test_timestamp_recording ... ok
+test install::signature_verifier::tests::test_verification_count_increment ... ok
+test install::signature_verifier::tests::test_verification_result_enum ... ok
+test install::signature_verifier::tests::test_new_invalid_key_length ... ok
+test install::signature_verifier::tests::test_new_valid_key ... ok
+test install::signature_verifier::tests::test_siphash_consistency ... ok
+test install::signature_verifier::tests::test_verification_status_transitions ... ok
+test macros::define_capsule::tests::test_alignment_tier ... ok
+test macros::define_capsule::tests::test_define_capsule_basic ... ok
+test macros::define_capsule::tests::test_documented_capsule ... ok
+test macros::define_capsule::tests::test_send_sync_bounds ... ok
+test mcp::tool_registry::tests::test_stats_capsule_alignment ... ok
+test mcp::tool_registry::tests::test_stats_capsule_new ... ok
+test mcp::tool_registry::tests::test_stats_hit_rate ... ok
+test parallel::adaptive_queue::tests::test_capacity_scaling ... ok
+test install::download_progress::tests::test_speed_stabilization ... ok
+test mcp::tool_registry::tests::test_registry_new ... ok
+test mcp::tool_registry::tests::test_registry_default ... ok
+test mcp::tool_registry::tests::test_registry_register_and_lookup ... ok
+test mcp::tool_registry::tests::test_registry_stats_reset ... ok
+test mcp::tool_registry::tests::test_registry_lookup_miss ... ok
+test mcp::tool_registry::tests::test_registry_multiple_tools ... ok
+test parallel::adaptive_queue::tests::test_drop_cleanup ... ok
+test parallel::adaptive_queue::tests::test_lifo_order ... ok
+test parallel::adaptive_queue::tests::test_single_thread_push_pop ... ok
+test parallel::adaptive_queue::tests::test_concurrent_push_steal ... ok
+test parallel::adaptive_queue::tests::test_queue_full ... ok
+test parallel::atomic_slot_pool::tests::test_free_list_packing ... ok
+test parallel::atomic_slot_pool::tests::test_generation_wrap ... ok
+test parallel::atomic_slot_pool::tests::test_invalid_capacity ... ok
+test install::signature_verifier::tests::test_memory_ordering_acquire_release ... ok
+test parallel::hybrid_batch_pool::tests::test_basic_single_task ... ok
+test parallel::hybrid_batch_pool::tests::test_batch_flush_on_capacity ... ok
+test parallel::atomic_slot_pool::tests::test_with_capacity ... ok
+test parallel::atomic_slot_pool::tests::test_pool_full_capacity ... ok
+test parallel::atomic_slot_pool::tests::test_new_pool_created ... ok
+test parallel::iter::tests::test_filter_empty ... ok
+test parallel::hybrid_batch_pool::tests::test_multiple_tasks_single_thread ... ok
+test parallel::atomic_slot_pool::tests::test_simple_push ... ok
+test install::download_progress::tests::prop_elapsed_time_non_decreasing ... ok
+test parallel::iter::tests::test_fold_empty ... ok
+test parallel::iter::tests::test_for_each_basic ... ok
+test parallel::iter::tests::test_filter_order ... ok
+test parallel::iter::tests::test_fold_complex ... ok
+test parallel::iter::tests::test_fold_sum ... ok
+test parallel::iter::tests::test_filter_basic ... ok
+test parallel::iter::tests::test_chain_map_filter ... ok
+test parallel::iter::tests::test_high_concurrency ... ok
+test parallel::iter::tests::test_for_each_empty ... ok
+test parallel::iter::tests::test_map_basic ... ok
+test parallel::iter::tests::test_map_empty ... ok
+test parallel::iter::tests::test_reduce_empty ... ok
+test parallel::iter::tests::test_map_order ... ok
+test install::download_progress::tests::test_full_download_simulation ... ok
+test install::download_progress::tests::prop_speed_calculation_accuracy ... ok
+test parallel::batch_progress_renderer::tests::test_progress_updates_during_rendering ... ok
+test parallel::iter::tests::test_reduce_product ... ok
+test parallel::iter::tests::test_reduce_sum ... ok
+test parallel::iter::tests::test_realistic_workload ... ok
+test parallel::iter::tests::test_slice_iteration ... ok
+test parallel::lockfree_list::tests::test_drop_safety ... ok
+test parallel::lockfree_list::tests::test_iter_empty ... ok
+test parallel::lockfree_list::tests::test_iter_multiple ... ok
+test install::download_progress::tests::test_elapsed_time_increases ... ok
+test parallel::lockfree_list::tests::test_iter_single ... ok
+test parallel::lockfree_list::tests::test_new_empty ... ok
+test parallel::lockfree_list::tests::test_push_multiple ... ok
+test parallel::lockfree_list::tests::test_push_single ... ok
+WARNING: LockfreeList iterator counted 1974 nodes but expected 1846 (potential tail lag)
+WARNING: LockfreeList iterator counted 2140 nodes but expected 2002 (potential tail lag)
+WARNING: LockfreeList iterator counted 2326 nodes but expected 2151 (potential tail lag)
+WARNING: LockfreeList iterator counted 2358test parallel::migration_batch::tests::test_add_tasks ...  nodes but expected 2326 (potential tail lag)
+ok
+test parallel::migration_batch::tests::test_batch_creation ... ok
+test parallel::migration_batch::tests::test_batch_reuse ... ok
+test parallel::migration_batch::tests::test_drop_cleanup ... ok
+test parallel::migration_batch::tests::test_high_frequency_migrations ... ok
+test install::download_progress::tests::test_speed_calculation_after_pause ... ok
+test parallel::migration_batch::tests::test_batch_full ... ok
+test parallel::migration_batch::tests::test_migration_task_conservation ... ok
+test parallel::migration_batch::tests::test_partial_migration_queue_full ... ok
+test parallel::migration_batch::tests::test_migration_statistics ... ok
+test parallel::batch_progress_renderer::tests::test_batch_renderer_start_stop ... ok
+test parallel::numa_load_monitor::tests::test_find_imbalance_pair_balanced ... ok
+test parallel::numa_load_monitor::tests::test_find_imbalance_pair_imbalanced ... ok
+test parallel::numa_load_monitor::tests::test_global_load_monitor_imbalance_balanced ... ok
+test parallel::numa_load_monitor::tests::test_find_imbalance_pair_none ... ok
+test parallel::numa_load_monitor::tests::test_global_load_monitor_imbalance_severe ... ok
+test parallel::lockfree_list::tests::test_concurrent_push_2_threads ... ok
+test parallel::numa_load_monitor::tests::test_integration_topology_aware ... ok
+test parallel::numa_load_monitor::tests::test_global_load_monitor_new ... ok
+test parallel::numa_load_monitor::tests::test_global_load_monitor_imbalance_zero ... ok
+test parallel::numa_load_monitor::tests::test_multiple_tasks ... ok
+test parallel::numa_load_monitor::tests::test_numa_load_monitor_new ... ok
+test parallel::lockfree_list::tests::test_concurrent_push_16_threads ... ok
+test parallel::numa_load_monitor::tests::test_task_completed ... ok
+test parallel::numa_load_monitor::tests::test_task_queued ... ok
+test parallel::numa_rebalancer::tests::test_concurrent_rebalance_checks ... ok
+test parallel::numa_rebalancer::tests::test_integration_full_rebalance_cycle ... ok
+test parallel::numa_load_monitor::tests::test_task_started ... ok
+test parallel::numa_rebalancer::tests::test_hysteresis_prevents_thrashing ... ok
+test parallel::numa_rebalancer::tests::test_new ... ok
+Slow path overhead: 0.10%
+test parallel::numa_rebalancer::tests::test_overhead_calculation ... ok
+test parallel::numa_rebalancer::tests::test_on_task_complete ... ok
+test parallel::numa_rebalancer::tests::test_should_rebalance_balanced_workload ... ok
+test parallel::numa_rebalancer::tests::test_should_rebalance_cooldown ... ok
+test parallel::numa_rebalancer::tests::test_should_rebalance_imbalanced_insufficient_streak ... ok
+test parallel::numa_rebalancer::tests::test_should_rebalance_imbalanced_sufficient_streak ... ok
+test parallel::numa_rebalancer::tests::test_should_rebalance_no_checkpoint ... ok
+test parallel::numa_rebalancer::tests::test_with_config ... ok
+test parallel::queue::tests::test_concurrent_push_pop ... ignored
+test parallel::queue::tests::test_drop_cleanup ... ok
+test parallel::queue::tests::test_high_concurrency ... ignored
+test parallel::queue::tests::test_lifo_order ... ok
+test parallel::numa_load_monitor::tests::test_concurrent_imbalance_calculation ... ok
+test parallel::queue::tests::test_rapid_drain ... ignored
+test parallel::queue::tests::test_realistic_workload ... ignored
+test parallel::lockfree_list::tests::test_concurrent_push_and_iter ... ok
+test parallel::queue::tests::test_queue_full ... ok
+test parallel::queue::tests::test_single_thread_push_pop ... ok
+calculate_imbalance (1 NUMA): avg 340ns
+test parallel::queue::tests::test_work_stealing ... ignored
+test parallel::numa_load_monitor::tests::test_performance_calculate_imbalance ... ok
+test parallel::result_aggregator::tests::test_deterministic_sharding ... ok
+test parallel::result_aggregator::tests::test_insert_multiple_keys ... ok
+test parallel::result_aggregator::tests::test_empty_merge ... ok
+test parallel::result_aggregator::tests::test_insert_multiple_same_key ... ok
+test parallel::result_aggregator::tests::test_insert_single ... ok
+test parallel::result_aggregator::tests::test_new ... ok
+test parallel::result_aggregator_v2::test_concurrent_insert_throughput ... ignored
+test parallel::result_aggregator_v2::test_high_contention_same_key ... ignored
+test parallel::result_aggregator_v2::test_memory_efficiency_10m_inserts ... ignored
+test parallel::result_aggregator_v2::test_production_workload_100k_keys ... ignored
+test parallel::result_aggregator_v2::test_realistic_merge_latency ... ignored
+test parallel::result_aggregator_v2::test_sustained_concurrent_workload ... ignored
+test parallel::result_aggregator_v2::tests::test_capacity_exhaustion ... ok
+test parallel::result_aggregator_v2::tests::test_concurrent_insert_throughput ... ignored
+total_load: avg 52ns per call
+test parallel::numa_load_monitor::tests::test_performance_total_load ... ok
+test parallel::result_aggregator_v2::tests::test_high_contention_same_key ... ignored
+test parallel::result_aggregator_v2::tests::test_insert_multiple_keys ... ok
+on_task_complete: avg 58ns per call
+task_queued: avg 71ns per call
+test parallel::result_aggregator_v2::tests::test_insert_multiple_same_key ... ok
+test parallel::numa_rebalancer::tests::test_performance_on_task_complete ... ok
+test parallel::result_aggregator::tests::test_concurrent_insert_same_keys ... ok
+test parallel::numa_load_monitor::tests::test_performance_task_queued ... ok
+test parallel::result_aggregator_v2::tests::test_memory_efficiency_10m_inserts ... ignored
+test parallel::result_aggregator_v2::tests::test_new ... ok
+should_rebalance: avg 764ns per call
+test parallel::result_aggregator_v2::tests::test_merge_empty ... ok
+test parallel::result_aggregator_v2::tests::test_insert_single ... ok
+test parallel::result_aggregator_v2::tests::test_production_workload_100k_keys ... ignored
+test parallel::result_aggregator_v2::tests::test_lockfree_list_ordering ... ok
+test parallel::numa_rebalancer::tests::test_performance_should_rebalance ... ok
+test parallel::result_aggregator_v2::tests::test_realistic_merge_latency ... ignored
+test parallel::result_aggregator_v2::tests::test_sustained_concurrent_workload ... ignored
+test parallel::scoped::tests::test_global_pool_idempotent ... ok
+test parallel::scoped::tests::test_global_pool ... ok
+test parallel::result_aggregator_v2::tests::test_with_capacity ... ok
+task_lifecycle (queued+started+completed): avg 128ns
+test parallel::numa_load_monitor::tests::test_performance_task_lifecycle ... ok
+test parallel::scoped::tests::test_scope_lifetime_safety ... ok
+test parallel::scoped::tests::test_nested_scope ... ok
+test parallel::scoped::tests::test_scope_borrow ... ok
+test parallel::scoped::tests::test_scope_complex_borrow ... ok
+test parallel::result_aggregator::tests::test_concurrent_insert ... ok
+test parallel::segmented_mpmc::tests::test_concurrent_stats_accuracy ... ok
+test parallel::scoped::tests::test_scope_wait ... ok
+test parallel::scoped::tests::test_scope_high_concurrency ... ok
+test parallel::segmented_mpmc::tests::test_empty_pop_returns_none ... ok
+Threads=1: executed 0 tasks
+test parallel::segmented_mpmc::tests::test_creation_sqrt_segments ... ok
+test parallel::segmented_mpmc::tests::test_is_empty ... ok
+test parallel::segmented_mpmc::tests::test_explicit_segments_custom_counts ... ok
+Threads=4: executed 0 tasks
+test parallel::segmented_mpmc::tests::test_explicit_segments ... ok
+Threads=8: executed 0 tasks
+test parallel::segmented_mpmc::tests::test_mixed_push_pop_interleaved ... ok
+test parallel::segmented_mpmc::tests::test_multi_thread_push_pop ... ok
+test parallel::segmented_mpmc::tests::test_producer_consumer_pattern ... ok
+test parallel::segmented_mpmc::tests::test_multi_thread_push_pop_no_loss ... ok
+HIGH_CONTENTION: Queued 1510 tasks in 27056μs (0.1M/sec), Executed 1510
+
+thread 'parallel::segmented_mpmc::tests::test_high_contention_1600_tasks' (1610517) panicked at src/parallel/segmented_mpmc.rs:914:9:
+assertion `left == right` failed: All 1600 tasks should be queued
+  left: 1510
+ right: 1600
+Pushed 2047 tasks before queue full
+Threads=16: executed 0 tasks
+test parallel::segmented_mpmc::tests::test_segment_alignment ... ok
+  1 segment: OK
+  2 segments: OK
+  4 segments: OK
+test parallel::segmented_mpmc::tests::test_high_contention_1600_tasks ... FAILED
+test parallel::segmented_mpmc::tests::test_queue_capacity_bounded ... ok
+test parallel::segmented_mpmc::tests::test_contention_scaling_by_thread_count ... ok
+test parallel::segmented_mpmc::tests::test_scoped_thread_safety ... ok
+test parallel::segmented_mpmc::tests::test_segment_count_performance_impact ... ok
+test parallel::segmented_mpmc::tests::test_stats_collection ... ok
+test parallel::segmented_mpmc::tests::test_stats_segment_breakdown ... ok
+test parallel::numa_rebalancer::tests::test_epoch_monotonic ... ok
+test parallel::segmented_mpmc::tests::test_single_segment ... ok
+test parallel::result_aggregator_v2::tests::test_concurrent_same_key_append ... ok
+test parallel::segmented_mpmc::tests::test_single_thread_push_pop ... ok
+test parallel::segmented_mpmc::tests::test_segment_load_distribution ... ok
+test parallel::segmented_mpmc::tests::test_thread_affinity_immutability ... ok
+test parallel::tests::chunked_tests::test_alignment_size_chunk_queue_capsule ... ok
+test parallel::tests::chunked_tests::test_alignment_chunk_queue_capsule ... ok
+test parallel::numa_load_monitor::tests::test_concurrent_updates_single_numa ... ok
+test parallel::tests::chunked_tests::test_chunk_boundary_detection_basic ... ok
+test parallel::segmented_mpmc::tests::test_rapid_segment_switching ... ok
+test parallel::tests::chunked_tests::test_chunk_boundary_exact_multiple ... ok
+test parallel::tests::chunked_tests::test_chunk_boundary_empty_file ... ok
+Iteration 0: executed 50 tasks
+Permission denied test: Owner can still read (platform-specific)
+test parallel::tests::chunked_tests::test_line_iterator_basic ... ok
+test parallel::tests::chunked_tests::test_chunk_boundary_single_line ... ok
+test parallel::tests::chunked_tests::test_error_invalid_path ... ok
+test parallel::tests::chunked_tests::test_line_count_invariant ... ok
+test parallel::tests::chunked_tests::test_error_permission_denied ... ok
+test parallel::tests::chunked_tests::test_chunk_boundary_file_smaller_than_chunk ... ok
+test parallel::segmented_mpmc::tests::test_work_stealing_fairness ... ok
+test parallel::tests::chunked_tests::test_line_iterator_skips_partial_first ... ok
+test parallel::tests::chunked_tests::test_line_iterator_includes_partial_last ... ok
+test parallel::tests::chunked_tests::test_work_stealing_atomic_increment ... ok
+test parallel::tests::chunked_tests::test_parallel_sequential_equivalence ... ok
+test parallel::tests::integration::test_pool_invalid_worker_count ... ok
+test parallel::tests::chunked_tests::test_memory_cleanup_drop ... ok
+test parallel::tests::integration::test_pool_distributes_work ... ok
+test parallel::segmented_mpmc::tests::test_thread_affinity_isolation ... ok
+test parallel::tests::integration::test_queue_full_returns_error ... ok
+test parallel::tests::integration::test_pool_shutdown_prevents_tasks ... ok
+test parallel::tests::integration::test_multiple_pools_independent ... ok
+test parallel::tests::integration::test_graceful_shutdown ... ok
+test parallel::tests::integration::test_pool_multiple_submission_phases ... ok
+test parallel::tests::integration::test_queue_sharing_across_threads ... ok
+test parallel::tests::integration::test_drop_joins_threads ... ok
+test parallel::tests::integration::test_queue_operation_speed ... ok
+test parallel::tests::integration::test_wait_fast_path ... ok
+test parallel::tests::iter_tests::t1_q5_collect_gathers ... ok
+test parallel::tests::integration::test_producer_consumer_pattern ... ok
+test parallel::tests::integration::test_work_stealing_prevents_starvation ... ok
+test parallel::tests::iter_tests::t1_q6_single_element ... ok
+test parallel::tests::iter_tests::t1_q2_map_transforms ... ok
+test parallel::tests::iter_tests::t1_q1_for_each_executes_all ... ok
+test parallel::tests::iter_tests::t1_q4_fold_combines ... ok
+test parallel::tests::iter_tests::t2_q10_filter_predicate_correct ... ok
+test parallel::tests::iter_tests::t2_q13_panic_isolation ... ignored
+test parallel::tests::iter_tests::t1_q7_empty_iterator ... ok
+test parallel::tests::iter_tests::t1_q3_filter_removes_items ... ok
+test collections::append_only_map::battletest::t28_battletest::test_q26_numa_awareness ... ok
+test parallel::tests::iter_tests::t3_q16_chaining_filter_map_fold ... ok
+test parallel::tests::iter_tests::t3_q17_borrowed_data_lifetime ... ok
+test parallel::tests::iter_tests::t3_q15_iterator_threadpool_integration ... ok
+test parallel::tests::iter_tests::t3_q16_chaining_map_then_filter ... ok
+test parallel::tests::iter_tests::t2_q11_fold_combines_all ... ok
+test parallel::tests::iter_tests::t2_q9_map_applies_to_all ... ok
+test parallel::tests::iter_tests::t2_q12_no_loss_or_duplication ... ok
+test parallel::tests::iter_tests::t2_q8_item_count_invariant ... ok
+test parallel::tests::iter_tests::t3_q18_queue_full_handling ... ok
+test parallel::tests::iter_tests::t2_q14_resource_cleanup ... ok
+test parallel::tests::iter_tests::t3_q21_cross_platform ... ok
+test parallel::tests::iter_tests::t4_q24_contention_patterns ... ignored
+test parallel::tests::iter_tests::t3_q19_large_iterator ... ok
+T4-Q27: Succeeded with 10000 results
+test parallel::tests::iter_tests::t4_q23_complex_data_types ... ok
+test parallel::tests::iter_tests::t4_q25_determinism ... ok
+test parallel::tests::iter_tests::test_iterator_with_global_pool ... ok
+test parallel::tests::parallel_contention_minimal::test_burst_workload_recovery ... ignored
+test parallel::tests::parallel_contention_minimal::test_contention_scaling ... ignored
+test parallel::tests::parallel_contention_minimal::test_contention_under_extreme_load ... ignored
+test parallel::tests::parallel_contention_minimal::test_contention_with_worker_scaling ... ignored
+test parallel::tests::parallel_contention_minimal::test_sustained_high_contention ... ignored
+test parallel::tests::parallel_panic_minimal::test_multiple_panics ... ignored
+test parallel::tests::parallel_panic_minimal::test_panic_queue_corruption ... ignored
+test parallel::tests::parallel_panic_minimal::test_panic_recovery ... ignored
+test parallel::tests::parallel_shutdown_minimal::test_graceful_shutdown_under_load ... ignored
+test parallel::tests::parallel_shutdown_minimal::test_repeated_shutdown_cycles ... ignored
+test parallel::tests::parallel_shutdown_minimal::test_shutdown_during_contention ... ignored
+test parallel::tests::parallel_shutdown_minimal::test_shutdown_exits_steal_loop ... ignored
+T4-Q26: P99 latency = 236.149µs
+test parallel::tests::iter_tests::t4_q27_resource_limits_graceful ... ok
+T4-Q28: Initial pending: 0, Final pending: 0
+Succeeded after 1 attempts
+test parallel::tests::iter_tests::t4_q28_production_monitoring ... ok
+test parallel::tests::iter_tests::t4_q26_tail_latency ... ok
+test parallel::tests::iter_tests::test_iterator_with_atomic_state ... ok
+test parallel::tests::iter_tests::test_iterator_retry_on_queue_full ... ok
+test parallel::tests::iter_tests::test_empty_result_after_filter ... ok
+test parallel::tests::iter_tests::t4_q22_high_concurrency ... ok
+test parallel::tests::phase3_1_tests::test_lazy_adversarial ... ok
+test parallel::tests::phase3_1_tests::test_lazy_assum_safety ... ok
+T3-Q20: Light iterator completed in 21.182702ms
+test parallel::tests::phase3_1_tests::test_lazy_chain_collect ... ok
+test parallel::tests::phase3_1_tests::test_lazy_documentation ... ok
+test parallel::tests::phase3_1_tests::test_lazy_assum_verification ... ok
+test parallel::tests::phase3_1_tests::test_lazy_closure_composition ... ok
+test parallel::tests::iter_tests::t3_q20_performance_isolation ... ok
+test parallel::tests::phase3_1_tests::test_lazy_edge_cases ... ok
+test parallel::tests::phase3_1_tests::test_lazy_composition_correctness ... ok
+test parallel::tests::phase3_1_tests::test_lazy_error_handling ... ok
+test parallel::tests::phase3_1_tests::test_lazy_empty_iterator ... ok
+test parallel::tests::phase3_1_tests::test_lazy_benchmark_targets ... ok
+test parallel::tests::phase3_1_tests::test_lazy_concurrent_invariants ... ok
+test parallel::tests::phase3_1_tests::test_lazy_deep_chain ... ok
+test parallel::tests::phase3_1_tests::test_lazy_filter_no_allocation ... ok
+test parallel::tests::phase3_1_tests::test_lazy_i20_validation ... ok
+test parallel::tests::phase3_1_tests::test_lazy_integration_performance ... ok
+test parallel::tests::phase3_1_tests::test_lazy_map_order ... ok
+test parallel::tests::phase3_1_tests::test_lazy_isolation ... ok
+test parallel::tests::phase3_1_tests::test_lazy_map_filter_map ... ok
+test parallel::tests::phase3_1_tests::test_lazy_filter_no_execution ... ok
+test parallel::tests::phase3_1_tests::test_lazy_no_todos ... ok
+test parallel::tests::phase3_1_tests::test_lazy_map_map_chain ... ok
+test parallel::tests::phase3_1_tests::test_lazy_map_no_execution ... ok
+test parallel::tests::phase3_1_tests::test_lazy_sequential_fallback ... ok
+test parallel::tests::phase3_1_tests::test_lazy_metrics ... ok
+test parallel::tests::phase3_1_tests::test_lazy_readability ... ok
+test parallel::tests::phase3_1_tests::test_lazy_performance ... ok
+test parallel::tests::phase3_1_tests::test_lazy_regression_detection ... ok
+test parallel::tests::phase3_1_tests::test_lazy_statistical_properties ... ok
+test parallel::tests::phase3_1_tests::test_lazy_single_allocation ... ok
+test parallel::tests::phase3_1_tests::test_lazy_test_maintainability ... ok
+test parallel::tests::phase3_1_tests::test_lazy_production_load ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_adversarial_inputs ... ok
+test parallel::tests::phase3_1_tests::test_lazy_with_pooled_iter ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_documentation ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_assum_validation ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_assum_verification ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_distribution_preservation ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_edge_cases ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_deep_chain ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_concurrent_chains ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_empty_iterator ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_error_messages ... ok
+Average: 253μs for 1K items
+
+thread 'parallel::tests::phase3_2_lazy_tests::test_lazy_b32_targets' (1611800) panicked at src/parallel/tests/phase3_2_lazy_tests.rs:675:5:
+Average 253μs exceeds budget 200μs
+test parallel::tests::phase3_2_lazy_tests::test_lazy_error_propagation ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_filter_no_execution ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_b32_targets ... FAILED
+test parallel::tests::phase3_2_lazy_tests::test_lazy_i20_composition ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_isolation ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_global_pool_fallback ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_map_fold_integration ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_map_filter_map ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_no_todos ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_map_no_execution ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_map_filter_chain ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_map_order ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_monitoring ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_map_compose_correct ... ok
+test collections::append_only_map::tests::test_concurrent_inserts_no_lost_updates ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_test_suite ... ok
+
+thread 'parallel::tests::phase3_2_lazy_tests::test_lazy_performance_budget' (1612099) panicked at src/parallel/tests/phase3_2_lazy_tests.rs:511:5:
+Lazy map took 603μs (budget: 200μs)
+test parallel::tests::phase3_2_lazy_tests::test_lazy_performance_budget ... FAILED
+test parallel::tests::phase4_partition_find_tests::test_find_deterministic ... ok
+find() early exit: 53μs
+
+thread 'parallel::tests::phase4_partition_find_tests::test_find_early_exit' (1612114) panicked at src/parallel/tests/phase4_partition_find_tests.rs:335:5:
+find() took 53μs (budget: 50μs for early exit)
+test parallel::tests::phase3_2_lazy_tests::test_lazy_regression_tracking ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_zero_alloc ... ok
+test parallel::tests::phase4_partition_find_tests::test_filter_partition_integration ... ok
+test parallel::tests::phase4_partition_find_tests::test_find_empty ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_production_load ... ok
+test parallel::tests::phase4_partition_find_tests::test_find_first_match ... ok
+test parallel::tests::phase4_partition_find_tests::test_find_first_index ... ok
+test parallel::tests::phase4_partition_find_tests::test_find_early_exit ... FAILED
+test parallel::lockfree_list::tests::test_large_push_no_leak ... ok
+test parallel::tests::phase4_partition_find_tests::test_find_no_match ... ok
+find() 1M items: 77μs
+Iteration 20: executed 50 tasks
+test parallel::tests::phase4_partition_find_tests::test_partition_basic ... ok
+test parallel::tests::phase4_partition_find_tests::test_map_find_integration ... ok
+test parallel::tests::phase3_1_tests::test_lazy_large_dataset ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_all_true ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_adversarial ... ok
+test parallel::tests::phase4_partition_find_tests::test_map_partition_composition ... ok
+test parallel::tests::phase4_partition_find_tests::test_find_large_dataset ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_all_false ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_complete ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_find_documentation ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_find_test_suite ... ok
+1M items: 156ms
+partition() 1K items: 530μs
+
+thread 'parallel::tests::phase4_partition_find_tests::test_partition_fast' (1612404) panicked at src/parallel/tests/phase4_partition_find_tests.rs:307:5:
+partition() took 530μs (budget: 500μs)
+test parallel::tests::phase4_partition_find_tests::test_partition_find_no_todos ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_edge_sizes ... ok
+test parallel::tests::phase3_2_lazy_tests::test_lazy_1m_items ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_global_pool ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_find_assum ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_empty ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_fast ... FAILED
+test parallel::tests::phase4_partition_find_tests::test_partition_find_readability ... ok
+
+thread 'parallel::tests::phase4_partition_find_tests::test_partition_performance_budget' (1612554) panicked at src/parallel/tests/phase4_partition_find_tests.rs:625:5:
+partition() 607μs exceeds 500μs budget
+test parallel::tests::phase4_partition_find_tests::test_partition_find_assum_validation ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_monitoring ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_order_property ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_i20_composition ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_isolation ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_order ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_performance_budget ... FAILED
+test parallel::tests::property::prop_capacity_invariant ... ok
+partition() average: 912μs for 1K items
+
+thread 'parallel::tests::phase4_partition_find_tests::test_partition_b32_targets' (1612286) panicked at src/parallel/tests/phase4_partition_find_tests.rs:813:5:
+partition() average 912μs exceeds 500μs
+test parallel::tests::phase4_partition_find_tests::test_partition_b32_targets ... FAILED
+test parallel::tests::phase4_partition_find_tests::test_partition_production_load ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_statistical ... ok
+test parallel::tests::property::prop_concurrent_len_generation_counter_prevents_toctou ... ok
+test parallel::tests::property::prop_concurrent_steal_no_duplication ... ok
+test parallel::tests::property::prop_concurrent_len_consistency ... ok
+test parallel::tests::property::prop_concurrent_len_matches_execution_count ... ok
+test parallel::tests::property::prop_concurrent_queue_invariant ... ok
+test parallel::tests::phase4_partition_find_tests::test_partition_regression ... ok
+test collections::append_only_map::tests::test_stress_1000_threads ... ok
+test parallel::tests::property::prop_interleaved_operations ... ok
+test parallel::tests::property::prop_length_matches_operations ... ok
+test parallel::tests::property::prop_all_tasks_execute_once ... ok
+test parallel::tests::property::prop_lifo_ordering_preserved ... ok
+test parallel::tests::property::verify_assum_task_counter ... ok
+error: test failed, to rerun pass `--lib`
+
+Caused by:
+  process didn't exit successfully: `/home/samuel/Primitives/atomic_capsule/target/debug/deps/atomic_capsule-ea55231ac73f282e --nocapture` (signal: 11, SIGSEGV: invalid memory reference)

@@ -1,0 +1,304 @@
+{
+  "dashboard": {
+    "title": "clapi_core - System Health",
+    "tags": ["clapi_core", "system", "resources"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Memory Usage",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "clapi_memory_bytes / 1024 / 1024",
+            "legendFormat": "Memory (MB)"
+          }
+        ],
+        "yaxes": [
+          {"format": "decmbytes", "label": "Memory Usage"},
+          {"format": "short", "show": false}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [1073741824], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "Memory Usage > 1GB",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 2,
+        "title": "Memory Growth Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(clapi_memory_bytes[1h]) / 1024 / 1024",
+            "legendFormat": "Growth (MB/hour)"
+          }
+        ],
+        "yaxes": [
+          {"format": "decmbytes", "label": "Memory Growth"},
+          {"format": "short", "show": false}
+        ],
+        "thresholds": [
+          {"value": 100, "colorMode": "critical", "op": "gt", "fill": true, "line": true, "yaxis": "left"}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [100], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "1h", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1h",
+          "handler": 1,
+          "name": "Memory Leak Detected (>100MB/hour)",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 3,
+        "title": "CPU Usage",
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "clapi_cpu_usage_percent",
+            "legendFormat": "CPU %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 70, "color": "yellow"},
+                {"value": 90, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Active Threads",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "clapi_threads_active",
+            "legendFormat": "Active Threads"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Thread Count"},
+          {"format": "short", "show": false}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [200], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "1m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "Active Threads > 200",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 5,
+        "title": "Uptime",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 8, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "clapi_uptime_seconds / 60 / 60 / 24",
+            "legendFormat": "Uptime (days)"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "d",
+            "decimals": 2
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Service Restarts (Last 30 days)",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 8, "x": 8, "y": 16},
+        "targets": [
+          {
+            "expr": "changes(clapi_uptime_seconds[30d])",
+            "legendFormat": "Restarts"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 5, "color": "yellow"},
+                {"value": 10, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Service Status",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 8, "x": 16, "y": 16},
+        "targets": [
+          {
+            "expr": "up{job=\"clapi_core\"}",
+            "legendFormat": "Status"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "background"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "mappings": [
+              {"type": "value", "value": "0", "text": "DOWN"},
+              {"type": "value", "value": "1", "text": "UP"}
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 1, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "CPU Frequency (Thermal Throttling Detection)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "targets": [
+          {
+            "expr": "node_cpu_frequency_hertz / 1e9",
+            "legendFormat": "CPU {{cpu}} Frequency (GHz)"
+          },
+          {
+            "expr": "node_cpu_frequency_max_hertz / 1e9",
+            "legendFormat": "Max Frequency (GHz)"
+          }
+        ],
+        "yaxes": [
+          {"format": "hertz", "label": "Frequency (GHz)"},
+          {"format": "short", "show": false}
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Network I/O",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "targets": [
+          {
+            "expr": "rate(node_network_receive_bytes_total[1m]) / 1024 / 1024",
+            "legendFormat": "RX (MB/s)"
+          },
+          {
+            "expr": "rate(node_network_transmit_bytes_total[1m]) / 1024 / 1024",
+            "legendFormat": "TX (MB/s)"
+          }
+        ],
+        "yaxes": [
+          {"format": "decmbytes", "label": "Network Throughput"},
+          {"format": "short", "show": false}
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Disk I/O",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+        "targets": [
+          {
+            "expr": "rate(node_disk_read_bytes_total[1m]) / 1024 / 1024",
+            "legendFormat": "Read (MB/s)"
+          },
+          {
+            "expr": "rate(node_disk_written_bytes_total[1m]) / 1024 / 1024",
+            "legendFormat": "Write (MB/s)"
+          }
+        ],
+        "yaxes": [
+          {"format": "decmbytes", "label": "Disk Throughput"},
+          {"format": "short", "show": false}
+        ]
+      },
+      {
+        "id": 11,
+        "title": "File Descriptors",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+        "targets": [
+          {
+            "expr": "process_open_fds{job=\"clapi_core\"}",
+            "legendFormat": "Open FDs"
+          },
+          {
+            "expr": "process_max_fds{job=\"clapi_core\"}",
+            "legendFormat": "Max FDs"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "File Descriptors"},
+          {"format": "short", "show": false}
+        ]
+      }
+    ]
+  }
+}

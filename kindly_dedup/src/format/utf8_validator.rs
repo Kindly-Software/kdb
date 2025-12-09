@@ -143,13 +143,13 @@ pub struct ValidatorStats {
 ///
 /// **VERIFY**: Size = 64 bytes (fits in single cache line)
 #[repr(C, align(64))]
+#[allow(dead_code)]
 pub struct Utf8ValidatorCapsule {
     // Configuration (16 bytes)
     /// AVX2 SIMD enabled (runtime detection from CpuCapabilityCapsule)
     simd_enabled: AtomicBool,
 
     /// Padding to 16 bytes
-    #[doc(hidden)]
     _padding_config: [u8; 15],
 
     // Statistics (48 bytes)
@@ -166,7 +166,6 @@ pub struct Utf8ValidatorCapsule {
     scalar_operations: AtomicU64,
 
     /// Padding to 64 bytes
-    #[doc(hidden)]
     _padding_stats: [u8; 16],
 }
 

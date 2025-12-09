@@ -24,7 +24,7 @@
 //!
 //! - **auditability**: Auditability with hash chains and deterministic serialization
 //! - **ASSUM**: 99.99% safe (zero unsafe code, all assumptions documented)
-//! - **COCA**: 100% computational capsule architecture (256B aligned)
+//! - **Chaos**: 100% computational capsule architecture (256B aligned)
 //! - **T0**: FixedPointSerialize trait for deterministic Q16.16 encoding
 //!
 //! ## Example

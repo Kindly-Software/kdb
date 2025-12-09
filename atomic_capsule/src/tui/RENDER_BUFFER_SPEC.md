@@ -2,7 +2,7 @@
 
 **Status**: Production Ready
 **Version**: 1.0
-**Framework**: UCE34 (Q1-Q34), COCA 100% Lockfree
+**Framework**: UCE34 (Q1-Q34), Chaos 100% Lockfree
 **Performance**: <5ns dirty flag check, <100ns render recording
 
 ---
@@ -346,7 +346,7 @@ All tests verify:
 - **Q31**: Rust idioms (atomic-only, no pointers)
 - **Q33**: Verification (compile-time alignment check)
 
-**COCA Requirements**:
+**Chaos Requirements**:
 - ✅ 100% lockfree (no mutex/RwLock)
 - ✅ Cache-aligned (256B)
 - ✅ Single-read decisions (atomic loads)
@@ -447,7 +447,7 @@ buffer.mark_dirty();
 
 ## See Also
 
-- `/home/samuel/Docs/The Computational Capsule.md` - COCA principles
+- `/home/samuel/Docs/The Computational Capsule.md` - Chaos principles
 - `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md` - T1 Atomic innovations
 - `UCE34_FRAMEWORK.md` - Systematic discovery (Q1-Q34)
 - `ATOMIC_CAPSULE_PATTERNS.md` - T1 production patterns

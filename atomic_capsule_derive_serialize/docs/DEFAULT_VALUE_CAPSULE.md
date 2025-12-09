@@ -248,7 +248,7 @@ Located in `tests/default_value_integration.rs`:
 - **Zero unsafe code**: Pure proc-macro + syn parsing
 - **All assumptions documented**: Each ASSUME has corresponding VERIFY
 
-### COCA Compliance
+### Chaos Compliance
 
 - **Computational Capsule**: Yes - generates deterministic code
 - **Zero runtime overhead**: All processing at compile-time

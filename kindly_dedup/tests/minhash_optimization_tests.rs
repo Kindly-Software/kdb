@@ -14,7 +14,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10-Q12 (T2+T4 tier selection), Q33 (verified), Q34 (audit-ready)
-//! - **COCA**: 100% lockfree (zero Mutex/RwLock)
+//! - **Chaos**: 100% lockfree (zero Mutex/RwLock)
 //! - **ASSUM**: 99.99% safe (all assumptions verified)
 //! - **B32**: Fair baselines, statistical rigor, 95% CI
 //! - **T28**: All 28 questions answered (128+ tests)

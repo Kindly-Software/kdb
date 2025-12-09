@@ -373,7 +373,7 @@ Located in: `/home/samuel/Primitives/atomic_capsule/benches/websocket_connection
 | **Q33** | Validation | #[derive(ComputationalCapsule)] ready | ✅ |
 | **Q34** | Auditability | Generation counters + state metrics | ✅ |
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 
 - **100% lockfree**: No mutex/RwLock, only AtomicU64/U32/I32
 - **Cache-aligned**: 64 bytes = 1 cache line, prevents false sharing

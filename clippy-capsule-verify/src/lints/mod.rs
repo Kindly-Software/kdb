@@ -1,6 +1,6 @@
 //! # Clippy Capsule Verification Lints
 //!
-//! Collection of custom clippy lints for enforcing Computational Capsule Architecture (COCA)
+//! Collection of custom clippy lints for enforcing Computational Capsule Architecture (Chaos)
 //! compliance at compile-time.
 //!
 //! ## Lint Priority Levels

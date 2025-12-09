@@ -208,6 +208,23 @@ impl<'a> ParallelDedupPipeline<'a> {
         num_threads: usize,
         cpu_caps: &'a CpuCapabilityCapsule,
     ) -> Result<Self, PipelineError> {
+        // =====================================================================
+        // Runtime Warning: ParallelDedupPipeline is BROKEN (12.8× SLOWER)
+        // =====================================================================
+        // CRITICAL: Measured performance is 6K docs/sec vs 60K sequential.
+        // DO NOT use in production. Use UniversalDedupPipeline instead.
+        eprintln!("\n\x1b[1;31m┌─────────────────────────────────────────────────────────────┐\x1b[0m");
+        eprintln!("\x1b[1;31m│             ⚠ WARNING: DEPRECATED PIPELINE ⚠                │\x1b[0m");
+        eprintln!("\x1b[1;31m├─────────────────────────────────────────────────────────────┤\x1b[0m");
+        eprintln!("\x1b[1;33m│ ParallelDedupPipeline is 12.8× SLOWER than sequential!      │\x1b[0m");
+        eprintln!("\x1b[1;33m│ Measured: 6K docs/sec (vs 60K baseline)                     │\x1b[0m");
+        eprintln!("\x1b[1;33m│                                                             │\x1b[0m");
+        eprintln!("\x1b[1;32m│ Use UniversalDedupPipeline instead:                         │\x1b[0m");
+        eprintln!("\x1b[1;32m│   - O(1) memory (222 MB constant)                           │\x1b[0m");
+        eprintln!("\x1b[1;32m│   - 100K+ docs/sec throughput                               │\x1b[0m");
+        eprintln!("\x1b[1;32m│   - Zero-copy mmap, crash-safe                              │\x1b[0m");
+        eprintln!("\x1b[1;31m└─────────────────────────────────────────────────────────────┘\x1b[0m\n");
+
         let pool = ThreadPool::new(num_threads).map_err(|e| PipelineError::DocumentIdOutOfBounds {
             doc_id: 0,
             capacity: num_documents,
@@ -377,7 +394,7 @@ impl<'a> ParallelDedupPipeline<'a> {
         //   BEFORE: 81.6% serial → max 1.02× speedup (observed: 1.0×)
         //   AFTER: 10% serial → max 9× speedup (expected: 5-12× realistic)
 
-        // LOCKFREE CONCURRENT MAP PATTERN (Phase 4.4 - 100% COCA Compliance)
+        // LOCKFREE CONCURRENT MAP PATTERN (Phase 4.4 - 100% Chaos Compliance)
         //
         // Architecture:
         // - 100% lockfree via ConcurrentMapCapsule (AtomicPtr-based)
@@ -504,7 +521,7 @@ impl<'a> ParallelDedupPipeline<'a> {
             // #VERIFY_UNIQUE_DOC_ID: Caller responsibility (documented in API)
             //
             // Performance: <100ns insert (vs ~20-25ns mutex in Phase 4.3)
-            // Trade-off: +75ns overhead for 100% COCA compliance (zero mutex)
+            // Trade-off: +75ns overhead for 100% Chaos compliance (zero mutex)
             //
             // v1.14 FIX: Handle insert errors explicitly (silent data loss prevention)
             // OLD: let _ = results_clone.insert(doc_id, signature); (98.7% data loss!)
@@ -894,7 +911,7 @@ impl<'a> ParallelDedupPipeline<'a> {
 // #ASSUME_SIGNATURE_INVARIANT: doc_ids filtered to only contain IDs with signatures (line 625-630)
 // #VERIFY_SIGNATURE_INVARIANT: Graceful error handling added at line 663-670 (v1.15.1)
 //
-// Safety Rating: 100% safe + 100% lockfree (Phase 4.4 - COCA compliance achieved)
+// Safety Rating: 100% safe + 100% lockfree (Phase 4.4 - Chaos compliance achieved)
 // Panic Risk: ELIMINATED (v1.15.1 - Production hot path unwrap() removed)
 
 #[cfg(test)]

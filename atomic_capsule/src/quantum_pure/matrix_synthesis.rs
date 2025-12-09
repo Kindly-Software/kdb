@@ -95,7 +95,7 @@
 //! - **ASSUM**: 99.99% safety (all assumptions verified)
 //! - **B32**: Fair baseline (scalar 4×4 matmul), validated <50ns synthesis
 //! - **T28**: 28 comprehensive tests (unit/property/integration/production)
-//! - **COCA**: 100% lockfree atomic coordination
+//! - **Chaos**: 100% lockfree atomic coordination
 //! - **I20**: Zero breaking changes, feature-gated (quantum-fusion)
 //!
 //! # Usage Example

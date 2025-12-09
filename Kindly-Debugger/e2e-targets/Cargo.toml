@@ -1,0 +1,37 @@
+[package]
+name = "e2e-targets"
+version = "0.1.0"
+edition = "2021"
+description = "Test target binaries for kdb E2E testing"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+# No dependencies - minimal test binaries
+
+[[bin]]
+name = "simple_loop"
+path = "src/bin/simple_loop.rs"
+
+[[bin]]
+name = "breakpoint_target"
+path = "src/bin/breakpoint_target.rs"
+
+[[bin]]
+name = "time_travel_target"
+path = "src/bin/time_travel_target.rs"
+
+[[bin]]
+name = "stack_deep"
+path = "src/bin/stack_deep.rs"
+
+[[bin]]
+name = "multi_thread"
+path = "src/bin/multi_thread.rs"
+
+[profile.release]
+# Keep debug info for debugging tests
+debug = true
+# Disable LTO to preserve function boundaries
+lto = false
+# Moderate optimization to keep structure visible
+opt-level = 2

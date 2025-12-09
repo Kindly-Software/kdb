@@ -150,7 +150,7 @@ $ cargo clippy --release
 - ✅ `#ASSUME_HIR_API_STABLE`: rustc_hir API usage documented
 - ✅ `#ASSUME_LAYOUT_OF_ACCURATE`: TyCtxt layout computation assumptions stated
 
-### COCA Mandate
+### Chaos Mandate
 - ✅ No mutex/RwLock in lints (already satisfied)
 - ✅ Zero runtime overhead (compile-time verification)
 

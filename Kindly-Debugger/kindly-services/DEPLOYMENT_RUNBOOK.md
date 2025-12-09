@@ -3,7 +3,7 @@
 **Version**: 1.0.0
 **Date**: December 4, 2025
 **Target**: kindly-hub (192.168.0.38)
-**Framework**: UCE34/COCA/T28/B32/ASSUM
+**Framework**: UCE34/Chaos/T28/B32/ASSUM
 
 ---
 

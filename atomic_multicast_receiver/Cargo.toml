@@ -1,0 +1,29 @@
+[package]
+name = "atomic_multicast_receiver"
+version = "0.1.0"
+edition = "2021"
+authors = ["Samuel <samuel@primitives.dev>"]
+description = "High-speed lockfree multicast receiver for market data ingestion"
+license = "MIT OR Apache-2.0"
+keywords = ["multicast", "market-data", "lockfree", "high-frequency", "trading"]
+categories = ["network-programming", "data-structures", "concurrency"]
+
+[dependencies]
+thiserror = "1.0"
+criterion = { version = "0.5", optional = true }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[features]
+default = []
+benchmarks = ["criterion"]
+
+[[bench]]
+name = "multicast_receiver"
+harness = false
+required-features = ["benchmarks"]
+
+[dev-dependencies]
+criterion = "0.5"
+crossbeam = "0.8"

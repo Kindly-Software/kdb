@@ -1,6 +1,6 @@
 //! # Phase 4b: Protection Overhead Benchmark
 //!
-//! **Framework**: UCE34 Q1-Q34 + COCA Compliant
+//! **Framework**: UCE34 Q1-Q34 + Chaos Compliant
 //! **Tier**: T1 Atomic (Coordination) + T5 Streaming (Background Monitoring)
 //! **Objective**: Validate <1% overhead for ProtectionStatusCapsule background monitoring
 //!

@@ -1,0 +1,122 @@
+# Docker Compose for clapi_core (P3-E6)
+# Single-command local development setup
+#
+# Usage:
+#   docker-compose up -d     # Start services in background
+#   docker-compose logs -f   # View logs
+#   docker-compose down      # Stop services
+#
+# Services:
+#   - clapi: Main HTTP server (port 8080)
+#   - prometheus: Metrics collection (port 9090)
+#   - grafana: Dashboard visualization (port 3000)
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # Main Service: clapi_core HTTP Server
+  # ============================================================================
+  clapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: clapi:latest
+    container_name: clapi_core
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=info
+      - CLAPI_PORT=8080
+      - CLAPI_BIND=0.0.0.0
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/clapi", "--version"]
+      interval: 10s
+      timeout: 1s
+      retries: 3
+      start_period: 5s
+    networks:
+      - clapi_network
+    labels:
+      - "com.clapi.service=core"
+      - "com.clapi.version=0.4.9"
+
+  # ============================================================================
+  # Metrics: Prometheus (Time-series metrics storage)
+  # ============================================================================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: clapi_prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - clapi_network
+    depends_on:
+      - clapi
+    labels:
+      - "com.clapi.service=prometheus"
+
+  # ============================================================================
+  # Dashboard: Grafana (Metrics visualization)
+  # ============================================================================
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: clapi_grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./config/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - clapi_network
+    depends_on:
+      - prometheus
+    labels:
+      - "com.clapi.service=grafana"
+
+networks:
+  clapi_network:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+# ============================================================================
+# Usage Instructions
+# ============================================================================
+# 1. Start all services:
+#    docker-compose up -d
+#
+# 2. Access services:
+#    - clapi_core: http://localhost:8080
+#    - Prometheus: http://localhost:9090
+#    - Grafana: http://localhost:3000 (admin/admin)
+#
+# 3. View logs:
+#    docker-compose logs -f clapi
+#
+# 4. Stop all services:
+#    docker-compose down
+#
+# 5. Remove volumes (reset state):
+#    docker-compose down -v

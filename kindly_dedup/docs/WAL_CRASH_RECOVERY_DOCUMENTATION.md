@@ -554,7 +554,7 @@ All integrations rely on `recover_all()` or `iter_entries()` for crash recovery.
   
 - **Framework Compliance**:
   - UCE34: Q10 T9 Persistent + T0 Auditable tier selection
-  - COCA: 100% lockfree reads (zero atomics in hot path)
+  - Chaos: 100% lockfree reads (zero atomics in hot path)
   - ASSUM: 99.99% safe (all assumptions verified)
   - T28: 16 comprehensive tests (unit/integration/crash recovery)
   - B32: Fair baselines, honest performance claims

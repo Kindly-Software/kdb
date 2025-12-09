@@ -1,0 +1,10 @@
+[package]
+name = "atomic_cost_tracker"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+atomic_latency_ticket = { path = "../atomic_latency_ticket", default-features = false }
+atomic_slip_fee_surface = { path = "../atomic_slip_fee_surface", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

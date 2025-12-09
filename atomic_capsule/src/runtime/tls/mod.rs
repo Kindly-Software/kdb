@@ -8,7 +8,7 @@
 //! ## Overview
 //!
 //! This module provides TLS 1.3 encryption for the atomic_capsule HTTP server
-//! while maintaining 100% lockfree COCA compliance. The implementation uses
+//! while maintaining 100% lockfree Chaos compliance. The implementation uses
 //! `rustls` (pure Rust, zero unsafe boundaries) and computational capsules
 //! for metrics, session caching, and certificate management.
 //!
@@ -70,7 +70,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q1-Q34 systematic discovery (tier selection, verification, auditability)
-//! - **COCA**: 100% lockfree coordination (no mutex/RwLock)
+//! - **Chaos**: 100% lockfree coordination (no mutex/RwLock)
 //! - **ASSUM**: 99.99% safety (document all unsafe, verify with tests)
 //! - **B32**: Fair benchmarking (compare vs industry standards like Nginx)
 //! - **T28**: Comprehensive testing (28+ tests per capsule: unit/property/integration/production)
@@ -127,7 +127,7 @@
 //! ## References
 //!
 //! - Design: `/home/samuel/Primitives/atomic_capsule/TLS_INTEGRATION_PLAN.md`
-//! - Framework: UCE34 (Q1-Q34), COCA, ASSUM, B32, T28, I20
+//! - Framework: UCE34 (Q1-Q34), Chaos, ASSUM, B32, T28, I20
 //! - Metrics spec: TLS_INTEGRATION_PLAN.md Q19
 //! - Architecture: TLS_INTEGRATION_PLAN.md Q10-Q21
 

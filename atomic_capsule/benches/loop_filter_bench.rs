@@ -19,7 +19,7 @@
 #![cfg(feature = "portable_simd")]
 
 use atomic_capsule::encoder::LoopFilterCapsule;
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::sync::Arc;
 use std::thread;
 
@@ -27,18 +27,14 @@ fn bench_filter_4x4_vertical(c: &mut Criterion) {
     let mut group = c.benchmark_group("filter_4x4_block");
 
     for level in [16, 32, 48, 63].iter() {
-        group.bench_with_input(
-            BenchmarkId::new("vertical", level),
-            level,
-            |b, &level| {
-                let filter = LoopFilterCapsule::new(level, 3);
-                let mut pixels = vec![128u8; 16]; // 4×4 block
+        group.bench_with_input(BenchmarkId::new("vertical", level), level, |b, &level| {
+            let filter = LoopFilterCapsule::new(level, 3);
+            let mut pixels = vec![128u8; 16]; // 4×4 block
 
-                b.iter(|| {
-                    filter.filter_edge_vertical(black_box(&mut pixels), black_box(4));
-                });
-            },
-        );
+            b.iter(|| {
+                filter.filter_edge_vertical(black_box(&mut pixels), black_box(4));
+            });
+        });
     }
 
     group.finish();
@@ -48,18 +44,14 @@ fn bench_filter_4x4_horizontal(c: &mut Criterion) {
     let mut group = c.benchmark_group("filter_4x4_block");
 
     for level in [16, 32, 48, 63].iter() {
-        group.bench_with_input(
-            BenchmarkId::new("horizontal", level),
-            level,
-            |b, &level| {
-                let filter = LoopFilterCapsule::new(level, 3);
-                let mut pixels = vec![128u8; 16]; // 4×4 block
+        group.bench_with_input(BenchmarkId::new("horizontal", level), level, |b, &level| {
+            let filter = LoopFilterCapsule::new(level, 3);
+            let mut pixels = vec![128u8; 16]; // 4×4 block
 
-                b.iter(|| {
-                    filter.filter_edge_horizontal(black_box(&mut pixels), black_box(4));
-                });
-            },
-        );
+            b.iter(|| {
+                filter.filter_edge_horizontal(black_box(&mut pixels), black_box(4));
+            });
+        });
     }
 
     group.finish();
@@ -130,7 +122,10 @@ fn bench_full_frame_1024x1024(c: &mut Criterion) {
                 for x in (0..width).step_by(4) {
                     let offset = y * width + x;
                     if offset + 16 <= pixels.len() {
-                        filter.filter_edge_vertical(black_box(&mut pixels[offset..]), black_box(width));
+                        filter.filter_edge_vertical(
+                            black_box(&mut pixels[offset..]),
+                            black_box(width),
+                        );
                     }
                 }
             }
@@ -139,7 +134,8 @@ fn bench_full_frame_1024x1024(c: &mut Criterion) {
             for y in (0..height).step_by(4) {
                 let offset = y * width;
                 if offset + width * 4 <= pixels.len() {
-                    filter.filter_edge_horizontal(black_box(&mut pixels[offset..]), black_box(width));
+                    filter
+                        .filter_edge_horizontal(black_box(&mut pixels[offset..]), black_box(width));
                 }
             }
         });
@@ -154,17 +150,13 @@ fn bench_compute_filter_strength(c: &mut Criterion) {
     group.bench_function("typical_q_diff", |b| {
         let filter = LoopFilterCapsule::new(32, 3);
 
-        b.iter(|| {
-            filter.compute_filter_strength(black_box(16), black_box(32))
-        });
+        b.iter(|| filter.compute_filter_strength(black_box(16), black_box(32)));
     });
 
     group.bench_function("large_q_diff", |b| {
         let filter = LoopFilterCapsule::new(63, 7);
 
-        b.iter(|| {
-            filter.compute_filter_strength(black_box(127), black_box(63))
-        });
+        b.iter(|| filter.compute_filter_strength(black_box(127), black_box(63)));
     });
 
     group.finish();
@@ -207,18 +199,14 @@ fn bench_filter_levels(c: &mut Criterion) {
     let mut group = c.benchmark_group("filter_levels");
 
     for level in [0, 16, 32, 48, 63].iter() {
-        group.bench_with_input(
-            BenchmarkId::new("level", level),
-            level,
-            |b, &level| {
-                let filter = LoopFilterCapsule::new(level, 3);
-                let mut pixels = vec![128u8; 64]; // 8×8 block
+        group.bench_with_input(BenchmarkId::new("level", level), level, |b, &level| {
+            let filter = LoopFilterCapsule::new(level, 3);
+            let mut pixels = vec![128u8; 64]; // 8×8 block
 
-                b.iter(|| {
-                    filter.filter_edge_vertical(black_box(&mut pixels), black_box(8));
-                });
-            },
-        );
+            b.iter(|| {
+                filter.filter_edge_vertical(black_box(&mut pixels), black_box(8));
+            });
+        });
     }
 
     group.finish();

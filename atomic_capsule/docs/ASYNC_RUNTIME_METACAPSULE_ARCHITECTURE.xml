@@ -1,0 +1,520 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  AsyncRuntimeMetacapsule Architecture Design
+  UCE34 T6 Mixed Tier (T1+T4+T5) - Tokio Replacement
+  Version: 1.0.0
+  Date: 2025-11-24
+
+  Framework Compliance: UCE34 (Q1-Q34), Chaos (100% lockfree), ASSUM (99.99%), B32 (fair), T28 (5-tier), I20 (20/20)
+-->
+<async-runtime-metacapsule version="1.0.0">
+
+  <meta>
+    <name>AsyncRuntimeMetacapsule</name>
+    <tier>T6 Mixed (T1 Atomic + T4 Batch + T5 Streaming)</tier>
+    <size>512 bytes</size>
+    <alignment>128 bytes</alignment>
+    <purpose>100% lockfree async runtime replacing Tokio with 5-10x speedup on high-core systems</purpose>
+    <status>Design Phase</status>
+  </meta>
+
+  <!-- ============================================================================
+       EXECUTIVE SUMMARY
+       ============================================================================ -->
+  <executive-summary>
+    <goal>Replace Tokio async runtime with 100% lockfree capsule architecture</goal>
+    <approach>T6 Mixed metacapsule orchestrating T1 reactor, T4 work-stealing, T5 event pipeline</approach>
+    <speedup-target>5-10x vs Tokio on high-core systems (16+ cores)</speedup-target>
+    <latency-target>spawn: &lt;100ns | wakeup: &lt;50ns | poll: &lt;200ns | switch: &lt;500ns</latency-target>
+    <memory-target>512B orchestrator + 64KB task slots (1024 tasks @ 64B each)</memory-target>
+    <design-principle>Zero mutex/RwLock, cache-aligned, generation counters, DualAtomicU64</design-principle>
+  </executive-summary>
+
+  <!-- ============================================================================
+       PROBLEM ANALYSIS
+       ============================================================================ -->
+  <problem-analysis>
+    <tokio-limitations>
+      <limitation id="1">Mutex contention in work-stealing queue (100-500ns overhead)</limitation>
+      <limitation id="2">Arc/Weak reference counting overhead (50-100ns per clone)</limitation>
+      <limitation id="3">Channel-based task notification (200-500ns per wakeup)</limitation>
+      <limitation id="4">Complex scheduler state machine (1-5us context switch)</limitation>
+      <limitation id="5">Non-deterministic task ordering (poor for real-time)</limitation>
+    </tokio-limitations>
+
+    <existing-gaps>
+      <gap id="1" file="executor.rs">ExecutorCapsule.spawn() creates new Arc instead of storing task</gap>
+      <gap id="2" file="executor.rs">No WorkStealingQueue integration despite documentation</gap>
+      <gap id="3" file="executor.rs">Waker pattern incomplete (ExecutorWaker unused)</gap>
+      <gap id="4" file="event_queue.rs">EventQueueCapsule lacks task-to-waker mapping</gap>
+      <gap id="5" file="reactor/mod.rs">ReactorCapsule not connected to executor</gap>
+    </existing-gaps>
+
+    <design-constraints>
+      <constraint id="1" priority="CRITICAL">Zero mutex/RwLock (Chaos mandate)</constraint>
+      <constraint id="2" priority="CRITICAL">Cache-aligned capsules (64B/128B)</constraint>
+      <constraint id="3" priority="CRITICAL">Generation counters for ABA prevention</constraint>
+      <constraint id="4" priority="HIGH">DualAtomicU64 for state + metadata packing</constraint>
+      <constraint id="5" priority="HIGH">Compile-time verification via #[derive(ComputationalCapsule)]</constraint>
+    </design-constraints>
+  </problem-analysis>
+
+  <!-- ============================================================================
+       ARCHITECTURE OVERVIEW
+       ============================================================================ -->
+  <architecture topology="pipeline">
+    <description>
+      Metacapsule orchestrates 5 sub-capsules in a producer-consumer pipeline:
+
+      [Spawn API] --> [TaskSlotPoolCapsule] --> [WorkStealingQueueCapsule]
+                                                        |
+      [ReactorCoordinatorCapsule] <-- [WakerRegistryCapsule]
+                                                        |
+      [EventPipelineCapsule] <-- [I/O Events, Timers, Signals]
+    </description>
+
+    <sub-capsules count="5">
+      <capsule id="1" name="TaskSlotPoolCapsule" tier="T1" size="64KB">
+        <purpose>Pre-allocated task storage with lockfree slot management</purpose>
+        <pattern>T1 Atomic slot pool (generation counters, ABA prevention)</pattern>
+        <capacity>1024 tasks @ 64B each</capacity>
+        <operations>
+          <op name="acquire_slot">&lt;50ns (atomic fetch-add + generation check)</op>
+          <op name="release_slot">&lt;30ns (atomic store + generation bump)</op>
+        </operations>
+      </capsule>
+
+      <capsule id="2" name="WorkStealingQueueCapsule" tier="T4" size="4KB">
+        <purpose>NUMA-aware work distribution across worker threads</purpose>
+        <pattern>T4 Batch (lockfree deques, chase-lev algorithm)</pattern>
+        <capacity>256 tasks per worker, 16 workers max</capacity>
+        <operations>
+          <op name="push_local">&lt;50ns (local deque, no contention)</op>
+          <op name="pop_local">&lt;30ns (local deque pop)</op>
+          <op name="steal_remote">&lt;100ns (cross-thread CAS)</op>
+        </operations>
+      </capsule>
+
+      <capsule id="3" name="WakerRegistryCapsule" tier="T1" size="2KB">
+        <purpose>Task ID to waker mapping for async notification</purpose>
+        <pattern>T1 Atomic hash table (lockfree, generation counters)</pattern>
+        <capacity>1024 wakers</capacity>
+        <operations>
+          <op name="register_waker">&lt;50ns (hash + CAS insert)</op>
+          <op name="lookup_waker">&lt;30ns (hash + atomic load)</op>
+          <op name="notify_waker">&lt;50ns (lookup + event queue push)</op>
+        </operations>
+      </capsule>
+
+      <capsule id="4" name="ReactorCoordinatorCapsule" tier="T1" size="256B">
+        <purpose>Coordinate reactor events with executor wakeups</purpose>
+        <pattern>T1 Atomic (DualAtomicU64 state + event counter)</pattern>
+        <integrates>ReactorCapsule (epoll/kqueue), IoUringCapsule (Linux)</integrates>
+        <operations>
+          <op name="dispatch_event">&lt;100ns (event type decode + waker notify)</op>
+          <op name="register_interest">&lt;50ns (fd to task mapping)</op>
+        </operations>
+      </capsule>
+
+      <capsule id="5" name="EventPipelineCapsule" tier="T5" size="8KB">
+        <purpose>Streaming I/O event processing with O(1) overhead</purpose>
+        <pattern>T5 Streaming (ring buffer, incremental processing)</pattern>
+        <capacity>4096 events (16B each)</capacity>
+        <operations>
+          <op name="enqueue_event">&lt;30ns (ring append)</op>
+          <op name="process_batch">&lt;500ns per 10 events</op>
+        </operations>
+      </capsule>
+    </sub-capsules>
+
+    <orchestrator name="AsyncRuntimeMetacapsule" tier="T6" size="512B">
+      <purpose>Coordinate all sub-capsules with lockfree state machine</purpose>
+      <layout>
+        <field offset="0-7" name="state" type="DualAtomicU64">Phase (3 bits) + Generation (29 bits) + Worker count (8 bits) + Pending tasks (24 bits)</field>
+        <field offset="8-15" name="stats_packed" type="DualAtomicU64">Total spawned (32 bits) + Total completed (32 bits)</field>
+        <field offset="16-23" name="task_pool_ptr" type="AtomicU64">Pointer to TaskSlotPoolCapsule</field>
+        <field offset="24-31" name="work_queue_ptr" type="AtomicU64">Pointer to WorkStealingQueueCapsule</field>
+        <field offset="32-39" name="waker_registry_ptr" type="AtomicU64">Pointer to WakerRegistryCapsule</field>
+        <field offset="40-47" name="reactor_ptr" type="AtomicU64">Pointer to ReactorCoordinatorCapsule</field>
+        <field offset="48-55" name="event_pipeline_ptr" type="AtomicU64">Pointer to EventPipelineCapsule</field>
+        <field offset="56-63" name="config" type="AtomicU64">NUMA nodes (4 bits) + Workers per node (4 bits) + Flags (56 bits)</field>
+        <field offset="64-127" name="_padding_hot" type="[u8; 64]">Cache line separation</field>
+        <field offset="128-511" name="_padding_cold" type="[u8; 384]">Cold stats, rarely accessed</field>
+      </layout>
+      <state-machine>
+        <state id="0" name="Uninitialized">No sub-capsules allocated</state>
+        <state id="1" name="Initializing">Allocating sub-capsules</state>
+        <state id="2" name="Ready">All sub-capsules initialized, workers not started</state>
+        <state id="3" name="Running">Workers active, accepting tasks</state>
+        <state id="4" name="Draining">No new tasks, completing pending</state>
+        <state id="5" name="Shutdown">Workers stopped, cleanup in progress</state>
+        <state id="6" name="Terminated">All resources released</state>
+      </state-machine>
+    </orchestrator>
+  </architecture>
+
+  <!-- ============================================================================
+       UCE34 TIER JUSTIFICATION (Q10-Q12)
+       ============================================================================ -->
+  <tier-justification>
+    <q10-tier-selection>
+      <tier name="T1 Atomic" justification="TaskSlotPool, WakerRegistry, ReactorCoordinator require &lt;100ns atomic coordination">
+        <use-case>Slot acquisition, waker registration, event dispatch</use-case>
+        <pattern>DualAtomicU64, generation counters, CAS operations</pattern>
+        <speedup>3-10x vs mutex-based (Tokio uses parking_lot mutexes)</speedup>
+      </tier>
+      <tier name="T4 Batch" justification="WorkStealingQueue enables 10-100x batch processing">
+        <use-case>Task distribution, NUMA-aware scheduling, parallel execution</use-case>
+        <pattern>Chase-Lev deques, batch steal, thread affinity</pattern>
+        <speedup>10-50x vs single-queue (amortized over batch size)</speedup>
+      </tier>
+      <tier name="T5 Streaming" justification="EventPipeline provides O(1) incremental processing">
+        <use-case>I/O event handling, timer wheel ticks, signal processing</use-case>
+        <pattern>Ring buffer, streaming append, batch harvest</pattern>
+        <speedup>2-5x vs allocation-per-event (Tokio channels allocate)</speedup>
+      </tier>
+      <tier name="T6 Mixed" justification="Compound speedup from T1+T4+T5 integration">
+        <compound-effect>5-10x total (T1 coordination + T4 parallelism + T5 I/O)</compound-effect>
+        <metacapsule-benefit>Lockfree orchestration, atomic state snapshot, deterministic transitions</metacapsule-benefit>
+      </tier>
+    </q10-tier-selection>
+
+    <q11-rust-evaluation>
+      <feature name="AtomicU64/AtomicPtr" usage="All capsule coordination" reason="100% lockfree"/>
+      <feature name="DualAtomicU64" usage="State + metadata packing" reason="Single atomic load for multiple fields"/>
+      <feature name="Box/Arc" usage="MINIMAL - only sub-capsule allocation" reason="Avoid per-task allocation"/>
+      <feature name="UnsafeCell" usage="TaskSlotPool interior mutability" reason="Required for lockfree slot reuse"/>
+    </q11-rust-evaluation>
+
+    <q12-nightly-evaluation>
+      <feature name="portable_simd" usage="NOT REQUIRED" reason="No SIMD in hot paths"/>
+      <feature name="const_fn_floating_point" usage="NOT REQUIRED" reason="No floating-point in runtime"/>
+      <feature name="atomic_from_mut" usage="OPTIONAL" reason="Could optimize TaskSlot initialization"/>
+      <feature name="generic_const_exprs" usage="OPTIONAL" reason="Could enable compile-time capacity validation"/>
+    </q12-nightly-evaluation>
+  </tier-justification>
+
+  <!-- ============================================================================
+       IMPLEMENTATION PLAN
+       ============================================================================ -->
+  <implementation-plan>
+    <phase id="1" name="Task Storage Foundation" files="2" hours="4">
+      <file path="src/runtime/task_slot_pool.rs" lines="~400">
+        TaskSlotPoolCapsule: Pre-allocated lockfree slot pool for task storage.
+        - 1024 slots @ 64B each (64KB total)
+        - Generation counters for ABA prevention
+        - Free list via AtomicU32 bitfield
+        - &lt;50ns acquire, &lt;30ns release
+      </file>
+      <file path="src/runtime/task_slot.rs" lines="~150">
+        TaskSlot: Individual task container (64B cache-aligned).
+        - state: AtomicU32 (Free=0, Allocated=1, Running=2, Completed=3)
+        - generation: AtomicU32 (ABA prevention)
+        - future_ptr: AtomicU64 (type-erased future pointer)
+        - waker_ptr: AtomicU64 (registered waker)
+      </file>
+      <deliverable>TaskSlotPoolCapsule with 28 T28 tests</deliverable>
+    </phase>
+
+    <phase id="2" name="Work-Stealing Queue" files="2" hours="6">
+      <file path="src/runtime/work_stealing_queue.rs" lines="~600">
+        WorkStealingQueueCapsule: NUMA-aware lockfree task distribution.
+        - Chase-Lev algorithm for local/steal operations
+        - Per-worker deques (256 tasks each)
+        - NUMA topology detection
+        - Batch steal for efficiency
+      </file>
+      <file path="src/runtime/worker_deque.rs" lines="~300">
+        WorkerDeque: Individual worker's task deque.
+        - Lockfree push/pop for local access
+        - Lockfree steal for remote access
+        - Generation counters for ABA prevention
+      </file>
+      <deliverable>WorkStealingQueueCapsule with 28 T28 tests</deliverable>
+    </phase>
+
+    <phase id="3" name="Waker Integration" files="1" hours="3">
+      <file path="src/runtime/waker_registry.rs" lines="~350">
+        WakerRegistryCapsule: Task ID to waker mapping.
+        - Lockfree hash table (ConcurrentMapCapsule based)
+        - Custom RawWaker implementation
+        - Generation-aware waker invalidation
+        - Integration with EventPipeline
+      </file>
+      <deliverable>WakerRegistryCapsule with 28 T28 tests</deliverable>
+    </phase>
+
+    <phase id="4" name="Reactor Coordinator" files="1" hours="3">
+      <file path="src/runtime/reactor_coordinator.rs" lines="~400">
+        ReactorCoordinatorCapsule: Bridge reactor events to executor.
+        - FD-to-TaskID mapping
+        - Event dispatch to WakerRegistry
+        - Integration with existing ReactorCapsule
+        - Support for epoll/kqueue/io_uring
+      </file>
+      <deliverable>ReactorCoordinatorCapsule with 28 T28 tests</deliverable>
+    </phase>
+
+    <phase id="5" name="Event Pipeline" files="1" hours="2">
+      <file path="src/runtime/event_pipeline.rs" lines="~300">
+        EventPipelineCapsule: Streaming event processing.
+        - Ring buffer (4096 events @ 16B)
+        - Batch processing (10 events per iteration)
+        - Priority support (high/normal/low)
+        - Overflow handling
+      </file>
+      <deliverable>EventPipelineCapsule with 28 T28 tests</deliverable>
+    </phase>
+
+    <phase id="6" name="Metacapsule Orchestrator" files="2" hours="6">
+      <file path="src/runtime/async_runtime_metacapsule.rs" lines="~800">
+        AsyncRuntimeMetacapsule: T6 Mixed orchestrator.
+        - State machine (7 phases)
+        - Sub-capsule lifecycle management
+        - spawn()/block_on() public API
+        - Statistics and monitoring
+      </file>
+      <file path="src/runtime/runtime_builder.rs" lines="~200">
+        RuntimeBuilder: Fluent API for runtime configuration.
+        - Worker count configuration
+        - NUMA binding options
+        - Feature toggles (io_uring, kqueue, etc.)
+      </file>
+      <deliverable>AsyncRuntimeMetacapsule with 56 T28 tests (comprehensive)</deliverable>
+    </phase>
+
+    <total estimate="24 hours" files="9" lines="~3000"/>
+  </implementation-plan>
+
+  <!-- ============================================================================
+       PERFORMANCE TARGETS (B32 Framework)
+       ============================================================================ -->
+  <performance-targets baseline="Tokio 1.40">
+    <operation name="spawn" target="&lt;100ns" baseline="200-500ns" speedup="2-5x">
+      <breakdown>
+        <step name="slot_acquire">~30ns (atomic CAS)</step>
+        <step name="future_store">~20ns (pointer write)</step>
+        <step name="queue_push">~50ns (local deque push)</step>
+      </breakdown>
+    </operation>
+
+    <operation name="wakeup" target="&lt;50ns" baseline="200-500ns" speedup="4-10x">
+      <breakdown>
+        <step name="waker_lookup">~20ns (hash + load)</step>
+        <step name="event_enqueue">~30ns (ring append)</step>
+      </breakdown>
+    </operation>
+
+    <operation name="poll_once" target="&lt;200ns" baseline="500-1000ns" speedup="2.5-5x">
+      <breakdown>
+        <step name="dequeue_task">~30ns (local pop)</step>
+        <step name="context_setup">~50ns (waker creation)</step>
+        <step name="future_poll">~100ns (application code)</step>
+        <step name="state_update">~20ns (atomic store)</step>
+      </breakdown>
+    </operation>
+
+    <operation name="context_switch" target="&lt;500ns" baseline="1-5us" speedup="2-10x">
+      <breakdown>
+        <step name="current_task_suspend">~100ns (state save)</step>
+        <step name="next_task_select">~100ns (queue pop or steal)</step>
+        <step name="context_restore">~100ns (waker setup)</step>
+        <step name="future_poll">~200ns (resume point)</step>
+      </breakdown>
+    </operation>
+
+    <throughput name="tasks_per_second" target="&gt;10M/sec" baseline="1-2M/sec" speedup="5-10x">
+      <condition cores="16+"/>
+      <condition task_duration="&lt;1us each"/>
+    </throughput>
+
+    <memory name="per_task_overhead" target="64B" baseline="128-256B" improvement="2-4x">
+      <breakdown>
+        <field name="state">4B</field>
+        <field name="generation">4B</field>
+        <field name="future_ptr">8B</field>
+        <field name="waker_ptr">8B</field>
+        <field name="user_data">8B</field>
+        <field name="padding">32B</field>
+      </breakdown>
+    </memory>
+  </performance-targets>
+
+  <!-- ============================================================================
+       ASSUM SAFETY TAGS
+       ============================================================================ -->
+  <assum-safety target="99.99%">
+    <category name="Memory Ordering">
+      <tag id="ASSUME_ACQUIRE_RELEASE" verify="All cross-thread reads use Acquire, writes use Release">
+        Pattern: load(Acquire) / store(Release) / compare_exchange(AcqRel, Acquire)
+      </tag>
+      <tag id="ASSUME_RELAXED_STATS" verify="Statistics counters can use Relaxed (approximate is OK)">
+        Pattern: fetch_add(Relaxed) for non-critical counters
+      </tag>
+    </category>
+
+    <category name="ABA Prevention">
+      <tag id="ASSUME_GENERATION_MONOTONIC" verify="Generation counters never decrease">
+        Pattern: wrapping_add(1) on slot release
+      </tag>
+      <tag id="ASSUME_SLOT_REUSE_SAFE" verify="Generation mismatch detected before slot access">
+        Pattern: Load generation, verify match, then access data
+      </tag>
+    </category>
+
+    <category name="Pointer Safety">
+      <tag id="ASSUME_FUTURE_PTR_VALID" verify="Future pointer valid while task in Running state">
+        Pattern: State machine prevents double-free
+      </tag>
+      <tag id="ASSUME_WAKER_PTR_VALID" verify="Waker pointer valid until task completion">
+        Pattern: Clear waker before slot release
+      </tag>
+      <tag id="ASSUME_SUBCAPSULE_LIFETIME" verify="Sub-capsules outlive metacapsule">
+        Pattern: Box allocation, never freed during runtime
+      </tag>
+    </category>
+
+    <category name="Lockfree Correctness">
+      <tag id="ASSUME_CAS_CONVERGENCE" verify="CAS loops converge under contention">
+        Pattern: Bounded retry with backoff
+      </tag>
+      <tag id="ASSUME_NO_LIVELOCK" verify="Progress guaranteed even under high contention">
+        Pattern: Work-stealing prevents starvation
+      </tag>
+    </category>
+
+    <category name="Thread Safety">
+      <tag id="ASSUME_SEND_SYNC" verify="All capsules implement Send + Sync">
+        Pattern: Only atomic fields, no interior mutability without UnsafeCell
+      </tag>
+      <tag id="ASSUME_NO_DATA_RACE" verify="All shared state protected by atomics">
+        Pattern: No raw pointer races, generation counters validate access
+      </tag>
+    </category>
+  </assum-safety>
+
+  <!-- ============================================================================
+       T28 TEST STRATEGY
+       ============================================================================ -->
+  <test-strategy framework="T28" tiers="5">
+    <tier name="Q1-Q7 Unit" count="56" per-capsule="8">
+      <test-type>Constructor validation</test-type>
+      <test-type>State transitions</test-type>
+      <test-type>Error handling</test-type>
+      <test-type>Boundary conditions</test-type>
+      <test-type>Alignment verification</test-type>
+    </tier>
+
+    <tier name="Q8-Q14 Property" count="42" per-capsule="6">
+      <test-type>Invariant preservation</test-type>
+      <test-type>Monotonicity (generation counters)</test-type>
+      <test-type>Determinism (same input = same output)</test-type>
+      <test-type>Memory ordering (Acquire/Release pairs)</test-type>
+    </tier>
+
+    <tier name="Q15-Q21 Integration" count="35" per-capsule="5">
+      <test-type>Spawn → Poll → Complete flow</test-type>
+      <test-type>Waker notification path</test-type>
+      <test-type>Reactor → Executor integration</test-type>
+      <test-type>Work-stealing across threads</test-type>
+    </tier>
+
+    <tier name="Q22-Q28 Production" count="28" per-capsule="4">
+      <test-type>10K task stress test</test-type>
+      <test-type>Memory leak detection</test-type>
+      <test-type>Graceful shutdown</test-type>
+      <test-type>Error recovery</test-type>
+    </tier>
+
+    <tier name="Q29-Q35 Determinism" count="21" per-capsule="3">
+      <test-type>Reproducible task ordering (seeded)</test-type>
+      <test-type>Generation counter overflow</test-type>
+      <test-type>Concurrent spawn determinism</test-type>
+    </tier>
+
+    <total tests="182" coverage="100% API surface"/>
+  </test-strategy>
+
+  <!-- ============================================================================
+       I20 INTEGRATION CHECKLIST
+       ============================================================================ -->
+  <integration-checklist framework="I20">
+    <q1 question="Scope boundaries clear?">Yes - AsyncRuntimeMetacapsule provides spawn/block_on API</q1>
+    <q2 question="External dependencies?">ZERO - uses only internal atomic_capsule primitives</q2>
+    <q3 question="Breaking changes?">NONE - new module, additive only</q3>
+    <q4 question="Feature flags?">runtime-executor (existing), runtime-metacapsule (NEW)</q4>
+    <q5 question="Migration path?">Document Tokio → AsyncRuntimeMetacapsule migration</q5>
+    <q6 question="Compatibility with existing?">Integrates with existing ReactorCapsule, IoUringCapsule</q6>
+    <q7 question="Version requirements?">Rust 1.70+ (stable), nightly optional</q7>
+    <q8 question="Platform support?">Linux (epoll, io_uring), macOS (kqueue), BSD (kqueue)</q8>
+    <q9 question="Error handling?">thiserror domain errors, consistent with existing</q9>
+    <q10 question="Documentation?">XML architecture doc + inline rustdoc</q10>
+  </integration-checklist>
+
+  <!-- ============================================================================
+       COMPARISON WITH TOKIO
+       ============================================================================ -->
+  <comparison baseline="Tokio 1.40">
+    <aspect name="Locking">
+      <tokio>parking_lot mutexes in scheduler, Arc reference counting</tokio>
+      <ours>100% lockfree (AtomicU64, DualAtomicU64, CAS operations)</ours>
+      <advantage>5-10x lower contention on high-core systems</advantage>
+    </aspect>
+
+    <aspect name="Memory Allocation">
+      <tokio>Per-task heap allocation (~128-256B), runtime allocation for channels</tokio>
+      <ours>Pre-allocated slot pool (64B/task), zero allocation in hot path</ours>
+      <advantage>2-4x lower memory, deterministic allocation</advantage>
+    </aspect>
+
+    <aspect name="Work Stealing">
+      <tokio>crossbeam-deque based, good but uses atomic fences</tokio>
+      <ours>Custom Chase-Lev with generation counters, NUMA-aware</ours>
+      <advantage>Lower fence overhead, better NUMA locality</advantage>
+    </aspect>
+
+    <aspect name="Waker Implementation">
+      <tokio>Arc-based wakers, reference counting overhead</tokio>
+      <ours>Generation-based wakers, no reference counting</ours>
+      <advantage>4-10x faster wakeup path</advantage>
+    </aspect>
+
+    <aspect name="I/O Integration">
+      <tokio>mio-based (epoll/kqueue), separate from executor</tokio>
+      <ours>Integrated ReactorCoordinator, direct waker notification</ours>
+      <advantage>Lower event dispatch latency</advantage>
+    </aspect>
+
+    <aspect name="Determinism">
+      <tokio>Non-deterministic task ordering (for throughput)</tokio>
+      <ours>Optional deterministic mode (for real-time, testing)</ours>
+      <advantage>Reproducible behavior when needed</advantage>
+    </aspect>
+  </comparison>
+
+  <!-- ============================================================================
+       RISK ANALYSIS
+       ============================================================================ -->
+  <risk-analysis>
+    <risk id="1" severity="MEDIUM" mitigation="PLANNED">
+      <description>Work-stealing implementation complexity</description>
+      <mitigation>Use proven Chase-Lev algorithm, extensive property testing</mitigation>
+    </risk>
+
+    <risk id="2" severity="LOW" mitigation="DESIGNED">
+      <description>Generation counter overflow (u32)</description>
+      <mitigation>wrapping_add ensures correctness, 4B ops before theoretical issue</mitigation>
+    </risk>
+
+    <risk id="3" severity="LOW" mitigation="DOCUMENTED">
+      <description>NUMA topology detection portability</description>
+      <mitigation>Graceful fallback to single-node mode if detection fails</mitigation>
+    </risk>
+
+    <risk id="4" severity="MEDIUM" mitigation="PLANNED">
+      <description>Future type erasure complexity</description>
+      <mitigation>Use Pin&lt;Box&lt;dyn Future&gt;&gt; pattern, well-understood in ecosystem</mitigation>
+    </risk>
+  </risk-analysis>
+
+</async-runtime-metacapsule>

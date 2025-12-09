@@ -4,7 +4,7 @@
 **Version**: 0.2.0-alpha
 **Date**: 2025-11-23
 **Author**: Claude Code (UCE34 Ultrathink Sonnet Subagent)
-**Framework Compliance**: UCE34, COCA, B32, T28, ASSUM
+**Framework Compliance**: UCE34, Chaos, B32, T28, ASSUM
 
 ---
 
@@ -91,7 +91,7 @@ $ cargo test --lib diagnostics::tests
 | Framework | Status | Evidence |
 |-----------|--------|----------|
 | UCE34 | ✅ 100% | Q33 verification, Q34 auditability, Q10 tier selection |
-| COCA | ✅ 100% | Lockfree mandate, cache alignment, DualAtomicU64 patterns |
+| Chaos | ✅ 100% | Lockfree mandate, cache alignment, DualAtomicU64 patterns |
 | B32 | ✅ 100% | Honest metrics, 95% CI, validated speedups |
 | T28 | ✅ 100% | 12 unit tests, integration validation |
 | ASSUM | ✅ 100% | Safety documentation, suppress guidance |
@@ -111,7 +111,7 @@ $ cargo test --lib diagnostics::tests
 ### Code Quality
 - Fix accuracy: 70% → 95% (+25%)
 - Security awareness: +40% (TOCTOU, false sharing, cache coherency)
-- Framework adoption: +60% (clear COCA patterns)
+- Framework adoption: +60% (clear Chaos patterns)
 
 ### Learning Curve
 - Beginner onboarding: 2-3 days → 4-6 hours (4-6× faster)

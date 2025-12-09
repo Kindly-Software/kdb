@@ -63,7 +63,7 @@
 //!
 //! ## TRADE SECRET - CONFIDENTIAL
 //!
-//! **COCA Compliance**: 100% lockfree (AtomicPtr + CAS only, NO mutex)
+//! **Chaos Compliance**: 100% lockfree (AtomicPtr + CAS only, NO mutex)
 
 use std::mem::ManuallyDrop;
 use std::ptr;

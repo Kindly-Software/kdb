@@ -48,7 +48,7 @@
 - [x] **CI_CD_INTEGRATION_GUIDE.md**: GitHub Actions, GitLab CI, Jenkins examples
 - [x] **MIGRATION_GUIDE.md**: Phased adoption for existing codebases
 - [x] **Inline documentation**: All lints have detailed docstrings
-- [x] **Framework compliance**: UCE34, COCA, B32, T28, ASSUM, I20
+- [x] **Framework compliance**: UCE34, Chaos, B32, T28, ASSUM, I20
 
 ### Known Limitations (Documented) ✓
 
@@ -126,7 +126,7 @@
 
 ### Phase 3: Early Adopter Program (4 weeks, Dec 28 - Jan 24)
 
-**Scope**: External teams using COCA architecture
+**Scope**: External teams using Chaos architecture
 
 **Tasks**:
 - [ ] Publish alpha release announcement

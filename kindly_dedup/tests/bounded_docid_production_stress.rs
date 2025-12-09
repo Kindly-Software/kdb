@@ -6,7 +6,7 @@
 // - T28 Q22-Q28: Production tier (large-scale, multi-threaded, memory, crash recovery, resource exhaustion, performance, stability)
 // - ASSUM: All edge cases documented with #ASSUME tags
 // - B32: Fair performance baselines (vs raw usize), 95% CI
-// - COCA: Verify lockfree properties under stress
+// - Chaos: Verify lockfree properties under stress
 //
 // Test Categories:
 // 1. Q22: Large-Scale (1M-100M documents)

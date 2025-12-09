@@ -25,7 +25,6 @@
 //! - **ASSUM**: #ASSUME cgroup paths standard, #VERIFY with tests
 //! - **T28**: Unit tests for detection, validation, error cases
 
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 /// Resource limit configuration
 ///

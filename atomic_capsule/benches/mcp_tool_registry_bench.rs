@@ -33,7 +33,7 @@
 #![cfg(feature = "std")]
 
 use atomic_capsule::mcp::{ToolInfo, ToolRegistry};
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::sync::Arc;
 
 // Helper function to create a tool
@@ -56,17 +56,13 @@ fn bench_single_lookup(c: &mut Criterion) {
         let tool = create_tool("weather_forecast", 42);
         registry.register_tool("weather_forecast", tool).unwrap();
 
-        b.iter(|| {
-            black_box(registry.lookup_tool(black_box("weather_forecast")))
-        });
+        b.iter(|| black_box(registry.lookup_tool(black_box("weather_forecast"))));
     });
 
     c.bench_function("mcp_lookup_single_miss", |b| {
         let registry = ToolRegistry::new();
 
-        b.iter(|| {
-            black_box(registry.lookup_tool(black_box("nonexistent")))
-        });
+        b.iter(|| black_box(registry.lookup_tool(black_box("nonexistent"))));
     });
 }
 
@@ -160,9 +156,7 @@ fn bench_stats_operations(c: &mut Criterion) {
         registry.register_tool("test", tool).unwrap();
         registry.lookup_tool("test");
 
-        b.iter(|| {
-            black_box(registry.get_stats())
-        });
+        b.iter(|| black_box(registry.get_stats()));
     });
 
     c.bench_function("mcp_stats_reset", |b| {
@@ -173,9 +167,7 @@ fn bench_stats_operations(c: &mut Criterion) {
         registry.register_tool("test", tool).unwrap();
         registry.lookup_tool("test");
 
-        b.iter(|| {
-            black_box(registry.reset_stats())
-        });
+        b.iter(|| black_box(registry.reset_stats()));
     });
 }
 
@@ -214,17 +206,13 @@ fn bench_has_tool_predicate(c: &mut Criterion) {
         let tool = create_tool("weather", 1);
         registry.register_tool("weather", tool).unwrap();
 
-        b.iter(|| {
-            black_box(registry.has_tool(black_box("weather")))
-        });
+        b.iter(|| black_box(registry.has_tool(black_box("weather"))));
     });
 
     c.bench_function("mcp_has_tool_false", |b| {
         let registry = ToolRegistry::new();
 
-        b.iter(|| {
-            black_box(registry.has_tool(black_box("nonexistent")))
-        });
+        b.iter(|| black_box(registry.has_tool(black_box("nonexistent"))));
     });
 }
 

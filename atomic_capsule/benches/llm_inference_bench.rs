@@ -21,7 +21,7 @@
 //! - UCE34: Q10 T6 Mixed tier (orchestrates T1+T2+T4+T5+T10) ✅
 //! - B32: Fair baselines (vLLM patterns), 95% CI, 1000+ iterations ✅
 //! - ASSUM: 99.99% safe (all benchmarks validated) ✅
-//! - COCA: 100% lockfree (atomic coordination only) ✅
+//! - Chaos: 100% lockfree (atomic coordination only) ✅
 
 #![cfg(feature = "inference-all")]
 
@@ -694,7 +694,7 @@ fn bench_vllm_baseline(c: &mut Criterion) {
 
         // Our optimized: compressed
         group.bench_with_input(
-            BenchmarkId::new("coca_compressed", seq_len),
+            BenchmarkId::new("chaos_compressed", seq_len),
             &seq_len,
             |b, &len| {
                 let keys: Vec<f32> = (0..len * LLAMA_8B_HEAD_DIM * LLAMA_8B_KV_HEADS)

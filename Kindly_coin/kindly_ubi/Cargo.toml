@@ -1,0 +1,49 @@
+[package]
+name = "kindly_ubi"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+# Atomic capsule foundation
+atomic_capsule.workspace = true
+atomic_capsule_map.workspace = true
+
+# Internal dependencies
+kindly_core.workspace = true
+
+# Cryptography
+ed25519-dalek.workspace = true
+sha3.workspace = true
+blake3.workspace = true
+
+# Serialization
+serde.workspace = true
+bincode.workspace = true
+
+# Async runtime
+tokio = { workspace = true, features = ["sync", "time"] }
+
+# Logging
+tracing.workspace = true
+
+[features]
+default = []
+# Q32: Atomic enhancements for lockfree UBI distribution
+atomic_enhanced = []
+
+[dev-dependencies]
+proptest.workspace = true
+criterion.workspace = true
+tokio = { workspace = true, features = ["full", "test-util"] }
+tracing-subscriber.workspace = true
+
+# TODO: Add benchmarks
+# [[bench]]
+# name = "ubi_distribution"
+# harness = false

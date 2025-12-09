@@ -21,7 +21,7 @@
 - Recommendations (5 prioritized)
 - Alpha release plan (4 phases, risk mitigation, success metrics)
 - Future roadmap (Phases 2-4, Q1-Q3 2026)
-- Framework compliance (UCE34, COCA, B32, T28, ASSUM, I20)
+- Framework compliance (UCE34, Chaos, B32, T28, ASSUM, I20)
 - Conclusion and next steps
 
 **Validation**: ✅ Well-formed XML (xmllint passes)
@@ -241,7 +241,7 @@ cargo clippy --all-features -- \
 - [x] **Production readiness**: 80% criteria met (pending validation)
 - [x] **Clear documentation**: 5 guides covering all use cases
 - [x] **Actionable plan**: 4-phase alpha release with risk mitigation
-- [x] **Framework compliance**: UCE34, COCA, B32, T28, ASSUM, I20 validated
+- [x] **Framework compliance**: UCE34, Chaos, B32, T28, ASSUM, I20 validated
 
 ## Conclusion
 

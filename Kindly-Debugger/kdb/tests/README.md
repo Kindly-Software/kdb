@@ -65,7 +65,7 @@ Run with `--ignored` flag to execute.
 - ✅ ASSUM safety assumptions documented
 - ✅ B32 performance validation
 - ✅ I20 integration validation  
-- ✅ COCA 100% lockfree verified
+- ✅ Chaos 100% lockfree verified
 
 ---
 

@@ -1,6 +1,6 @@
 //! EncoderStateCapsule T28 Comprehensive Test Suite
 //!
-//! Framework compliance: UCE34 (Q1-Q34), COCA, ASSUM, B32, T28, I20
+//! Framework compliance: UCE34 (Q1-Q34), Chaos, ASSUM, B32, T28, I20
 //! Test count: 28 tests across 4 tiers (7 unit + 7 property + 7 integration + 7 production)
 
 #[cfg(feature = "std")]

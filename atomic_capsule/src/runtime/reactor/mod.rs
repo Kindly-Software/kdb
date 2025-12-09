@@ -37,7 +37,7 @@
 //! - `#ASSUME_WAKER_UNIQUE`: Only one waker per FD
 //! - `#ASSUME_ATOMIC_WAKER`: AtomicPtr<Waker> prevents data races
 //!
-//! ## COCA Compliance
+//! ## Chaos Compliance
 //!
 //! - 100% lockfree (zero mutex/RwLock)
 //! - Cache-aligned (128B DualAtomicU64)
@@ -375,7 +375,7 @@ pub trait ReactorBackend: Send + Sync {
 
 /// Main ReactorCapsule for I/O event multiplexing
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 /// - 100% lockfree (ConcurrentMapCapsule for FD storage)
 /// - Zero allocation after initialization
 /// - Generation counters for TOCTOU prevention

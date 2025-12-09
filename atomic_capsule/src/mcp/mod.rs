@@ -65,7 +65,7 @@
 //! - **ASSUM**: 99.5%+ safety (10 assumptions verified)
 //! - **B32**: Fair baselines, <120ns validated (vs RwLock<HashMap>)
 //! - **T28**: Comprehensive tests (unit, property, stress, production)
-//! - **COCA**: 100% computational capsule architecture
+//! - **Chaos**: 100% computational capsule architecture
 
 pub mod tool_registry;
 

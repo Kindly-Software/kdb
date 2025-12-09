@@ -14,7 +14,7 @@
 //! - **Q10 Tier Selection**: T2 SIMD (variance/energy) + T3 Fixed-Point (deterministic RD)
 //! - **Q33 Verification**: #[repr(C, align(256))] compile-time verification
 //! - **Q34 Auditability**: No floating-point non-determinism, bit-exact output
-//! - **COCA Compliance**: 100% atomic coordination, no mutex/RwLock
+//! - **Chaos Compliance**: 100% atomic coordination, no mutex/RwLock
 //! - **ASSUM Framework**: 99.99% safety, all assumptions documented
 //!
 //! ## Research Background (SOTA 2024-2025)
@@ -84,7 +84,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 (T2+T3 tier selection), Q33 (lockfree verification), Q34 (auditability)
-//! - **COCA**: 100% atomic capsules, cache-aligned (256B), generation counters (TOCTOU prevention)
+//! - **Chaos**: 100% atomic capsules, cache-aligned (256B), generation counters (TOCTOU prevention)
 //! - **ASSUM**: 99.99% safety, all assumptions documented (#ASSUME_* tags)
 //! - **B32**: Fair baselines, <200ns validated performance per block
 //! - **T28**: 28 comprehensive tests (unit/property/integration/production/determinism)
@@ -300,6 +300,7 @@ pub struct RdCandidate {
 /// - **#ASSUME_VARIANCE_RANGE**: Block variance in [0.0, 65535.0] (verified: tests)
 /// - **#ASSUME_ENERGY_RANGE**: DCT energy in [0.0, 1e9] (verified: tests)
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
+#[cfg_attr(feature = "derive", capsule(alignment = 256))]
 #[repr(C, align(256))]
 pub struct PsychovisualCapsule {
     /// Packed config: psy_rd(16)|psy_rdoq(16)|qpa(16)|aq_mode(8)|max_plus(8)|max_minus(8)
@@ -807,9 +808,8 @@ impl Default for PsychovisualCapsule {
 const _: () = assert!(core::mem::size_of::<PsychovisualCapsule>() == 256);
 const _: () = assert!(core::mem::align_of::<PsychovisualCapsule>() == 256);
 
-// Safety: All fields are atomics (thread-safe by design)
-unsafe impl Send for PsychovisualCapsule {}
-unsafe impl Sync for PsychovisualCapsule {}
+// Note: Send/Sync auto-implemented by ComputationalCapsule derive
+// (all fields are atomics, thread-safe by design)
 
 #[cfg(test)]
 mod tests {

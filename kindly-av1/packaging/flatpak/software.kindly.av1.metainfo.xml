@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AppStream metadata for kindly-av1 -->
+<component type="console-application">
+  <id>software.kindly.av1</id>
+  <name>kindly-av1</name>
+  <summary>World's fastest GPU-accelerated AV1 encoder with breakthrough performance</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+
+  <description>
+    <p>
+      kindly-av1 is a breakthrough GPU-accelerated AV1 video encoder delivering
+      production-grade performance on AMD, NVIDIA, and Intel GPUs. Built on the
+      Computational Capsule Architecture (Chaos) for lockfree, deterministic encoding.
+    </p>
+    <p>Key Features:</p>
+    <ul>
+      <li>10-100× faster than CPU encoders (svt-av1, libaom, rav1e)</li>
+      <li>Multi-GPU support (Vulkan/ROCm/CUDA backends)</li>
+      <li>Deterministic encoding (bit-exact output, reproducible builds)</li>
+      <li>Real-time 4K encoding at 60fps on consumer GPUs</li>
+      <li>Production-ready quality (CRF/CQP/VBR/CBR modes)</li>
+      <li>Trade-secret algorithms (proprietary binary-only distribution)</li>
+    </ul>
+    <p>
+      Perfect for content creators, streamers, video production pipelines,
+      and anyone needing fastest-in-class AV1 encoding performance.
+    </p>
+  </description>
+
+  <url type="homepage">https://kindly.software</url>
+  <url type="bugtracker">https://github.com/kindly-ai/kindly-av1/issues</url>
+  <url type="help">https://docs.kindly.software/av1</url>
+
+  <categories>
+    <category>AudioVideo</category>
+    <category>Video</category>
+  </categories>
+
+  <provides>
+    <binary>kindly-av1</binary>
+  </provides>
+
+  <releases>
+    <release version="1.0.0" date="2025-01-15">
+      <description>
+        <p>Initial Flathub release:</p>
+        <ul>
+          <li>Full AV1 encoding pipeline (OBU bitstream writer)</li>
+          <li>Vulkan GPU backend (AMD/NVIDIA/Intel)</li>
+          <li>Multi-threaded CPU fallback</li>
+          <li>4K @ 60fps real-time encoding</li>
+          <li>Deterministic encoding with hash-chain verification</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+
+  <content_rating type="oars-1.1"/>
+
+  <developer_name>Kindly Software</developer_name>
+
+  <launchable type="desktop-id">software.kindly.av1.desktop</launchable>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>kindly-av1 encoding 4K video at 60fps</caption>
+      <!-- TODO: Add actual screenshot URL -->
+      <image>https://kindly.software/screenshots/kindly-av1-encoding.png</image>
+    </screenshot>
+  </screenshots>
+
+  <requires>
+    <display_length compare="ge">640</display_length>
+  </requires>
+
+  <recommends>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </recommends>
+
+  <supports>
+    <internet>always</internet>  <!-- License validation -->
+  </supports>
+
+  <custom>
+    <!-- Proprietary software flag -->
+    <value key="flathub::verification::verified">false</value>
+    <value key="flathub::proprietary">true</value>
+  </custom>
+</component>

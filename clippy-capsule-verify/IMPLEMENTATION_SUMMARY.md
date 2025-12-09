@@ -74,7 +74,7 @@ use crate::diagnostics::{
 ✅ Shows <20ms compile-time impact
 ✅ Links to canonical documentation
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 ✅ Emphasizes cache alignment (3-10× speedup)
 ✅ Explains lockfree design advantages
 ✅ Shows type safety improvements

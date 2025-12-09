@@ -13,8 +13,8 @@
 // - 32×32: <500ns (vs 4.0μs scalar, 8× speedup) **PRIMARY TARGET**
 // - 64×64: <2.0μs (vs 16μs scalar, 8× speedup)
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
 use atomic_capsule::encoder::dct_transform::{DctTransformCapsule, TransformType};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 
 // ========== BASELINE: SCALAR DCT IMPLEMENTATION ==========
 
@@ -83,25 +83,18 @@ fn bench_dct_4x4(c: &mut Criterion) {
     group.sample_size(1000); // B32: 1000+ iterations
 
     let input = [
-        128, 130, 132, 134,
-        127, 129, 131, 133,
-        126, 128, 130, 132,
-        125, 127, 129, 131
+        128, 130, 132, 134, 127, 129, 131, 133, 126, 128, 130, 132, 125, 127, 129, 131,
     ];
 
     // Baseline: Scalar DCT
     group.bench_function("scalar_baseline", |b| {
-        b.iter(|| {
-            black_box(scalar_dct_4x4(&input))
-        });
+        b.iter(|| black_box(scalar_dct_4x4(&input)));
     });
 
     // Capsule: Chen-Wang fast DCT
     let capsule = DctTransformCapsule::new();
     group.bench_function("chen_wang_fast", |b| {
-        b.iter(|| {
-            black_box(capsule.forward_4x4(&input))
-        });
+        b.iter(|| black_box(capsule.forward_4x4(&input)));
     });
 
     group.finish();
@@ -118,17 +111,13 @@ fn bench_dct_8x8(c: &mut Criterion) {
 
     // Baseline: Scalar DCT
     group.bench_function("scalar_baseline", |b| {
-        b.iter(|| {
-            black_box(scalar_dct_8x8(&input))
-        });
+        b.iter(|| black_box(scalar_dct_8x8(&input)));
     });
 
     // Capsule: Chen-Wang fast DCT
     let capsule = DctTransformCapsule::new();
     group.bench_function("chen_wang_fast", |b| {
-        b.iter(|| {
-            black_box(capsule.forward_8x8(&input))
-        });
+        b.iter(|| black_box(capsule.forward_8x8(&input)));
     });
 
     group.finish();
@@ -145,9 +134,7 @@ fn bench_dct_16x16(c: &mut Criterion) {
 
     let capsule = DctTransformCapsule::new();
     group.bench_function("chen_wang_fast", |b| {
-        b.iter(|| {
-            black_box(capsule.forward_16x16(&input))
-        });
+        b.iter(|| black_box(capsule.forward_16x16(&input)));
     });
 
     group.finish();
@@ -164,9 +151,7 @@ fn bench_dct_32x32(c: &mut Criterion) {
 
     let capsule = DctTransformCapsule::new();
     group.bench_function("chen_wang_fast", |b| {
-        b.iter(|| {
-            black_box(capsule.forward_32x32(&input))
-        });
+        b.iter(|| black_box(capsule.forward_32x32(&input)));
     });
 
     // Note: Scalar 32×32 baseline would take ~4μs, too slow for benchmark group
@@ -216,9 +201,7 @@ fn bench_inverse_transform(c: &mut Criterion) {
     let coeffs_4x4 = capsule.forward_4x4(&input_4x4);
 
     group.bench_function("4x4_inverse", |b| {
-        b.iter(|| {
-            black_box(capsule.inverse_4x4(&coeffs_4x4))
-        });
+        b.iter(|| black_box(capsule.inverse_4x4(&coeffs_4x4)));
     });
 
     // 8×8 inverse
@@ -229,9 +212,7 @@ fn bench_inverse_transform(c: &mut Criterion) {
     let coeffs_8x8 = capsule.forward_8x8(&input_8x8);
 
     group.bench_function("8x8_inverse", |b| {
-        b.iter(|| {
-            black_box(capsule.inverse_8x8(&coeffs_8x8))
-        });
+        b.iter(|| black_box(capsule.inverse_8x8(&coeffs_8x8)));
     });
 
     group.finish();
@@ -242,7 +223,9 @@ fn bench_full_pipeline(c: &mut Criterion) {
     group.sample_size(1000);
 
     let capsule = DctTransformCapsule::new();
-    let input = [128, 130, 132, 134, 127, 129, 131, 133, 126, 128, 130, 132, 125, 127, 129, 131];
+    let input = [
+        128, 130, 132, 134, 127, 129, 131, 133, 126, 128, 130, 132, 125, 127, 129, 131,
+    ];
 
     group.bench_function("forward_inverse_4x4", |b| {
         b.iter(|| {
@@ -269,9 +252,7 @@ fn bench_realistic_av1_encoding(c: &mut Criterion) {
     }
 
     group.bench_function("8x8_residual_encoding", |b| {
-        b.iter(|| {
-            black_box(capsule.forward_8x8(&residuals_8x8))
-        });
+        b.iter(|| black_box(capsule.forward_8x8(&residuals_8x8)));
     });
 
     // 32×32 for high-resolution content
@@ -281,9 +262,7 @@ fn bench_realistic_av1_encoding(c: &mut Criterion) {
     }
 
     group.bench_function("32x32_residual_encoding", |b| {
-        b.iter(|| {
-            black_box(capsule.forward_32x32(&residuals_32x32))
-        });
+        b.iter(|| black_box(capsule.forward_32x32(&residuals_32x32)));
     });
 
     group.finish();

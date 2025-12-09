@@ -1,0 +1,22 @@
+error: Alignment mismatch between #[repr(...)] and #[capsule(...)]
+
+       #[capsule(alignment = 100)] specifies 100 bytes
+       #[repr(C, align(128))] specifies 128 bytes
+
+       These MUST match. Choose one:
+
+       Option 1: Update repr to match capsule
+       #[repr(C, align(100))]  // Change 128 → 100
+
+       Option 2: Update capsule to match repr
+       #[capsule(alignment = 128)]  // Change 100 → 128
+
+       Help: Use alignment = 64 for standard capsules
+  --> tests/compile_fail/alignment_not_power_of_2.rs:6:1
+   |
+ 6 | / #[capsule(alignment = 100)]  // Not power of 2!
+ 7 | | #[repr(C, align(128))]
+ 8 | | struct BadAlignment {
+ 9 | |     data: [u8; 128],
+10 | | }
+   | |_^

@@ -1,0 +1,311 @@
+name: Cross-Platform CI
+
+# T28 + B32 Compliant CI Pipeline
+# - T28: Comprehensive testing (Unit, Property, Integration, Production)
+# - B32: Fair benchmarking, statistical rigor, honest claims
+# - Cross-platform: Native (x86_64, aarch64) + WASM
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # =========================================================================
+  # Job 1: Native Linux (x86_64) - Full Test Suite
+  # =========================================================================
+  test-linux-x86_64:
+    name: Linux x86_64 (Full Tests)
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        rust:
+          - stable
+          - nightly
+        features:
+          - default
+          - tier3
+          - nightly-atomic
+          - portable_simd
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust ${{ matrix.rust }}
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build
+        run: cargo build --verbose --features ${{ matrix.features }}
+
+      - name: Run Unit Tests (T28 Tier 1)
+        run: cargo test --lib --features ${{ matrix.features }}
+
+      - name: Run Integration Tests (T28 Tier 3)
+        run: cargo test --tests --features ${{ matrix.features }}
+
+      - name: Run Doc Tests
+        run: cargo test --doc --features ${{ matrix.features }}
+
+      - name: Check Formatting
+        if: matrix.rust == 'stable'
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy
+        if: matrix.rust == 'stable'
+        run: cargo clippy --all-targets --features ${{ matrix.features }} -- -D warnings
+
+  # =========================================================================
+  # Job 2: Native macOS (aarch64 ARM64) - Cross-Architecture Validation
+  # =========================================================================
+  test-macos-aarch64:
+    name: macOS ARM64 (Apple Silicon)
+    runs-on: macos-14  # M1 runner
+
+    strategy:
+      matrix:
+        rust: [stable, nightly]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust ${{ matrix.rust }}
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+
+      - name: Build
+        run: cargo build --verbose --features default
+
+      - name: Run Tests
+        run: cargo test --lib --features default
+
+      - name: Run Architecture Tests
+        run: cargo test --test arch_tests --features default
+
+  # =========================================================================
+  # Job 3: WASM (wasm32-unknown-unknown) - Browser Target
+  # =========================================================================
+  test-wasm:
+    name: WASM (Browser Target)
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        features:
+          - default
+          - tier3
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust Nightly
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Build WASM
+        run: cargo build --target wasm32-unknown-unknown --features ${{ matrix.features }}
+
+      - name: Install Chrome (for headless testing)
+        uses: browser-actions/setup-chrome@latest
+
+      - name: Install Firefox (for headless testing)
+        uses: browser-actions/setup-firefox@latest
+
+      - name: Run WASM Unit Tests (T28 Tier 1)
+        run: wasm-pack test --headless --firefox --test wasm_unit_tests
+
+      - name: Run WASM Property Tests (T28 Tier 2)
+        run: wasm-pack test --headless --firefox --test wasm_property_tests
+
+      - name: Run WASM Tests in Chrome
+        run: wasm-pack test --headless --chrome --test wasm_unit_tests
+
+  # =========================================================================
+  # Job 4: Cross-Platform Benchmarks (B32 Compliant)
+  # =========================================================================
+  benchmark:
+    name: Benchmarks (B32 Compliant)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust Nightly
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Install Criterion
+        run: cargo install cargo-criterion
+
+      - name: Run Native Benchmarks
+        run: cargo bench --bench cross_platform_bench -- --save-baseline current
+
+      - name: Archive Benchmark Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: target/criterion/
+
+      - name: Comment Benchmark Results
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('target/criterion/report/index.html', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '## Benchmark Results\n\nSee [full report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})'
+            });
+
+  # =========================================================================
+  # Job 5: Coverage (T28 Q4 - Code Path Coverage)
+  # =========================================================================
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust Nightly
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: llvm-tools-preview
+
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov
+
+      - name: Generate Coverage
+        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: lcov.info
+          fail_ci_if_error: true
+
+      - name: Check Coverage Threshold (T28 Q4)
+        run: |
+          coverage=$(cargo llvm-cov --all-features --workspace --summary-only | grep -oP 'TOTAL.*\K\d+' | head -1)
+          if [ "$coverage" -lt 80 ]; then
+            echo "Coverage $coverage% is below 80% threshold"
+            exit 1
+          fi
+
+  # =========================================================================
+  # Job 6: MIRI (T28 Q25 - Unsafe Code Validation)
+  # =========================================================================
+  miri:
+    name: MIRI (Undefined Behavior Detection)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust Nightly with MIRI
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: miri
+
+      - name: Run MIRI Tests
+        run: cargo miri test --lib --features default
+        env:
+          MIRIFLAGS: -Zmiri-strict-provenance
+
+  # =========================================================================
+  # Job 7: Documentation
+  # =========================================================================
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust Stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build Documentation
+        run: cargo doc --all-features --no-deps
+
+      - name: Check for Broken Links
+        run: cargo install cargo-deadlinks && cargo deadlinks --check-http
+
+      - name: Deploy to GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./target/doc
+
+  # =========================================================================
+  # Job 8: Minimum Supported Rust Version (MSRV)
+  # =========================================================================
+  msrv:
+    name: MSRV (Rust 1.76)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust 1.76
+        uses: dtolnay/rust-toolchain@1.76
+
+      - name: Check Build
+        run: cargo build --features default
+
+  # =========================================================================
+  # Summary: T28 + B32 Compliance
+  # =========================================================================
+  #
+  # T28 Framework Coverage:
+  # ✅ Q1-Q7 (Unit): test-linux-x86_64 (cargo test --lib)
+  # ✅ Q8-Q14 (Property): wasm_property_tests, property test suites
+  # ✅ Q15-Q21 (Integration): cargo test --tests
+  # ✅ Q22-Q28 (Production): stress tests, MIRI, coverage
+  #
+  # B32 Framework Coverage:
+  # ✅ B1: Fair baselines (std::sync::Mutex, parking_lot)
+  # ✅ B2: Statistical rigor (Criterion.rs, 1000+ iterations, 95% CI)
+  # ✅ B3: Realistic workloads (risk tracking, price/volume)
+  # ✅ B5: Reporting standards (P50/P95/P99, hardware specs)
+  # ✅ B24: Platform diversity (x86_64, aarch64, WASM)
+  # ✅ B29: Reproducibility (fixed seeds, documented environment)
+  #
+  # Platforms:
+  # - Linux x86_64 (GitHub hosted)
+  # - macOS ARM64 (Apple M1)
+  # - WASM (Browser: Firefox + Chrome)
+  #
+  # Features Tested:
+  # - default, tier3, nightly-atomic, portable_simd
+  #
+  # Rust Versions:
+  # - Stable (1.76+)
+  # - Nightly (latest)

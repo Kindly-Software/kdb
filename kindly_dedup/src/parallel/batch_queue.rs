@@ -27,7 +27,7 @@
 //! - **All Completed**: <5ns (atomic load + comparison)
 //! - **Throughput**: 200M+ batches/sec (lockfree CAS)
 //!
-//! ## COCA Compliance
+//! ## Chaos Compliance
 //!
 //! - **100% Lockfree**: No mutex/RwLock, only atomic operations
 //! - **Cache-aligned**: 64-byte alignment prevents false sharing
@@ -50,7 +50,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 (T1+T4 tier selection), Q33 (deterministic queue semantics), Q34 (monotonic counters)
-//! - **COCA**: 100% lockfree computational capsule (no mutex/RwLock)
+//! - **Chaos**: 100% lockfree computational capsule (no mutex/RwLock)
 //! - **ASSUM**: 99.99% safe (4 assumptions, all verified)
 //! - **B32**: Fair baselines (enqueue/dequeue <10ns, verified lockfree)
 //! - **T28**: 15 unit + property tests (comprehensive queue validation)

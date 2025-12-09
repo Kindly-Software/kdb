@@ -1,7 +1,7 @@
 //! Plain text format reader (Streaming + Atomic)
 
 use crate::format::{Document, FormatError, FormatReaderCapsule};
-use std::io::{BufRead, BufReader, Read};
+use std::io::{BufRead, BufReader};
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 

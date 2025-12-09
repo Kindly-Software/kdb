@@ -17,7 +17,7 @@
 //
 // Framework Compliance:
 // - UCE34: Q10 T1 Atomic tier selection
-// - COCA: 100% lockfree, cache-aligned
+// - Chaos: 100% lockfree, cache-aligned
 // - ASSUM: 99.99% safe (all assumptions documented)
 // - B32: <10ns flag read validated
 // - T28: Comprehensive testing (unit/property/integration/production)

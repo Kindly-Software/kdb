@@ -3,7 +3,7 @@
 **Version**: 3.0.0
 **Status**: Phase 3 Complete (8.0/10)
 **Date**: December 4, 2025
-**Framework Compliance**: UCE34/COCA/T28/B32/ASSUM/Q34
+**Framework Compliance**: UCE34/Chaos/T28/B32/ASSUM/Q34
 **Assessment Report**: See [SECURITY_ASSESSMENT_PHASE3.md](SECURITY_ASSESSMENT_PHASE3.md)
 
 ---
@@ -154,7 +154,7 @@ ssh samuel@kindly-hub "sudo sshd -T | grep -E 'permitrootlogin|passwordauthentic
 
 **Verification**:
 ```bash
-curl -sI https://kindly.services/ | grep -i strict-transport
+curl -sI https://kindly.software/ | grep -i strict-transport
 # Expected: Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
 ```
 
@@ -162,7 +162,7 @@ curl -sI https://kindly.services/ | grep -i strict-transport
 
 **Caddyfile** (simplified):
 ```
-kindly.services {
+kindly.software {
     reverse_proxy localhost:8082
     encode gzip
     header {
@@ -525,7 +525,7 @@ For production incidents:
 | Framework | Status | Details |
 |-----------|--------|---------|
 | **UCE34** | Compliant | Q10 T6 Mixed, Q22 PathValidator, Q33 Capsules, Q34 Audit |
-| **COCA** | 100% | Zero mutex, lockfree atomics, cache-aligned |
+| **Chaos** | 100% | Zero mutex, lockfree atomics, cache-aligned |
 | **ASSUM** | 99.99% | All assumptions documented and verified |
 | **B32** | Validated | Performance claims tested (1000+ iterations, 95% CI) |
 | **T28** | 5-tier | Unit/Property/Integration/Production/Determinism tests |
@@ -646,7 +646,7 @@ For production incidents:
 
 ```bash
 # Verify security headers
-curl -sI https://kindly.services/ | grep -E "^(Strict-Transport|X-Frame|X-Content-Type|X-XSS|Referrer-Policy|Cross-Origin)"
+curl -sI https://kindly.software/ | grep -E "^(Strict-Transport|X-Frame|X-Content-Type|X-XSS|Referrer-Policy|Cross-Origin)"
 
 # Test rate limiting (should get 429 after 500 requests)
 for i in {1..600}; do curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8082/; done | sort | uniq -c

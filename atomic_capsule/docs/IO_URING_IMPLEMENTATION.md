@@ -2,7 +2,7 @@
 
 **Status**: ✅ Complete (1,200+ lines, 28 tests)
 **Tier**: T1 (Atomic <100ns) + T5 (Streaming O(1))
-**Framework**: UCE34, COCA, ASSUM, B32, T28, I20
+**Framework**: UCE34, Chaos, ASSUM, B32, T28, I20
 **Location**: `/home/samuel/Primitives/atomic_capsule/src/runtime/io_uring.rs`
 
 ## Overview
@@ -269,7 +269,7 @@ let ring = IoUringCapsule::new(256, IORING_SETUP_IOPOLL)?;
 - **Q33**: Atomic capsule verification (derivable) ✅
 - **Q34**: Auditability (all assumptions documented) ✅
 
-### COCA (100% Lockfree)
+### Chaos (100% Lockfree)
 
 - **Zero Mutexes**: All coordination via atomics ✅
 - **Cache-Aligned**: 256-byte alignment prevents false sharing ✅

@@ -1,0 +1,16 @@
+error: Missing padding field
+       Expected: 64 bytes of padding to reach size = 64
+       Non-padding fields: 0 bytes
+
+       Add padding field:
+       _padding: [u8; 64],
+
+       Note: Padding prevents false sharing and ensures cache-line alignment.
+  --> tests/compile_fail/empty_struct.rs:12:1
+   |
+12 | / #[capsule(alignment = 64, size = 64)]  // Claims 64 bytes...
+13 | | #[repr(C, align(64))]
+14 | | struct EmptyStruct {
+15 | |     // ❌ No fields! Actual size will be 0
+16 | | }
+   | |_^

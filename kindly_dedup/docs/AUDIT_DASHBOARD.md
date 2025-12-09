@@ -333,7 +333,7 @@ Deduplication from Kindly 💜
 - #ASSUME_LOCKFREE: All updates via atomic loads (Relaxed)
 - #VERIFY_LOCKFREE: Zero mutex/RwLock
 
-### COCA Compliance
+### Chaos Compliance
 - 100% lockfree metric reads
 - Zero mutex/RwLock
 - Cache-aligned atomic counters

@@ -81,7 +81,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 T5 (Streaming), Q11 (Rust), Q33 (Lockfree)
-//! - **COCA**: 100% lockfree, 64B cache-aligned, no mutex/RwLock
+//! - **Chaos**: 100% lockfree, 64B cache-aligned, no mutex/RwLock
 //! - **ASSUM**: 99.99% safe (8 #ASSUME tags, verified in tests)
 //! - **B32**: <10ns per operation (3× faster than channels, fair comparison)
 //! - **T28**: 4-tier testing (unit/property/integration/production)
@@ -98,6 +98,7 @@ pub const DEFAULT_CAPACITY: usize = 65_536;
 /// #ASSUME_SINGLE_CONSUMER: Only one thread should call read()
 /// #ASSUME_CAPACITY_POWER_OF_2: Verified in new(), enables fast modulo via bitmask
 #[repr(C, align(64))]
+#[allow(dead_code)]
 pub struct StreamingBufferCapsule {
     /// Primary: Head(u32) | Tail(u32) (ring indices)
     /// - Head: Read position (consumed by read())
@@ -550,7 +551,7 @@ impl StreamingBufferCapsule {
     /// let total: usize = iter.count();
     /// ```
     #[inline]
-    pub fn iter(&self) -> StreamingBufferIterator {
+    pub fn iter(&self) -> StreamingBufferIterator<'_> {
         let (head, tail) = self.get_head_tail();
         StreamingBufferIterator {
             buffer: self,
@@ -849,7 +850,7 @@ mod tests {
         let buf = StreamingBufferCapsule::new(256).unwrap();
 
         for cycle in 0..10 {
-            let data = vec![(cycle as u8); 20];
+            let data = vec![cycle as u8; 20];
             let written = buf.write(&data).unwrap();
             assert_eq!(written, 20);
 

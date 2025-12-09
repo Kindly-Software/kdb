@@ -130,7 +130,7 @@ All helpers handle edge cases:
 - **Integration**: Ready for integration with codegen module
 - **Production**: 100% pass rate, zero failures
 
-### COCA Framework
+### Chaos Framework
 
 - **100% Lockfree**: No mutex/RwLock (pure functional)
 - **Cache Alignment**: Not applicable (no data structures)
@@ -216,7 +216,7 @@ struct PersonCapsule {
 - [x] Full documentation
 - [x] Module compiles without errors
 - [x] Integrated into lib.rs
-- [x] Framework compliance: UCE34, ASSUM, B32, T28, COCA
+- [x] Framework compliance: UCE34, ASSUM, B32, T28, Chaos
 
 ## Next Steps (Phase 2)
 
@@ -246,7 +246,7 @@ SCREAMING-KEBAB-CASE).
 - Tier: T0 Auditable (compile-time code generation)
 - Performance: O(1) per transformation, zero runtime cost
 - Safety: 99.99% ASSUM safe, 100% deterministic
-- Compliance: UCE34, ASSUM, B32, T28, COCA verified
+- Compliance: UCE34, ASSUM, B32, T28, Chaos verified
 
 Edge cases handled:
 - Empty strings, single characters, numbers preserved

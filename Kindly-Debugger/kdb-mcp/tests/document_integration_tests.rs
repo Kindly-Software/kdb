@@ -6,7 +6,7 @@
 //! - PersistentCacheCapsule (T1+T9 Mixed): Mmap-backed persistence
 //! - McpServerCapsule (T6 Mixed): Top-level orchestration
 //!
-//! **Framework**: UCE34 (Q15-Q21 Integration), COCA (100% lockfree), ASSUM (99.5%+ safety)
+//! **Framework**: UCE34 (Q15-Q21 Integration), Chaos (100% lockfree), ASSUM (99.5%+ safety)
 //!
 //! **Performance SLA**:
 //! - Cache hit: <100ns (T1 atomic lookup)
@@ -20,10 +20,10 @@ use std::time::Instant;
 use std::collections::HashMap;
 
 // ============================================================================
-// Test Infrastructure (COCA Capsules)
+// Test Infrastructure (Chaos Capsules)
 // ============================================================================
 
-/// Test context capsule (128B cache-aligned, COCA compliant)
+/// Test context capsule (128B cache-aligned, Chaos compliant)
 ///
 /// # Memory Layout
 /// - Offset 0-7: test_id (AtomicU64)

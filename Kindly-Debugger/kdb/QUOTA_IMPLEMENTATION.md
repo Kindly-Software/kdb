@@ -2,7 +2,7 @@
 
 **Status**: ✅ Production Ready (28/28 tests passing)
 **Date**: 2025-11-16
-**Framework**: UCE34 (Tier Selection Q10), COCA (T1 Atomic), ASSUM (99.99%), B32 (Fair Baseline), T28 (28 Comprehensive Tests)
+**Framework**: UCE34 (Tier Selection Q10), Chaos (T1 Atomic), ASSUM (99.99%), B32 (Fair Baseline), T28 (28 Comprehensive Tests)
 
 ---
 
@@ -521,7 +521,7 @@ Exports:
 ### Framework Documentation
 
 - **UCE34**: `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/uce34.xml` (Q1-Q34)
-- **COCA**: `/home/samuel/Docs/The Computational Capsule.md` (T0-T11 tiers)
+- **Chaos**: `/home/samuel/Docs/The Computational Capsule.md` (T0-T11 tiers)
 - **B32**: Fair baseline performance validation (95% CI, 1000+ iterations)
 - **T28**: 4-tier testing framework (28 questions)
 - **ASSUM**: Safety framework (99.5%+ target)

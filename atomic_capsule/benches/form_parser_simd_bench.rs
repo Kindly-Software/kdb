@@ -24,7 +24,7 @@
 //!
 //! Results printed to stdout with statistical summary (95% CI, throughput in MB/s).
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 
 /// Mock FormParser with SIMD boundary detection (simplified for benchmark)
 /// This is a standalone implementation to benchmark the algorithm independently
@@ -46,7 +46,7 @@ mod form_parser_simd {
 
             // Process 16 bytes at a time
             for i in (0..haystack.len().saturating_sub(16)).step_by(16) {
-                let chunk = u8x16::from_slice(&haystack[i..i+16]);
+                let chunk = u8x16::from_slice(&haystack[i..i + 16]);
                 let matches = chunk.simd_eq(u8x16::splat(search_byte));
 
                 if matches.any() {
@@ -54,7 +54,8 @@ mod form_parser_simd {
                         if is_match {
                             let pos = i + j;
                             if pos + needle.len() <= haystack.len()
-                                && &haystack[pos..pos+needle.len()] == needle {
+                                && &haystack[pos..pos + needle.len()] == needle
+                            {
                                 return Some(pos);
                             }
                         }
@@ -80,7 +81,7 @@ mod form_parser_simd {
             let search_byte = needle[0];
 
             for i in (0..haystack.len().saturating_sub(16)).step_by(16) {
-                let chunk = u8x16::from_slice(&haystack[i..i+16]);
+                let chunk = u8x16::from_slice(&haystack[i..i + 16]);
                 let matches = chunk.simd_eq(u8x16::splat(search_byte));
 
                 if matches.any() {
@@ -88,7 +89,8 @@ mod form_parser_simd {
                         if is_match {
                             let pos = i + j;
                             if pos + needle.len() <= haystack.len()
-                                && &haystack[pos..pos+needle.len()] == needle {
+                                && &haystack[pos..pos + needle.len()] == needle
+                            {
                                 return Some(pos);
                             }
                         }
@@ -156,32 +158,16 @@ fn benchmark_simd_vs_scalar(c: &mut Criterion) {
         let needle = b"----WebKitFormBoundary";
 
         // Benchmark SIMD version
-        group.bench_with_input(
-            BenchmarkId::new("simd", size),
-            &size,
-            |b, _| {
-                b.iter(|| {
-                    form_parser_simd::find_boundary_simd(
-                        black_box(&haystack),
-                        black_box(needle),
-                    )
-                })
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("simd", size), &size, |b, _| {
+            b.iter(|| form_parser_simd::find_boundary_simd(black_box(&haystack), black_box(needle)))
+        });
 
         // Benchmark scalar baseline
-        group.bench_with_input(
-            BenchmarkId::new("scalar", size),
-            &size,
-            |b, _| {
-                b.iter(|| {
-                    form_parser_simd::find_boundary_scalar(
-                        black_box(&haystack),
-                        black_box(needle),
-                    )
-                })
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("scalar", size), &size, |b, _| {
+            b.iter(|| {
+                form_parser_simd::find_boundary_scalar(black_box(&haystack), black_box(needle))
+            })
+        });
     }
 
     group.finish();
@@ -197,20 +183,12 @@ fn benchmark_edge_cases(c: &mut Criterion) {
     let needle = b"----WebKitFormBoundary";
 
     group.bench_function("boundary_at_start_simd", |b| {
-        b.iter(|| {
-            form_parser_simd::find_boundary_simd(
-                black_box(&buffer_start),
-                black_box(needle),
-            )
-        })
+        b.iter(|| form_parser_simd::find_boundary_simd(black_box(&buffer_start), black_box(needle)))
     });
 
     group.bench_function("boundary_at_start_scalar", |b| {
         b.iter(|| {
-            form_parser_simd::find_boundary_scalar(
-                black_box(&buffer_start),
-                black_box(needle),
-            )
+            form_parser_simd::find_boundary_scalar(black_box(&buffer_start), black_box(needle))
         })
     });
 
@@ -219,40 +197,24 @@ fn benchmark_edge_cases(c: &mut Criterion) {
     buffer_end[8170..8192].copy_from_slice(b"----WebKitFormBoundary");
 
     group.bench_function("boundary_at_end_simd", |b| {
-        b.iter(|| {
-            form_parser_simd::find_boundary_simd(
-                black_box(&buffer_end),
-                black_box(needle),
-            )
-        })
+        b.iter(|| form_parser_simd::find_boundary_simd(black_box(&buffer_end), black_box(needle)))
     });
 
     group.bench_function("boundary_at_end_scalar", |b| {
-        b.iter(|| {
-            form_parser_simd::find_boundary_scalar(
-                black_box(&buffer_end),
-                black_box(needle),
-            )
-        })
+        b.iter(|| form_parser_simd::find_boundary_scalar(black_box(&buffer_end), black_box(needle)))
     });
 
     // Edge case 3: Boundary not found
     let buffer_notfound = vec![b'x'; 8192];
     group.bench_function("boundary_not_found_simd", |b| {
         b.iter(|| {
-            form_parser_simd::find_boundary_simd(
-                black_box(&buffer_notfound),
-                black_box(needle),
-            )
+            form_parser_simd::find_boundary_simd(black_box(&buffer_notfound), black_box(needle))
         })
     });
 
     group.bench_function("boundary_not_found_scalar", |b| {
         b.iter(|| {
-            form_parser_simd::find_boundary_scalar(
-                black_box(&buffer_notfound),
-                black_box(needle),
-            )
+            form_parser_simd::find_boundary_scalar(black_box(&buffer_notfound), black_box(needle))
         })
     });
 
@@ -328,7 +290,8 @@ fn benchmark_real_multipart(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches,
+criterion_group!(
+    benches,
     benchmark_simd_vs_scalar,
     benchmark_edge_cases,
     benchmark_real_multipart,

@@ -69,17 +69,17 @@ const NUM_SHARDS: usize = 16;
 
 /// Lockfree result aggregator for parallel processing (Phase 4-Parallel prototype)
 ///
-/// **DEPRECATED: Use `LockfreeResultAggregatorV2` instead (100% COCA compliant).**
+/// **DEPRECATED: Use `LockfreeResultAggregatorV2` instead (100% Chaos compliant).**
 ///
 /// **Tier 4 Batch primitive** using sharded Mutex<HashMap> for correctness.
 ///
 /// # Deprecation Notice
 ///
-/// This V1 implementation uses `Mutex<HashMap>` for correctness but breaks COCA compliance.
+/// This V1 implementation uses `Mutex<HashMap>` for correctness but breaks Chaos compliance.
 /// Migrate to `LockfreeResultAggregatorV2` for:
 /// - 100% lockfree (ZERO mutex)
 /// - <50ns insert (vs <200ns V1)
-/// - 100% COCA compliant
+/// - 100% Chaos compliant
 /// - Same API (drop-in replacement)
 ///
 /// # Architecture

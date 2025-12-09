@@ -146,18 +146,19 @@ pub use tls::{
 };
 
 // io_uring module (T1+T5: Atomic + Streaming async I/O)
-#[cfg(all(target_os = "linux", feature = "std"))]
+// Gated behind explicit io-uring feature to avoid stub build errors by default.
+#[cfg(all(target_os = "linux", feature = "std", feature = "io-uring"))]
 pub mod io_uring;
 
 // io_uring batch submission & completion harvesting (T4+T5: Batch + Streaming)
-#[cfg(all(target_os = "linux", feature = "std"))]
+#[cfg(all(target_os = "linux", feature = "std", feature = "io-uring"))]
 pub mod io_uring_batch;
 
 // io_uring operation builders (T1+T5: Atomic + Streaming)
-#[cfg(all(target_os = "linux", feature = "std"))]
+#[cfg(all(target_os = "linux", feature = "std", feature = "io-uring"))]
 pub mod io_uring_ops;
 
-#[cfg(all(target_os = "linux", feature = "std"))]
+#[cfg(all(target_os = "linux", feature = "std", feature = "io-uring"))]
 pub use io_uring::{
     IoUringCapsule, IoUringSqe, IoUringCqe, IoUringError, IoUringStats,
     Result as IoUringResult,
@@ -176,7 +177,7 @@ pub use io_uring::{
     IORING_OP_RECV, IORING_OP_SENDMSG, IORING_OP_RECVMSG, IORING_OP_TIMEOUT,
 };
 
-#[cfg(all(target_os = "linux", feature = "std"))]
+#[cfg(all(target_os = "linux", feature = "std", feature = "io-uring"))]
 pub use io_uring_batch::{
     IoUringBatchCapsule, CompletionEntry, IoUringBatchStats,
     Result as IoUringBatchResult,

@@ -80,7 +80,7 @@
       </q3-performance-target>
 
       <q4-constraints>
-        <lockfree priority="MANDATORY">100% lockfree (COCA mandate: no mutex/RwLock)</lockfree>
+        <lockfree priority="MANDATORY">100% lockfree (Chaos mandate: no mutex/RwLock)</lockfree>
         <portability priority="MANDATORY">portable_simd (nightly, cross-platform AVX2/NEON)</portability>
         <determinism priority="MANDATORY">Exact output match (SIMD vs scalar, batch vs sequential)</determinism>
         <memory priority="HIGH">Zero-copy where possible (SIMD in-place, batch Vec pooling)</memory>

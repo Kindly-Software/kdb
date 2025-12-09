@@ -12,13 +12,11 @@
 //! - <2ms percentiles (100K requests)
 //! - <50ns snapshot (Q34 audit)
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
-use std::sync::Mutex;
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use parking_lot::RwLock;
+use std::sync::Mutex;
 
-use atomic_capsule::load_balancing::{
-    LoadBalancerMetricsCapsule, BackendMetrics, AlertThresholds,
-};
+use atomic_capsule::load_balancing::{AlertThresholds, BackendMetrics, LoadBalancerMetricsCapsule};
 
 // Baseline implementations
 struct MutexMetrics {
@@ -93,31 +91,23 @@ fn bench_single_request_record(c: &mut Criterion) {
     group.bench_function("capsule", |b| {
         let metrics = LoadBalancerMetricsCapsule::new();
         b.iter(|| {
-            metrics.record_request(
-                black_box(0),
-                black_box(5_000_000),
-                black_box(true),
-            ).unwrap();
+            metrics
+                .record_request(black_box(0), black_box(5_000_000), black_box(true))
+                .unwrap();
         });
     });
 
     group.bench_function("mutex", |b| {
         let metrics = MutexMetrics::new();
         b.iter(|| {
-            metrics.record_request(
-                black_box(5_000_000),
-                black_box(true),
-            );
+            metrics.record_request(black_box(5_000_000), black_box(true));
         });
     });
 
     group.bench_function("rwlock", |b| {
         let metrics = RwLockMetrics::new();
         b.iter(|| {
-            metrics.record_request(
-                black_box(5_000_000),
-                black_box(true),
-            );
+            metrics.record_request(black_box(5_000_000), black_box(true));
         });
     });
 
@@ -357,7 +347,9 @@ fn bench_health_checks(c: &mut Criterion) {
         let metrics = LoadBalancerMetricsCapsule::new();
         let mut healthy = true;
         b.iter(|| {
-            metrics.record_health_check(black_box(0), black_box(healthy)).unwrap();
+            metrics
+                .record_health_check(black_box(0), black_box(healthy))
+                .unwrap();
             healthy = !healthy;
         });
     });
@@ -376,11 +368,9 @@ fn bench_scale_request_count(c: &mut Criterion) {
             let metrics = LoadBalancerMetricsCapsule::new();
             b.iter(|| {
                 for i in 0..count {
-                    metrics.record_request(
-                        (i % 4) as u32,
-                        ((i % 100) * 1_000_000) as u64,
-                        i % 10 != 0,
-                    ).unwrap();
+                    metrics
+                        .record_request((i % 4) as u32, ((i % 100) * 1_000_000) as u64, i % 10 != 0)
+                        .unwrap();
                 }
             });
         });
@@ -402,11 +392,7 @@ fn bench_scale_backend_count(c: &mut Criterion) {
                 // Record 1K requests across backends
                 for i in 0..1_000 {
                     metrics
-                        .record_request(
-                            (i % backend_count) as u32,
-                            5_000_000,
-                            true,
-                        )
+                        .record_request((i % backend_count) as u32, 5_000_000, true)
                         .unwrap();
                 }
 

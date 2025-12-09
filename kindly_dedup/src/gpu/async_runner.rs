@@ -24,12 +24,12 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: T7 Heterogeneous tier (CPU-GPU async coordination)
-//! - **COCA**: 100% lockfree (DualAtomicU64, atomic slot states, cache-aligned 128B)
+//! - **Chaos**: 100% lockfree (DualAtomicU64, atomic slot states, cache-aligned 128B)
 //! - **ASSUM**: Thread safety via Arc, shutdown via packed atomic state
 //! - **B32**: Overlap efficiency benchmarks
 //! - **T28**: Async flow tests, shutdown tests
 //!
-//! # COCA Compliance (v2.5.0)
+//! # Chaos Compliance (v2.5.0)
 //!
 //! - **AsyncGpuRunner**: DualAtomicU64 state packing (running|generation|batches_submitted|batches_completed)
 //! - **LockfreeResultQueue**: Atomic slot states (empty→writing→ready→reading→empty)
@@ -54,8 +54,17 @@ const RESULT_QUEUE_DEPTH: usize = 16;
 /// Maximum spin iterations before yielding
 const MAX_SPIN_ITERATIONS: usize = 1000;
 
+/// Number of LSH bands (matches batch_lookup.rs)
+const NUM_BANDS: usize = 5;
+
+/// Rows per band (5 × 25 = 125, 3 unused from 128-hash signature)
+const ROWS_PER_BAND: usize = 25;
+
+/// Signature size (u16 values per document)
+const SIGNATURE_SIZE: usize = 128;
+
 // ============================================================================
-// Slot State Constants (COCA-compliant atomic state machine)
+// Slot State Constants (Chaos-compliant atomic state machine)
 // ============================================================================
 
 /// Slot state: Empty and available for writing
@@ -66,6 +75,85 @@ const SLOT_STATE_WRITING: u64 = 1;
 const SLOT_STATE_READY: u64 = 2;
 /// Slot state: Consumer is reading data
 const SLOT_STATE_READING: u64 = 3;
+
+// ============================================================================
+// LSH Band Hash Computation (CPU reference, matches GPU kernel)
+// ============================================================================
+
+/// Compute LSH band hash from u16 MinHash signature
+///
+/// # Algorithm
+///
+/// Matches GPU kernel lsh_band.wgsl and CPU batch_lookup.rs:
+/// - hash = 0
+/// - for each row in band: hash = hash * 31 + value (wrapping)
+///
+/// # ASSUM Safety
+///
+/// - `#ASSUME_SIGNATURE_SIZE`: signature has 128 u16 values
+/// - `#VERIFY_SIGNATURE_SIZE`: Caller provides get_signature() from GpuBatchResult
+/// - `#ASSUME_BAND_RANGE`: band_idx < NUM_BANDS (5), rows [0..125)
+/// - `#VERIFY_BAND_RANGE`: start/end bounds checked, min() ensures no overflow
+///
+/// # Determinism
+///
+/// - 100% deterministic: Same signature → Same hash (Q16.16 not needed, u64 native)
+/// - Wrapping arithmetic matches GPU u64 wrapping
+/// - No floating point, no randomness
+#[inline]
+fn compute_band_hash_from_u16(signature: &[u16], band_idx: usize) -> u64 {
+    let start = band_idx * ROWS_PER_BAND;
+    let end = (start + ROWS_PER_BAND).min(SIGNATURE_SIZE);
+
+    let mut hash: u64 = 0;
+    for i in start..end {
+        // hash = hash * 31 + value (wrapping, matches GPU)
+        hash = hash.wrapping_mul(31).wrapping_add(signature[i] as u64);
+    }
+    hash
+}
+
+/// Compute all LSH band hashes for a batch of signatures
+///
+/// Converts Vec<u16> signatures to Vec<u64> band hashes.
+///
+/// # Arguments
+///
+/// - `signatures`: Flat array of u16 MinHash signatures (128 per document)
+/// - `num_docs`: Number of documents in batch
+///
+/// # Returns
+///
+/// Vec<u64> with NUM_BANDS (5) hashes per document, total length = num_docs × 5
+///
+/// # Performance
+///
+/// - Per-hash: ~50ns (25 rows × 2ns per multiply-add)
+/// - Per-doc: ~250ns (5 bands × 50ns)
+/// - Batch 1000: ~250μs (amortized, sequential)
+///
+/// # ASSUM Safety
+///
+/// - `#ASSUME_SIGNATURE_LENGTH`: signatures.len() == num_docs × 128
+/// - `#VERIFY_SIGNATURE_LENGTH`: Caller (GPU output) guarantees correct length
+/// - `#ASSUME_NO_PANIC`: get_signature() panics if out of range, caller validates
+/// - `#VERIFY_BATCH_SIZE`: GpuBatchResult validates doc_ids.len() == num_docs
+fn compute_lsh_band_hashes_from_u16(signatures: &[u16], num_docs: usize) -> Vec<u64> {
+    let mut band_hashes = Vec::with_capacity(num_docs * NUM_BANDS);
+
+    for doc_idx in 0..num_docs {
+        let start = doc_idx * SIGNATURE_SIZE;
+        let end = start + SIGNATURE_SIZE;
+        let signature = &signatures[start..end];
+
+        for band_idx in 0..NUM_BANDS {
+            let hash = compute_band_hash_from_u16(signature, band_idx);
+            band_hashes.push(hash);
+        }
+    }
+
+    band_hashes
+}
 
 // ============================================================================
 // AsyncGpuRunner State Packing (DualAtomicU64 pattern)
@@ -117,7 +205,7 @@ fn pack_state(running: bool, generation: u32, submitted: u16, completed: u16) ->
 ///
 /// Contains MinHash signatures and optional LSH band hashes.
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 ///
 /// - `#[repr(C, align(64))]`: Cache-line aligned to prevent false sharing
 /// - Immutable after creation (no interior mutability needed)
@@ -161,7 +249,7 @@ impl GpuBatchResult {
 
 /// Result slot with atomic state for lockfree SPSC queue
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 ///
 /// - `#[repr(C, align(64))]`: Cache-line aligned to prevent false sharing between slots
 /// - Atomic state machine: EMPTY → WRITING → READY → READING → EMPTY
@@ -193,7 +281,7 @@ impl ResultSlot {
 
 /// Lockfree result queue using atomic slot states
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 ///
 /// 100% lockfree - uses atomic slot states (not just head/tail), no Mutex/RwLock.
 /// Each slot has its own state machine ensuring proper synchronization.
@@ -369,7 +457,7 @@ unsafe impl Send for LockfreeResultQueue {}
 unsafe impl Sync for LockfreeResultQueue {}
 
 // ============================================================================
-// AsyncGpuRunner - COCA-compliant with DualAtomicU64 state packing
+// AsyncGpuRunner - Chaos-compliant with DualAtomicU64 state packing
 // ============================================================================
 
 /// Padding size for 128B cache-line alignment
@@ -391,7 +479,7 @@ const ASYNC_GPU_RUNNER_PADDING: usize = 72;
 /// └── results: Arc<LockfreeResultQueue> (result queue)
 /// ```
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 ///
 /// - `#[repr(C, align(128))]`: 128B cache-line aligned to prevent false sharing
 /// - DualAtomicU64 pattern: All control state packed into single AtomicU64
@@ -580,10 +668,15 @@ impl AsyncGpuRunner {
                                 .flat_map(|i| output.get_signature(i).to_vec())
                                 .collect();
 
+                            // Compute LSH band hashes from signatures
+                            // Performance: ~250ns per document (5 bands × 50ns per hash)
+                            // Critical for O(1) LSH bucket lookup (avoids O(n²) brute-force)
+                            let band_hashes = compute_lsh_band_hashes_from_u16(&signatures, batch.len());
+
                             let result = GpuBatchResult {
                                 doc_ids: batch.doc_ids.clone(),
                                 signatures,
-                                band_hashes: None, // TODO: Add LSH band hashing
+                                band_hashes: Some(band_hashes),
                                 processing_time_us,
                                 generation,
                             };
@@ -650,10 +743,13 @@ impl AsyncGpuRunner {
                                 .flat_map(|i| output.get_signature(i).to_vec())
                                 .collect();
 
+                            // Compute LSH band hashes from signatures
+                            let band_hashes = compute_lsh_band_hashes_from_u16(&signatures, batch.len());
+
                             let result = GpuBatchResult {
                                 doc_ids: batch.doc_ids.clone(),
                                 signatures,
-                                band_hashes: None,
+                                band_hashes: Some(band_hashes),
                                 processing_time_us: start.elapsed().as_micros() as u64,
                                 generation,
                             };
@@ -997,6 +1093,128 @@ mod tests {
 
         let sig2 = result.get_signature(2);
         assert_eq!(sig2[0], 256);
+    }
+
+    // ============================================================================
+    // LSH Band Hash Computation Tests
+    // ============================================================================
+
+    #[test]
+    fn test_compute_band_hash_deterministic() {
+        // Same signature → same hash (100% deterministic)
+        let sig = [42u16; SIGNATURE_SIZE];
+
+        let hash1 = compute_band_hash_from_u16(&sig, 0);
+        let hash2 = compute_band_hash_from_u16(&sig, 0);
+
+        assert_eq!(hash1, hash2, "Band hash must be deterministic");
+    }
+
+    #[test]
+    fn test_compute_band_hash_different_bands() {
+        // Different bands produce different hashes (high probability)
+        let sig = [100u16; SIGNATURE_SIZE];
+
+        let hash0 = compute_band_hash_from_u16(&sig, 0);
+        let hash1 = compute_band_hash_from_u16(&sig, 1);
+        let hash2 = compute_band_hash_from_u16(&sig, 2);
+
+        // With uniform input, bands MAY produce same hash (valid behavior)
+        // But they should be computed correctly
+        assert!(hash0 != 0);
+        assert!(hash1 != 0);
+        assert!(hash2 != 0);
+    }
+
+    #[test]
+    fn test_compute_band_hash_zero_signature() {
+        let sig = [0u16; SIGNATURE_SIZE];
+        let hash = compute_band_hash_from_u16(&sig, 0);
+        assert_eq!(hash, 0, "Zero signature → zero hash");
+    }
+
+    #[test]
+    fn test_compute_lsh_band_hashes_batch() {
+        // Test batch computation with 3 documents
+        let num_docs = 3;
+        let mut signatures = Vec::with_capacity(num_docs * SIGNATURE_SIZE);
+
+        // Doc 0: All 1s
+        signatures.extend(&[1u16; SIGNATURE_SIZE]);
+        // Doc 1: All 2s
+        signatures.extend(&[2u16; SIGNATURE_SIZE]);
+        // Doc 2: All 3s
+        signatures.extend(&[3u16; SIGNATURE_SIZE]);
+
+        let band_hashes = compute_lsh_band_hashes_from_u16(&signatures, num_docs);
+
+        // Verify output size
+        assert_eq!(band_hashes.len(), num_docs * NUM_BANDS);
+
+        // Verify all hashes are non-zero
+        for hash in &band_hashes {
+            assert!(*hash != 0, "All hashes should be non-zero for non-zero input");
+        }
+
+        // Verify doc 0 hashes differ from doc 1 hashes (different signatures)
+        let doc0_hashes = &band_hashes[0..NUM_BANDS];
+        let doc1_hashes = &band_hashes[NUM_BANDS..NUM_BANDS * 2];
+
+        assert_ne!(doc0_hashes, doc1_hashes, "Different signatures → different hashes");
+    }
+
+    #[test]
+    fn test_compute_lsh_band_hashes_matches_cpu_reference() {
+        // Verify our implementation matches the GPU kernel reference
+        use crate::gpu::kernels::cpu_hash_band;
+
+        let sig = [42u16; SIGNATURE_SIZE];
+        let signatures = sig.to_vec();
+
+        // Compute using batch function
+        let batch_hashes = compute_lsh_band_hashes_from_u16(&signatures, 1);
+
+        // Compute using GPU kernel CPU reference
+        for band_idx in 0..NUM_BANDS {
+            let expected = cpu_hash_band(&sig, band_idx);
+            let actual = batch_hashes[band_idx];
+
+            assert_eq!(
+                actual, expected,
+                "Band {} hash mismatch: actual={}, expected={}",
+                band_idx, actual, expected
+            );
+        }
+    }
+
+    #[test]
+    fn test_gpu_batch_result_with_band_hashes() {
+        // Test GpuBatchResult with populated band_hashes
+        let num_docs = 2;
+        let signatures = vec![100u16; num_docs * SIGNATURE_SIZE];
+        let band_hashes = compute_lsh_band_hashes_from_u16(&signatures, num_docs);
+
+        let result = GpuBatchResult {
+            doc_ids: vec![0, 1],
+            signatures,
+            band_hashes: Some(band_hashes.clone()),
+            processing_time_us: 1000,
+            generation: 42,
+        };
+
+        assert_eq!(result.num_docs(), num_docs);
+        assert!(result.band_hashes.is_some());
+
+        let hashes = result.band_hashes.unwrap();
+        assert_eq!(hashes.len(), num_docs * NUM_BANDS);
+
+        // Verify hashes are correct
+        for doc_idx in 0..num_docs {
+            for band_idx in 0..NUM_BANDS {
+                let hash = hashes[doc_idx * NUM_BANDS + band_idx];
+                assert!(hash != 0, "Band hash should be non-zero");
+            }
+        }
     }
 
     #[test]

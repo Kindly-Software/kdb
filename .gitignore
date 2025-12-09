@@ -1,0 +1,107 @@
+# Build artifacts
+target/
+**/target/
+**/*.rs.bk
+Cargo.lock
+**/Cargo.lock
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.iml
+
+# Environment & Config
+.env
+.env.local
+.env.*.local
+.env.production
+.env.snapshot
+.venv/
+.venv_*/
+venv/
+
+# Build & Logs
+*.log
+build.log
+*_build.log
+test*.log
+*.o
+*.so
+*.dylib
+*.rlib
+*.pyc
+__pycache__/
+
+# Test & Benchmark
+proptest-regressions/
+**/*.proptest-regressions/
+/tmp/
+.cargo/
+.cargo/**
+
+# Generated files (documentation, analysis)
+*.md.bak
+RESTORE_CONVERSATIONS*.md
+*_SUMMARY.md
+*_REPORT.md
+*_EXPERT*.md
+*_INDEX.md
+*_QUICK*.md
+*_DELIVERABLE*.md
+*_VALIDATION*.md
+*_ANALYSIS*.md
+*_AUDIT*.md
+*_DELIVERY*.md
+*_COMPLETE.md
+*_QUICK_*.md
+*_FINAL*.md
+*_STATUS*.md
+*_EXECUTIVE*.md
+WEEK*.md
+PHASE*.md
+AGENT*.md
+*.csv.bak
+
+# Backup & Temporary
+*.bak
+*.backup
+*.tmp
+*.temp
+*.swp
+*_backup/
+
+# Python/Data
+*.pkl
+*.pickle
+*.npy
+*.npz
+*.joblib
+*.pth
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE temporary files
+.vscode/**
+.idea/**
+*.iml
+.project
+.classpath
+.c9/
+
+# LSP & Language Server
+.metals/
+.bloop/
+
+# Generated/Vendor specific
+/node_modules/
+package-lock.json
+yarn.lock
+
+# Subprojects (not tracked as submodules)
+capsule-vpn/

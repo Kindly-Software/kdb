@@ -17,7 +17,7 @@
 //! - **T28**: Tier 4 (Production Readiness) - 7+ production tests
 //! - **B32**: Performance targets enforced (<200ns audit, 95% CI)
 //! - **ASSUM**: 99.99% safe (all assumptions verified)
-//! - **COCA**: 100% lockfree (production stress tests)
+//! - **Chaos**: 100% lockfree (production stress tests)
 
 use kindly_dedup::benchmarking::{
     AuditLogger, BenchmarkAuditEntry, BenchmarkConfig, BenchmarkResult, EnvironmentCapture, EnvironmentInfo,

@@ -61,7 +61,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 (T9 Persistent tier), Q33 (derived verification), Q34 (audit trails)
-//! - **COCA**: 100% lockfree coordination via generation counter (T1 Atomic)
+//! - **Chaos**: 100% lockfree coordination via generation counter (T1 Atomic)
 //! - **ASSUM**: 99.99% safe (documented assumptions, crash recovery verified)
 //! - **B32**: Sequential I/O validated against SSD baseline
 //! - **T28**: 4-tier tests (unit/property/integration/production)
@@ -154,7 +154,7 @@ impl LshEntry {
 /// # Note on Naming
 /// This struct is called "Capsule" for consistency, but it's NOT a computational capsule
 /// (no #[derive(ComputationalCapsule)]). This is because File I/O requires Mutex,
-/// which violates the COCA lockfree mandate. This exception is documented and justified.
+/// which violates the Chaos lockfree mandate. This exception is documented and justified.
 #[repr(C, align(64))]
 pub struct TransactionLogCapsule {
     /// Log file path (with null terminator)
@@ -224,7 +224,7 @@ pub struct TransactionLogCapsule {
     /// - Performance impact minimal (file I/O dominates)
     /// - #ASSUME_NO_CONCURRENT_WRITES: Single transaction log per pipeline instance
     ///
-    /// # COCA Exception Justification
+    /// # Chaos Exception Justification
     /// - File I/O is inherently blocking and non-atomic
     /// - std::fs::File does not implement atomic operations
     /// - This is internal implementation detail (not exported in public API)

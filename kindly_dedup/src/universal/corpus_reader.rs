@@ -1,5 +1,12 @@
 //! # MmapCorpusReaderCapsule (T9+T5)
 //!
+//! # Clippy Suppressions
+//! - `missing_docs`: Internal types have self-documenting names
+//! - `dead_code`: Experimental functions retained for future development
+
+#![allow(missing_docs)]
+#![allow(dead_code)]
+
 //! Zero-copy JSONL corpus reader using memory-mapped files for O(1) memory overhead.
 //!
 //! ## Architecture
@@ -51,7 +58,7 @@
 //! - **B32**: Fair baselines (conservative performance claims)
 //! - **T28**: Comprehensive testing (4 tiers: unit/property/integration/production)
 //! - **I20**: 20/20 integration questions validated
-//! - **COCA**: 100% lockfree (no mutex/RwLock, atomic operations only)
+//! - **Chaos**: 100% lockfree (no mutex/RwLock, atomic operations only)
 
 use std::io;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -911,7 +918,7 @@ impl MmapCorpusReaderCapsule {
         line: &str,
         line_num: u64,
         _byte_offset: u64,
-    ) -> CorpusReaderResult<Document> {
+    ) -> CorpusReaderResult<Document<'_>> {
         // Single-pass parser: Scan line once, record positions of all relevant tokens
         // C4 format: {"id": 123, "text": "...", ...} OR {"doc_id": 123, "text": "...", ...}
         //
@@ -936,9 +943,9 @@ impl MmapCorpusReaderCapsule {
 
             // Check for "id": or "doc_id": field
             if !in_id_field && !in_text_field && i + 4 < bytes.len() {
-                if &bytes[i..i+4] == b"\"id\"" || (i + 9 < bytes.len() && &bytes[i..i+9] == b"\"doc_id\"") {
+                if &bytes[i..i+4] == b"\"id\"" || (i + 8 <= bytes.len() && &bytes[i..i+8] == b"\"doc_id\"") {
                     in_id_field = true;
-                    i += if &bytes[i..i+4] == b"\"id\"" { 4 } else { 9 };
+                    i += if &bytes[i..i+4] == b"\"id\"" { 4 } else { 8 };
                     continue;
                 }
                 // Check for "text": field
@@ -964,6 +971,21 @@ impl MmapCorpusReaderCapsule {
                     in_id_field = false;
                     after_colon = false;
                 }
+                // Handle string-valued id (invalid but should return InvalidDocId)
+                if after_colon && id_start.is_none() && b == b'"' {
+                    // Find the closing quote to extract the invalid string value
+                    let string_start = i + 1;
+                    let mut j = string_start;
+                    while j < bytes.len() && bytes[j] != b'"' {
+                        j += 1;
+                    }
+                    let invalid_id = if j < bytes.len() {
+                        String::from_utf8_lossy(&bytes[string_start..j]).to_string()
+                    } else {
+                        String::from_utf8_lossy(&bytes[string_start..]).to_string()
+                    };
+                    return Err(CorpusReaderError::InvalidDocId(invalid_id));
+                }
             }
 
             // Handle text field value extraction
@@ -983,7 +1005,13 @@ impl MmapCorpusReaderCapsule {
                 if after_colon && in_string && b == b'"' {
                     // Closing quote (simplified: assumes no escaped quotes)
                     text_end = Some(i);
-                    break; // Found both id and text, done
+                    in_text_field = false;
+                    after_colon = false;
+                    in_string = false;
+                    // Only break if we have both id and text
+                    if id_start.is_some() && id_end.is_some() {
+                        break;
+                    }
                 }
             }
 

@@ -1,0 +1,48 @@
+# Docker ignore file for efficient builds (P3-E6)
+# Reduces build context size and speeds up Docker builds
+
+# Build artifacts
+target/
+**/*.rs.bk
+*.pdb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+examples/
+LICENSE*
+
+# Tests and benchmarks (not needed for production image)
+benches/
+tests/
+
+# Development files
+Makefile
+rust-toolchain.toml
+.cargo/
+
+# Docker files
+Dockerfile*
+.dockerignore
+docker-compose.yml
+
+# Kubernetes
+k8s/
+
+# Grafana
+dashboards/
+
+# CI/CD
+.github/

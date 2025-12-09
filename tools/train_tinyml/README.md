@@ -173,7 +173,7 @@ fn load_ensemble(path: &str) -> Result<TinyMLTreeEnsemble, &'static str> {
 ## Framework Compliance
 
 - **UCE34**: Q10 (T3 Fixed-Point) + Q34 (Audit via checksum)
-- **COCA**: Zero external dependencies, deterministic output
+- **Chaos**: Zero external dependencies, deterministic output
 - **ASSUM**: All assumptions documented (Q8.8 range, tree depth limits)
 
 ## License

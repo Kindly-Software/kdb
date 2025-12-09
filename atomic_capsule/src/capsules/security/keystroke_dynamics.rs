@@ -21,7 +21,7 @@
 // - ACM Keystroke Dynamics Survey 2024: https://dl.acm.org/doi/10.1145/3733103
 // - TypingDNA Keystroke Dynamics: https://www.typingdna.com/docs/keystroke-dynamics.html
 //
-// Framework Compliance: UCE34 (Q1-Q34), COCA (100% lockfree), ASSUM (99.5%+), B32, T28, I20
+// Framework Compliance: UCE34 (Q1-Q34), Chaos (100% lockfree), ASSUM (99.5%+), B32, T28, I20
 
 use core::sync::atomic::{AtomicI64, AtomicU64, Ordering};
 

@@ -4,7 +4,7 @@
 **Delivered**: October 27, 2025
 **LOC**: 600+ (target met)
 **Tests**: 15 comprehensive tests
-**Frameworks**: UCE34, ASSUM, T28, B32, COCA
+**Frameworks**: UCE34, ASSUM, T28, B32, Chaos
 
 ---
 
@@ -217,7 +217,7 @@ Timestamp: 2025-10-27 22:30:45
 - ✅ Honest reporting (overhead disclosed)
 - ✅ Statistical rigor (1000+ thread stress test)
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 - ✅ 100% lockfree (no mutex/RwLock)
 - ✅ Cache-aligned (256B MetricsCapsule)
 - ✅ Generation counters (TOCTOU prevention)
@@ -308,4 +308,4 @@ examples/
 **Status**: ✅ Production-Ready
 **Author**: Monitoring Expert
 **Date**: October 27, 2025
-**Frameworks**: UCE34, ASSUM, T28, B32, COCA
+**Frameworks**: UCE34, ASSUM, T28, B32, Chaos

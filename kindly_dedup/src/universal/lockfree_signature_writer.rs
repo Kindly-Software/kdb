@@ -2,6 +2,13 @@
 //!
 //! **UCE34 Tier**: T1 Atomic (interior mutability via AtomicU32)
 //!
+//! # Clippy Suppressions
+//! - `unsafe_code`: Mmap operations require unsafe for raw pointer manipulation (ASSUM verified)
+//! - `missing_docs`: Internal error variants and type aliases have self-documenting names
+
+#![allow(unsafe_code)]
+#![allow(missing_docs)]
+//!
 //! ## Performance (B32 Target)
 //! - Write signature (fast path): <50ns (256B memcpy + atomic increment)
 //! - Read signature: <50ns (256B memcpy)

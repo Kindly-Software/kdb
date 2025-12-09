@@ -1,0 +1,193 @@
+warning: user-defined alias `bench` is ignored, because it is shadowed by a built-in command
+   Compiling proc-macro2 v1.0.103
+   Compiling quote v1.0.41
+   Compiling unicode-ident v1.0.20
+   Compiling libc v0.2.177
+   Compiling cfg-if v1.0.4
+   Compiling crossbeam-utils v0.8.21
+   Compiling zerocopy v0.8.27
+   Compiling getrandom v0.3.4
+   Compiling serde_core v1.0.228
+   Compiling memchr v2.7.6
+   Compiling rayon-core v1.13.0
+   Compiling autocfg v1.5.0
+   Compiling either v1.15.0
+   Compiling rustix v1.1.2
+   Compiling serde v1.0.228
+   Compiling serde_json v1.0.145
+   Compiling regex-syntax v0.8.8
+   Compiling ryu v1.0.20
+   Compiling futures-sink v0.3.31
+   Compiling pin-project-lite v0.2.16
+   Compiling futures-core v0.3.31
+   Compiling itoa v1.0.15
+   Compiling bitflags v2.10.0
+   Compiling linux-raw-sys v0.11.0
+   Compiling once_cell v1.21.3
+   Compiling anstyle v1.0.13
+   Compiling thiserror v2.0.17
+   Compiling futures-channel v0.3.31
+   Compiling ciborium-io v0.2.2
+   Compiling pin-utils v0.1.0
+   Compiling plotters-backend v0.3.7
+   Compiling atomic_capsule v0.3.3 (/home/samuel/Primitives/atomic_capsule)
+   Compiling clap_lex v0.7.6
+   Compiling num-traits v0.2.19
+   Compiling fastrand v2.3.0
+   Compiling futures-io v0.3.31
+   Compiling futures-task v0.3.31
+   Compiling slab v0.4.11
+   Compiling clap_builder v4.5.50
+   Compiling plotters-svg v0.3.7
+   Compiling crossbeam-epoch v0.9.18
+   Compiling itertools v0.10.5
+   Compiling quick-error v1.2.3
+   Compiling fnv v1.0.7
+warning: atomic_capsule@0.3.3: Nightly enabled but const-hashing disabled - missing 100× hash speedup
+warning: atomic_capsule@0.3.3: SIMD enabled but simd-hashing disabled - missing 2-8× hash speedup
+   Compiling bit-vec v0.8.0
+   Compiling cast v0.3.0
+   Compiling same-file v1.0.6
+   Compiling lazy_static v1.5.0
+   Compiling unarray v0.1.4
+   Compiling anes v0.1.6
+   Compiling walkdir v2.5.0
+   Compiling oorandom v11.1.5
+   Compiling crossbeam-deque v0.8.6
+   Compiling bit-set v0.8.0
+   Compiling syn v2.0.108
+   Compiling plotters v0.3.7
+   Compiling memmap2 v0.9.9
+   Compiling wait-timeout v0.2.1
+   Compiling is-terminal v0.4.17
+   Compiling rand_core v0.9.3
+   Compiling rayon v1.11.0
+   Compiling rand v0.9.2
+   Compiling rand_xorshift v0.4.0
+   Compiling regex-automata v0.4.13
+   Compiling criterion-plot v0.5.0
+   Compiling tempfile v3.23.0
+   Compiling clap v4.5.50
+   Compiling rusty-fork v0.3.1
+   Compiling regex v1.12.2
+   Compiling zerocopy-derive v0.8.27
+   Compiling serde_derive v1.0.228
+   Compiling futures-macro v0.3.31
+   Compiling thiserror-impl v2.0.17
+   Compiling atomic_capsule_derive v0.1.0 (/home/samuel/Primitives/atomic_capsule_derive)
+   Compiling tokio-macros v2.6.0
+   Compiling tokio v1.48.0
+   Compiling futures-util v0.3.31
+warning: unused import: `i32x8`
+   --> /home/samuel/Primitives/atomic_capsule/src/primitives/inference/quantization.rs:238:32
+    |
+238 |         use std::simd::{f32x8, i32x8, num::SimdFloat, StdFloat};
+    |                                ^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::simd::f32x8`
+  --> /home/samuel/Primitives/atomic_capsule/src/inference/matmul.rs:35:5
+   |
+35 | use std::simd::f32x8;
+   |     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::simd::num::SimdFloat`
+  --> /home/samuel/Primitives/atomic_capsule/src/primitives/inference/quantization.rs:35:5
+   |
+35 | use std::simd::num::SimdFloat;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `tenant_id`
+   --> /home/samuel/Primitives/atomic_capsule/src/collections/cache_integrated.rs:470:38
+    |
+470 |     pub fn get(&self, key_hash: u64, tenant_id: u64, global_gen: &AtomicU64) -> Option<V>
+    |                                      ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_tenant_id`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `store_hmac` is never used
+   --> /home/samuel/Primitives/atomic_capsule/src/collections/cache_integrated.rs:251:8
+    |
+156 | impl<V> CacheSlot<V> {
+    | -------------------- method in this implementation
+...
+251 |     fn store_hmac(&mut self, _value: &V, _key: &[u8; 32])
+    |        ^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `get_slot` is never used
+   --> /home/samuel/Primitives/atomic_capsule/src/collections/cache_batch.rs:294:19
+    |
+ 95 | impl<V> LockfreeCacheCapsule<V> {
+    | ------------------------------- method in this implementation
+...
+294 |     pub(crate) fn get_slot(&self, idx: usize) -> Option<&CacheSlot<V>> {
+    |                   ^^^^^^^^
+
+warning: method `simd_dot_product` is never used
+  --> /home/samuel/Primitives/atomic_capsule/src/inference/matmul.rs:81:8
+   |
+51 | impl MatMulCapsule {
+   | ------------------ method in this implementation
+...
+81 |     fn simd_dot_product(&self, _a: &[f32], _b: &[f32]) -> f32 {
+   |        ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> /home/samuel/Primitives/atomic_capsule/src/inference/matmul.rs:46:5
+    |
+ 46 |     pub k: usize,
+    |     ^^^^^^^^^^^^
+    |
+note: the lint level is defined here
+   --> /home/samuel/Primitives/atomic_capsule/src/lib.rs:124:9
+    |
+124 | #![warn(missing_docs, rust_2018_idioms)]
+    |         ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/inference/matmul.rs:47:5
+   |
+47 |     pub n: usize,
+   |     ^^^^^^^^^^^^
+
+   Compiling kindly_inference v0.1.0 (/home/samuel/Primitives/kindly_inference)
+error[E0432]: unresolved import `atomic_capsule::simd_vectorization`
+  --> src/primitives/inference.rs:98:25
+   |
+98 | pub use atomic_capsule::simd_vectorization::SimdI32x8Capsule;
+   |                         ^^^^^^^^^^^^^^^^^^ could not find `simd_vectorization` in `atomic_capsule`
+
+error[E0432]: unresolved import `atomic_capsule::simd_vectorization`
+   --> src/primitives/inference.rs:104:25
+    |
+104 | pub use atomic_capsule::simd_vectorization::SimdF32x8Capsule;
+    |                         ^^^^^^^^^^^^^^^^^^ could not find `simd_vectorization` in `atomic_capsule`
+
+error[E0432]: unresolved import `atomic_capsule::simd_vectorization`
+   --> src/primitives/inference.rs:112:25
+    |
+112 | pub use atomic_capsule::simd_vectorization::SimdFixedPointQ16x8;
+    |                         ^^^^^^^^^^^^^^^^^^ could not find `simd_vectorization` in `atomic_capsule`
+
+warning: unused import: `i32x8`
+   --> src/primitives/inference.rs:506:32
+    |
+506 |         use std::simd::{f32x8, i32x8, num::SimdInt, StdFloat};
+    |                                ^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `num::SimdInt`
+   --> src/primitives/inference.rs:506:39
+    |
+506 |         use std::simd::{f32x8, i32x8, num::SimdInt, StdFloat};
+    |                                       ^^^^^^^^^^^^
+
+For more information about this error, try `rustc --explain E0432`.
+warning: `kindly_inference` (lib) generated 2 warnings
+error: could not compile `kindly_inference` (lib) due to 3 previous errors; 2 warnings emitted
+warning: build failed, waiting for other jobs to finish...
+warning: `atomic_capsule` (lib) generated 9 warnings (run `cargo fix --lib -p atomic_capsule` to apply 3 suggestions)

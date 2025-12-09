@@ -29,7 +29,7 @@
 - B32 fair baselines (compare against optimized scalar, not strawman)
 - T28 comprehensive testing (unit/property/integration/production)
 - I20 integration validation (20/20 questions answered)
-- COCA 100% lockfree (no mutex/RwLock)
+- Chaos 100% lockfree (no mutex/RwLock)
 
 ---
 
@@ -975,7 +975,7 @@ atomic_capsule = { path = "../atomic_capsule", features = ["simd-minhash"] }
 - ✅ B32 fair baselines (optimized scalar, honest reporting)
 - ✅ T28 comprehensive testing (unit/property/integration/production)
 - ✅ I20 integration validation (20/20 questions)
-- ✅ COCA 100% lockfree (no mutex/RwLock)
+- ✅ Chaos 100% lockfree (no mutex/RwLock)
 
 **Timeline**: 4 weeks (implementation → benchmarking → dispatch → release)
 

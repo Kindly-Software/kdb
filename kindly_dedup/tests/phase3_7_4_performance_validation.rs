@@ -223,7 +223,7 @@ fn test_q34_validation_summary() {
 
     println!("\n✓ Framework Compliance:");
     println!("  ✓ UCE34: Q30-Q34 validation (T6 Mixed tier)");
-    println!("  ✓ COCA: 100% lockfree (no mutex/RwLock)");
+    println!("  ✓ Chaos: 100% lockfree (no mutex/RwLock)");
     println!("  ✓ ASSUM: 99.99% safe (all assumptions documented)");
     println!("  ✓ B32: Fair baseline (260 docs/sec DedupPipeline)");
     println!("  ✓ T28: Q30-Q34 tests (unit/property/integration/production)");
@@ -231,7 +231,7 @@ fn test_q34_validation_summary() {
     println!("\n✓ Key Metrics:");
     println!("  - Memory usage: <5 GB (100K docs, per requirement)");
     println!("  - Duplicate detection accuracy: ≥90% F1 score");
-    println!("  - Cache alignment: 64B/128B/256B (COCA compliant)");
+    println!("  - Cache alignment: 64B/128B/256B (Chaos compliant)");
     println!("  - Zero mutex/RwLock: 100% atomic operations");
 
     println!("\n✓ Next Steps:");

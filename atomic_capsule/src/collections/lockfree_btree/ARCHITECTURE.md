@@ -676,5 +676,5 @@ let value = node.values[pos].clone();
 **Document Version**: 1.0.0
 **Last Updated**: 2025-11-04
 **Status**: Architecture Complete - Ready for Implementation
-**Frameworks**: UCE34, ASSUM, B32, T28, I20, COCA (100% lockfree)
+**Frameworks**: UCE34, ASSUM, B32, T28, I20, Chaos (100% lockfree)
 **Next Steps**: Create skeleton types, implement Phase 1 (Node Structure)

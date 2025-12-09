@@ -36,7 +36,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 T4 Batch tier, Q11 Rust Transform, Q12 nightly (rayon)
-//! - **COCA**: 100% computational capsule (T1 Atomic metadata + T4 Batch execution)
+//! - **Chaos**: 100% computational capsule (T1 Atomic metadata + T4 Batch execution)
 //! - **ASSUM**: 99.5%+ safety (all dependencies tracked, no data races)
 //! - **B32**: Fair baseline (sequential execution), conservative speedup claims
 //! - **T28**: Comprehensive 28-test validation (unit/property/integration/production)

@@ -13,7 +13,7 @@
 //! 4. Q34 Audit Trail Coverage
 //! 5. Performance Validation
 //!
-//! # COCA Compliance
+//! # Chaos Compliance
 //!
 //! All integration points verified for lockfree coordination,
 //! cache alignment, and generation counter consistency.

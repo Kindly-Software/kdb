@@ -3,7 +3,7 @@
 //! **Purpose**: Comprehensive validation of AuditLogCapsule integration into kindly_dedup CLI screens
 //! **Coverage**: 15 test cases covering screen transitions, config changes, user actions, and chain integrity
 //! **Framework**: UCE34 (T28 Q15-Q21 Integration tier)
-//! **Compliance**: Q34 audit trail verification, hash chain integrity, COCA 100% lockfree
+//! **Compliance**: Q34 audit trail verification, hash chain integrity, Chaos 100% lockfree
 
 #[cfg(feature = "interactive")]
 mod tests {

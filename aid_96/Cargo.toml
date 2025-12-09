@@ -1,0 +1,22 @@
+[package]
+name = "aid_96"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+serde = ["dep:serde"]
+
+[dependencies]
+blake3 = "1"
+getrandom = "0.2"
+hostname = "0.3"
+serde = { version = "1", features = ["derive"], optional = true }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1"
+
+[[bench]]
+name = "throughput"
+harness = false

@@ -1,6 +1,6 @@
 //! # Supply Chain Guard - T0 Auditable Startup Verification
 //!
-//! **Production-ready supply chain verification using UCE34/COCA capsule primitives**
+//! **Production-ready supply chain verification using UCE34/Chaos capsule primitives**
 //!
 //! ## Architecture
 //! - **Tier T0 (Auditable)**: Hash-chain integrity for Cargo.lock verification

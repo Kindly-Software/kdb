@@ -13,7 +13,7 @@
 //! - **ASSUM**: 99.5%+ safety (all quantum errors documented)
 //! - **B32**: Fair baselines (quantum vs classical comparison in benchmarks)
 //! - **T28**: Full 4-tier test pyramid
-//! - **COCA**: 100% computational capsule (T1 Atomic + T11 Quantum)
+//! - **Chaos**: 100% computational capsule (T1 Atomic + T11 Quantum)
 
 #[cfg(feature = "quantum-simulation")]
 mod quantum_tests {

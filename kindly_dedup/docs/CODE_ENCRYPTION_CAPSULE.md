@@ -178,7 +178,7 @@ pub enum EncryptionError {
 - **Q28**: Simplicity = AES-256-GCM only (NIST standard)
 - **Q31-Q34**: Validation, auditability (hash-chain integrity)
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 
 - **100% Lockfree**: No mutex/RwLock, AtomicU64 coordination only
 - **Cache-Aligned**: 256B capsule (HotTier), 64B blocks (WarmTier)
@@ -372,7 +372,7 @@ fn protected_code_execution() -> Result<(), Box<dyn std::error::Error>> {
 ## References
 
 - **UCE34**: `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/uce34.xml`
-- **COCA**: `/home/samuel/Docs/The Computational Capsule.md`
+- **Chaos**: `/home/samuel/Docs/The Computational Capsule.md`
 - **ASSUM**: `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/assum.xml`
 - **B32**: `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/b32.xml`
 - **T28**: `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/t28.xml`
@@ -394,4 +394,4 @@ fn protected_code_execution() -> Result<(), Box<dyn std::error::Error>> {
 
 **Lines of Code**: 503 (implementation + comprehensive tests)
 
-**Framework Compliance**: UCE34, COCA, ASSUM, B32, T28, I20
+**Framework Compliance**: UCE34, Chaos, ASSUM, B32, T28, I20

@@ -210,6 +210,39 @@ impl DiplomaticStateCapsule {
         self.generation.fetch_add(1, Ordering::AcqRel);
     }
 
+    /// Aggregate war exhaustion per faction (average across active relations).
+    pub fn war_exhaustion_by_faction(&self) -> Vec<u32> {
+        let mut sums = vec![0u64; self.faction_count];
+        let mut counts = vec![0u64; self.faction_count];
+        for a in 0..self.faction_count {
+            for b in (a + 1)..self.faction_count {
+                if let Some(idx) = self.idx(a as u16, b as u16) {
+                    let rel = &self.relations[idx];
+                    if matches!(
+                        DiplomaticState::from_u8(rel.state.load(Ordering::Acquire)),
+                        Some(DiplomaticState::War)
+                    ) {
+                        let exhaustion = rel.war_exhaustion_q16.load(Ordering::Acquire);
+                        sums[a] = sums[a].saturating_add(exhaustion as u64);
+                        sums[b] = sums[b].saturating_add(exhaustion as u64);
+                        counts[a] = counts[a].saturating_add(1);
+                        counts[b] = counts[b].saturating_add(1);
+                    }
+                }
+            }
+        }
+        sums.iter()
+            .zip(counts.iter())
+            .map(|(sum, count)| {
+                if *count == 0 {
+                    0
+                } else {
+                    (sum / count).min(u32::MAX as u64) as u32
+                }
+            })
+            .collect()
+    }
+
     pub fn snapshot(&self, tick: u64) -> DiplomaticSnapshot {
         self.last_tick.store(tick, Ordering::Release);
         let mut rels = Vec::with_capacity(self.faction_count.saturating_mul(self.faction_count) / 2);

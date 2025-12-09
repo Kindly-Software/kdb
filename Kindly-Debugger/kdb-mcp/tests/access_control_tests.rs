@@ -6,7 +6,7 @@
 //! - Q15-Q21: Integration tests (this file)
 //! - Q22-Q28: Production tests (load/stress)
 //!
-//! **Compliance**: COCA (100% computational capsule), ASSUM (99.99% safety),
+//! **Compliance**: Chaos (100% computational capsule), ASSUM (99.99% safety),
 //! B32 (fair baseline), UCE34 (Q10-Q12 tier selection + Q33/Q34)
 
 use kdb_mcp::access_control::{AccessControlCapsule, Command, AccessError};

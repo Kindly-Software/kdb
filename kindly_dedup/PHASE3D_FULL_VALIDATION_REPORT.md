@@ -255,7 +255,7 @@ WARNING: Flush: Linked list traversal mismatch for band_hash BandHash(...):
 ### Framework Compliance
 
 - ✅ **UCE34**: Q1-Q34 systematic discovery, tier selection (T1 Atomic + T4 Batch + T5 Streaming)
-- ✅ **COCA**: 100% lockfree coordination (LockfreeResultAggregatorV2, AtomicU64)
+- ✅ **Chaos**: 100% lockfree coordination (LockfreeResultAggregatorV2, AtomicU64)
 - ✅ **ASSUM**: 99.99% safety (all assumptions documented, zero unsafe fast paths)
 - ✅ **B32**: Fair benchmarking (sequential baseline, 95% CI via multiple runs)
 - ✅ **T28**: Comprehensive testing (unit/integration/production scales: 100K, 1M)
@@ -292,7 +292,7 @@ The parallel pipeline has been thoroughly validated:
 - ✅ Superlinear scaling (cache locality benefits)
 - ✅ Large-scale validation (1M documents, 59.8s)
 - ✅ Memory stable (<6GB peak)
-- ✅ Framework compliant (UCE34, COCA, ASSUM, B32, T28, I20)
+- ✅ Framework compliant (UCE34, Chaos, ASSUM, B32, T28, I20)
 
 **Recommendation**: Deploy to production immediately with 4-thread configuration for optimal performance and efficiency.
 

@@ -31,7 +31,7 @@
 //! # Framework Compliance
 //!
 //! - T1 Atomic: 100% lockfree (no mutex/RwLock)
-//! - COCA: All capsules use generation counters, cache-aligned
+//! - Chaos: All capsules use generation counters, cache-aligned
 //! - ASSUM: Pure safe Rust (no unsafe blocks)
 //! - T28: Comprehensive tests (unit/property/integration)
 

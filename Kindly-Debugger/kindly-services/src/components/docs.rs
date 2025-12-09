@@ -178,39 +178,44 @@ pub fn Docs() -> impl IntoView {
 
                 // Installation
                 <section id="installation" style=section_style>
-                    <h2 style=section_title_style>"Installation"</h2>
+                    <h2 style=section_title_style>"Getting Started"</h2>
 
-                    <h3 style=subsection_title_style>"Open Source (Basic MCP Handshake)"</h3>
+                    <h3 style=subsection_title_style>"Step 1: Sign Up"</h3>
                     <p style=paragraph_style>
-                        "The open source version provides core time-travel debugging with basic MCP protocol support:"
+                        "Sign up for a free Hobby tier account to get your API key:"
                     </p>
                     <pre style=code_block_style>
-{"# Clone repository
-git clone https://github.com/kindly-software/kdb
-cd kdb
+{"# Visit https://kindly.software and click 'Start Free'
+# or go directly to: https://api.kindly.software/api/v1/signup
 
-# Build from source
-cargo build --release
-
-# Run debugger
-./target/release/kdb"}
+# You'll receive a license key via email"}
                     </pre>
 
-                    <h3 style=subsection_title_style>"Premium Binary (Pre-built)"</h3>
+                    <h3 style=subsection_title_style>"Step 2: Configure Your MCP Client"</h3>
                     <p style=paragraph_style>
-                        "Premium licenses include pre-built binaries with enhanced features:"
+                        "Add KDB to your MCP client (Claude Code, Cursor, or any MCP-compatible tool):"
                     </p>
                     <pre style=code_block_style>
-{"# Download from dashboard
-# Extract binary
-tar -xzf kdb-linux-x64.tar.gz
+{"# Claude Code: ~/.config/claude-code/mcp.json
+# Cursor: Settings > MCP Servers
 
-# Install
-sudo mv kdb /usr/local/bin/
-
-# Verify
-kdb --version"}
+{
+  \"mcpServers\": {
+    \"kdb\": {
+      \"command\": \"kdb-mcp\",
+      \"args\": [],
+      \"env\": {
+        \"KDB_LICENSE_KEY\": \"your-license-key\"
+      }
+    }
+  }
+}"}
                     </pre>
+
+                    <h3 style=subsection_title_style>"Step 3: Start Debugging"</h3>
+                    <p style=paragraph_style>
+                        "Ask your AI assistant to debug - it will use KDB automatically!"
+                    </p>
                 </section>
 
                 // Basic Usage
@@ -316,7 +321,7 @@ quit"}
 
                     <p style=paragraph_style>
                         "Premium licenses include a REST API server for remote debugging (available at "
-                        <a href="https://api.kindly.services" style="color: #FFD700;">"api.kindly.services"</a>
+                        <a href="https://api.kindly.software" style="color: #FFD700;">"api.kindly.software"</a>
                         "):"
                     </p>
 
@@ -373,10 +378,11 @@ Response:
                 <section id="faq" style=section_style>
                     <h2 style=section_title_style>"Frequently Asked Questions"</h2>
 
-                    <h3 style=subsection_title_style>"What's the difference between open source and premium?"</h3>
+                    <h3 style=subsection_title_style>"What's the difference between Hobby, Pro, and Enterprise?"</h3>
                     <p style=paragraph_style>
-                        "The open source version provides core time-travel debugging with a basic MCP handshake using standard dependencies. "
-                        "Premium licenses add audit trails, remote debugging, compliance features, and pre-built binaries."
+                        "Hobby is free forever with 5 sessions/month (unlimited during our 7-day launch promo). "
+                        "Pro adds unlimited sessions and extended features. Enterprise includes compliance features, "
+                        "dedicated support, and custom integrations for regulated industries."
                     </p>
 
                     <h3 style=subsection_title_style>"How does time-travel debugging work?"</h3>
@@ -393,7 +399,8 @@ Response:
 
                     <h3 style=subsection_title_style>"What platforms are supported?"</h3>
                     <p style=paragraph_style>
-                        "Linux x86_64 is the primary platform. macOS and Windows support are planned for future releases."
+                        "KDB is platform-agnostic via MCP! You can use it from macOS, Windows, or Linux through "
+                        "Claude Code, Cursor, or any MCP-compatible AI assistant. The debugger engine runs on our servers."
                     </p>
 
                     <h3 style=subsection_title_style>"Can AI assistants use KDB?"</h3>
@@ -402,14 +409,11 @@ Response:
                         "AI assistants can debug alongside you with no configuration needed."
                     </p>
 
-                    <h3 style=subsection_title_style>"How do I report bugs?"</h3>
+                    <h3 style=subsection_title_style>"How do I get support?"</h3>
                     <p style=paragraph_style>
-                        "Open source users: GitHub Issues at "
-                        <a href="https://github.com/kindly-software/kdb" style="color: #FFD700;">"github.com/kindly-software/kdb"</a>
-                        <br/>
-                        "Premium users: Email "
-                        <a href="mailto:support@kindly.services" style="color: #FFD700;">"support@kindly.services"</a>
-                        " for priority support."
+                        "Email us at "
+                        <a href="mailto:support@kindly.software" style="color: #FFD700;">"support@kindly.software"</a>
+                        ". Pro and Enterprise customers receive priority support with guaranteed response times."
                     </p>
                 </section>
 
@@ -420,9 +424,9 @@ Response:
                         "Need help? We're here for you."
                     </p>
                     <ul style=list_style>
-                        <li style=list_item_style>"Email: support@kindly.services"</li>
-                        <li style=list_item_style>"GitHub: github.com/kindly-software/kdb"</li>
-                        <li style=list_item_style>"API Documentation: api.kindly.services"</li>
+                        <li style=list_item_style>"Email: support@kindly.software"</li>
+                        <li style=list_item_style>"Website: kindly.software"</li>
+                        <li style=list_item_style>"API Documentation: api.kindly.software"</li>
                     </ul>
                 </section>
             </div>

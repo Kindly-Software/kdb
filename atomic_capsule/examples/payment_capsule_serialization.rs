@@ -9,7 +9,7 @@
 //! 4. Stripe payment flow simulation
 //! 5. Compliance-ready exports (SOX, SOC2, GDPR)
 //!
-//! ## COCA Architecture:
+//! ## Chaos Architecture:
 //! - Tier 3 (Fixed-Point): Deterministic payment amounts (Q16.16)
 //! - Tier 1 (Atomic): Lockfree payment state management
 //! - Cache-aligned: 256-byte capsule for optimal memory access

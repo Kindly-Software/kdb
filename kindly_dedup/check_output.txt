@@ -1,0 +1,102 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/atomic_network_gateway/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/kiang/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/atomic_capsule_tier1/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/atomic_capsule_derive/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/clapi_core/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/kindly-web/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/kindly_compression/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/kindly_dedup/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/capsule-migrate/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: /home/samuel/Primitives/Cargo.toml: `panic` setting is ignored for `bench` profile
+warning: /home/samuel/Primitives/kindly_dedup/Cargo.toml: `panic` setting is ignored for `bench` profile
+warning: /home/samuel/Primitives/kindly_dedup/Cargo.toml: `panic` setting is ignored for `test` profile
+    Blocking waiting for file lock on package cache
+warning: unexpected `cfg` condition value: `std`
+  --> atomic_capsule_derive/src/audit.rs:34:7
+   |
+34 | #[cfg(feature = "std")]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+   = help: consider adding `std` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unexpected `cfg` condition value: `std`
+  --> atomic_capsule_derive/src/audit.rs:84:7
+   |
+84 | #[cfg(feature = "std")]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+   = help: consider adding `std` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> atomic_capsule_derive/src/audit.rs:418:7
+    |
+418 | #[cfg(feature = "std")]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> atomic_capsule_derive/src/audit.rs:424:7
+    |
+424 | #[cfg(feature = "std")]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> atomic_capsule_derive/src/audit.rs:639:7
+    |
+639 | #[cfg(feature = "std")]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> atomic_capsule_derive/src/audit.rs:386:11
+    |
+386 |     #[cfg(feature = "std")]
+    |           ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> atomic_capsule_derive/src/audit.rs:394:15
+    |
+394 |     #[cfg(not(feature = "std"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+

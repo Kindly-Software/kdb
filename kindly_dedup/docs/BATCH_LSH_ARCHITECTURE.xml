@@ -14,7 +14,7 @@
       <standard>B32 Benchmarking (fair baselines, statistical rigor)</standard>
       <standard>T28 Testing (4-tier validation)</standard>
       <standard>I20 Integration (Big Bang deployment)</standard>
-      <standard>COCA 100% Lockfree (zero Mutex/RwLock)</standard>
+      <standard>Chaos 100% Lockfree (zero Mutex/RwLock)</standard>
     </compliance>
   </metadata>
 
@@ -1138,7 +1138,7 @@ let candidates_per_doc = batch_lookup.lookup_batch(&signatures);
       <standard>B32: 1.5-2× speedup (fair baseline, 95% CI, 1000+ iterations)</standard>
       <standard>T28: 45 tests (15 unit + 10 property + 12 integration + 8 production)</standard>
       <standard>I20: 20/20 integration (Big Bang deployment, zero breaking changes)</standard>
-      <standard>COCA: 100% lockfree (ConcurrentMapCapsule, zero Mutex/RwLock)</standard>
+      <standard>Chaos: 100% lockfree (ConcurrentMapCapsule, zero Mutex/RwLock)</standard>
     </framework-compliance>
 
     <implementation-effort>18 hours (2-3 days) split into 6 phases</implementation-effort>

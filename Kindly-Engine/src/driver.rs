@@ -8,6 +8,7 @@
 //! - Replay/snapshot capsules: mmap-backed persistence chain.
 
 use crate::ballistics::{BallisticsCapsule, FireControlProfileCapsule};
+use crate::campaign::CampaignFrame;
 use crate::command::{CommandHierarchyCapsule, CommanderSnapshot};
 use crate::courier::CourierCapsule;
 use crate::diplomacy::DiplomaticSnapshot;
@@ -27,6 +28,7 @@ use crate::replay::{ReplayFlushCapsule, ReplayIndexCapsule, ReplayLogCapsule, Re
 use crate::snapshot::{CampaignSnapshotCapsule, SnapshotMmapCapsule};
 use crate::strategic_map::StrategicSnapshot;
 use crate::structure::StructureCapsule;
+use crate::siege::SiegeCapsule;
 use crate::supply::SupplySnapshot;
 use crate::telemetry::{FormationBreakTelemetryCapsule, TelemetryCapsule};
 use crate::terrain::TerrainGridCapsule;
@@ -43,9 +45,21 @@ pub fn run_driver_tick<'a, const FB: usize, const N: usize>(
     driver: &'a mut DriverCapsule<'a, FB, N>,
     shards: &'a [ShardContext<'a, FB>],
     strategic: Option<&'a StrategicSnapshot>,
+    diplomatic: Option<&'a DiplomaticSnapshot>,
+    economy: Option<&'a crate::province_economy::EconomySnapshot>,
+    campaign: Option<&'a CampaignFrame>,
+    command_delays: Option<&'a crate::order::CommandDelayBufferCapsule>,
     kgpu_sink: Option<&'a mut crate::kgpu_ingest::KgpuRenderSinkCapsule>,
 ) -> Result<StreamingFrame<'a>, RuntimeStreamError> {
-    driver.step(shards, strategic, kgpu_sink)
+    driver.step(
+        shards,
+        strategic,
+        diplomatic,
+        economy,
+        campaign,
+        command_delays,
+        kgpu_sink,
+    )
 }
 
 /// Stateful driver capsule that owns the runtime stream and ties together persistence + overlays.
@@ -62,6 +76,7 @@ pub struct DriverCapsule<'a, const FB: usize, const N: usize> {
     snapshot_mmap: &'a mut SnapshotMmapCapsule,
     formations: &'a [FormationCapsule],
     structures: &'a [StructureCapsule],
+    siege: Option<&'a SiegeCapsule>,
     garrisons: Option<&'a GarrisonSlabCapsule>,
     orders: &'a OrderQueueCapsule,
     telemetry: &'a TelemetryCapsule,
@@ -92,6 +107,7 @@ impl<'a, const FB: usize, const N: usize> DriverCapsule<'a, FB, N> {
         snapshot_mmap: &'a mut SnapshotMmapCapsule,
         formations: &'a [FormationCapsule],
         structures: &'a [StructureCapsule],
+        siege: Option<&'a SiegeCapsule>,
         garrisons: Option<&'a GarrisonSlabCapsule>,
         orders: &'a OrderQueueCapsule,
         telemetry: &'a TelemetryCapsule,
@@ -114,6 +130,7 @@ impl<'a, const FB: usize, const N: usize> DriverCapsule<'a, FB, N> {
             snapshot_mmap,
             formations,
             structures,
+            siege,
             garrisons,
             orders,
             telemetry,
@@ -133,6 +150,7 @@ impl<'a, const FB: usize, const N: usize> DriverCapsule<'a, FB, N> {
         strategic: Option<&'s StrategicSnapshot>,
         diplomatic: Option<&'s DiplomaticSnapshot>,
         economy: Option<&'s crate::province_economy::EconomySnapshot>,
+        campaign: Option<&'s CampaignFrame>,
         command_delays: Option<&'s crate::order::CommandDelayBufferCapsule>,
         kgpu_sink: Option<&mut KgpuRenderSinkCapsule>,
     ) -> Result<StreamingFrame<'s>, RuntimeStreamError> {
@@ -147,12 +165,14 @@ impl<'a, const FB: usize, const N: usize> DriverCapsule<'a, FB, N> {
             &mut *self.snapshot_mmap,
             self.formations,
             self.structures,
+            self.siege,
             self.garrisons,
             self.orders,
             self.telemetry,
             strategic,
             diplomatic,
             economy,
+            campaign,
             command_delays,
             self.overlay_capsule,
             self.kgpu,
@@ -186,6 +206,7 @@ impl<'a, const FB: usize, const N: usize> DriverCapsule<'a, FB, N> {
             self.terrain,
             self.grenades,
             Some(self.structures),
+            self.siege,
             self.garrisons,
             supply,
             self.courier,

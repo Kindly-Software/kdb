@@ -1,7 +1,7 @@
 //! TLS Handshake Metrics Capsule - T0 Auditable + T1 Atomic
 //!
 //! **Tier**: T0 Auditable (Q34 hash-chain audit trail) + T1 Atomic (lockfree metrics)
-//! **Framework**: UCE34, COCA, ASSUM, B32, T28, I20
+//! **Framework**: UCE34, Chaos, ASSUM, B32, T28, I20
 //! **Compliance**: SOX/SOC2/GDPR/HIPAA via Q34 audit trails
 //!
 //! This capsule provides high-performance TLS handshake metrics with Q34-compliant
@@ -68,7 +68,7 @@
 //! - **Q13-Q28**: Implementation (28+ tests)
 //! - **Q29-Q34**: Validation (ASSUM safety, B32 benchmarks, I20 integration, Q34 audit)
 //!
-//! ### COCA (Computational Capsule Architecture)
+//! ### Chaos (Computational Capsule Architecture)
 //! - 100% lockfree (atomic operations only)
 //! - Cache-aligned (128 bytes, 2 cache lines)
 //! - Zero dependencies

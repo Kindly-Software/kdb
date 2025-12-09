@@ -1,6 +1,6 @@
 //! # Unified Computational Capsule Trait Hierarchy
 //!
-//! Hierarchical trait system enabling 95% COCA compliance across all 10 tiers.
+//! Hierarchical trait system enabling 95% Chaos compliance across all 10 tiers.
 //!
 //! ## UCE33 Framework Applied
 //!

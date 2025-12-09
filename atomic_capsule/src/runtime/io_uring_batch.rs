@@ -20,7 +20,7 @@
 //! - **Backpressure Check**: <50ns
 //! - **Overall Throughput**: 10-100× vs individual operations
 //!
-//! # Framework Compliance (UCE34 + COCA)
+//! # Framework Compliance (UCE34 + Chaos)
 //!
 //! - **Tier**: T4 (Batch 10-100×) + T5 (Streaming O(1))
 //! - **Lockfree**: 100% atomic coordination, zero mutexes

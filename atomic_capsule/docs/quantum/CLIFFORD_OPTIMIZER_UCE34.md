@@ -42,7 +42,7 @@
 **Hard Constraints**:
 1. **Clifford-only**: Only H, S, CNOT, Pauli gates (stabilizer formalism)
 2. **Exact equivalence**: Optimized circuit must produce identical stabilizer state
-3. **Lockfree coordination**: No mutex/RwLock (COCA mandate)
+3. **Lockfree coordination**: No mutex/RwLock (Chaos mandate)
 4. **Cache-aligned**: 64-byte alignment for SIMD operations
 5. **Deterministic**: Same input → same output (reproducible optimization)
 
@@ -58,7 +58,7 @@
 
 **Non-Negotiable**:
 - 100% correctness (failing test → abort optimization)
-- COCA compliance (lockfree, cache-aligned, generation counters)
+- Chaos compliance (lockfree, cache-aligned, generation counters)
 
 ---
 
@@ -349,7 +349,7 @@ cargo flamegraph --release --bench clifford_optimizer -- --bench
 
 **Framework Compliance**:
 - **UCE34 Q10**: Profiling-first → T2+T4 tier selection → 5-10× speedup target
-- **COCA**: 100% lockfree, cache-aligned, SIMD-enabled
+- **Chaos**: 100% lockfree, cache-aligned, SIMD-enabled
 - **B32**: Fair baseline (no fusion) → optimized (fusion + parallel) → 5-10× validated
 
 ---
@@ -442,7 +442,7 @@ fn batch_commutation_analysis(&self, gates: &[GateCapsule]) -> Vec<u64> {
 - **AtomicU8** for gate metadata (type, layer, fusion status)
 - **AtomicU16** for qubit indices (target, control, last gate)
 - **AtomicU64** for commutation masks (64-bit bitmask, <64 gates)
-- **No mutex/RwLock** (COCA mandate)
+- **No mutex/RwLock** (Chaos mandate)
 
 ---
 
@@ -1078,7 +1078,7 @@ impl CliffordOptimizerCapsule {
 
 **Framework Compliance**:
 - ✅ UCE34 (Q1-Q34 systematic discovery)
-- ✅ COCA (100% lockfree, cache-aligned, SIMD-enabled)
+- ✅ Chaos (100% lockfree, cache-aligned, SIMD-enabled)
 - ✅ B32 (fair baseline, 95% CI, 1000+ iterations)
 - ✅ T28 (28 tests: unit/property/integration/production)
 - ✅ ASSUM (99.99% safe, all assumptions documented)

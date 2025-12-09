@@ -984,4 +984,4 @@ fn test_batch_documentation_examples() {
 // - ASSUM: 99.99% safety target (documented assumptions)
 // - B32: Fair performance baselines (batch vs individual)
 // - I20: Integration validated (SPSC/MPMC pipelines)
-// - COCA: 100% lockfree (SPSC zero-CAS, MPMC CAS coordination)
+// - Chaos: 100% lockfree (SPSC zero-CAS, MPMC CAS coordination)

@@ -1,6 +1,6 @@
 //! Logging demonstration example
 //!
-//! This example demonstrates the COCA-compliant logging system with:
+//! This example demonstrates the Chaos-compliant logging system with:
 //! - RUST_LOG environment variable parsing
 //! - Module-level filtering
 //! - Multiple log levels

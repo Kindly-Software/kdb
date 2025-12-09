@@ -3,7 +3,7 @@
 **Phase**: Q3.6-C Specialized Surface Code Simulator - Integration Layer
 **Version**: 1.0.0
 **Date**: 2025-11-21
-**Framework**: UCE34 Systematic Discovery + COCA Computational Capsules
+**Framework**: UCE34 Systematic Discovery + Chaos Computational Capsules
 
 ---
 
@@ -57,7 +57,7 @@
 - **Monitoring Overhead**: <5% (telemetry must not dominate latency)
 
 **Constraints**:
-- 100% lockfree (COCA mandate)
+- 100% lockfree (Chaos mandate)
 - Cache-aligned (64B header, 256B syndrome entries)
 - ASSUM 99.99% safe (all assumptions verified)
 - Zero unsafe in fast path (decoder coordination only)
@@ -702,7 +702,7 @@ struct QECPipelineState {
     cycle_count: AtomicU64,       // Total QEC rounds
 }
 ```
-**Why Essential**: Lockfree coordination without mutex (COCA mandate)
+**Why Essential**: Lockfree coordination without mutex (Chaos mandate)
 
 **2. Alignment Control** (#[repr(C, align(N))]):
 ```rust
@@ -1522,7 +1522,7 @@ impl QECIntegrationCapsule {
 
 **Architecture**: T4+T5+T1 pipeline (Batch syndrome + Streaming decoder + Atomic coordination)
 **Performance**: <100μs QEC cycle (1.54× speedup via Amdahl's Law)
-**Compliance**: UCE34 (Q1-Q34), COCA (100% lockfree), B32 (fair baselines), T28 (28 tests), ASSUM (99.99% safe), Q34 (audit trails)
+**Compliance**: UCE34 (Q1-Q34), Chaos (100% lockfree), B32 (fair baselines), T28 (28 tests), ASSUM (99.99% safe), Q34 (audit trails)
 **Innovation**: Adaptive decoder selection (2.4× faster), Zero-copy syndrome sharing, Lockfree pipeline (<5% coordination overhead)
 **Status**: Design complete, ready for implementation (see QEC_INTEGRATION_SPEC.md for detailed spec)
 

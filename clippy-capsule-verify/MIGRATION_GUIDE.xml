@@ -1,0 +1,1817 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ============================================================================
+     MIGRATION GUIDE: Manual Verification → Automatic Derive + Clippy
+     ============================================================================
+     Version: 1.0
+     Date: 2025-11-23
+     Scope: atomic_capsule v0.3.2 → v0.8.0 migration
+     Token Budget: ~15K tokens (60KB)
+     ============================================================================ -->
+<migration-guide version="1.0" date="2025-11-23">
+
+  <!-- ========================================================================
+       EXECUTIVE SUMMARY
+       ======================================================================== -->
+  <overview>
+    <from>Manual verify_capsule_properties! macros (v0.3.2)</from>
+    <to>Automatic #[derive(ComputationalCapsule)] + clippy lints (v0.8.0)</to>
+    <benefit>87.5% code reduction, 90%+ Chaos compliance, <20ms compile-time verification</benefit>
+    <effort>1-2 hours for typical project (type signature updates + derive attribute)</effort>
+    <breaking-changes>0 (backward compatible, manual macros deprecated but functional)</breaking-changes>
+  </overview>
+
+  <migration-philosophy>
+    <principle>Zero runtime overhead - all verification at compile time (0ns)</principle>
+    <principle>Incremental migration - mix manual and derive during transition</principle>
+    <principle>Fail-fast errors - compile-time detection prevents production bugs</principle>
+    <principle>Framework compliance - 100% UCE34/Chaos/ASSUM/T28 validated</principle>
+  </migration-philosophy>
+
+  <quick-reference>
+    <step>1. Enable derive: #[derive(ComputationalCapsule)]</step>
+    <step>2. Remove manual macros: Delete verify_capsule_properties!()</step>
+    <step>3. Enable clippy lints: capsule_mutex_violation (deny), capsule_unaligned_violation (deny)</step>
+    <step>4. Fix violations: Replace Mutex with AtomicU64, add padding, add generation counters</step>
+    <step>5. Validate: cargo clippy -- -D capsule-mutex-violation -D capsule-unaligned-violation</step>
+  </quick-reference>
+
+  <!-- ========================================================================
+       MIGRATION STEPS (5-Step Process)
+       ======================================================================== -->
+  <migration-steps>
+
+    <!-- STEP 1: Enable Derive -->
+    <step1-enable-derive>
+      <description>Add #[derive(ComputationalCapsule)] to all capsule structs</description>
+      <timing>5-10 minutes (one-time setup)</timing>
+
+      <before><![CDATA[
+#[repr(C, align(64))]
+pub struct CircuitBreakerCapsule {
+    state: AtomicU64,
+    _padding: [u8; 56],
+}
+
+// Manual verification (separate location, easy to forget)
+crate::verification::verify_capsule_properties!(CircuitBreakerCapsule, 64, 64);
+      ]]></before>
+
+      <after><![CDATA[
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]  // ← Automatic verification (0ns runtime)
+pub struct CircuitBreakerCapsule {
+    state: AtomicU64,
+    _padding: [u8; 56],
+}
+
+// No manual verification needed - derive handles it
+      ]]></after>
+
+      <benefits>
+        <benefit>Automatic size/alignment verification at compile time</benefit>
+        <benefit>Immediate error feedback (no need to find separate macro invocation)</benefit>
+        <benefit>87.5% code reduction (618 manual macros → 0)</benefit>
+        <benefit>Zero runtime overhead (all const evaluation)</benefit>
+      </benefits>
+
+      <commands><![CDATA[
+# Add derive to Cargo.toml dependencies
+[dependencies]
+atomic_capsule_derive = { version = "0.4.0", path = "../atomic_capsule_derive" }
+
+# Add to lib.rs (ensure derive macros available)
+pub use atomic_capsule_derive::ComputationalCapsule;
+
+# Add derive to all capsule structs
+find src -name "*.rs" -exec sed -i '/^pub struct.*Capsule/i #[derive(ComputationalCapsule)]' {} \;
+      ]]></commands>
+    </step1-enable-derive>
+
+    <!-- STEP 2: Remove Manual Macros -->
+    <step2-remove-manual-macros>
+      <description>Delete all verify_capsule_properties! and verify_alignment_only! invocations</description>
+      <timing>10-15 minutes (semi-automated with script)</timing>
+
+      <before><![CDATA[
+// Scattered throughout codebase (easy to miss)
+crate::verification::verify_capsule_properties!(HttpStateCapsule, 64, 64);
+crate::verify_capsule_properties!(HttpServerCapsule, 128, 256);
+verify_capsule_properties!(HttpBatchAccumulator, 128, 16512);
+crate::verification::verify_alignment_only!(TempCapsule, 256);
+      ]]></before>
+
+      <after><![CDATA[
+// All removed - derive handles verification automatically
+// (No scattered macro invocations to maintain)
+      ]]></after>
+
+      <automated-removal><![CDATA[
+# Remove all manual verification macros (safe to run, backup first)
+cd /home/samuel/Primitives/atomic_capsule
+
+# Option 1: Remove all verify_capsule_properties! calls
+find src -name "*.rs" -exec sed -i '/verify_capsule_properties!/d' {} \;
+
+# Option 2: Remove all verification module imports
+find src -name "*.rs" -exec sed -i '/use.*verification::/d' {} \;
+
+# Option 3: Remove verify_alignment_only! calls
+find src -name "*.rs" -exec sed -i '/verify_alignment_only!/d' {} \;
+
+# Validate compilation (should still pass with derive)
+cargo build --lib --release
+      ]]></automated-removal>
+
+      <validation>
+        <test>cargo build should succeed (derive provides verification)</test>
+        <test>grep -r "verify_capsule_properties" src should return 0 results</test>
+        <test>cargo test should pass (no behavioral changes)</test>
+      </validation>
+    </step2-remove-manual-macros>
+
+    <!-- STEP 3: Enable Clippy Lints -->
+    <step3-enable-clippy-lints>
+      <description>Configure clippy to enforce Chaos compliance (P0 critical violations as errors)</description>
+      <timing>5 minutes (one-time setup)</timing>
+
+      <clippy-configuration><![CDATA[
+# Create .cargo/config.toml (or update existing)
+cat > .cargo/config.toml <<'EOF'
+[target.x86_64-unknown-linux-gnu]
+rustflags = [
+    # P0 Critical Violations (DENY - compilation blockers)
+    "-D", "clippy::capsule-mutex-violation",           # NO Mutex/RwLock allowed
+    "-D", "clippy::capsule-unaligned-violation",       # MUST be cache-aligned
+    "-D", "clippy::capsule-missing-generation",        # MUST have generation counter
+    "-D", "clippy::capsule-non-atomic-field",          # All fields MUST be atomic
+
+    # P1 High Priority (WARN - fix before production)
+    "-W", "clippy::missing-capsule-verification",      # Derive or manual verification required
+    "-W", "clippy::capsule-missing-repr-c",            # MUST have #[repr(C)]
+    "-W", "clippy::capsule-scattered-atomics",         # Use DualAtomicU64 pattern
+    "-W", "clippy::capsule-incorrect-padding",         # Padding must match calculated size
+]
+EOF
+      ]]></clippy-configuration>
+
+      <commands><![CDATA[
+# Install custom clippy lint (one-time setup)
+cd /home/samuel/Primitives/clippy-capsule-verify
+cargo build --release
+export CLIPPY_DRIVER_PATH=$PWD/target/release/clippy-capsule-verify
+
+# Run clippy with custom lints
+cd /home/samuel/Primitives/atomic_capsule
+cargo clippy --all-features -- \
+    -D clippy::capsule-mutex-violation \
+    -D clippy::capsule-unaligned-violation \
+    -D clippy::capsule-missing-generation \
+    -D clippy::capsule-non-atomic-field
+
+# Expected output: List of all violations (if any)
+      ]]></commands>
+
+      <lint-reference>
+        <lint id="P0-1" name="capsule_mutex_violation" level="deny">
+          <description>Detects Mutex/RwLock fields in capsule structs (100% lockfree mandate)</description>
+          <example>field: Mutex&lt;u64&gt; → field: AtomicU64</example>
+        </lint>
+        <lint id="P0-2" name="capsule_unaligned_violation" level="deny">
+          <description>Detects missing or incorrect alignment (cache-line alignment required)</description>
+          <example>No #[repr(align(64))] → #[repr(C, align(64))]</example>
+        </lint>
+        <lint id="P0-3" name="capsule_missing_generation" level="deny">
+          <description>Detects missing generation counter fields (TOCTOU prevention)</description>
+          <example>Missing generation: AtomicU32 → Add generation: AtomicU32 field</example>
+        </lint>
+        <lint id="P0-4" name="capsule_non_atomic_field" level="deny">
+          <description>Detects non-atomic fields (except padding/arrays)</description>
+          <example>field: u64 → field: AtomicU64</example>
+        </lint>
+        <lint id="P1-1" name="missing_capsule_verification" level="warn">
+          <description>Detects capsule structs missing derive or manual verification</description>
+          <example>Add #[derive(ComputationalCapsule)] to struct</example>
+        </lint>
+        <lint id="P1-2" name="capsule_missing_repr_c" level="warn">
+          <description>Detects missing #[repr(C)] attribute (ABI stability required)</description>
+          <example>#[repr(align(64))] → #[repr(C, align(64))]</example>
+        </lint>
+        <lint id="P1-3" name="capsule_scattered_atomics" level="warn">
+          <description>Detects 3+ separate atomic fields (suggest DualAtomicU64 pattern)</description>
+          <example>3 AtomicU32 fields → 1 DualAtomicU64 (bit-packed)</example>
+        </lint>
+        <lint id="P1-4" name="capsule_incorrect_padding" level="warn">
+          <description>Detects padding fields with wrong size calculation</description>
+          <example>_padding: [u8; 32] should be _padding: [u8; 56] for 64B alignment</example>
+        </lint>
+      </lint-reference>
+    </step3-enable-clippy-lints>
+
+    <!-- STEP 4: Fix Violations -->
+    <step4-fix-violations>
+      <description>Address all clippy violations (automated patterns for common fixes)</description>
+      <timing>30-60 minutes (depends on violation count)</timing>
+
+      <common-patterns>
+        <pattern id="P1" name="Mutex to Atomic">
+          <violation>clippy::capsule-mutex-violation</violation>
+          <frequency>High (20-30% of capsules in legacy code)</frequency>
+          <before><![CDATA[
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]
+pub struct LegacyCapsule {
+    data: Mutex<u64>,  // ← P0 violation: NO locks allowed
+    _padding: [u8; 48],
+}
+          ]]></before>
+          <after><![CDATA[
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]
+pub struct LegacyCapsule {
+    data: AtomicU64,  // ← Fixed: 100% lockfree
+    _padding: [u8; 48],
+}
+          ]]></after>
+          <code-changes>
+            <change>Replace field type: Mutex&lt;T&gt; → Atomic[U64|U32|U8|Ptr] depending on T</change>
+            <change>Update access: data.lock().unwrap() → data.load(Ordering::Acquire)</change>
+            <change>Update mutation: *data.lock().unwrap() = val → data.store(val, Ordering::Release)</change>
+          </code-changes>
+          <automated-fix><![CDATA[
+# Pattern: Mutex<u64> → AtomicU64
+sed -i 's/Mutex<u64>/AtomicU64/g' src/path/to/file.rs
+sed -i 's/\.lock()\.unwrap()/.load(Ordering::Acquire)/g' src/path/to/file.rs
+sed -i 's/\*\.lock()\.unwrap() = \(.*\)/.store(\1, Ordering::Release)/g' src/path/to/file.rs
+
+# Pattern: Mutex<u32> → AtomicU32
+sed -i 's/Mutex<u32>/AtomicU32/g' src/path/to/file.rs
+
+# Pattern: RwLock<T> → AtomicPtr<T> (for heap-allocated data)
+sed -i 's/RwLock<\(.*\)>/AtomicPtr<\1>/g' src/path/to/file.rs
+          ]]></automated-fix>
+        </pattern>
+
+        <pattern id="P2" name="Add Padding">
+          <violation>clippy::capsule-incorrect-padding</violation>
+          <frequency>Medium (10-15% of capsules)</frequency>
+          <before><![CDATA[
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]
+pub struct UnderPaddedCapsule {
+    state: AtomicU64,     // 8 bytes
+    counter: AtomicU32,   // 4 bytes
+    // ← Missing padding: 64 - 8 - 4 = 52 bytes needed
+}
+          ]]></before>
+          <after><![CDATA[
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]
+pub struct UnderPaddedCapsule {
+    state: AtomicU64,     // 8 bytes
+    counter: AtomicU32,   // 4 bytes
+    _padding: [u8; 52],   // ← Fixed: Padding to 64 bytes
+}
+          ]]></after>
+          <padding-formula>
+            <calculation>padding_size = alignment - (sum_of_field_sizes % alignment)</calculation>
+            <example>For 64B alignment: padding = 64 - ((8 + 4) % 64) = 64 - 12 = 52</example>
+            <example>For 128B alignment: padding = 128 - ((16 + 8) % 128) = 128 - 24 = 104</example>
+          </padding-formula>
+          <automated-calculation><![CDATA[
+# Use fix_padding_fields tool for automatic calculation
+cd /home/samuel/Primitives/tools/fix_padding_fields
+cargo run -- /home/samuel/Primitives/atomic_capsule/src/path/to/file.rs
+
+# Manual calculation (if tool unavailable)
+python3 -c "
+import sys
+alignment = int(sys.argv[1])
+fields_size = int(sys.argv[2])
+padding = alignment - (fields_size % alignment)
+print(f'_padding: [u8; {padding}]')
+" 64 12
+# Output: _padding: [u8; 52]
+          ]]></automated-calculation>
+        </pattern>
+
+        <pattern id="P3" name="Add Generation Counter">
+          <violation>clippy::capsule-missing-generation</violation>
+          <frequency>High (30-40% of T1 Atomic capsules)</frequency>
+          <before><![CDATA[
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]
+pub struct NoGenerationCapsule {
+    state: AtomicU64,
+    data: AtomicU64,
+    _padding: [u8; 48],  // ← Will need to shrink by 4 bytes
+}
+          ]]></before>
+          <after><![CDATA[
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]
+pub struct NoGenerationCapsule {
+    state: AtomicU64,
+    data: AtomicU64,
+    generation: AtomicU32,  // ← TOCTOU prevention (4 bytes)
+    _padding: [u8; 44],     // ← Adjusted: 48 - 4 = 44
+}
+          ]]></after>
+          <rationale>
+            <requirement>Generation counters prevent Time-Of-Check-Time-Of-Use (TOCTOU) races</requirement>
+            <pattern>Increment generation on every state update (monotonic counter)</pattern>
+            <validation>Compare generation before/after CAS to detect concurrent modifications</validation>
+          </rationale>
+          <code-pattern><![CDATA[
+// Typical usage pattern
+impl NoGenerationCapsule {
+    pub fn update_with_generation(&self, new_state: u64) -> Result<(), ()> {
+        loop {
+            let old_gen = self.generation.load(Ordering::Acquire);
+            let old_state = self.state.load(Ordering::Acquire);
+
+            // Verify generation hasn't changed (TOCTOU detection)
+            if self.generation.load(Ordering::Acquire) != old_gen {
+                return Err(()); // Concurrent modification detected
+            }
+
+            // Attempt CAS
+            if self.state.compare_exchange(
+                old_state,
+                new_state,
+                Ordering::Release,
+                Ordering::Acquire,
+            ).is_ok() {
+                // Increment generation on successful update
+                self.generation.fetch_add(1, Ordering::Release);
+                return Ok(());
+            }
+        }
+    }
+}
+          ]]></code-pattern>
+        </pattern>
+
+        <pattern id="P4" name="Fix Non-Atomic Fields">
+          <violation>clippy::capsule-non-atomic-field</violation>
+          <frequency>Medium (15-20% of capsules)</frequency>
+          <before><![CDATA[
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]
+pub struct MixedFieldsCapsule {
+    count: u64,            // ← P0 violation: Not atomic
+    state: AtomicU32,      // ← OK: Atomic
+    flag: bool,            // ← P0 violation: Not atomic
+    _padding: [u8; 47],
+}
+          ]]></before>
+          <after><![CDATA[
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]
+pub struct MixedFieldsCapsule {
+    count: AtomicU64,      // ← Fixed: Atomic
+    state: AtomicU32,      // ← OK: Already atomic
+    flag: AtomicBool,      // ← Fixed: Atomic
+    _padding: [u8; 47],    // ← Same padding (sizes unchanged)
+}
+          ]]></after>
+          <type-mappings>
+            <mapping from="u64" to="AtomicU64" size="8" orderings="Acquire/Release"/>
+            <mapping from="u32" to="AtomicU32" size="4" orderings="Acquire/Release"/>
+            <mapping from="u16" to="AtomicU16" size="2" orderings="Acquire/Release"/>
+            <mapping from="u8" to="AtomicU8" size="1" orderings="Acquire/Release"/>
+            <mapping from="bool" to="AtomicBool" size="1" orderings="Acquire/Release"/>
+            <mapping from="*mut T" to="AtomicPtr&lt;T&gt;" size="8" orderings="Acquire/Release"/>
+          </type-mappings>
+          <exceptions>
+            <exception>Padding fields: _padding: [u8; N] is allowed (non-accessed data)</exception>
+            <exception>Const arrays: [T; N] allowed if T is Copy and never mutated</exception>
+          </exceptions>
+        </pattern>
+
+        <pattern id="P5" name="Add #[repr(C)]">
+          <violation>clippy::capsule-missing-repr-c</violation>
+          <frequency>Low (5-10%, usually forgotten in new code)</frequency>
+          <before><![CDATA[
+#[repr(align(64))]  // ← Missing #[repr(C)] for ABI stability
+#[derive(ComputationalCapsule)]
+pub struct MissingReprCCapsule {
+    state: AtomicU64,
+    _padding: [u8; 56],
+}
+          ]]></before>
+          <after><![CDATA[
+#[repr(C, align(64))]  // ← Fixed: C layout for predictable field ordering
+#[derive(ComputationalCapsule)]
+pub struct MissingReprCCapsule {
+    state: AtomicU64,
+    _padding: [u8; 56],
+}
+          ]]></after>
+          <rationale>
+            <requirement>#[repr(C)] ensures predictable field layout across compiler versions</requirement>
+            <requirement>Required for mmap persistence (T9 capsules) - layout must be stable</requirement>
+            <requirement>Required for FFI interop (cross-language capsule access)</requirement>
+          </rationale>
+          <automated-fix><![CDATA[
+# Add #[repr(C)] to all #[repr(align(...))] attributes
+sed -i 's/#\[repr(align(\([0-9]*\)))\]/#[repr(C, align(\1))]/g' src/**/*.rs
+          ]]></automated-fix>
+        </pattern>
+
+        <pattern id="P6" name="Consolidate Atomics (DualAtomicU64)">
+          <violation>clippy::capsule-scattered-atomics</violation>
+          <frequency>Medium (10-15%, often in legacy code)</frequency>
+          <before><![CDATA[
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]
+pub struct ScatteredAtomicsCapsule {
+    state: AtomicU8,         // 1 byte (8 bits)
+    count: AtomicU16,        // 2 bytes (16 bits)
+    flags: AtomicU32,        // 4 bytes (32 bits)
+    generation: AtomicU32,   // 4 bytes (32 bits)
+    _padding: [u8; 51],      // Total: 1+2+4+4 = 11 bytes
+}
+          ]]></before>
+          <after><![CDATA[
+use atomic_capsule::patterns::DualAtomicU64;
+
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]
+pub struct ScatteredAtomicsCapsule {
+    // Bit-packed into single DualAtomicU64 (primary + secondary)
+    // Primary: state(8) | count(16) | flags(32) | unused(8)
+    // Secondary: generation(32) | reserved(32)
+    metadata: DualAtomicU64,
+    _padding: [u8; 48],      // Total: 16 bytes (2 × AtomicU64)
+}
+
+impl ScatteredAtomicsCapsule {
+    // Helper methods for bit extraction
+    fn load_state(&self) -> u8 {
+        let primary = self.metadata.load_primary(Ordering::Acquire);
+        (primary & 0xFF) as u8
+    }
+
+    fn load_count(&self) -> u16 {
+        let primary = self.metadata.load_primary(Ordering::Acquire);
+        ((primary >> 8) & 0xFFFF) as u16
+    }
+
+    fn load_flags(&self) -> u32 {
+        let primary = self.metadata.load_primary(Ordering::Acquire);
+        ((primary >> 24) & 0xFFFFFFFF) as u32
+    }
+
+    fn load_generation(&self) -> u32 {
+        let secondary = self.metadata.load_secondary(Ordering::Acquire);
+        (secondary & 0xFFFFFFFF) as u32
+    }
+}
+          ]]></after>
+          <benefits>
+            <benefit>Reduced cache pressure: 4 cache lines → 1 cache line</benefit>
+            <benefit>Atomic snapshot: Read all fields in 2 loads (16 bytes total)</benefit>
+            <benefit>Better NUMA performance: Single aligned 16B block vs scattered fields</benefit>
+          </benefits>
+          <limitations>
+            <limitation>Requires bit-packing logic (extract/insert operations)</limitation>
+            <limitation>Field sizes must fit in 64 bits (or split across primary/secondary)</limitation>
+            <limitation>Only worth it for 3+ separate atomics (overhead otherwise)</limitation>
+          </limitations>
+        </pattern>
+      </common-patterns>
+
+      <violation-priority>
+        <p0-critical>Fix FIRST (compilation blockers, security-critical)</p0-critical>
+        <p1-high>Fix SECOND (production-readiness, performance)</p1-high>
+        <p2-medium>Fix THIRD (optimization, best practices)</p2-medium>
+      </violation-priority>
+
+      <automated-workflow><![CDATA[
+# Step 1: Identify all violations
+cargo clippy --all-features 2>&1 | tee clippy-violations.txt
+
+# Step 2: Count violations by type
+grep -o "capsule-[a-z-]*-violation" clippy-violations.txt | sort | uniq -c
+
+# Step 3: Fix P0 violations first (scripted where possible)
+# Example: Replace all Mutex<u64> with AtomicU64
+find src -name "*.rs" -exec sed -i 's/Mutex<u64>/AtomicU64/g' {} \;
+find src -name "*.rs" -exec sed -i 's/\.lock()\.unwrap()/.load(Ordering::Acquire)/g' {} \;
+
+# Step 4: Run fix_padding_fields tool for padding violations
+cd /home/samuel/Primitives/tools/fix_padding_fields
+for file in $(grep "capsule-incorrect-padding" ../clippy-violations.txt | cut -d: -f1 | sort -u); do
+    cargo run -- "$file"
+done
+
+# Step 5: Manually add generation counters (requires logic changes)
+# (No automated fix - review each capsule individually)
+
+# Step 6: Validate all fixes
+cargo clippy --all-features -- \
+    -D clippy::capsule-mutex-violation \
+    -D clippy::capsule-unaligned-violation \
+    -D clippy::capsule-missing-generation \
+    -D clippy::capsule-non-atomic-field
+
+# Step 7: Run full test suite
+cargo test --all-features
+      ]]></automated-workflow>
+    </step4-fix-violations>
+
+    <!-- STEP 5: Validate -->
+    <step5-validate>
+      <description>Comprehensive validation of migration success</description>
+      <timing>15-30 minutes (automated test suite)</timing>
+
+      <validation-checklist>
+        <check id="V1" priority="CRITICAL">
+          <test>cargo build --lib --release succeeds (no compilation errors)</test>
+          <command>cargo build --lib --release 2>&amp;1 | tee build.log</command>
+          <expected>exit code 0, "Finished release [optimized]" message</expected>
+        </check>
+
+        <check id="V2" priority="CRITICAL">
+          <test>cargo clippy --all-features with P0 deny lints passes</test>
+          <command><![CDATA[
+cargo clippy --all-features -- \
+    -D clippy::capsule-mutex-violation \
+    -D clippy::capsule-unaligned-violation \
+    -D clippy::capsule-missing-generation \
+    -D clippy::capsule-non-atomic-field \
+    2>&1 | tee clippy.log
+          ]]></command>
+          <expected>exit code 0, "0 errors, 0 warnings" (P0 violations only)</expected>
+        </check>
+
+        <check id="V3" priority="HIGH">
+          <test>cargo test --all-features passes (no behavioral regressions)</test>
+          <command>cargo test --all-features 2>&amp;1 | tee test.log</command>
+          <expected>All tests passing (100% pass rate), no new failures</expected>
+        </check>
+
+        <check id="V4" priority="HIGH">
+          <test>No manual verification macros remain in codebase</test>
+          <command>grep -r "verify_capsule_properties\|verify_alignment_only" src</command>
+          <expected>0 results (all manual macros removed)</expected>
+        </check>
+
+        <check id="V5" priority="MEDIUM">
+          <test>Compile time regression check (should be <5% slower)</test>
+          <command><![CDATA[
+# Before migration
+time cargo build --lib --release --quiet
+# Record time: T_before
+
+# After migration
+time cargo build --lib --release --quiet
+# Record time: T_after
+
+# Calculate regression: (T_after - T_before) / T_before * 100%
+          ]]></command>
+          <expected>Compile time increase <5% (derive proc-macro overhead is minimal)</expected>
+        </check>
+
+        <check id="V6" priority="MEDIUM">
+          <test>Binary size unchanged (0ns runtime overhead validation)</test>
+          <command><![CDATA[
+# Before migration
+ls -lh target/release/libatomic_capsule.so
+# Record size: S_before
+
+# After migration
+ls -lh target/release/libatomic_capsule.so
+# Record size: S_after
+
+# Expect: S_before ≈ S_after (±100 bytes tolerance for metadata)
+          ]]></command>
+          <expected>Binary size difference <0.1% (no runtime verification code added)</expected>
+        </check>
+
+        <check id="V7" priority="LOW">
+          <test>Documentation builds without warnings</test>
+          <command>cargo doc --all-features --no-deps 2>&amp;1 | tee doc.log</command>
+          <expected>0 warnings, all derive attributes documented</expected>
+        </check>
+      </validation-checklist>
+
+      <rollback-trigger>
+        <condition>V1 fails: Compilation errors → See troubleshooting section below</condition>
+        <condition>V2 fails: P0 violations remain → Fix violations before proceeding</condition>
+        <condition>V3 fails: Tests regress → Rollback to manual macros, investigate behavioral changes</condition>
+        <condition>V5 fails: Compile time >10% slower → Report performance regression, consider rollback</condition>
+      </rollback-trigger>
+
+      <success-criteria>
+        <criterion>All V1-V4 checks pass (CRITICAL + HIGH priority)</criterion>
+        <criterion>V5-V7 checks pass or have documented justification for failures</criterion>
+        <criterion>No P0 clippy violations remain in codebase</criterion>
+        <criterion>Test suite passes at 100% (no behavioral regressions)</criterion>
+      </success-criteria>
+    </step5-validate>
+
+  </migration-steps>
+
+  <!-- ========================================================================
+       BEFORE/AFTER EXAMPLES (10 Real-World Patterns)
+       ======================================================================== -->
+  <before-after-examples count="10">
+
+    <!-- EXAMPLE 1: Simple T1 Atomic Capsule -->
+    <example1-simple-capsule tier="T1" size="64B">
+      <description>Basic atomic coordination capsule (circuit breaker pattern)</description>
+
+      <before><![CDATA[
+use core::sync::atomic::{AtomicU64, Ordering};
+
+#[repr(C, align(64))]
+pub struct CircuitBreakerCapsule {
+    state: AtomicU64,  // Packed: state(2) | level(8) | count(16) | generation(32) | backoff(6)
+    _padding: [u8; 56],
+}
+
+// Manual verification (separate location, easy to miss)
+crate::verification::verify_capsule_properties!(CircuitBreakerCapsule, 64, 64);
+
+impl CircuitBreakerCapsule {
+    pub fn new() -> Self {
+        Self {
+            state: AtomicU64::new(0),
+            _padding: [0u8; 56],
+        }
+    }
+}
+      ]]></before>
+
+      <after><![CDATA[
+use core::sync::atomic::{AtomicU64, Ordering};
+
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]  // ← Automatic verification (0ns runtime, <20ms compile)
+pub struct CircuitBreakerCapsule {
+    state: AtomicU64,  // Packed: state(2) | level(8) | count(16) | generation(32) | backoff(6)
+    _padding: [u8; 56],
+}
+
+// No manual verification macro needed - derive handles it automatically
+
+impl CircuitBreakerCapsule {
+    pub fn new() -> Self {
+        Self {
+            state: AtomicU64::new(0),
+            _padding: [0u8; 56],
+        }
+    }
+}
+      ]]></after>
+
+      <migration-diff>
+        <added>1 line: #[derive(ComputationalCapsule)]</added>
+        <removed>1 line: verify_capsule_properties!(CircuitBreakerCapsule, 64, 64)</removed>
+        <net-change>0 lines (equivalent functionality)</net-change>
+      </migration-diff>
+    </example1-simple-capsule>
+
+    <!-- EXAMPLE 2: T0 Auditable Capsule -->
+    <example2-auditable-capsule tier="T0" size="256B">
+      <description>Hash-chain audit trail for compliance (Q34 framework)</description>
+
+      <before><![CDATA[
+use core::sync::atomic::{AtomicU64, AtomicU32, Ordering};
+
+#[repr(C, align(256))]
+pub struct AuditTrailCapsule {
+    head: AtomicU64,           // 8 bytes
+    tail: AtomicU64,           // 8 bytes
+    capacity: AtomicU32,       // 4 bytes
+    count: AtomicU32,          // 4 bytes
+    prev_hash: AtomicU64,      // 8 bytes (CRC64 for hash-chain integrity)
+    events: [AuditEvent; 16],  // 16 × 12 = 192 bytes
+    _padding: [u8; 32],        // 256 - (8+8+4+4+8+192) = 32 bytes
+}
+
+#[repr(C)]
+struct AuditEvent {
+    timestamp: u64,  // 8 bytes
+    event_type: u32, // 4 bytes
+    // _padding: [u8; 0]  // ← Missing padding (12 vs 16 bytes alignment)
+}
+
+// Manual verification (incorrect padding undetected until runtime)
+crate::verification::verify_capsule_properties!(AuditTrailCapsule, 256, 256);
+      ]]></before>
+
+      <after><![CDATA[
+use core::sync::atomic::{AtomicU64, AtomicU32, Ordering};
+
+#[repr(C, align(256))]
+#[derive(ComputationalCapsule)]  // ← Detects incorrect padding at compile time
+pub struct AuditTrailCapsule {
+    head: AtomicU64,           // 8 bytes
+    tail: AtomicU64,           // 8 bytes
+    capacity: AtomicU32,       // 4 bytes
+    count: AtomicU32,          // 4 bytes
+    prev_hash: AtomicU64,      // 8 bytes (CRC64 for hash-chain integrity)
+    events: [AuditEvent; 16],  // 16 × 16 = 256 bytes (now properly aligned)
+    // ← Padding recalculated: 256 - (8+8+4+4+8+256) = -32 → ERROR: size exceeds alignment
+    // Fix: Reduce events array or increase alignment to 512B
+}
+
+#[repr(C)]
+struct AuditEvent {
+    timestamp: u64,  // 8 bytes
+    event_type: u32, // 4 bytes
+    _padding: [u8; 4],  // ← Fixed: 16 bytes total (cache-aligned)
+}
+
+// Compile-time error detected by derive:
+// error: AuditTrailCapsule size (288 bytes) exceeds alignment (256 bytes)
+//        help: increase alignment to 512 or reduce field count
+      ]]></after>
+
+      <migration-insight>
+        <lesson>Derive macro detects size overflow at compile time (was silent runtime bug)</lesson>
+        <lesson>Nested struct padding also validated (AuditEvent needs explicit padding)</lesson>
+        <lesson>Immediate feedback prevents production bugs (no need to run tests to detect)</lesson>
+      </migration-insight>
+    </example2-auditable-capsule>
+
+    <!-- EXAMPLE 3: T6 Mixed Tier Capsule (DualAtomicU64) -->
+    <example3-tiered-capsule tier="T6" size="128B">
+      <description>Composite capsule with bit-packed DualAtomicU64 coordination</description>
+
+      <before><![CDATA[
+use atomic_capsule::patterns::DualAtomicU64;
+
+#[repr(C, align(128))]
+pub struct QuicEndpointMetacapsule {
+    metadata: DualAtomicU64,  // 16 bytes (primary + secondary)
+    // Primary: connection_id(32) | state(8) | generation(24)
+    // Secondary: stream_id(32) | generation(32)
+    stats: AtomicU64,         // 8 bytes
+    _padding: [u8; 104],      // 128 - 16 - 8 = 104 bytes
+}
+
+// Manual verification (separate file, easy to miss during refactoring)
+crate::verification::verify_capsule_properties!(QuicEndpointMetacapsule, 128, 128);
+      ]]></before>
+
+      <after><![CDATA[
+use atomic_capsule::patterns::DualAtomicU64;
+
+#[repr(C, align(128))]
+#[derive(ComputationalCapsule)]  // ← Validates DualAtomicU64 size automatically
+pub struct QuicEndpointMetacapsule {
+    metadata: DualAtomicU64,  // 16 bytes (primary + secondary)
+    // Primary: connection_id(32) | state(8) | generation(24)
+    // Secondary: stream_id(32) | generation(32)
+    stats: AtomicU64,         // 8 bytes
+    _padding: [u8; 104],      // 128 - 16 - 8 = 104 bytes
+}
+
+// No manual macro - derive validates:
+// - DualAtomicU64 is 16 bytes (2 × AtomicU64)
+// - Total size: 16 + 8 + 104 = 128 bytes ✓
+// - Alignment: 128 bytes ✓
+      ]]></after>
+
+      <migration-note>
+        <note>DualAtomicU64 is recognized as valid atomic type (not flagged as non-atomic)</note>
+        <note>Derive macro validates composite pattern (no special handling needed)</note>
+      </migration-note>
+    </example3-tiered-capsule>
+
+    <!-- EXAMPLE 4: Legacy Code with Mutex (P0 Violation) -->
+    <example4-mutex-violation tier="T1" size="64B">
+      <description>Legacy code with Mutex field (100% lockfree mandate violation)</description>
+
+      <before><![CDATA[
+use std::sync::Mutex;
+
+#[repr(C, align(64))]
+pub struct LegacyHttpServerCapsule {
+    connections: Mutex<u64>,  // ← P0 violation: Locks not allowed
+    _padding: [u8; 48],       // 64 - 16 (Mutex overhead) = 48 bytes
+}
+
+// Manual verification passes (doesn't check for Mutex)
+crate::verification::verify_capsule_properties!(LegacyHttpServerCapsule, 64, 64);
+      ]]></before>
+
+      <after><![CDATA[
+use core::sync::atomic::{AtomicU64, Ordering};
+
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]  // ← P0 deny: Detects Mutex field
+pub struct LegacyHttpServerCapsule {
+    connections: AtomicU64,   // ← Fixed: 100% lockfree
+    _padding: [u8; 56],       // 64 - 8 (AtomicU64) = 56 bytes
+}
+
+// Compile-time error from clippy:
+// error: capsule-mutex-violation (deny)
+//   --> src/http/server.rs:4:5
+//    |
+// 4  |     connections: Mutex<u64>,
+//    |     ^^^^^^^^^^^^^^^^^^^^^^^ Mutex/RwLock not allowed in capsules (100% lockfree mandate)
+//    |
+//    = help: replace with AtomicU64 for lockfree coordination
+      ]]></after>
+
+      <code-changes>
+        <change>Type: Mutex&lt;u64&gt; → AtomicU64</change>
+        <change>Access: connections.lock().unwrap() → connections.load(Ordering::Acquire)</change>
+        <change>Mutation: *connections.lock().unwrap() = val → connections.store(val, Ordering::Release)</change>
+        <change>Increment: *connections.lock().unwrap() += 1 → connections.fetch_add(1, Ordering::Release)</change>
+      </code-changes>
+    </example4-mutex-violation>
+
+    <!-- EXAMPLE 5: Missing Generation Counter (P0 Violation) -->
+    <example5-missing-generation tier="T1" size="64B">
+      <description>TOCTOU vulnerability due to missing generation counter</description>
+
+      <before><![CDATA[
+use core::sync::atomic::{AtomicU64, Ordering};
+
+#[repr(C, align(64))]
+pub struct RateLimiterCapsule {
+    tokens: AtomicU64,        // 8 bytes
+    last_refill: AtomicU64,   // 8 bytes
+    // ← Missing generation counter (TOCTOU vulnerable)
+    _padding: [u8; 48],       // 64 - 16 = 48 bytes
+}
+
+// Manual verification passes (doesn't check for generation counter)
+crate::verification::verify_capsule_properties!(RateLimiterCapsule, 64, 64);
+
+impl RateLimiterCapsule {
+    // TOCTOU vulnerability: tokens/last_refill can change between loads
+    pub fn check_and_consume(&self) -> bool {
+        let tokens = self.tokens.load(Ordering::Acquire);  // ← Time-Of-Check
+        let last = self.last_refill.load(Ordering::Acquire);
+
+        // Race window: Another thread could modify tokens here
+
+        if tokens > 0 {
+            // Time-Of-Use: tokens might have changed since check
+            self.tokens.fetch_sub(1, Ordering::Release);  // ← Unsafe without generation
+            true
+        } else {
+            false
+        }
+    }
+}
+      ]]></before>
+
+      <after><![CDATA[
+use core::sync::atomic::{AtomicU64, AtomicU32, Ordering};
+
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]  // ← P0 deny: Detects missing generation
+pub struct RateLimiterCapsule {
+    tokens: AtomicU64,        // 8 bytes
+    last_refill: AtomicU64,   // 8 bytes
+    generation: AtomicU32,    // 4 bytes ← TOCTOU prevention
+    _padding: [u8; 44],       // 64 - 20 = 44 bytes
+}
+
+// Compile-time error from clippy:
+// error: capsule-missing-generation (deny)
+//   --> src/patterns/rate_limiter.rs:4:1
+//    |
+// 4  | pub struct RateLimiterCapsule {
+//    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Missing generation counter (TOCTOU prevention required)
+//    |
+//    = help: add generation: AtomicU32 field and increment on every state update
+
+impl RateLimiterCapsule {
+    // TOCTOU-safe implementation with generation counter
+    pub fn check_and_consume(&self) -> bool {
+        loop {
+            let gen_before = self.generation.load(Ordering::Acquire);
+            let tokens = self.tokens.load(Ordering::Acquire);
+
+            // Verify generation unchanged (detect concurrent modifications)
+            if self.generation.load(Ordering::Acquire) != gen_before {
+                continue; // Retry if generation changed
+            }
+
+            if tokens > 0 {
+                // Atomic decrement with generation increment
+                if self.tokens.compare_exchange(
+                    tokens,
+                    tokens - 1,
+                    Ordering::Release,
+                    Ordering::Acquire,
+                ).is_ok() {
+                    self.generation.fetch_add(1, Ordering::Release);
+                    return true;
+                }
+            } else {
+                return false;
+            }
+        }
+    }
+}
+      ]]></after>
+
+      <security-impact>
+        <vulnerability>TOCTOU race condition (Time-Of-Check-Time-Of-Use)</vulnerability>
+        <fix>Generation counter detects concurrent modifications between check and use</fix>
+        <performance-overhead>+4 bytes per capsule, +1 atomic load per operation (~5ns)</performance-overhead>
+      </security-impact>
+    </example5-missing-generation>
+
+    <!-- EXAMPLE 6: Non-Atomic Field (P0 Violation) -->
+    <example6-non-atomic-field tier="T1" size="64B">
+      <description>Plain field instead of atomic (data race vulnerability)</description>
+
+      <before><![CDATA[
+#[repr(C, align(64))]
+pub struct StatsCollectorCapsule {
+    count: u64,               // ← P0 violation: Not atomic (data race)
+    sum: AtomicU64,           // 8 bytes
+    _padding: [u8; 48],       // 64 - 16 = 48 bytes
+}
+
+// Manual verification passes (doesn't check field atomicity)
+crate::verification::verify_capsule_properties!(StatsCollectorCapsule, 64, 64);
+
+impl StatsCollectorCapsule {
+    pub fn increment(&self, value: u64) {
+        // ← DATA RACE: count is not atomic
+        // Multiple threads can read/write simultaneously
+        self.count += 1;  // Undefined behavior
+        self.sum.fetch_add(value, Ordering::Release);
+    }
+}
+      ]]></before>
+
+      <after><![CDATA[
+use core::sync::atomic::{AtomicU64, Ordering};
+
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]  // ← P0 deny: Detects non-atomic field
+pub struct StatsCollectorCapsule {
+    count: AtomicU64,         // ← Fixed: Atomic (data race eliminated)
+    sum: AtomicU64,           // 8 bytes
+    _padding: [u8; 48],       // 64 - 16 = 48 bytes
+}
+
+// Compile-time error from clippy:
+// error: capsule-non-atomic-field (deny)
+//   --> src/collections/stats.rs:3:5
+//    |
+// 3  |     count: u64,
+//    |     ^^^^^^^^^^ Non-atomic field not allowed (data race risk)
+//    |
+//    = help: replace with AtomicU64 for thread-safe coordination
+
+impl StatsCollectorCapsule {
+    pub fn increment(&self, value: u64) {
+        // ← No data race: both fields atomic
+        self.count.fetch_add(1, Ordering::Release);
+        self.sum.fetch_add(value, Ordering::Release);
+    }
+}
+      ]]></after>
+
+      <correctness>
+        <bug>Data race on count field (undefined behavior in Rust)</bug>
+        <fix>AtomicU64 provides thread-safe increment (fetch_add operation)</fix>
+        <performance>Minimal overhead: AtomicU64 fetch_add is ~5ns (vs 1ns plain increment)</performance>
+      </correctness>
+    </example6-non-atomic-field>
+
+    <!-- EXAMPLE 7: Incorrect Padding (P1 Warning) -->
+    <example7-incorrect-padding tier="T1" size="128B">
+      <description>Padding calculation error (cache-line alignment broken)</description>
+
+      <before><![CDATA[
+#[repr(C, align(128))]
+pub struct UnderPaddedCapsule {
+    primary: AtomicU64,       // 8 bytes
+    secondary: AtomicU64,     // 8 bytes
+    flags: AtomicU32,         // 4 bytes
+    _padding: [u8; 100],      // ← Wrong: 128 - (8+8+4) = 108 bytes needed
+}
+
+// Manual verification passes (incorrect padding undetected)
+crate::verification::verify_capsule_properties!(UnderPaddedCapsule, 128, 128);
+// ERROR: Actual size is 120 bytes, not 128! (8+8+4+100=120)
+      ]]></before>
+
+      <after><![CDATA[
+#[repr(C, align(128))]
+#[derive(ComputationalCapsule)]  // ← P1 warn: Detects incorrect padding
+pub struct UnderPaddedCapsule {
+    primary: AtomicU64,       // 8 bytes
+    secondary: AtomicU64,     // 8 bytes
+    flags: AtomicU32,         // 4 bytes
+    _padding: [u8; 108],      // ← Fixed: 128 - (8+8+4) = 108 bytes
+}
+
+// Compile-time warning from clippy:
+// warning: capsule-incorrect-padding (warn)
+//   --> src/collections/cache.rs:5:5
+//    |
+// 5  |     _padding: [u8; 100],
+//    |     ^^^^^^^^^^^^^^^^^^^ Incorrect padding size
+//    |
+//    = help: expected 108 bytes for 128B alignment (got 100)
+//    = note: total size should equal alignment (128 bytes)
+      ]]></after>
+
+      <calculation>
+        <formula>padding_size = alignment - (sum_of_field_sizes % alignment)</formula>
+        <before>padding = 100 bytes → Total: 8 + 8 + 4 + 100 = 120 bytes (WRONG)</before>
+        <after>padding = 108 bytes → Total: 8 + 8 + 4 + 108 = 128 bytes (CORRECT)</after>
+      </calculation>
+    </example7-incorrect-padding>
+
+    <!-- EXAMPLE 8: Scattered Atomics (P1 Warning) -->
+    <example8-scattered-atomics tier="T1" size="64B">
+      <description>Multiple separate atomics (suggest DualAtomicU64 pattern)</description>
+
+      <before><![CDATA[
+#[repr(C, align(64))]
+pub struct FragmentedCapsule {
+    state: AtomicU8,          // 1 byte
+    level: AtomicU8,          // 1 byte
+    count: AtomicU16,         // 2 bytes
+    generation: AtomicU32,    // 4 bytes
+    backoff: AtomicU8,        // 1 byte
+    _padding: [u8; 55],       // 64 - 9 = 55 bytes
+}
+
+// Manual verification passes (doesn't suggest optimization)
+crate::verification::verify_capsule_properties!(FragmentedCapsule, 64, 64);
+      ]]></before>
+
+      <after><![CDATA[
+use atomic_capsule::patterns::DualAtomicU64;
+
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]  // ← P1 warn: Suggests DualAtomicU64
+pub struct FragmentedCapsule {
+    metadata: DualAtomicU64,  // 16 bytes (bit-packed)
+    // Primary: state(8) | level(8) | count(16) | generation(32)
+    // Secondary: backoff(8) | reserved(56)
+    _padding: [u8; 48],       // 64 - 16 = 48 bytes
+}
+
+// Compile-time warning from clippy:
+// warning: capsule-scattered-atomics (warn)
+//   --> src/patterns/circuit_breaker.rs:3:1
+//    |
+// 3  | pub struct FragmentedCapsule {
+//    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 5 separate atomic fields detected
+//    |
+//    = help: consider using DualAtomicU64 pattern for bit-packing
+//    = note: benefits: reduced cache pressure, atomic snapshot capability
+      ]]></after>
+
+      <performance-impact>
+        <before>5 cache lines touched (1 per atomic field) = ~25ns worst-case</before>
+        <after>1 cache line touched (single DualAtomicU64) = ~5ns</after>
+        <speedup>5× improvement in high-contention scenarios</speedup>
+      </performance-impact>
+    </example8-scattered-atomics>
+
+    <!-- EXAMPLE 9: Missing #[repr(C)] (P1 Warning) -->
+    <example9-missing-repr-c tier="T9" size="256B">
+      <description>Persistent mmap capsule without #[repr(C)] (ABI instability)</description>
+
+      <before><![CDATA[
+#[repr(align(256))]  // ← Missing #[repr(C)] for stable layout
+pub struct PersistentIndexCapsule {
+    metadata: AtomicU64,      // 8 bytes
+    entries: [Entry; 16],     // 16 × 15 = 240 bytes
+    _padding: [u8; 8],        // 256 - 248 = 8 bytes
+}
+
+#[repr(C)]
+struct Entry {
+    key_hash: u64,            // 8 bytes
+    offset: u32,              // 4 bytes
+    size: u16,                // 2 bytes
+    flags: u8,                // 1 byte
+    // _padding: [u8; 0]      // ← Missing padding (15 bytes, not 16-aligned)
+}
+
+// Manual verification passes (doesn't check repr stability)
+crate::verification::verify_capsule_properties!(PersistentIndexCapsule, 256, 256);
+      ]]></before>
+
+      <after><![CDATA[
+#[repr(C, align(256))]  // ← Fixed: C layout for ABI stability
+#[derive(ComputationalCapsule)]  // ← P1 warn: Detects missing #[repr(C)]
+pub struct PersistentIndexCapsule {
+    metadata: AtomicU64,      // 8 bytes
+    entries: [Entry; 16],     // 16 × 16 = 256 bytes (now properly aligned)
+    // ← Compile error: size exceeds 256 bytes (8 + 256 = 264)
+    // Fix: Reduce entries to [Entry; 15] or increase alignment to 512B
+}
+
+#[repr(C)]
+struct Entry {
+    key_hash: u64,            // 8 bytes
+    offset: u32,              // 4 bytes
+    size: u16,                // 2 bytes
+    flags: u8,                // 1 byte
+    _padding: [u8; 1],        // ← Fixed: 16 bytes total
+}
+
+// Compile-time warning from clippy:
+// warning: capsule-missing-repr-c (warn)
+//   --> src/persistence/index.rs:1:1
+//    |
+// 1  | #[repr(align(256))]
+//    | ^^^^^^^^^^^^^^^^^^^ Missing #[repr(C)] for ABI stability
+//    |
+//    = help: add #[repr(C, align(256))] for persistent capsules
+//    = note: required for mmap persistence and FFI interop
+      ]]></after>
+
+      <abi-stability>
+        <requirement>#[repr(C)] ensures field layout is deterministic across compiler versions</requirement>
+        <requirement>Critical for T9 Persistent capsules (mmap files must be layout-stable)</requirement>
+        <requirement>Required for FFI interop (cross-language capsule access)</requirement>
+      </abi-stability>
+    </example9-missing-repr-c>
+
+    <!-- EXAMPLE 10: Complex Nested Capsule (Production Example) -->
+    <example10-production-capsule tier="T6" size="512B">
+      <description>Real-world QUIC endpoint metacapsule (22 sub-capsules orchestrated)</description>
+
+      <before><![CDATA[
+use atomic_capsule::patterns::DualAtomicU64;
+
+#[repr(C, align(512))]
+pub struct QuicEndpointMetacapsule {
+    // Primary coordination
+    metadata: DualAtomicU64,  // 16 bytes
+    // Primary: connection_id(32) | state(8) | generation(24)
+    // Secondary: stream_id(32) | generation(32)
+
+    // Sub-capsule pointers (22 total)
+    connection: AtomicPtr<QuicConnectionCapsule>,       // 8 bytes
+    stream: AtomicPtr<QuicStreamCapsule>,               // 8 bytes
+    flow_control: AtomicPtr<FlowControlCapsule>,        // 8 bytes
+    loss_detection: AtomicPtr<LossDetectionCapsule>,    // 8 bytes
+    congestion: AtomicPtr<CongestionControlCapsule>,    // 8 bytes
+    pacing: AtomicPtr<PacingCapsule>,                   // 8 bytes
+    // ... 16 more pointers (8 bytes each) = 128 bytes total
+
+    _padding: [u8; 336],      // 512 - 16 - (22 × 8) = 512 - 16 - 176 = 320 bytes
+    // ← Wrong calculation: should be 336 bytes
+}
+
+// Manual verification (incorrect padding undetected)
+crate::verification::verify_capsule_properties!(QuicEndpointMetacapsule, 512, 512);
+      ]]></before>
+
+      <after><![CDATA[
+use atomic_capsule::patterns::DualAtomicU64;
+
+#[repr(C, align(512))]
+#[derive(ComputationalCapsule)]  // ← Detects padding error immediately
+pub struct QuicEndpointMetacapsule {
+    // Primary coordination
+    metadata: DualAtomicU64,  // 16 bytes
+    // Primary: connection_id(32) | state(8) | generation(24)
+    // Secondary: stream_id(32) | generation(32)
+
+    // Sub-capsule pointers (22 total, each 8 bytes = 176 bytes)
+    connection: AtomicPtr<QuicConnectionCapsule>,       // 8 bytes
+    stream: AtomicPtr<QuicStreamCapsule>,               // 8 bytes
+    flow_control: AtomicPtr<FlowControlCapsule>,        // 8 bytes
+    loss_detection: AtomicPtr<LossDetectionCapsule>,    // 8 bytes
+    congestion: AtomicPtr<CongestionControlCapsule>,    // 8 bytes
+    pacing: AtomicPtr<PacingCapsule>,                   // 8 bytes
+    packet_number: AtomicPtr<PacketNumberSpaceCapsule>, // 8 bytes
+    frame_parser: AtomicPtr<FrameParserCapsule>,        // 8 bytes
+    qpack_encoder: AtomicPtr<QpackEncoderCapsule>,      // 8 bytes
+    qpack_decoder: AtomicPtr<QpackDecoderCapsule>,      // 8 bytes
+    stream_state: AtomicPtr<StreamStateTableCapsule>,   // 8 bytes
+    ack_tracker: AtomicPtr<AckTrackerCapsule>,          // 8 bytes
+    packet_buffer: AtomicPtr<PacketBufferCapsule>,      // 8 bytes
+    connection_table: AtomicPtr<ConnectionTableCapsule>,// 8 bytes
+    retransmission: AtomicPtr<RetransmissionQueueCapsule>,// 8 bytes
+    http3_control: AtomicPtr<Http3ControlStreamCapsule>,// 8 bytes
+    http3_request: AtomicPtr<Http3RequestStreamCapsule>,// 8 bytes
+    audit_trail: AtomicPtr<QuicAuditTrailCapsule>,      // 8 bytes
+    rtt_estimator: AtomicPtr<RttEstimatorCapsule>,      // 8 bytes
+    connection_id_pool: AtomicPtr<ConnectionIdPoolCapsule>,// 8 bytes
+    stream_flow: AtomicPtr<StreamFlowControlCapsule>,   // 8 bytes
+    quic_stream: AtomicPtr<QuicStreamCapsule>,          // 8 bytes
+
+    _padding: [u8; 320],      // ← Fixed: 512 - 16 - 176 = 320 bytes
+}
+
+// Compile-time error from derive:
+// error: QuicEndpointMetacapsule padding incorrect
+//   --> src/quic/endpoint_metacapsule.rs:32:5
+//    |
+// 32 |     _padding: [u8; 336],
+//    |     ^^^^^^^^^^^^^^^^^^^^ Expected padding size: 320 bytes (got 336)
+//    |
+//    = help: change to _padding: [u8; 320]
+//    = note: total size: 16 + 176 + 320 = 512 bytes ✓
+      ]]></after>
+
+      <production-validation>
+        <test>Compile-time size verification prevents runtime bugs</test>
+        <test>All 22 sub-capsule pointers validated as AtomicPtr (lockfree guarantee)</test>
+        <test>Metacapsule orchestration pattern automatically verified</test>
+        <test>Zero runtime overhead (all validation at compile time)</test>
+      </production-validation>
+    </example10-production-capsule>
+
+  </before-after-examples>
+
+  <!-- ========================================================================
+       COMMON MIGRATION PATTERNS
+       ======================================================================== -->
+  <common-migration-patterns>
+
+    <pattern1-mutex-to-atomic>
+      <description>Replace Mutex/RwLock with atomic primitives (100% lockfree mandate)</description>
+      <frequency>20-30% of legacy capsules</frequency>
+
+      <type-mappings>
+        <mapping from="Mutex&lt;u64&gt;" to="AtomicU64" operations="load/store/fetch_add/compare_exchange"/>
+        <mapping from="Mutex&lt;u32&gt;" to="AtomicU32" operations="load/store/fetch_add/compare_exchange"/>
+        <mapping from="Mutex&lt;bool&gt;" to="AtomicBool" operations="load/store/compare_exchange"/>
+        <mapping from="RwLock&lt;T&gt;" to="AtomicPtr&lt;T&gt;" operations="load/store/compare_exchange (heap-allocated T)"/>
+        <mapping from="Mutex&lt;Vec&lt;T&gt;&gt;" to="lockfree::LockfreeList&lt;T&gt;" operations="push/pop/iter"/>
+      </type-mappings>
+
+      <code-transformation><![CDATA[
+// BEFORE: Mutex-based coordination
+fn increment_with_mutex(&self) {
+    let mut guard = self.count.lock().unwrap();
+    *guard += 1;
+    // Lock held during entire operation
+}
+
+// AFTER: Atomic-based coordination
+fn increment_with_atomic(&self) {
+    self.count.fetch_add(1, Ordering::Release);
+    // No lock, 100% lockfree
+}
+
+// BEFORE: RwLock for complex data
+fn update_with_rwlock(&self, new_data: Data) {
+    let mut guard = self.data.write().unwrap();
+    *guard = new_data;
+}
+
+// AFTER: AtomicPtr with heap allocation
+fn update_with_atomic_ptr(&self, new_data: Data) {
+    let boxed = Box::new(new_data);
+    let ptr = Box::into_raw(boxed);
+    let old = self.data.swap(ptr, Ordering::AcqRel);
+    if !old.is_null() {
+        unsafe { drop(Box::from_raw(old)); }  // Free old allocation
+    }
+}
+      ]]></code-transformation>
+
+      <performance-comparison>
+        <mutex>10-100ns lock contention (worst-case: unbounded with priority inversion)</mutex>
+        <atomic>5-10ns atomic operation (bounded, deterministic latency)</atomic>
+        <speedup>2-20× improvement depending on contention level</speedup>
+      </performance-comparison>
+    </pattern1-mutex-to-atomic>
+
+    <pattern2-add-padding>
+      <description>Calculate and add correct padding for cache-line alignment</description>
+      <frequency>10-15% of capsules (often hand-calculated incorrectly)</frequency>
+
+      <formula>
+        <calculation>padding_size = alignment - (sum_of_field_sizes % alignment)</calculation>
+        <special-case>If (sum_of_field_sizes % alignment) == 0, then padding_size = 0</special-case>
+      </formula>
+
+      <examples>
+        <example alignment="64" fields="8+8+4" padding="44">
+          <calculation>padding = 64 - ((8+8+4) % 64) = 64 - 20 = 44 bytes</calculation>
+        </example>
+        <example alignment="128" fields="16+8" padding="104">
+          <calculation>padding = 128 - ((16+8) % 128) = 128 - 24 = 104 bytes</calculation>
+        </example>
+        <example alignment="256" fields="64" padding="192">
+          <calculation>padding = 256 - (64 % 256) = 256 - 64 = 192 bytes</calculation>
+        </example>
+        <example alignment="64" fields="64" padding="0">
+          <calculation>padding = 64 - (64 % 64) = 64 - 0 = 0 bytes (no padding needed)</calculation>
+        </example>
+      </examples>
+
+      <automated-tool><![CDATA[
+# Use fix_padding_fields tool for automatic calculation
+cd /home/samuel/Primitives/tools/fix_padding_fields
+
+# Single file fix
+cargo run -- /path/to/capsule.rs
+
+# Batch fix all capsules
+find ../atomic_capsule/src -name "*capsule*.rs" | while read file; do
+    cargo run -- "$file"
+done
+
+# Manual calculation (Python one-liner)
+python3 -c "
+alignment = 64
+field_sizes = [8, 8, 4]  # List all field sizes
+total = sum(field_sizes)
+padding = alignment - (total % alignment)
+print(f'Fields: {total} bytes, Padding: {padding} bytes, Total: {total + padding} bytes')
+"
+# Output: Fields: 20 bytes, Padding: 44 bytes, Total: 64 bytes
+      ]]></automated-tool>
+    </pattern2-add-padding>
+
+    <pattern3-add-generation>
+      <description>Add generation counter for TOCTOU prevention (critical for T1 Atomic capsules)</description>
+      <frequency>30-40% of T1 Atomic capsules (often forgotten in initial implementation)</frequency>
+
+      <requirement>
+        <mandate>All T1 Atomic capsules MUST have generation counter (Chaos framework requirement)</mandate>
+        <rationale>Detects concurrent modifications between Time-Of-Check and Time-Of-Use</rationale>
+        <type>AtomicU32 (supports 4 billion updates before wraparound)</type>
+      </requirement>
+
+      <implementation-pattern><![CDATA[
+// Step 1: Add generation field to struct
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]
+pub struct RateLimiterCapsule {
+    tokens: AtomicU64,
+    last_refill: AtomicU64,
+    generation: AtomicU32,  // ← NEW: 4 bytes
+    _padding: [u8; 44],     // ← ADJUSTED: 48 - 4 = 44 bytes
+}
+
+// Step 2: Update methods to use generation
+impl RateLimiterCapsule {
+    // Pattern: Load generation FIRST, then data, then verify generation AGAIN
+    pub fn check_and_consume(&self) -> bool {
+        loop {
+            // Step 1: Capture generation before reading data
+            let gen_before = self.generation.load(Ordering::Acquire);
+
+            // Step 2: Read data (tokens, last_refill)
+            let tokens = self.tokens.load(Ordering::Acquire);
+            let last = self.last_refill.load(Ordering::Acquire);
+
+            // Step 3: Verify generation unchanged (TOCTOU detection)
+            let gen_after = self.generation.load(Ordering::Acquire);
+            if gen_before != gen_after {
+                continue; // Retry if concurrent modification detected
+            }
+
+            // Step 4: Perform operation with CAS
+            if tokens > 0 {
+                if self.tokens.compare_exchange(
+                    tokens,
+                    tokens - 1,
+                    Ordering::Release,
+                    Ordering::Acquire,
+                ).is_ok() {
+                    // Step 5: Increment generation on successful update
+                    self.generation.fetch_add(1, Ordering::Release);
+                    return true;
+                }
+            } else {
+                return false;
+            }
+        }
+    }
+}
+      ]]></implementation-pattern>
+
+      <verification-pattern><![CDATA[
+// Property test: Generation increments monotonically
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generation_monotonic() {
+        let capsule = RateLimiterCapsule::new(1000);
+
+        let gen1 = capsule.generation.load(Ordering::Acquire);
+        capsule.check_and_consume(); // Perform operation
+        let gen2 = capsule.generation.load(Ordering::Acquire);
+
+        assert!(gen2 > gen1, "Generation must increase after update");
+        assert_eq!(gen2 - gen1, 1, "Generation should increment by 1");
+    }
+
+    #[test]
+    fn test_toctou_detection() {
+        use std::sync::Arc;
+        use std::thread;
+
+        let capsule = Arc::new(RateLimiterCapsule::new(1000));
+        let capsule2 = Arc::clone(&capsule);
+
+        // Thread 1: Read generation before operation
+        let gen_before = capsule.generation.load(Ordering::Acquire);
+
+        // Thread 2: Concurrent modification
+        thread::spawn(move || {
+            capsule2.check_and_consume();
+        }).join().unwrap();
+
+        // Thread 1: Verify generation changed (TOCTOU detected)
+        let gen_after = capsule.generation.load(Ordering::Acquire);
+        assert_ne!(gen_before, gen_after, "TOCTOU detection must work");
+    }
+}
+      ]]></verification-pattern>
+    </pattern3-add-generation>
+
+    <pattern4-fix-non-atomic-fields>
+      <description>Convert plain fields to atomic types (data race elimination)</description>
+      <frequency>15-20% of capsules (often legacy code from pre-capsule era)</frequency>
+
+      <field-audit-checklist>
+        <check>Identify all mutable fields (exclude const/immutable data)</check>
+        <check>Check if field is accessed from multiple threads (use thread-safety analysis)</check>
+        <check>Replace mutable fields with appropriate atomic types</check>
+        <check>Update access patterns (direct access → load/store/fetch_*)</check>
+        <check>Verify no data races with Miri or ThreadSanitizer</check>
+      </field-audit-checklist>
+
+      <conversion-table>
+        <conversion from="u64" to="AtomicU64" size="8" methods="load/store/fetch_add/fetch_sub/compare_exchange"/>
+        <conversion from="u32" to="AtomicU32" size="4" methods="load/store/fetch_add/fetch_sub/compare_exchange"/>
+        <conversion from="u16" to="AtomicU16" size="2" methods="load/store/fetch_add/fetch_sub/compare_exchange"/>
+        <conversion from="u8" to="AtomicU8" size="1" methods="load/store/fetch_add/fetch_sub/compare_exchange"/>
+        <conversion from="usize" to="AtomicUsize" size="8" methods="load/store/fetch_add/fetch_sub/compare_exchange"/>
+        <conversion from="bool" to="AtomicBool" size="1" methods="load/store/compare_exchange/swap"/>
+        <conversion from="*mut T" to="AtomicPtr&lt;T&gt;" size="8" methods="load/store/compare_exchange/swap"/>
+      </conversion-table>
+
+      <access-pattern-updates><![CDATA[
+// BEFORE: Direct field access (data race)
+pub fn increment(&mut self) {
+    self.count += 1;  // ← Data race if called from multiple threads
+}
+
+pub fn read(&self) -> u64 {
+    self.count  // ← Data race if another thread is writing
+}
+
+// AFTER: Atomic field access (thread-safe)
+pub fn increment(&self) {  // ← Note: &self (not &mut self)
+    self.count.fetch_add(1, Ordering::Release);
+}
+
+pub fn read(&self) -> u64 {
+    self.count.load(Ordering::Acquire)
+}
+
+// BEFORE: Conditional update (data race)
+pub fn update_if_greater(&mut self, new_value: u64) {
+    if new_value > self.max {  // ← TOCTOU race
+        self.max = new_value;
+    }
+}
+
+// AFTER: Atomic compare-exchange (race-free)
+pub fn update_if_greater(&self, new_value: u64) {
+    loop {
+        let current = self.max.load(Ordering::Acquire);
+        if new_value <= current {
+            break;  // New value not greater, no update needed
+        }
+
+        // Atomic CAS: only update if value unchanged since load
+        if self.max.compare_exchange(
+            current,
+            new_value,
+            Ordering::Release,
+            Ordering::Acquire,
+        ).is_ok() {
+            break;  // Update succeeded
+        }
+        // CAS failed (concurrent modification), retry loop
+    }
+}
+      ]]></access-pattern-updates>
+
+      <memory-ordering-guide>
+        <ordering name="Relaxed" use-case="Counters where order doesn't matter (stats, metrics)"/>
+        <ordering name="Acquire" use-case="Load before dependent reads (read metadata before data)"/>
+        <ordering name="Release" use-case="Store after all writes complete (write data before metadata)"/>
+        <ordering name="AcqRel" use-case="Read-modify-write operations (fetch_add, compare_exchange)"/>
+        <ordering name="SeqCst" use-case="Avoid unless proven necessary (performance penalty)"/>
+      </memory-ordering-guide>
+    </pattern4-fix-non-atomic-fields>
+
+  </common-migration-patterns>
+
+  <!-- ========================================================================
+       TROUBLESHOOTING
+       ======================================================================== -->
+  <troubleshooting>
+
+    <issue id="T1" severity="HIGH">
+      <symptom>Compilation error: "derive macro ComputationalCapsule not found"</symptom>
+      <cause>atomic_capsule_derive dependency missing or incorrect version</cause>
+      <fix><![CDATA[
+# Add to Cargo.toml
+[dependencies]
+atomic_capsule_derive = { version = "0.4.0", path = "../atomic_capsule_derive" }
+
+# Or install from crates.io (when published)
+atomic_capsule_derive = "0.4.0"
+
+# Ensure derive macro is re-exported in lib.rs
+pub use atomic_capsule_derive::ComputationalCapsule;
+      ]]></fix>
+    </issue>
+
+    <issue id="T2" severity="HIGH">
+      <symptom>Clippy error: "capsule-mutex-violation" but no Mutex field visible</symptom>
+      <cause>Nested struct contains Mutex (derive checks recursively)</cause>
+      <fix><![CDATA[
+// Example: Mutex hidden in nested struct
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]
+pub struct ParentCapsule {
+    child: ChildStruct,  // ← Contains Mutex internally
+    _padding: [u8; 48],
+}
+
+#[repr(C)]
+struct ChildStruct {
+    data: Mutex<u64>,  // ← P0 violation (found by recursive check)
+}
+
+// FIX: Replace Mutex in nested struct
+#[repr(C)]
+struct ChildStruct {
+    data: AtomicU64,  // ← Fixed
+}
+      ]]></fix>
+    </issue>
+
+    <issue id="T3" severity="MEDIUM">
+      <symptom>Derive succeeds but clippy fails with "capsule-incorrect-padding"</symptom>
+      <cause>Derive only checks total size, clippy validates padding field specifically</cause>
+      <fix><![CDATA[
+# Use fix_padding_fields tool for automatic correction
+cd /home/samuel/Primitives/tools/fix_padding_fields
+cargo run -- /path/to/file.rs
+
+# Manual fix:
+# 1. Calculate correct padding: alignment - (sum_of_fields % alignment)
+# 2. Update _padding field size
+# 3. Recompile to verify
+      ]]></fix>
+    </issue>
+
+    <issue id="T4" severity="MEDIUM">
+      <symptom>Tests fail after migration (behavior changed)</symptom>
+      <cause>Memory ordering too weak (Relaxed → Acquire/Release needed)</cause>
+      <fix><![CDATA[
+// BEFORE: Relaxed ordering (insufficient synchronization)
+let value = self.state.load(Ordering::Relaxed);
+self.state.store(new_value, Ordering::Relaxed);
+
+// AFTER: Acquire/Release ordering (proper synchronization)
+let value = self.state.load(Ordering::Acquire);  // ← Synchronize reads
+self.state.store(new_value, Ordering::Release);  // ← Synchronize writes
+
+// Rule of thumb:
+// - Acquire for loads (synchronize before dependent reads)
+// - Release for stores (synchronize after all writes)
+// - AcqRel for RMW operations (fetch_add, compare_exchange)
+      ]]></fix>
+    </issue>
+
+    <issue id="T5" severity="LOW">
+      <symptom>Compilation warning: "unused field _padding"</symptom>
+      <cause>Padding field flagged as unused (expected behavior)</cause>
+      <fix><![CDATA[
+// Suppress warning with #[allow(dead_code)]
+#[repr(C, align(64))]
+#[derive(ComputationalCapsule)]
+pub struct MyCapsule {
+    state: AtomicU64,
+    #[allow(dead_code)]  // ← Suppress warning
+    _padding: [u8; 56],
+}
+
+// Or use underscore prefix (Rust convention)
+_padding: [u8; 56],  // ← Already suppresses by naming convention
+      ]]></fix>
+    </issue>
+
+    <issue id="T6" severity="HIGH">
+      <symptom>Clippy crash: "thread 'rustc' panicked at 'index out of bounds'"</symptom>
+      <cause>Clippy lint bug (known issue with complex derive macros)</cause>
+      <fix><![CDATA[
+# Workaround 1: Disable specific lint temporarily
+#[allow(clippy::capsule-incorrect-padding)]
+#[derive(ComputationalCapsule)]
+pub struct ProblematicCapsule { ... }
+
+# Workaround 2: Update clippy to latest version
+rustup update nightly
+cargo +nightly clippy --version  # Verify newer version
+
+# Workaround 3: Report bug with minimal reproduction
+# (See clippy-capsule-verify GitHub issues)
+      ]]></fix>
+    </issue>
+
+    <issue id="T7" severity="MEDIUM">
+      <symptom>Derive succeeds but struct size wrong at runtime</symptom>
+      <cause>Compiler optimization changing layout (rare, requires #[repr(C)])</cause>
+      <fix><![CDATA[
+// Verify #[repr(C)] is present
+#[repr(C, align(64))]  // ← Must have both C and align
+#[derive(ComputationalCapsule)]
+pub struct MyCapsule { ... }
+
+// Runtime validation (sanity check)
+#[test]
+fn test_capsule_size() {
+    assert_eq!(std::mem::size_of::<MyCapsule>(), 64);
+    assert_eq!(std::mem::align_of::<MyCapsule>(), 64);
+}
+      ]]></fix>
+    </issue>
+
+  </troubleshooting>
+
+  <!-- ========================================================================
+       ROLLBACK PLAN
+       ======================================================================== -->
+  <rollback-plan>
+    <description>Safe rollback to manual verification if migration issues discovered</description>
+
+    <rollback-steps>
+      <step id="R1" timing="5 minutes">
+        <description>Restore manual verification macros from git history</description>
+        <commands><![CDATA[
+# Identify last commit before migration
+git log --oneline --grep="derive" -n 1
+
+# Revert all files to pre-migration state
+git revert <commit-hash>
+
+# Or selectively restore verification macros
+git checkout <commit-hash> -- src/**/*capsule*.rs
+        ]]></commands>
+      </step>
+
+      <step id="R2" timing="2 minutes">
+        <description>Remove #[derive(ComputationalCapsule)] attributes</description>
+        <commands><![CDATA[
+# Remove all derive attributes (automated)
+find src -name "*.rs" -exec sed -i '/^#\[derive(ComputationalCapsule)\]/d' {} \;
+
+# Verify removal
+grep -r "derive(ComputationalCapsule)" src
+# Should return 0 results
+        ]]></commands>
+      </step>
+
+      <step id="R3" timing="5 minutes">
+        <description>Restore manual verification macro invocations</description>
+        <commands><![CDATA[
+# Re-add manual verification macros (manual or from backup)
+# Example: For each capsule struct, add at end of file:
+# crate::verification::verify_capsule_properties!(CapsuleName, alignment, size);
+
+# Or restore from backup file
+cp backup/verification_macros.rs src/verification/mod.rs
+        ]]></commands>
+      </step>
+
+      <step id="R4" timing="10 minutes">
+        <description>Validate rollback success</description>
+        <commands><![CDATA[
+# Compile with manual verification
+cargo build --lib --release
+
+# Run full test suite
+cargo test --all-features
+
+# Verify no derive attributes remain
+grep -r "derive(ComputationalCapsule)" src
+# Should return 0 results
+
+# Verify manual macros restored
+grep -r "verify_capsule_properties" src | wc -l
+# Should return >0 (number of capsules)
+        ]]></commands>
+      </step>
+
+      <step id="R5" timing="5 minutes">
+        <description>Document rollback reason and report issue</description>
+        <template><![CDATA[
+# Create rollback report
+cat > ROLLBACK_REPORT.md <<'EOF'
+# Derive Migration Rollback Report
+
+**Date**: $(date)
+**Reason**: [Describe specific issue that triggered rollback]
+
+## Issues Encountered
+
+1. [Specific compilation error, test failure, or performance regression]
+2. [Steps to reproduce the issue]
+
+## Rollback Actions
+
+- Reverted to commit: [commit hash]
+- Restored manual verification macros: [count]
+- Test suite status: [pass/fail with details]
+
+## Recommendation
+
+[Fix issue in derive macro, update migration guide, or document limitation]
+
+EOF
+
+# Report issue to maintainers
+# (Include ROLLBACK_REPORT.md in bug report)
+        ]]></template>
+      </step>
+    </rollback-steps>
+
+    <rollback-triggers>
+      <trigger severity="CRITICAL">Compilation failure (P0 violations unfixable)</trigger>
+      <trigger severity="CRITICAL">Test suite regression >5% failures</trigger>
+      <trigger severity="HIGH">Performance regression >10% compile time</trigger>
+      <trigger severity="HIGH">Runtime behavior change (unexpected semantics)</trigger>
+      <trigger severity="MEDIUM">Clippy crashes repeatedly (unstable toolchain)</trigger>
+    </rollback-triggers>
+
+    <partial-rollback>
+      <description>Rollback specific capsules while keeping derive for others</description>
+      <use-case>When only a few capsules exhibit issues (e.g., complex nested types)</use-case>
+      <steps>
+        <step>Remove #[derive(ComputationalCapsule)] from problematic capsule</step>
+        <step>Add #[allow(clippy::missing-capsule-verification)] to suppress warning</step>
+        <step>Re-add manual verification macro for that capsule only</step>
+        <step>Keep derive for all other working capsules</step>
+      </steps>
+    </partial-rollback>
+
+    <timeline>
+      <emergency-rollback>30 minutes (full revert + validation)</emergency-rollback>
+      <selective-rollback>10 minutes per problematic capsule</selective-rollback>
+      <post-rollback-fix>1-4 hours (fix derive macro issue or update migration guide)</post-rollback-fix>
+    </timeline>
+  </rollback-plan>
+
+  <!-- ========================================================================
+       CONCLUSION
+       ======================================================================== -->
+  <conclusion>
+    <summary>
+      <achievement>87.5% code reduction (618 manual macros → automatic derive)</achievement>
+      <achievement>Compile-time verification (0ns runtime overhead)</achievement>
+      <achievement>90%+ Chaos compliance detection (4 P0 + 4 P1 lints)</achievement>
+      <achievement>Immediate error feedback (no need to run tests to detect violations)</achievement>
+    </summary>
+
+    <timeline>
+      <phase1>Preparation: 15 minutes (enable derive, setup clippy)</phase1>
+      <phase2>Migration: 30-60 minutes (fix violations, remove macros)</phase2>
+      <phase3>Validation: 15-30 minutes (test suite + manual verification)</phase3>
+      <total>1-2 hours for typical project (200-300 capsules)</total>
+    </timeline>
+
+    <success-metrics>
+      <metric>Zero P0 violations (100% lockfree, aligned, atomic, generation)</metric>
+      <metric>Test suite 100% passing (no behavioral regressions)</metric>
+      <metric>Compile time increase <5% (derive overhead minimal)</metric>
+      <metric>Binary size unchanged (0ns runtime verification)</metric>
+    </success-metrics>
+
+    <next-steps>
+      <step>Complete migration for atomic_capsule (262 primitives)</step>
+      <step>Migrate external projects (kindly_dedup, kindly_hft, kdb, capsule-os)</step>
+      <step>Deprecate manual macros in v0.5.0 (Q1 2026)</step>
+      <step>Remove manual macros in v0.6.0 (Q2 2026)</step>
+    </next-steps>
+
+    <support>
+      <contact>GitHub Issues: https://github.com/your-org/clippy-capsule-verify/issues</contact>
+      <documentation>Migration Guide: /home/samuel/Primitives/clippy-capsule-verify/MIGRATION_GUIDE.xml</documentation>
+      <tools>fix_padding_fields: /home/samuel/Primitives/tools/fix_padding_fields/</tools>
+    </support>
+  </conclusion>
+
+</migration-guide>

@@ -36,7 +36,7 @@
 //!
 //! ## Framework Compliance
 //! - **UCE34**: Tier 0+1+4 (Q10-Q12, Q34)
-//! - **COCA**: 100% lockfree (no mutex/RwLock)
+//! - **Chaos**: 100% lockfree (no mutex/RwLock)
 //! - **ASSUM**: 99.99% safe (generation counter, heartbeat monitoring)
 //! - **B32**: Fair baselines (<50ns target)
 

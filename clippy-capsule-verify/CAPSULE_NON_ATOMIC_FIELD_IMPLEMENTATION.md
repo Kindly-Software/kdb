@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-Successfully implemented the `CAPSULE_NON_ATOMIC_FIELD` clippy lint (P0.4) for enforcing the COCA mandate that T1 (Atomic) tier capsules contain ONLY atomic field types. This lint catches data race risks at compile-time and prevents lockfree violations before they become runtime bugs.
+Successfully implemented the `CAPSULE_NON_ATOMIC_FIELD` clippy lint (P0.4) for enforcing the Chaos mandate that T1 (Atomic) tier capsules contain ONLY atomic field types. This lint catches data race risks at compile-time and prevents lockfree violations before they become runtime bugs.
 
 **File**: `/home/samuel/Primitives/clippy-capsule-verify/src/atomic_field_violation.rs` (262 lines)
 
@@ -164,7 +164,7 @@ Error message provides:
 | **Q33** | Atomic Capsule | Enforces all-atomic requirement |
 | **Q34** | Auditability | Clear error messages with file/line locations |
 
-### COCA Mandate
+### Chaos Mandate
 
 - ✅ **No Mutex/RwLock**: Lint enforces atomic-only
 - ✅ **100% Lockfree**: Validates field types
@@ -351,7 +351,7 @@ error: T1 (Atomic) capsule field `count` has non-atomic type `u64`
 - ✅ Lint documentation in declaration
 - ✅ Implementation summary document
 - ✅ Complete report (this document)
-- ✅ UCE34/COCA/ASSUM compliance documented
+- ✅ UCE34/Chaos/ASSUM compliance documented
 
 ### Testing
 - ✅ Unit tests for helper functions
@@ -361,7 +361,7 @@ error: T1 (Atomic) capsule field `count` has non-atomic type `u64`
 
 ### Framework Compliance
 - ✅ UCE34 (Q10, Q30, Q33, Q34)
-- ✅ COCA (lockfree mandate)
+- ✅ Chaos (lockfree mandate)
 - ✅ ASSUM (safety assumptions documented)
 - ✅ B32 (performance impact negligible)
 - ✅ T28 (unit tests included, phases documented)
@@ -373,9 +373,9 @@ error: T1 (Atomic) capsule field `count` has non-atomic type `u64`
 The `CAPSULE_NON_ATOMIC_FIELD` lint implementation is **complete, well-documented, and ready for integration testing**. It successfully addresses the P0.4 requirement from the Clippy Capsule Verification Plan by:
 
 1. **Detecting** non-atomic fields in T1 capsules at compile-time
-2. **Preventing** data races by enforcing COCA lockfree mandate
+2. **Preventing** data races by enforcing Chaos lockfree mandate
 3. **Providing** clear, actionable error messages
-4. **Complying** with all major frameworks (UCE34, COCA, ASSUM, B32, T28)
+4. **Complying** with all major frameworks (UCE34, Chaos, ASSUM, B32, T28)
 5. **Maintaining** minimal compilation overhead (<5ms per project)
 
 **Next Steps**:
@@ -390,7 +390,7 @@ The `CAPSULE_NON_ATOMIC_FIELD` lint implementation is **complete, well-documente
 ## References
 
 - **Specification**: `/home/samuel/Primitives/CLIPPY_DERIVE_ENFORCEMENT_PLAN.md` (Section P0.4, pages 369-443)
-- **Framework**: `/home/samuel/CLAUDE.md` (UCE34, COCA, ASSUM, B32, T28)
+- **Framework**: `/home/samuel/CLAUDE.md` (UCE34, Chaos, ASSUM, B32, T28)
 - **Patterns**: `/home/samuel/Docs/The Atomic Capsule.md`
 - **Innovations**: `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md`
 

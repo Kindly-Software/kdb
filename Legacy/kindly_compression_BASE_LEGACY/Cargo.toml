@@ -1,0 +1,66 @@
+[package]
+name = "kindly_compression"
+version = "0.1.0"
+edition = "2021"
+authors = ["Samuel <samuel@kindly.ai>"]
+license = "PROPRIETARY"
+description = "Proprietary fixed-point quantization for weight compression (T3 tier, TRADE SECRET)"
+publish = false
+keywords = ["compression", "quantization", "deterministic", "fixed-point"]
+categories = ["compression", "encoding"]
+
+# TRADE SECRET: All algorithms and code are proprietary
+# NEVER commit to public repositories, NEVER share publicly
+
+[dependencies]
+# Core computational capsule foundation (parallel module included by default)
+# For T2 SIMD + T3 Fixed-Point optimization (requires nightly)
+atomic_capsule = { path = "../atomic_capsule" }
+
+[dev-dependencies]
+criterion = "0.5"
+proptest = "1.4"
+
+[lib]
+name = "kindly_compression"
+path = "src/lib.rs"
+
+# ============================================================================
+# B32 Benchmark Configuration
+# ============================================================================
+# Comprehensive benchmarking suite following B32 Framework requirements:
+# - B1: Fair baselines (GPTQ, Q8.8, not strawman)
+# - B2: Statistical rigor (1000+ iterations, 95% CI)
+# - B3: Realistic workloads (real data, not synthetic)
+# - B5: Full disclosure (methodology, hardware, variance)
+
+[[bench]]
+name = "compression_ratio"
+harness = false
+required-features = []
+
+[[bench]]
+name = "accuracy_loss"
+harness = false
+required-features = []
+
+[[bench]]
+name = "decompression_latency"
+harness = false
+required-features = []
+
+[[bench]]
+name = "baseline_comparison"
+harness = false
+required-features = []
+
+[[bench]]
+name = "batch_decompression_bench"
+harness = false
+required-features = []
+
+[profile.bench]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+debug = false

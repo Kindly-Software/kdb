@@ -1,7 +1,7 @@
 //! Real-Time Metrics Dashboard
 //!
 //! Live system metrics display with Byzantine purple + gold styling.
-//! 100% lockfree using AtomicU64 for all counters (COCA compliance).
+//! 100% lockfree using AtomicU64 for all counters (Chaos compliance).
 //!
 //! # UCE34 Q28 (Simplicity)
 //!
@@ -31,7 +31,7 @@ const VALUE_COLOR: Color = Color::BrightYellow;
 
 /// Metrics dashboard capsule
 ///
-/// # Lock-Free Design (COCA)
+/// # Lock-Free Design (Chaos)
 ///
 /// - **T1 Atomic**: AtomicU64 for all metrics
 /// - **Cache-aligned**: 128-byte alignment for hot path

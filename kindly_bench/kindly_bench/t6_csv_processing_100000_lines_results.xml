@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<benchmark-results xmlns="http://kindly.software/schemas/benchmark-results"
+                   version="1.0.0"
+                   timestamp="2025-11-09T21:51:51Z">
+
+  <metadata>
+    <run-id>831cc815-9aa9-4dbd-ad7a-627238fbdd3a</run-id>
+    <framework-version>kindly_bench 1.0.0</framework-version>
+    <b32-compliant>true</b32-compliant>
+  </metadata>
+
+  <hardware>
+    <cpu>
+      <model>Intel(R) Core(TM) Ultra 7 155H</model>
+      <microarchitecture>Meteor Lake</microarchitecture>
+      <cores-total>22</cores-total>
+      <cache-line-bytes>64</cache-line-bytes>
+    </cpu>
+    <memory>
+      <size-gb>30</size-gb>
+    </memory>
+  </hardware>
+
+  <benchmarks>
+    <benchmark id="T6_CSV_Processing_100000_lines">
+      <name>T6_CSV_Processing_100000_lines</name>
+      <tier>T6-Mixed</tier>
+      <baseline-kind>Non-optimized</baseline-kind>
+      <optimized>
+        <samples>10000</samples>
+        <mean-ns>90196.65</mean-ns>
+        <median-ns>90404.00</median-ns>
+        <p95-ns>97960.45</p95-ns>
+        <p99-ns>118191.03</p99-ns>
+        <stddev-ns>14005.42</stddev-ns>
+        <min-ns>78396.00</min-ns>
+        <max-ns>1080254.00</max-ns>
+        <outliers>67</outliers>
+        <confidence-interval-95>
+          <lower-bound-ns>89922.14</lower-bound-ns>
+          <upper-bound-ns>90471.15</upper-bound-ns>
+        </confidence-interval-95>
+      </optimized>
+      <baseline>
+        <samples>10000</samples>
+        <mean-ns>152779.31</mean-ns>
+        <median-ns>149468.00</median-ns>
+        <p95-ns>172976.15</p95-ns>
+        <p99-ns>233330.03</p99-ns>
+        <stddev-ns>18182.99</stddev-ns>
+        <min-ns>134459.00</min-ns>
+        <max-ns>734204.00</max-ns>
+        <outliers>122</outliers>
+        <confidence-interval-95>
+          <lower-bound-ns>152422.92</lower-bound-ns>
+          <upper-bound-ns>153135.70</upper-bound-ns>
+        </confidence-interval-95>
+      </baseline>
+      <speedup>
+        <mean-speedup>1.69</mean-speedup>
+        <median-speedup>1.65</median-speedup>
+        <p95-speedup>1.77</p95-speedup>
+        <confidence-interval-95>
+          <lower-bound>1.68</lower-bound>
+          <upper-bound>1.70</upper-bound>
+        </confidence-interval-95>
+      </speedup>
+      <classification>
+        <tier>Exceptional</tier>
+        <confidence>High</confidence>
+      </classification>
+      <recommendation>
+        <action>Ship</action>
+        <reasoning>EXCEPTIONAL (1.5-2.5×) speedup with HIGH confidence (95% CI)</reasoning>
+        <next-steps>Ready for production deployment. Monitor performance metrics in production to validate results.</next-steps>
+      </recommendation>
+    </benchmark>
+  </benchmarks>
+
+</benchmark-results>

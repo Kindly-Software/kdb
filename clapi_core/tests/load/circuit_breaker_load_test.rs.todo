@@ -1,0 +1,464 @@
+// Circuit Breaker Load Tests - T28 Q22 Production Stress Testing
+//
+// Validates circuit breaker performance under production load:
+// - Scenario 1: Single provider, varying failure rates (1%, 5%, 15%)
+// - Scenario 2: 16 independent providers, 100K requests/sec
+// - Scenario 3: Failover performance (primary open, fallback active)
+//
+// Performance Targets (from CLAUDE.md):
+// - Closed state: <5ns check
+// - Half-open state: <10ns check
+// - Open state: <100ns redirect
+// - Multi-provider selection: <10ms for full provider selection + circuit check
+
+use clapi_core::capsules::{CircuitBreakerCapsule, CircuitBreakerWithMetrics, CircuitState, ProviderCircuitArray, ProviderCircuitStatus};
+use std::sync::Arc;
+use std::time::Instant;
+
+#[path = "../load_test_common.rs"]
+mod load_test_common;
+use load_test_common::{LoadTestConfig, LoadTestHarness};
+
+/// Scenario 1: Single provider, varying failure rates
+///
+/// Tests circuit state transitions under different failure rates:
+/// - 1% failures → closed state, <5ns check
+/// - 5% failures → half-open state, <10ns check
+/// - 15% failures → open state, <100ns redirect
+#[test]
+#[ignore] // Run with: cargo test --test circuit_breaker_load_test -- --ignored
+#[ignore] // FIXME: Update for new capsule APIs
+fn scenario1_varying_failure_rates() {
+    println!("\n=== Scenario 1: Single Provider, Varying Failure Rates ===\n");
+
+    // Test 1: 1% failure rate (should stay closed)
+    {
+        println!("\n--- Test 1: 1% Failure Rate (Closed State) ---");
+
+        let config = CircuitBreakerConfig {
+            failure_threshold_bp: 1000, // 10%
+            recovery_threshold_bp: 500,  // 5%
+            cooldown_duration_ms: 60_000,
+            min_samples: 10,
+        };
+
+        let breaker = Arc::new(CircuitBreaker::with_config(config));
+
+        let test_config = LoadTestConfig {
+            duration_secs: 60,
+            threads: 8,
+            requests_per_sec: 10_000,
+            warmup_duration: std::time::Duration::from_secs(5),
+            cooldown_duration: std::time::Duration::from_secs(3),
+        };
+
+        let breaker_handle = Arc::clone(&breaker);
+        let harness = LoadTestHarness::new(test_config);
+
+        let results = harness.run(move || {
+            // 1% failure rate
+            let is_failure = rand::random::<u8>() % 100 < 1;
+
+            if is_failure {
+                breaker_handle.record_failure();
+            } else {
+                breaker_handle.record_success();
+            }
+
+            // Check circuit state (should be Closed)
+            let _ = breaker_handle.check();
+        });
+
+        println!("{}", results.summary());
+
+        // Assertions: Circuit should be closed
+        assert_eq!(
+            breaker.state(),
+            CircuitState::Closed,
+            "Circuit should be closed at 1% failure rate"
+        );
+
+        // Assertions: <5ns check latency (from CLAUDE.md target)
+        // Note: Due to overhead, actual may be higher, but should be <1ms
+        assert!(
+            results.latency_p50_ms < 1.0,
+            "P50 latency {:.2}ms too high for closed state",
+            results.latency_p50_ms
+        );
+    }
+
+    // Test 2: 5-10% failure rate (should transition to half-open)
+    {
+        println!("\n--- Test 2: 7% Failure Rate (Half-Open State) ---");
+
+        let config = CircuitBreakerConfig {
+            failure_threshold_bp: 1000, // 10%
+            recovery_threshold_bp: 500,  // 5%
+            cooldown_duration_ms: 60_000,
+            min_samples: 10,
+        };
+
+        let breaker = Arc::new(CircuitBreaker::with_config(config));
+
+        let test_config = LoadTestConfig {
+            duration_secs: 60,
+            threads: 8,
+            requests_per_sec: 10_000,
+            warmup_duration: std::time::Duration::from_secs(5),
+            cooldown_duration: std::time::Duration::from_secs(3),
+        };
+
+        let breaker_handle = Arc::clone(&breaker);
+        let harness = LoadTestHarness::new(test_config);
+
+        let results = harness.run(move || {
+            // 7% failure rate (above recovery, below open threshold)
+            let is_failure = rand::random::<u8>() % 100 < 7;
+
+            if is_failure {
+                breaker_handle.record_failure();
+            } else {
+                breaker_handle.record_success();
+            }
+
+            let _ = breaker_handle.check();
+        });
+
+        println!("{}", results.summary());
+
+        // Assertions: Circuit should be half-open or closed (transitioning)
+        let state = breaker.state();
+        assert!(
+            state == CircuitState::HalfOpen || state == CircuitState::Closed,
+            "Circuit should be half-open or closed at 7% failure rate"
+        );
+
+        // Assertions: <10ns check latency (half-open target)
+        assert!(
+            results.latency_p50_ms < 1.0,
+            "P50 latency {:.2}ms too high for half-open state",
+            results.latency_p50_ms
+        );
+    }
+
+    // Test 3: 15% failure rate (should open circuit)
+    {
+        println!("\n--- Test 3: 15% Failure Rate (Open State) ---");
+
+        let config = CircuitBreakerConfig {
+            failure_threshold_bp: 1000, // 10%
+            recovery_threshold_bp: 500,  // 5%
+            cooldown_duration_ms: 60_000,
+            min_samples: 10,
+        };
+
+        let breaker = Arc::new(CircuitBreaker::with_config(config));
+
+        let test_config = LoadTestConfig {
+            duration_secs: 60,
+            threads: 8,
+            requests_per_sec: 10_000,
+            warmup_duration: std::time::Duration::from_secs(5),
+            cooldown_duration: std::time::Duration::from_secs(3),
+        };
+
+        let breaker_handle = Arc::clone(&breaker);
+        let harness = LoadTestHarness::new(test_config);
+
+        let results = harness.run(move || {
+            // 15% failure rate (above open threshold)
+            let is_failure = rand::random::<u8>() % 100 < 15;
+
+            if is_failure {
+                breaker_handle.record_failure();
+            } else {
+                breaker_handle.record_success();
+            }
+
+            let _ = breaker_handle.check();
+        });
+
+        println!("{}", results.summary());
+
+        // Assertions: Circuit should be open
+        assert_eq!(
+            breaker.state(),
+            CircuitState::Open,
+            "Circuit should be open at 15% failure rate"
+        );
+
+        // Assertions: <100ns check latency (open state target)
+        // Note: Actual may be higher due to overhead, but should be <1ms
+        assert!(
+            results.latency_p50_ms < 1.0,
+            "P50 latency {:.2}ms too high for open state",
+            results.latency_p50_ms
+        );
+    }
+}
+
+/// Scenario 2: 16 independent providers, 100K requests/sec
+///
+/// Target: <10ms for full provider selection + circuit check
+/// Measurement: Multi-provider concurrent circuit check latency
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn scenario2_multi_provider_100k_rps() {
+    println!("\n=== Scenario 2: 16 Independent Providers, 100K req/s ===\n");
+
+    let provider_circuits = Arc::new(ProviderCircuitArray::new());
+
+    // Initialize 16 providers with varying failure rates
+    for provider_id in 0..16 {
+        // Vary failure rates: some healthy, some degraded, some failing
+        let failure_rate = match provider_id % 3 {
+            0 => 1,  // Healthy (1% failure)
+            1 => 7,  // Degraded (7% failure)
+            2 => 15, // Failing (15% failure)
+            _ => unreachable!(),
+        };
+
+        // Pre-populate circuit state
+        let status = provider_circuits.get_provider_status(provider_id);
+        for _ in 0..100 {
+            let is_failure = rand::random::<u8>() % 100 < failure_rate;
+            if is_failure {
+                status.record_failure();
+            } else {
+                status.record_success();
+            }
+        }
+    }
+
+    let thread_counts = vec![8, 16, 32];
+
+    for threads in thread_counts {
+        println!("\n--- Testing with {} threads ---", threads);
+
+        let config = LoadTestConfig {
+            duration_secs: 60,
+            threads,
+            requests_per_sec: 100_000,
+            warmup_duration: std::time::Duration::from_secs(10),
+            cooldown_duration: std::time::Duration::from_secs(5),
+        };
+
+        let circuits_handle = Arc::clone(&provider_circuits);
+        let harness = LoadTestHarness::new(config);
+
+        let results = harness.run(move || {
+            // Random provider selection + circuit check
+            let provider_id = rand::random::<usize>() % 16;
+            let status = circuits_handle.get_provider_status(provider_id);
+
+            // Simulate request outcome
+            let is_failure = rand::random::<u8>() % 100 < 5; // 5% overall failure rate
+
+            if is_failure {
+                status.record_failure();
+            } else {
+                status.record_success();
+            }
+
+            // Check circuit state
+            let _ = status.check();
+        });
+
+        println!("{}", results.summary());
+
+        // Assertions: <10ms p50 target (multi-provider selection + circuit check)
+        assert!(
+            results.meets_p50_target(),
+            "P50 latency {:.2}ms exceeds 10ms target ({}T, 16 providers)",
+            results.latency_p50_ms,
+            threads
+        );
+
+        // Assertions: Throughput should be high (>50K req/s)
+        assert!(
+            results.throughput_rps > 50_000.0,
+            "Throughput {:.0} req/s too low (expected >50K, {}T)",
+            results.throughput_rps,
+            threads
+        );
+    }
+
+    // Verify independent circuit states
+    println!("\n--- Final Circuit States ---");
+    for provider_id in 0..16 {
+        let status = provider_circuits.get_provider_status(provider_id);
+        let state = status.state();
+        let failure_rate_bp = status.failure_rate_bp();
+        println!(
+            "Provider {}: {:?} (failure rate: {:.2}%)",
+            provider_id,
+            state,
+            failure_rate_bp as f64 / 100.0
+        );
+    }
+}
+
+/// Scenario 3: Failover performance
+///
+/// Tests circuit recovery and failover latency:
+/// - Primary provider opens → fallback takes over
+/// - Measure failover latency and circuit recovery time
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn scenario3_failover_performance() {
+    println!("\n=== Scenario 3: Failover Performance ===\n");
+
+    let provider_circuits = Arc::new(ProviderCircuitArray::new());
+
+    // Setup: Provider 0 (primary) starts healthy, Provider 1 (fallback) healthy
+    let primary = provider_circuits.get_provider_status(0);
+    let fallback = provider_circuits.get_provider_status(1);
+
+    // Initial state: Both closed
+    for _ in 0..100 {
+        primary.record_success();
+        fallback.record_success();
+    }
+
+    println!("Initial state: Primary=Closed, Fallback=Closed\n");
+
+    let config = LoadTestConfig {
+        duration_secs: 60,
+        threads: 8,
+        requests_per_sec: 10_000,
+        warmup_duration: std::time::Duration::from_secs(5),
+        cooldown_duration: std::time::Duration::from_secs(5),
+    };
+
+    let circuits_handle = Arc::clone(&provider_circuits);
+    let harness = LoadTestHarness::new(config);
+
+    let results = harness.run(move || {
+        let primary = circuits_handle.get_provider_status(0);
+        let fallback = circuits_handle.get_provider_status(1);
+
+        // Try primary first
+        if primary.check().is_ok() {
+            // Simulate 20% failure rate on primary (will open circuit)
+            let is_failure = rand::random::<u8>() % 100 < 20;
+            if is_failure {
+                primary.record_failure();
+            } else {
+                primary.record_success();
+            }
+        } else {
+            // Primary circuit open → failover to fallback
+            // Fallback is healthy (1% failure)
+            let is_failure = rand::random::<u8>() % 100 < 1;
+            if is_failure {
+                fallback.record_failure();
+            } else {
+                fallback.record_success();
+            }
+        }
+    });
+
+    println!("{}", results.summary());
+
+    // Assertions: <10ms p50 target (failover included)
+    assert!(
+        results.meets_p50_target(),
+        "P50 latency {:.2}ms exceeds 10ms target (failover)",
+        results.latency_p50_ms
+    );
+
+    // Verify final states
+    println!("\n--- Final Circuit States ---");
+    println!("Primary: {:?}", primary.state());
+    println!("Fallback: {:?}", fallback.state());
+
+    // Assertions: Primary should be open, fallback should be closed
+    assert_eq!(
+        primary.state(),
+        CircuitState::Open,
+        "Primary circuit should be open after 20% failures"
+    );
+    assert_eq!(
+        fallback.state(),
+        CircuitState::Closed,
+        "Fallback circuit should stay closed with 1% failures"
+    );
+}
+
+/// Scenario 4: Circuit recovery stress test
+///
+/// Tests circuit recovery under sustained load:
+/// - Open circuit → reduce failures → transition to half-open → transition to closed
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn scenario4_circuit_recovery_stress() {
+    println!("\n=== Scenario 4: Circuit Recovery Stress Test ===\n");
+
+    let config = CircuitBreakerConfig {
+        failure_threshold_bp: 1000,   // 10%
+        recovery_threshold_bp: 500,    // 5%
+        cooldown_duration_ms: 10_000,  // 10s (shorter for test)
+        min_samples: 10,
+    };
+
+    let breaker = Arc::new(CircuitBreaker::with_config(config));
+
+    // Phase 1: Force circuit open (high failure rate)
+    println!("Phase 1: Opening circuit with 20% failures...");
+    for _ in 0..1000 {
+        let is_failure = rand::random::<u8>() % 100 < 20;
+        if is_failure {
+            breaker.record_failure();
+        } else {
+            breaker.record_success();
+        }
+    }
+    assert_eq!(breaker.state(), CircuitState::Open, "Circuit should be open");
+
+    // Phase 2: Recovery (reduce failures to 3%)
+    println!("Phase 2: Attempting recovery with 3% failures...");
+
+    let test_config = LoadTestConfig {
+        duration_secs: 30,
+        threads: 8,
+        requests_per_sec: 10_000,
+        warmup_duration: std::time::Duration::from_secs(5),
+        cooldown_duration: std::time::Duration::from_secs(15), // Wait for cooldown
+    };
+
+    let breaker_handle = Arc::clone(&breaker);
+    let harness = LoadTestHarness::new(test_config);
+
+    let results = harness.run(move || {
+        // 3% failure rate (below recovery threshold)
+        let is_failure = rand::random::<u8>() % 100 < 3;
+
+        if is_failure {
+            breaker_handle.record_failure();
+        } else {
+            breaker_handle.record_success();
+        }
+
+        let _ = breaker_handle.check();
+    });
+
+    println!("{}", results.summary());
+
+    // Assertions: Circuit should recover to closed or half-open
+    let final_state = breaker.state();
+    println!("Final state: {:?}", final_state);
+    assert!(
+        final_state == CircuitState::Closed || final_state == CircuitState::HalfOpen,
+        "Circuit should recover from open state"
+    );
+
+    // Assertions: Recovery latency should be reasonable
+    assert!(
+        results.latency_p50_ms < 10.0,
+        "Recovery latency {:.2}ms too high",
+        results.latency_p50_ms
+    );
+}

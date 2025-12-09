@@ -1,0 +1,51 @@
+# Prometheus Configuration for clapi_core
+# Scrapes metrics every 10 seconds from clapi_core service
+
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+  external_labels:
+    cluster: 'production'
+    service: 'clapi_core'
+
+# Alert rule files
+rule_files:
+  - 'alerter.yml'
+
+# Scrape configurations
+scrape_configs:
+  # clapi_core main service
+  - job_name: 'clapi_core'
+    static_configs:
+      - targets: ['localhost:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Circuit breaker metrics (separate endpoint)
+  - job_name: 'clapi_circuit_breaker'
+    static_configs:
+      - targets: ['localhost:8080']
+    metrics_path: '/metrics/circuit_breaker'
+    scrape_interval: 5s  # More frequent for circuit health
+
+  # Budget metrics with hash chain
+  - job_name: 'clapi_budget'
+    static_configs:
+      - targets: ['localhost:8080']
+    metrics_path: '/metrics/budget'
+    scrape_interval: 10s
+
+# Remote write to long-term storage (optional)
+# remote_write:
+#   - url: 'http://prometheus-remote-storage:9009/api/v1/write'
+#     queue_config:
+#       capacity: 10000
+#       max_shards: 5
+
+# Storage configuration
+storage:
+  tsdb:
+    path: /var/lib/prometheus/data
+    retention.time: 90d  # 90 days retention
+    retention.size: 50GB

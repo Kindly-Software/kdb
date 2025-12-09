@@ -1,0 +1,499 @@
+warning: user-defined alias `bench` is ignored, because it is shadowed by a built-in command
+warning: atomic_capsule@0.3.3: Nightly enabled but const-hashing disabled - missing 100× hash speedup
+warning: atomic_capsule@0.3.3: SIMD enabled but simd-hashing disabled - missing 2-8× hash speedup
+warning: unused import: `i32x8`
+   --> /home/samuel/Primitives/atomic_capsule/src/primitives/inference/quantization.rs:238:32
+    |
+238 |         use std::simd::{f32x8, i32x8, num::SimdFloat, StdFloat};
+    |                                ^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::simd::f32x8`
+  --> /home/samuel/Primitives/atomic_capsule/src/inference/matmul.rs:35:5
+   |
+35 | use std::simd::f32x8;
+   |     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::simd::num::SimdFloat`
+  --> /home/samuel/Primitives/atomic_capsule/src/primitives/inference/quantization.rs:35:5
+   |
+35 | use std::simd::num::SimdFloat;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `tenant_id`
+   --> /home/samuel/Primitives/atomic_capsule/src/collections/cache_integrated.rs:470:38
+    |
+470 |     pub fn get(&self, key_hash: u64, tenant_id: u64, global_gen: &AtomicU64) -> Option<V>
+    |                                      ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_tenant_id`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `store_hmac` is never used
+   --> /home/samuel/Primitives/atomic_capsule/src/collections/cache_integrated.rs:251:8
+    |
+156 | impl<V> CacheSlot<V> {
+    | -------------------- method in this implementation
+...
+251 |     fn store_hmac(&mut self, _value: &V, _key: &[u8; 32])
+    |        ^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `get_slot` is never used
+   --> /home/samuel/Primitives/atomic_capsule/src/collections/cache_batch.rs:294:19
+    |
+ 95 | impl<V> LockfreeCacheCapsule<V> {
+    | ------------------------------- method in this implementation
+...
+294 |     pub(crate) fn get_slot(&self, idx: usize) -> Option<&CacheSlot<V>> {
+    |                   ^^^^^^^^
+
+warning: method `simd_dot_product` is never used
+  --> /home/samuel/Primitives/atomic_capsule/src/inference/matmul.rs:81:8
+   |
+51 | impl MatMulCapsule {
+   | ------------------ method in this implementation
+...
+81 |     fn simd_dot_product(&self, _a: &[f32], _b: &[f32]) -> f32 {
+   |        ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> /home/samuel/Primitives/atomic_capsule/src/inference/matmul.rs:46:5
+    |
+ 46 |     pub k: usize,
+    |     ^^^^^^^^^^^^
+    |
+note: the lint level is defined here
+   --> /home/samuel/Primitives/atomic_capsule/src/lib.rs:124:9
+    |
+124 | #![warn(missing_docs, rust_2018_idioms)]
+    |         ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/inference/matmul.rs:47:5
+   |
+47 |     pub n: usize,
+   |     ^^^^^^^^^^^^
+
+warning: `atomic_capsule` (lib) generated 9 warnings (run `cargo fix --lib -p atomic_capsule` to apply 3 suggestions)
+warning: unused import: `i32x8`
+   --> src/primitives/inference.rs:508:32
+    |
+508 |         use std::simd::{f32x8, i32x8, num::SimdInt, StdFloat};
+    |                                ^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `num::SimdInt`
+   --> src/primitives/inference.rs:508:39
+    |
+508 |         use std::simd::{f32x8, i32x8, num::SimdInt, StdFloat};
+    |                                       ^^^^^^^^^^^^
+
+warning: method `forward_scalar` is never used
+   --> src/primitives/inference.rs:172:8
+    |
+145 | impl SIMDMatMulCapsule {
+    | ---------------------- method in this implementation
+...
+172 |     fn forward_scalar(&self, input: &[f32]) -> Vec<f32> {
+    |        ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `num_heads` is never read
+   --> src/primitives/inference.rs:241:5
+    |
+240 | pub struct FlashAttentionCapsule {
+    |            --------------------- field in this struct
+241 |     num_heads: usize,
+    |     ^^^^^^^^^
+    |
+    = note: `FlashAttentionCapsule` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: method `forward_standard` is never used
+   --> src/primitives/inference.rs:276:8
+    |
+246 | impl FlashAttentionCapsule {
+    | -------------------------- method in this implementation
+...
+276 |     fn forward_standard(&self, query: &[f32], key: &[f32], value: &[f32], seq_len: usize) -> Vec<f32> {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: field `virtual_nodes_per_node` is never read
+   --> src/kv_cache/distributed_l3.rs:917:5
+    |
+915 | pub struct ConsistentHashRing {
+    |            ------------------ field in this struct
+916 |     /// Virtual nodes per physical node (128 recommended)
+917 |     virtual_nodes_per_node: usize,
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `ConsistentHashRing` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: `kindly_inference` (lib) generated 6 warnings (run `cargo fix --lib -p kindly_inference` to apply 1 suggestion)
+warning: unused import: `i32x8`
+   --> benches/quantization_avx2_bench.rs:123:28
+    |
+123 |     use std::simd::{f32x8, i32x8, num::{SimdFloat, SimdInt}, StdFloat};
+    |                            ^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `SimdInt`
+   --> benches/quantization_avx2_bench.rs:123:52
+    |
+123 |     use std::simd::{f32x8, i32x8, num::{SimdFloat, SimdInt}, StdFloat};
+    |                                                    ^^^^^^^
+
+warning: `kindly_inference` (bench "quantization_avx2_bench") generated 2 warnings (run `cargo fix --bench "quantization_avx2_bench" -p kindly_inference` to apply 1 suggestion)
+    Finished `bench` profile [optimized] target(s) in 0.11s
+     Running benches/quantization_avx2_bench.rs (target/release/deps/quantization_avx2_bench-506f67db6a169488)
+Gnuplot not found, using plotters backend
+Benchmarking quantization_comparison/scalar_baseline/4096
+Benchmarking quantization_comparison/scalar_baseline/4096: Warming up for 3.0000 s
+Benchmarking quantization_comparison/scalar_baseline/4096: Collecting 1000 samples in estimated 8.2823 s (1.0M iterations)
+Benchmarking quantization_comparison/scalar_baseline/4096: Analyzing
+quantization_comparison/scalar_baseline/4096
+                        time:   [8.2670 µs 8.3253 µs 8.3828 µs]
+                        thrpt:  [488.62 Melem/s 491.99 Melem/s 495.47 Melem/s]
+Found 16 outliers among 1000 measurements (1.60%)
+  16 (1.60%) high mild
+Benchmarking quantization_comparison/portable_simd_f32x8/4096
+Benchmarking quantization_comparison/portable_simd_f32x8/4096: Warming up for 3.0000 s
+
+Warning: Unable to complete 1000 samples in 5.0s. You may wish to increase target time to 5.2s, enable flat sampling, or reduce sample count to 690.
+Benchmarking quantization_comparison/portable_simd_f32x8/4096: Collecting 1000 samples in estimated 5.1604 s (500k iterations)
+Benchmarking quantization_comparison/portable_simd_f32x8/4096: Analyzing
+quantization_comparison/portable_simd_f32x8/4096
+                        time:   [9.4263 µs 9.5117 µs 9.6003 µs]
+                        thrpt:  [426.65 Melem/s 430.63 Melem/s 434.53 Melem/s]
+Found 39 outliers among 1000 measurements (3.90%)
+  25 (2.50%) high mild
+  14 (1.40%) high severe
+Benchmarking quantization_comparison/capsule_quantize/4096
+Benchmarking quantization_comparison/capsule_quantize/4096: Warming up for 3.0000 s
+Benchmarking quantization_comparison/capsule_quantize/4096: Collecting 1000 samples in estimated 8.9853 s (1.0M iterations)
+Benchmarking quantization_comparison/capsule_quantize/4096: Analyzing
+quantization_comparison/capsule_quantize/4096
+                        time:   [8.6116 µs 8.6779 µs 8.7441 µs]
+                        thrpt:  [468.43 Melem/s 472.00 Melem/s 475.64 Melem/s]
+Found 15 outliers among 1000 measurements (1.50%)
+  14 (1.40%) high mild
+  1 (0.10%) high severe
+Benchmarking quantization_comparison/capsule_quantize_simd/4096
+Benchmarking quantization_comparison/capsule_quantize_simd/4096: Warming up for 3.0000 s
+Benchmarking quantization_comparison/capsule_quantize_simd/4096: Collecting 1000 samples in estimated 9.9551 s (1.0M iterations)
+Benchmarking quantization_comparison/capsule_quantize_simd/4096: Analyzing
+quantization_comparison/capsule_quantize_simd/4096
+                        time:   [10.281 µs 10.367 µs 10.456 µs]
+                        thrpt:  [391.74 Melem/s 395.08 Melem/s 398.40 Melem/s]
+Found 27 outliers among 1000 measurements (2.70%)
+  12 (1.20%) high mild
+  15 (1.50%) high severe
+Benchmarking quantization_comparison/avx2_i8x32_intrinsics/4096
+Benchmarking quantization_comparison/avx2_i8x32_intrinsics/4096: Warming up for 3.0000 s
+Benchmarking quantization_comparison/avx2_i8x32_intrinsics/4096: Collecting 1000 samples in estimated 5.2690 s (3.0M iterations)
+Benchmarking quantization_comparison/avx2_i8x32_intrinsics/4096: Analyzing
+quantization_comparison/avx2_i8x32_intrinsics/4096
+                        time:   [1.6266 µs 1.6422 µs 1.6581 µs]
+                        thrpt:  [2.4703 Gelem/s 2.4942 Gelem/s 2.5182 Gelem/s]
+Found 20 outliers among 1000 measurements (2.00%)
+  20 (2.00%) high mild
+Benchmarking quantization_comparison/scalar_baseline/8192
+Benchmarking quantization_comparison/scalar_baseline/8192: Warming up for 3.0000 s
+
+Warning: Unable to complete 1000 samples in 5.0s. You may wish to increase target time to 8.5s, enable flat sampling, or reduce sample count to 540.
+Benchmarking quantization_comparison/scalar_baseline/8192: Collecting 1000 samples in estimated 8.5080 s (500k iterations)
+Benchmarking quantization_comparison/scalar_baseline/8192: Analyzing
+quantization_comparison/scalar_baseline/8192
+                        time:   [16.241 µs 16.381 µs 16.522 µs]
+                        thrpt:  [495.82 Melem/s 500.10 Melem/s 504.39 Melem/s]
+Found 28 outliers among 1000 measurements (2.80%)
+  27 (2.70%) high mild
+  1 (0.10%) high severe
+Benchmarking quantization_comparison/portable_simd_f32x8/8192
+Benchmarking quantization_comparison/portable_simd_f32x8/8192: Warming up for 3.0000 s
+Benchmarking quantization_comparison/portable_simd_f32x8/8192: Collecting 1000 samples in estimated 5.0037 s (242k iterations)
+Benchmarking quantization_comparison/portable_simd_f32x8/8192: Analyzing
+quantization_comparison/portable_simd_f32x8/8192
+                        time:   [20.349 µs 20.504 µs 20.666 µs]
+                        thrpt:  [396.39 Melem/s 399.53 Melem/s 402.58 Melem/s]
+Found 44 outliers among 1000 measurements (4.40%)
+  23 (2.30%) high mild
+  21 (2.10%) high severe
+Benchmarking quantization_comparison/capsule_quantize/8192
+Benchmarking quantization_comparison/capsule_quantize/8192: Warming up for 3.0000 s
+
+Warning: Unable to complete 1000 samples in 5.0s. You may wish to increase target time to 8.5s, enable flat sampling, or reduce sample count to 540.
+Benchmarking quantization_comparison/capsule_quantize/8192: Collecting 1000 samples in estimated 8.4616 s (500k iterations)
+Benchmarking quantization_comparison/capsule_quantize/8192: Analyzing
+quantization_comparison/capsule_quantize/8192
+                        time:   [16.393 µs 16.508 µs 16.630 µs]
+                        thrpt:  [492.62 Melem/s 496.23 Melem/s 499.73 Melem/s]
+Found 17 outliers among 1000 measurements (1.70%)
+  9 (0.90%) high mild
+  8 (0.80%) high severe
+Benchmarking quantization_comparison/capsule_quantize_simd/8192
+Benchmarking quantization_comparison/capsule_quantize_simd/8192: Warming up for 3.0000 s
+
+Warning: Unable to complete 1000 samples in 5.0s. You may wish to increase target time to 9.6s, enable flat sampling, or reduce sample count to 500.
+Benchmarking quantization_comparison/capsule_quantize_simd/8192: Collecting 1000 samples in estimated 9.6137 s (500k iterations)
+Benchmarking quantization_comparison/capsule_quantize_simd/8192: Analyzing
+quantization_comparison/capsule_quantize_simd/8192
+                        time:   [19.234 µs 19.380 µs 19.526 µs]
+                        thrpt:  [419.54 Melem/s 422.71 Melem/s 425.91 Melem/s]
+Found 19 outliers among 1000 measurements (1.90%)
+  9 (0.90%) high mild
+  10 (1.00%) high severe
+Benchmarking quantization_comparison/avx2_i8x32_intrinsics/8192
+Benchmarking quantization_comparison/avx2_i8x32_intrinsics/8192: Warming up for 3.0000 s
+Benchmarking quantization_comparison/avx2_i8x32_intrinsics/8192: Collecting 1000 samples in estimated 6.1339 s (2.0M iterations)
+Benchmarking quantization_comparison/avx2_i8x32_intrinsics/8192: Analyzing
+quantization_comparison/avx2_i8x32_intrinsics/8192
+                        time:   [2.9924 µs 3.0201 µs 3.0485 µs]
+                        thrpt:  [2.6872 Gelem/s 2.7125 Gelem/s 2.7376 Gelem/s]
+Found 28 outliers among 1000 measurements (2.80%)
+  20 (2.00%) high mild
+  8 (0.80%) high severe
+Benchmarking quantization_comparison/scalar_baseline/16384
+Benchmarking quantization_comparison/scalar_baseline/16384: Warming up for 3.0000 s
+Benchmarking quantization_comparison/scalar_baseline/16384: Collecting 1000 samples in estimated 5.0074 s (150k iterations)
+Benchmarking quantization_comparison/scalar_baseline/16384: Analyzing
+quantization_comparison/scalar_baseline/16384
+                        time:   [32.470 µs 32.691 µs 32.919 µs]
+                        thrpt:  [497.70 Melem/s 501.18 Melem/s 504.59 Melem/s]
+Found 21 outliers among 1000 measurements (2.10%)
+  10 (1.00%) high mild
+  11 (1.10%) high severe
+Benchmarking quantization_comparison/portable_simd_f32x8/16384
+Benchmarking quantization_comparison/portable_simd_f32x8/16384: Warming up for 3.0000 s
+Benchmarking quantization_comparison/portable_simd_f32x8/16384: Collecting 1000 samples in estimated 5.0373 s (128k iterations)
+Benchmarking quantization_comparison/portable_simd_f32x8/16384: Analyzing
+quantization_comparison/portable_simd_f32x8/16384
+                        time:   [38.138 µs 38.412 µs 38.696 µs]
+                        thrpt:  [423.41 Melem/s 426.53 Melem/s 429.60 Melem/s]
+Found 24 outliers among 1000 measurements (2.40%)
+  14 (1.40%) high mild
+  10 (1.00%) high severe
+Benchmarking quantization_comparison/capsule_quantize/16384
+Benchmarking quantization_comparison/capsule_quantize/16384: Warming up for 3.0000 s
+Benchmarking quantization_comparison/capsule_quantize/16384: Collecting 1000 samples in estimated 5.0144 s (150k iterations)
+Benchmarking quantization_comparison/capsule_quantize/16384: Analyzing
+quantization_comparison/capsule_quantize/16384
+                        time:   [32.669 µs 32.876 µs 33.088 µs]
+                        thrpt:  [495.16 Melem/s 498.36 Melem/s 501.52 Melem/s]
+Found 29 outliers among 1000 measurements (2.90%)
+  24 (2.40%) high mild
+  5 (0.50%) high severe
+Benchmarking quantization_comparison/capsule_quantize_simd/16384
+Benchmarking quantization_comparison/capsule_quantize_simd/16384: Warming up for 3.0000 s
+Benchmarking quantization_comparison/capsule_quantize_simd/16384: Collecting 1000 samples in estimated 5.0172 s (128k iterations)
+Benchmarking quantization_comparison/capsule_quantize_simd/16384: Analyzing
+quantization_comparison/capsule_quantize_simd/16384
+                        time:   [38.463 µs 38.729 µs 39.004 µs]
+                        thrpt:  [420.06 Melem/s 423.04 Melem/s 425.97 Melem/s]
+Found 55 outliers among 1000 measurements (5.50%)
+  34 (3.40%) high mild
+  21 (2.10%) high severe
+Benchmarking quantization_comparison/avx2_i8x32_intrinsics/16384
+Benchmarking quantization_comparison/avx2_i8x32_intrinsics/16384: Warming up for 3.0000 s
+Benchmarking quantization_comparison/avx2_i8x32_intrinsics/16384: Collecting 1000 samples in estimated 6.0947 s (1.0M iterations)
+Benchmarking quantization_comparison/avx2_i8x32_intrinsics/16384: Analyzing
+quantization_comparison/avx2_i8x32_intrinsics/16384
+                        time:   [5.9814 µs 6.0283 µs 6.0759 µs]
+                        thrpt:  [2.6966 Gelem/s 2.7178 Gelem/s 2.7391 Gelem/s]
+Found 28 outliers among 1000 measurements (2.80%)
+  25 (2.50%) high mild
+  3 (0.30%) high severe
+
+Benchmarking quantization_batch_scaling/scalar_batch/1
+Benchmarking quantization_batch_scaling/scalar_batch/1: Warming up for 3.0000 s
+Benchmarking quantization_batch_scaling/scalar_batch/1: Collecting 500 samples in estimated 6.0946 s (376k iterations)
+Benchmarking quantization_batch_scaling/scalar_batch/1: Analyzing
+quantization_batch_scaling/scalar_batch/1
+                        time:   [15.318 µs 15.474 µs 15.634 µs]
+                        thrpt:  [523.98 Melem/s 529.39 Melem/s 534.78 Melem/s]
+Found 10 outliers among 500 measurements (2.00%)
+  9 (1.80%) high mild
+  1 (0.20%) high severe
+Benchmarking quantization_batch_scaling/portable_simd_batch/1
+Benchmarking quantization_batch_scaling/portable_simd_batch/1: Warming up for 3.0000 s
+Benchmarking quantization_batch_scaling/portable_simd_batch/1: Collecting 500 samples in estimated 7.4245 s (376k iterations)
+Benchmarking quantization_batch_scaling/portable_simd_batch/1: Analyzing
+quantization_batch_scaling/portable_simd_batch/1
+                        time:   [19.358 µs 19.548 µs 19.745 µs]
+                        thrpt:  [414.89 Melem/s 419.07 Melem/s 423.18 Melem/s]
+Found 17 outliers among 500 measurements (3.40%)
+  13 (2.60%) high mild
+  4 (0.80%) high severe
+Benchmarking quantization_batch_scaling/avx2_batch/1
+Benchmarking quantization_batch_scaling/avx2_batch/1: Warming up for 3.0000 s
+Benchmarking quantization_batch_scaling/avx2_batch/1: Collecting 500 samples in estimated 5.2736 s (1.8M iterations)
+Benchmarking quantization_batch_scaling/avx2_batch/1: Analyzing
+quantization_batch_scaling/avx2_batch/1
+                        time:   [2.9020 µs 2.9276 µs 2.9537 µs]
+                        thrpt:  [2.7734 Gelem/s 2.7982 Gelem/s 2.8229 Gelem/s]
+Found 5 outliers among 500 measurements (1.00%)
+  4 (0.80%) high mild
+  1 (0.20%) high severe
+Benchmarking quantization_batch_scaling/scalar_batch/4
+Benchmarking quantization_batch_scaling/scalar_batch/4: Warming up for 3.0000 s
+
+Warning: Unable to complete 500 samples in 5.0s. You may wish to increase target time to 8.2s, enable flat sampling, or reduce sample count to 270.
+Benchmarking quantization_batch_scaling/scalar_batch/4: Collecting 500 samples in estimated 8.2392 s (125k iterations)
+Benchmarking quantization_batch_scaling/scalar_batch/4: Analyzing
+quantization_batch_scaling/scalar_batch/4
+                        time:   [64.705 µs 65.243 µs 65.779 µs]
+                        thrpt:  [498.15 Melem/s 502.25 Melem/s 506.42 Melem/s]
+Found 10 outliers among 500 measurements (2.00%)
+  8 (1.60%) high mild
+  2 (0.40%) high severe
+Benchmarking quantization_batch_scaling/portable_simd_batch/4
+Benchmarking quantization_batch_scaling/portable_simd_batch/4: Warming up for 3.0000 s
+Benchmarking quantization_batch_scaling/portable_simd_batch/4: Collecting 500 samples in estimated 5.0099 s (61k iterations)
+Benchmarking quantization_batch_scaling/portable_simd_batch/4: Analyzing
+quantization_batch_scaling/portable_simd_batch/4
+                        time:   [80.052 µs 80.902 µs 81.794 µs]
+                        thrpt:  [400.62 Melem/s 405.03 Melem/s 409.33 Melem/s]
+Found 23 outliers among 500 measurements (4.60%)
+  17 (3.40%) high mild
+  6 (1.20%) high severe
+Benchmarking quantization_batch_scaling/avx2_batch/4
+Benchmarking quantization_batch_scaling/avx2_batch/4: Warming up for 3.0000 s
+Benchmarking quantization_batch_scaling/avx2_batch/4: Collecting 500 samples in estimated 6.6480 s (501k iterations)
+Benchmarking quantization_batch_scaling/avx2_batch/4: Analyzing
+quantization_batch_scaling/avx2_batch/4
+                        time:   [12.590 µs 12.699 µs 12.809 µs]
+                        thrpt:  [2.5582 Gelem/s 2.5803 Gelem/s 2.6028 Gelem/s]
+Found 13 outliers among 500 measurements (2.60%)
+  8 (1.60%) high mild
+  5 (1.00%) high severe
+Benchmarking quantization_batch_scaling/scalar_batch/16
+Benchmarking quantization_batch_scaling/scalar_batch/16: Warming up for 3.0000 s
+Benchmarking quantization_batch_scaling/scalar_batch/16: Collecting 500 samples in estimated 5.0264 s (18k iterations)
+Benchmarking quantization_batch_scaling/scalar_batch/16: Analyzing
+quantization_batch_scaling/scalar_batch/16
+                        time:   [252.87 µs 255.23 µs 257.64 µs]
+                        thrpt:  [508.74 Melem/s 513.55 Melem/s 518.33 Melem/s]
+Found 5 outliers among 500 measurements (1.00%)
+  5 (1.00%) high mild
+Benchmarking quantization_batch_scaling/portable_simd_batch/16
+Benchmarking quantization_batch_scaling/portable_simd_batch/16: Warming up for 3.0000 s
+Benchmarking quantization_batch_scaling/portable_simd_batch/16: Collecting 500 samples in estimated 5.0560 s (16k iterations)
+Benchmarking quantization_batch_scaling/portable_simd_batch/16: Analyzing
+quantization_batch_scaling/portable_simd_batch/16
+                        time:   [314.23 µs 317.35 µs 320.67 µs]
+                        thrpt:  [408.75 Melem/s 413.01 Melem/s 417.12 Melem/s]
+Found 12 outliers among 500 measurements (2.40%)
+  8 (1.60%) high mild
+  4 (0.80%) high severe
+Benchmarking quantization_batch_scaling/avx2_batch/16
+Benchmarking quantization_batch_scaling/avx2_batch/16: Warming up for 3.0000 s
+
+Warning: Unable to complete 500 samples in 5.0s. You may wish to increase target time to 6.4s, enable flat sampling, or reduce sample count to 310.
+Benchmarking quantization_batch_scaling/avx2_batch/16: Collecting 500 samples in estimated 6.4403 s (125k iterations)
+Benchmarking quantization_batch_scaling/avx2_batch/16: Analyzing
+quantization_batch_scaling/avx2_batch/16
+                        time:   [51.452 µs 52.062 µs 52.676 µs]
+                        thrpt:  [2.4883 Gelem/s 2.5176 Gelem/s 2.5474 Gelem/s]
+Found 6 outliers among 500 measurements (1.20%)
+  5 (1.00%) high mild
+  1 (0.20%) high severe
+Benchmarking quantization_batch_scaling/scalar_batch/32
+Benchmarking quantization_batch_scaling/scalar_batch/32: Warming up for 3.0000 s
+Benchmarking quantization_batch_scaling/scalar_batch/32: Collecting 500 samples in estimated 5.1949 s (10k iterations)
+Benchmarking quantization_batch_scaling/scalar_batch/32: Analyzing
+quantization_batch_scaling/scalar_batch/32
+                        time:   [529.05 µs 533.16 µs 537.37 µs]
+                        thrpt:  [487.83 Melem/s 491.68 Melem/s 495.50 Melem/s]
+Found 12 outliers among 500 measurements (2.40%)
+  9 (1.80%) high mild
+  3 (0.60%) high severe
+Benchmarking quantization_batch_scaling/portable_simd_batch/32
+Benchmarking quantization_batch_scaling/portable_simd_batch/32: Warming up for 3.0000 s
+Benchmarking quantization_batch_scaling/portable_simd_batch/32: Collecting 500 samples in estimated 5.2616 s (8000 iterations)
+Benchmarking quantization_batch_scaling/portable_simd_batch/32: Analyzing
+quantization_batch_scaling/portable_simd_batch/32
+                        time:   [655.84 µs 662.25 µs 668.83 µs]
+                        thrpt:  [391.95 Melem/s 395.84 Melem/s 399.71 Melem/s]
+Found 26 outliers among 500 measurements (5.20%)
+  20 (4.00%) high mild
+  6 (1.20%) high severe
+Benchmarking quantization_batch_scaling/avx2_batch/32
+Benchmarking quantization_batch_scaling/avx2_batch/32: Warming up for 3.0000 s
+Benchmarking quantization_batch_scaling/avx2_batch/32: Collecting 500 samples in estimated 5.0202 s (48k iterations)
+Benchmarking quantization_batch_scaling/avx2_batch/32: Analyzing
+quantization_batch_scaling/avx2_batch/32
+                        time:   [100.17 µs 101.42 µs 102.73 µs]
+                        thrpt:  [2.5517 Gelem/s 2.5847 Gelem/s 2.6171 Gelem/s]
+Found 46 outliers among 500 measurements (9.20%)
+  24 (4.80%) high mild
+  22 (4.40%) high severe
+
+Benchmarking quantization_roundtrip/scalar_roundtrip/4096
+Benchmarking quantization_roundtrip/scalar_roundtrip/4096: Warming up for 3.0000 s
+Benchmarking quantization_roundtrip/scalar_roundtrip/4096: Collecting 1000 samples in estimated 9.4102 s (1.0M iterations)
+Benchmarking quantization_roundtrip/scalar_roundtrip/4096: Analyzing
+quantization_roundtrip/scalar_roundtrip/4096
+                        time:   [9.3782 µs 9.4852 µs 9.5945 µs]
+                        thrpt:  [426.91 Melem/s 431.83 Melem/s 436.76 Melem/s]
+Found 54 outliers among 1000 measurements (5.40%)
+  34 (3.40%) high mild
+  20 (2.00%) high severe
+Benchmarking quantization_roundtrip/portable_simd_roundtrip/4096
+Benchmarking quantization_roundtrip/portable_simd_roundtrip/4096: Warming up for 3.0000 s
+
+Warning: Unable to complete 1000 samples in 5.0s. You may wish to increase target time to 6.2s, enable flat sampling, or reduce sample count to 630.
+Benchmarking quantization_roundtrip/portable_simd_roundtrip/4096: Collecting 1000 samples in estimated 6.2307 s (500k iterations)
+Benchmarking quantization_roundtrip/portable_simd_roundtrip/4096: Analyzing
+quantization_roundtrip/portable_simd_roundtrip/4096
+                        time:   [11.620 µs 11.734 µs 11.853 µs]
+                        thrpt:  [345.58 Melem/s 349.06 Melem/s 352.49 Melem/s]
+Found 84 outliers among 1000 measurements (8.40%)
+  29 (2.90%) high mild
+  55 (5.50%) high severe
+Benchmarking quantization_roundtrip/scalar_roundtrip/8192
+Benchmarking quantization_roundtrip/scalar_roundtrip/8192: Warming up for 3.0000 s
+
+Warning: Unable to complete 1000 samples in 5.0s. You may wish to increase target time to 9.7s, enable flat sampling, or reduce sample count to 500.
+Benchmarking quantization_roundtrip/scalar_roundtrip/8192: Collecting 1000 samples in estimated 9.6704 s (500k iterations)
+Benchmarking quantization_roundtrip/scalar_roundtrip/8192: Analyzing
+quantization_roundtrip/scalar_roundtrip/8192
+                        time:   [17.828 µs 17.968 µs 18.113 µs]
+                        thrpt:  [452.26 Melem/s 455.92 Melem/s 459.51 Melem/s]
+Found 22 outliers among 1000 measurements (2.20%)
+  16 (1.60%) high mild
+  6 (0.60%) high severe
+Benchmarking quantization_roundtrip/portable_simd_roundtrip/8192
+Benchmarking quantization_roundtrip/portable_simd_roundtrip/8192: Warming up for 3.0000 s
+Benchmarking quantization_roundtrip/portable_simd_roundtrip/8192: Collecting 1000 samples in estimated 5.0158 s (209k iterations)
+Benchmarking quantization_roundtrip/portable_simd_roundtrip/8192: Analyzing
+quantization_roundtrip/portable_simd_roundtrip/8192
+                        time:   [22.700 µs 22.888 µs 23.081 µs]
+                        thrpt:  [354.92 Melem/s 357.91 Melem/s 360.89 Melem/s]
+Found 54 outliers among 1000 measurements (5.40%)
+  36 (3.60%) high mild
+  18 (1.80%) high severe
+Benchmarking quantization_roundtrip/scalar_roundtrip/16384
+Benchmarking quantization_roundtrip/scalar_roundtrip/16384: Warming up for 3.0000 s
+Benchmarking quantization_roundtrip/scalar_roundtrip/16384: Collecting 1000 samples in estimated 5.0294 s (131k iterations)
+Benchmarking quantization_roundtrip/scalar_roundtrip/16384: Analyzing
+quantization_roundtrip/scalar_roundtrip/16384
+                        time:   [35.697 µs 35.921 µs 36.150 µs]
+                        thrpt:  [453.23 Melem/s 456.11 Melem/s 458.97 Melem/s]
+Found 16 outliers among 1000 measurements (1.60%)
+  13 (1.30%) high mild
+  3 (0.30%) high severe
+Benchmarking quantization_roundtrip/portable_simd_roundtrip/16384
+Benchmarking quantization_roundtrip/portable_simd_roundtrip/16384: Warming up for 3.0000 s
+Benchmarking quantization_roundtrip/portable_simd_roundtrip/16384: Collecting 1000 samples in estimated 5.0370 s (108k iterations)
+Benchmarking quantization_roundtrip/portable_simd_roundtrip/16384: Analyzing
+quantization_roundtrip/portable_simd_roundtrip/16384
+                        time:   [45.528 µs 45.880 µs 46.244 µs]
+                        thrpt:  [354.29 Melem/s 357.10 Melem/s 359.86 Melem/s]
+Found 32 outliers among 1000 measurements (3.20%)
+  20 (2.00%) high mild
+  12 (1.20%) high severe
+

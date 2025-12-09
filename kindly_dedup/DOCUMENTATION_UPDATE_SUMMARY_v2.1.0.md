@@ -18,7 +18,7 @@
 - ✅ Listed atomic_capsule serialization capsules (JsonWriterCapsule, JsonParserCapsule, etc.)
 - ✅ Documented performance improvements (10-50× zero-copy, 4× SIMD hex)
 - ✅ Listed dependency reduction (43 → 25 direct deps, 42% reduction)
-- ✅ Noted framework compliance (UCE34, COCA, ASSUM, B32)
+- ✅ Noted framework compliance (UCE34, Chaos, ASSUM, B32)
 - ✅ Confirmed API compatibility (unchanged HTTP/audit/JSONL formats)
 
 **No serde mentions** outside of Serialization section (appropriate context).
@@ -133,7 +133,7 @@ No changes needed. README focuses on:
 
 **Framework Compliance**:
 - UCE34: T0+T1+T2 tier selection, Q34 audit trails
-- COCA: 100% lockfree serialization
+- Chaos: 100% lockfree serialization
 - ASSUM: 99.99% safe (zero unsafe in hot paths)
 - B32: 1.5-4× performance validation
 - T28: 280+ comprehensive tests
@@ -202,7 +202,7 @@ find docs/archive/phases/ -name "*.md" | xargs grep -l "serde" | wc -l
 - Archive 12 serde migration planning documents to docs/archive/phases/
 - Verify README.md and all production docs are clean
 - Document 42% dependency reduction (43 → 25 direct deps)
-- Confirm UCE34/COCA/ASSUM/B32/T28/I20 compliance
+- Confirm UCE34/Chaos/ASSUM/B32/T28/I20 compliance
 - Zero breaking changes (HTTP/audit/JSONL formats preserved)
 
 Files changed: 3 (CLAUDE.md updated, CHANGELOG.md created, docs archived)

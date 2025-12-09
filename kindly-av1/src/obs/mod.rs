@@ -30,7 +30,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 Tier-appropriate (T1/T6/T8)
-//! - **COCA**: 100% lockfree, cache-aligned capsules
+//! - **Chaos**: 100% lockfree, cache-aligned capsules
 //! - **ASSUM**: File I/O documented, 99.5%+ safe
 //! - **B32**: <1% CPU overhead target
 //! - **T28**: Unit/property/integration tests per phase
@@ -49,10 +49,12 @@
 //! ```
 
 mod status_writer;
+mod progress_capsule;
 
 pub use status_writer::{
     ObsStatusWriterCapsule, ObsStatusFormat, ObsStatusError, ObsStatusSnapshot,
 };
+pub use progress_capsule::{ObsProgressCapsule, FLAG_ENCODING, FLAG_PAUSED, FLAG_COMPLETE, FLAG_ERROR, FLAG_GPU_ENABLED};
 
 // Phase 2 exports (HTTP Overlay Server)
 #[cfg(feature = "obs-overlay")]

@@ -3,7 +3,7 @@
 **Version**: 3.0.0
 **Assessment Date**: December 4, 2025
 **Assessor**: Claude (Anthropic) - Automated Security Assessment
-**Framework Compliance**: UCE34/COCA/T28/B32/ASSUM/Q34
+**Framework Compliance**: UCE34/Chaos/T28/B32/ASSUM/Q34
 
 ---
 
@@ -178,7 +178,7 @@ Permissions-Policy: geolocation=(), microphone=(), camera=(), ...
 ### Caddy Configuration
 
 ```
-kindly.services {
+kindly.software {
     reverse_proxy localhost:8082
     encode gzip zstd
 
@@ -355,13 +355,13 @@ Status for jail: sshd
 
 ```bash
 # Verify security headers
-curl -sI https://kindly.services/ | grep -E "^(Strict|X-Frame|X-Content)"
+curl -sI https://kindly.software/ | grep -E "^(Strict|X-Frame|X-Content)"
 
 # Test path traversal (should return HTML, not passwd)
-curl -s "https://kindly.services/../../etc/passwd" | head -1
+curl -s "https://kindly.software/../../etc/passwd" | head -1
 
 # Check rate limiting
-for i in {1..100}; do curl -s -o /dev/null -w "%{http_code}\n" https://kindly.services/; done | sort | uniq -c
+for i in {1..100}; do curl -s -o /dev/null -w "%{http_code}\n" https://kindly.software/; done | sort | uniq -c
 
 # Verify infrastructure
 ssh samuel@kindly-hub "sudo ufw status && sudo fail2ban-client status"
@@ -373,7 +373,7 @@ ssh samuel@kindly-hub "sudo ufw status && sudo fail2ban-client status"
 
 Phase 3 security assessment demonstrates a **production-ready security posture** (8.0/10) with:
 
-- **100% lockfree architecture** via COCA capsules
+- **100% lockfree architecture** via Chaos capsules
 - **9/9 OWASP security headers** including CSP and Permissions-Policy
 - **Q34 audit trail** with hash-chain integrity
 - **14x faster rate limiting** vs mutex baseline

@@ -62,7 +62,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 (T4 Batch + T9 Persistent tier), Q33 (verification), Q34 (audit-ready)
-//! - **COCA**: 100% lockfree insertion (<10ns), Mutex only during flush (50ms, not hot path)
+//! - **Chaos**: 100% lockfree insertion (<10ns), Mutex only during flush (50ms, not hot path)
 //! - **ASSUM**: 10 documented assumptions with verification tags
 //! - **B32**: Fair baseline (sequential inserts without batching), 1000+ iterations, 95% CI
 //! - **T28**: 4-tier tests (Unit/Property/Integration/Production, 30 tests)
@@ -185,11 +185,13 @@ pub struct BatchLshIndexCapsule {
     num_bands: u8,
     _padding_config: [u8; 55],
 
-    // Atomic state (64 bytes)
+    // Atomic state (64 bytes total with padding)
+    // AtomicU32(4) + AtomicU64(8) + AtomicU64(8) = 20 bytes, plus 32 bytes padding = 52 bytes
+    // This gives: 60 (config) + 52 (atomic+pad) + 16 (Arc×2) = 128 bytes total
     current_batch_size: AtomicU32,
     pending_inserts: AtomicU64,
     generation: AtomicU64,  // Even=committed, Odd=in-progress
-    _padding_batch: [u8; 40],
+    _padding_batch: [u8; 32],
 
     // Sub-capsules (wrapped for thread-safety)
     flush_lock: Arc<Mutex<FlushCoordinatorState>>,

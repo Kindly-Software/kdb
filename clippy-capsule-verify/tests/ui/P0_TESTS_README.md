@@ -209,10 +209,10 @@ cargo test --test ui
 - **Q15-Q21 (Integration)**: Tests integrate with clippy lint infrastructure
 - **Q22-Q28 (Production)**: Tests cover real-world capsule patterns
 
-### COCA (Computational Capsule) Compliance
-- All tests use `#[repr(C, align(N))]` (COCA requirement)
+### Chaos (Computational Capsule) Compliance
+- All tests use `#[repr(C, align(N))]` (Chaos requirement)
 - Pass tests use 100% atomic primitives (lockfree mandate)
-- Fail tests demonstrate violations of COCA principles
+- Fail tests demonstrate violations of Chaos principles
 
 ### ASSUM (Safety)
 - All tests use `#![deny(...)]` to catch violations at compile-time
@@ -228,7 +228,7 @@ cargo test --test ui
 
 ## References
 
-- **COCA**: `/home/samuel/Docs/The Computational Capsule.md`
+- **Chaos**: `/home/samuel/Docs/The Computational Capsule.md`
 - **UCE34 Framework**: `/home/samuel/CLAUDE.md` § UCE34
 - **T28 Testing**: `/home/samuel/CLAUDE.md` § T28 Framework
 - **Clippy Lint Guide**: https://doc.rust-lang.org/nightly/clippy/development/adding_lints.html

@@ -73,7 +73,7 @@ unsafe {
 - **Q11**: Implemented using rayon parallel iterators
 - **Q12**: Uses `batch-native` feature (requires rayon dependency)
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 - **100% Lockfree**: Uses atomic operations and disjoint memory partitions
 - **Cache-Aligned**: 256-byte alignment for optimal cache efficiency
 - **Zero Mutex**: Parallel execution via rayon (no explicit locking)
@@ -240,7 +240,7 @@ Successfully implemented T4 Batch parallelism for quantum circuit execution with
 - ✅ Thread-safe parallel execution (disjoint state partitions)
 - ✅ 14 comprehensive tests (100% passing)
 - ✅ 9 performance benchmarks (3 groups)
-- ✅ Framework compliance (UCE34, COCA, ASSUM, T28, B32)
+- ✅ Framework compliance (UCE34, Chaos, ASSUM, T28, B32)
 - ✅ Target: 10-16× speedup for 1000-gate circuits (conservative B32 estimate)
 
 **Next Steps**: Run benchmarks on production hardware (AMD 6900HX) to validate performance targets and refine estimates.

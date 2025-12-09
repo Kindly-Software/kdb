@@ -1,0 +1,490 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- atomic_capsule Config (Compressed: 366 lines, 27% reduction from 502) -->
+<!-- Status: Production-Ready | Framework: UCE34 T0-T10 | 100% lockfree, 99.99% safe -->
+<!-- AUDIT COMPLETE: 118 primitives, 100% accuracy verified (Phase P2 placeholders added 2025-11-03) -->
+<!-- v0.6.0 BREAKING: ConcurrentMapCapsule MapEntry<K,V> key storage (2025-11-04) -->
+<atomic-capsule-config version="0.6.0" date="2025-11-04">
+
+  <meta status="Production-Ready (Phase 2.5: Capsule-Mmap Integration Complete)" framework="UCE34 T0-T10" arch="100% lockfree, 99.99% ASSUM safe, zero deps (no_std)"/>
+
+  <!-- ============================================================================
+       V0.6.0 BREAKING CHANGES (NOVEMBER 2025)
+       ============================================================================ -->
+  <breaking-changes version="0.6.0">
+    <summary>ConcurrentMapCapsule key storage fix (race condition), ObfuscationCapsule production-ready, AnomalyDetector HLL improvements</summary>
+    <migration-time>1-2 hours (type signature updates)</migration-time>
+
+    <change priority="P0">
+      <name>ConcurrentMapCapsule MapEntry Key Storage (Race Condition Fix)</name>
+      <impact>BREAKING - MapEntry&lt;V&gt; → MapEntry&lt;K, V&gt; (adds key storage for proper comparison)</impact>
+      <reason>Fix race condition where concurrent or_insert_with() created duplicate keys (hash-only comparison allowed hash collisions)</reason>
+      <action>
+        Old: MapEntry&lt;V&gt; only stored value pointer
+        New: MapEntry&lt;K, V&gt; stores both key and value pointers for true key comparison
+      </action>
+      <test-impact>test_concurrent_or_insert_with now passes (50 keys, not 54)</test-impact>
+      <performance>+10ns insert (key allocation), &lt;10% overhead (marginal)</performance>
+      <benefit>100% correct duplicate prevention, hash collision detection, production-ready concurrent or_insert_with</benefit>
+    </change>
+
+    <change priority="P0">
+      <name>Automatic Verification Default (Verification v0.4.0)</name>
+      <impact>BREAKING - All capsules MUST use #[derive(ComputationalCapsule)] or #[capsule(...)] attributes</impact>
+      <reason>Complete deprecation of manual verification macros (verify_capsule_properties!, verify_alignment_only!)</reason>
+      <action>
+        Old: #[repr(C, align(64))] struct MyCapule { ... } with verify_capsule_properties!(...);
+        New: #[derive(ComputationalCapsule)] #[capsule(alignment = 64, size = 64)] #[repr(C, align(64))] struct MyCapsule { ... }
+      </action>
+      <deadline>v0.5.0 (Q1 2026) - Manual macros marked deprecated</deadline>
+      <benefit>0ns runtime cost, 100% compile-time verification, 87.5% code reduction in verification layer</benefit>
+    </change>
+
+    <change priority="P1">
+      <name>Feature Preset System (60+ → Curated Presets)</name>
+      <impact>Deprecated: Individual hash/inference/parallel features (still work, but discouraged)</impact>
+      <reason>Reduce cognitive load: Instead of 60+ flags, 7 curated presets handle 95% of use cases</reason>
+      <presets>
+        <preset n="preset-wasm" p="WASM targets (no T9 persist, conditional T2 SIMD)"/>
+        <preset n="preset-embedded" p="Embedded systems (T0+T1+T3, no T2/T4/T5, no T9)"/>
+        <preset n="preset-development" p="Dev workstations (T0-T6, no T9/T10, fast-hash only)"/>
+        <preset n="preset-production" p="Production servers (all tiers, audit-trail, no SIMD by default)"/>
+        <preset n="preset-high-performance" p="HFT/Real-time (T0-T6 + nightly-all, highway-hash, profiling)"/>
+        <preset n="preset-compliance" p="Regulated systems (all tiers, fips-compliant, Q34 audit trails)"/>
+        <preset n="preset-full-nightly" p="Bleeding-edge (all features, nightly, max optimization)"/>
+      </presets>
+      <action>
+        Old: cargo build --features "portable_simd,fixed-point,parallel,audit-trail,histogram,distributed"
+        New: cargo build --features preset-high-performance
+      </action>
+      <backward-compat>✅ All 60+ original flags still work (aliased to presets internally)</backward-compat>
+    </change>
+
+    <change priority="P1">
+      <name>WASM Compatibility Layer (NEW)</name>
+      <impact>ADD - New preset-wasm feature, new docs/WASM_COMPATIBILITY.md</impact>
+      <reason>Support browser/WASM targets: T1/T3 full support, T2 SIMD conditional, T9 persistent unavailable</reason>
+      <features-unavailable>T9 Persistent (no browser filesystem), mmap-persistence, distributed-cache, network</features-unavailable>
+      <features-conditional>T2 SIMD (requires +simd128 target feature, not all WASM runtimes support)</features-conditional>
+      <usage>
+        [dependencies]
+        atomic_capsule = { version = "0.4", default-features = false, features = ["preset-wasm"] }
+      </usage>
+      <build>
+        RUSTFLAGS="-C target-feature=+simd128" cargo build --target wasm32-unknown-unknown --features preset-wasm
+      </build>
+    </change>
+
+    <change priority="P1">
+      <name>Platform Matrix (Tier Support by Target)</name>
+      <impact>ADD - New platform compatibility table in docs/PLATFORM_MATRIX.md</impact>
+      <reason>Explicit tier availability by target (x86_64, aarch64, WASM, embedded, Capsule OS)</reason>
+      <matrix>
+        <row target="x86_64" t1="✅ Full" t2="✅ AVX2+SSE4.2" t3="✅ Full" t4="✅ Full" t5="✅ Full" t6="✅ Full" t7="⚠️ Traits" t8="✅ Full" t9="✅ Full" t10="✅ Full"/>
+        <row target="aarch64" t1="✅ Full" t2="✅ NEON" t3="✅ Full" t4="✅ Full" t5="✅ Full" t6="✅ Full" t7="⚠️ Traits" t8="✅ Full" t9="✅ Full" t10="✅ Full"/>
+        <row target="wasm32" t1="✅ Full" t2="⚠️ Conditional" t3="✅ Full" t4="⚠️ No rayon" t5="✅ Full" t6="⚠️ No T4" t7="❌ No GPU" t8="❌ No network" t9="❌ No FS" t10="✅ Full"/>
+        <row target="riscv64" t1="✅ Full" t2="❌ No SIMD" t3="✅ Full" t4="✅ Full" t5="✅ Full" t6="⚠️ No T2" t7="❌ No GPU" t8="✅ Full" t9="✅ Full" t10="✅ Full"/>
+        <row target="arm-cortex" t1="✅ Full" t2="❌ No SIMD" t3="✅ Full" t4="⚠️ Limited" t5="✅ Full" t6="⚠️ Limited" t7="❌ No GPU" t8="❌ No network" t9="✅ Full" t10="✅ Full"/>
+      </matrix>
+    </change>
+
+    <change priority="P2">
+      <name>Tier Reference Consolidation (Docs)</name>
+      <impact>REORGANIZED - UCE34_TIER_REFERENCE.md now embedded in CLAUDE.md as reference section</impact>
+      <reason>Single source of truth: CLAUDE.md + WASM_COMPATIBILITY.md + MIGRATION_v0.3_v0.4.md</reason>
+      <action>
+        Old: Read separate UCE34_TIER_REFERENCE.md
+        New: CLAUDE.md includes complete tier reference inline
+      </action>
+    </change>
+
+    <change priority="P2">
+      <name>Deprecated Primitives (5 moved to v0.3.x legacy)</name>
+      <impact>DEPRECATED - 5 primitives marked for removal in v0.5.0</impact>
+      <deprecations>
+        <prim n="PersistentMmap (T9)" reason="Replaced by CapsuleMmapRegion" when="v0.5.0"/>
+        <prim n="LockfreeResultAggregator (T4)" reason="Replaced by LockfreeResultAggregatorV3" when="v0.5.0"/>
+        <prim n="LockfreeResultAggregatorV2 (T6)" reason="Replaced by LockfreeResultAggregatorV3" when="v0.5.0"/>
+        <prim n="verify_capsule_properties! macro (T0)" reason="Replaced by #[derive(ComputationalCapsule)]" when="v0.5.0"/>
+        <prim n="verify_alignment_only! macro (T0)" reason="Replaced by #[capsule(...)] attribute" when="v0.5.0"/>
+      </deprecations>
+      <migration>See docs/MIGRATION_v0.3_v0.4.md for step-by-step replacements</migration>
+    </change>
+
+    <change priority="P2">
+      <name>Compile-Time Capsule Errors (Stricter Validation)</name>
+      <impact>BREAKING - Capsules without verification cause compilation failure (not warning)</impact>
+      <reason>Enforce 100% compile-time safety: UCE34 Q33 mandate</reason>
+      <clippy>clippy::missing_capsule_verification changed from warn to deny</clippy>
+      <fix>Add #[derive(ComputationalCapsule)] or suppress with #[allow(clippy::missing_capsule_verification)]</fix>
+    </change>
+
+    <change priority="P3">
+      <name>Feature Flag Aliases (Internal, Zero Impact)</name>
+      <impact>INTERNAL - Old flags aliased to presets (backward compatible)</impact>
+      <examples>
+        <alias old="simd-hashing" new="preset-high-performance (includes simd-hashing)"/>
+        <alias old="const-hashing" new="preset-high-performance (includes const-hashing)"/>
+        <alias old="fixed-point" new="Default (included in std)"/>
+      </examples>
+      <status>✅ All old feature combinations still compile and work identically</status>
+    </change>
+  </breaking-changes>
+
+  <purpose>Foundation primitives for computational capsule architecture: lockfree coordination, SIMD acceleration, fixed-point determinism, batch processing, streaming, probabilistic collections</purpose>
+
+  <arch pattern="Cache-aligned (64/128/256B) + gen counters + atomic">
+    <tiers>T0:Auditable(Hash,Serialize,AtomicFromMut)|T1:Atomic(&lt;100ns)|T2:SIMD(2-19×)|T3:Fixed(2-10×)|T4:Batch(10-100×)|T5:Streaming(O(1))|T6:Mixed(50-100×)|T7:GPU(100-1000×,traits)|T8:Network(10-50×)|T9:Persistent|T10:Probabilistic(100-1000×)</tiers>
+    <mem>Core:ZERO deps(no_std). Optional:tokio,hash libs,crc32fast,perfcnt,serde,libc</mem>
+  </arch>
+
+  <!-- ============================================================================
+       PRIMITIVES REFERENCE - 207 TOTAL ACROSS 13 TIERS (195 + 12 v0.7.0-v0.7.1)
+       Full specs: UCE34 primitives-catalog-[foundation|composite|extended].xml (105 primitives)
+       ============================================================================ -->
+  <primitives-list count="207">
+    <t0 n="15">const_hash|simd_hash|AtomicHash64|AtomicHash256|ConstHashCapsule|FixedPointSerialize|AtomicFromMut|from_mut_pair|ZeroCopyPaymentCapsule|BuildHardening|EncryptedConfig|AlgorithmConfig|AuditTrailCapsule|IntegrityCheckCapsule|BuildHardeningCapsule</t0>
+    <t1 n="30">DualAtomicU64|CircuitBreaker|AtomicBreakerSWeMR|AtomicBreakerMPMC|CacheLineAligned|generation_counter|ProgressTrackerCapsule|CpuCapabilityCapsule|LockfreeList|PhaseCoordinatorCapsule|LockfreeHashBucketCapsule|PositionTrackerCapsule|LockfreeBTree|CoWLeafCapsule|CryptoLicenseCapsule|KernelProtectionCapsule|ReactorCapsule|ExecutorCapsule|EventQueueCapsule|TimerWheelCapsule|AsyncChannelCapsule|AsyncTcpCapsule|AsyncUdpCapsule|AsyncUnixSocketCapsule|AsyncProcessCapsule|AsyncSignalCapsule|AsyncPipeCapsule|AsyncFileCapsule|ProcessHandleCapsule|ProcessStateCapsule</t1>
+    <t2 n="16">SimdF32x8Capsule|SimdF64x8Capsule|SimdI32x8Capsule|SimdHashCapsule|SimdFixedPointQ16x8Capsule|BatchSimdFixedPoint|HttpStateCapsule|HeaderParserCapsule|ChunkedMetricsCapsule|ComplexF32x4|ComplexCell|SimdSearchCapsule|SimdI64x8Capsule|SimdU32x8Capsule|SimdU64x8Capsule|AVX2Quantization</t2>
+    <t3 n="9">Q8_8|Q16_16|Q32_32|Q48_16|FixedQ16_16Capsule|FinancialCapsule|Q16Fixed|Q16Jaccard|QuantizerCapsule</t3>
+    <t4 n="31">QueueCapsule&lt;T,SPSC&gt;|QueueCapsule&lt;T,MPMC&gt;|UnboundedQueueCapsule&lt;T,SPSC&gt;|UnboundedQueueCapsule&lt;T,MPMC&gt;|UnboundedQueue::push_batch|UnboundedQueue::pop_batch|ConcurrentMapCapsule|LockfreeHashTable|StatsCapsule64|channel|HistogramCapsule|WorkStealingQueue|ParallelBatchProcessor|LockfreeResultAggregator|LockfreeList|ThreadLocalBatchBuffer|ResultSlot|LockfreeResultAggregatorV2|LockfreeResultAggregatorV3|SIMDMatMulCapsule|BatchBufferCapsule|ParallelPartitionCapsule|BoundedQueueCapsule|MPMCQueueCapsule|MPSCQueueCapsule|batch_enqueue|batch_dequeue|ParallelDedupPipeline|ParallelTrainingCapsule|BatchCompressionCapsule|TokenizationBatchCapsule</t4>
+    <t5 n="5">AsyncLogCapsule|FlashAttentionCapsule|BTreeStatsCapsule|HybridStatsCapsule|StrategyLabelerCapsule</t5>
+    <t6 n="22">ProtectionOrchestratorCapsule|ObfuscationCapsule|AtomicSimdCapsule|AtomicSimdF32x8|AtomicSimdCounter|AtomicSimdAccumulator|SimdFixedPointCapsule|SimdFixedQ16x8|SimdFinancialCalc|SimdDeterministicML|FullCompositeCapsule|BatchAtomicSimdFixedQ16Capsule|FinancialBatchProcessor|MLBatchInference|AtomicSimdFixedQ16x8Capsule|CacheSlot|LockfreeCacheCapsule|QuantizationCapsule|MatMulCapsule|CNLSRuleCapsule|LockfreeTaskExecutor|HybridBTreeCapsule</t6>
+    <t7 n="3">GpuCapsule|GpuError|GpuProperties</t7>
+    <t8 n="12">RemoteAttestationCapsule|DistributedCache|NetworkShardCapsule|QuorumReadCapsule|MetricsCapsule|MetricsDashboard|HttpServerCapsule|HttpRequestCapsule|HttpResponseCapsule|HttpRouterCapsule|HttpMiddlewareCapsule|HttpConnectionPoolCapsule</t8>
+    <t9 n="18">TpmBindingCapsule|MemoryEncryptionCapsule|PersistentMmap|CapsuleMmapRegion|CapsuleMmapFile|PersistentMap|PersistentLog|PersistentAtomic|MmapManager|PersistentSimdVector|BatchPersistentWriter|ShardedHyperLogLog|EncryptedStateCapsule|BinaryWriterCapsule|BinaryReaderCapsule|PersistentDedupPipeline|MmapAtomic|PersistentLog</t9>
+    <t9t10 n="3">PersistentMinHashIndex|PersistentLSHTable|PersistentDedupIndex</t9t10>
+    <t10 n="12">AnomalyDetectorCapsule|FuzzyExtractorCapsule|MinHashSignatureCapsule|MinHashSimdCapsule|LshBucketCapsule|MultiTableLshCapsule|HyperLogLogCapsule|CountMinSketchCapsule|BloomFilterCapsule|PersistentBloomFilter|WorkloadDetectorCapsule|PersistentMinHashIndex</t10>
+    <tui n="7">TerminalCapabilityCapsule|ConfigurationCapsule|FileNavigatorCapsule|KeyboardInputHistoryCapsule|RenderBufferCapsule|ScreenStateCapsule|AuditLogCapsule</tui>
+    <install n="4">InstallerStateCapsule|DownloadProgressCapsule|SignatureVerifierCapsule|InstallAuditTrailCapsule</install>
+    <protection n="5">LicenseValidatorCapsule|HardwareBindingCapsule|ProtectionCoordinatorCapsule|ProtectionStatsCapsule|ProtectionConfigCapsule</protection>
+    <utils n="3">hex_encode|hex_decode|keyed_hash</utils>
+  </primitives-list>
+
+  <!-- Module paths for imports (sample mappings) -->
+  <modules>
+    <m p="hash">const_hash,simd_hash,AtomicHash64,AtomicHash256,ConstHashCapsule,SimdHashCapsule,keyed_hash</m>
+    <m p="patterns/dual_atomic">DualAtomicU64,CacheLineAligned</m>
+    <m p="patterns/circuit_breaker">CircuitBreaker,AtomicBreakerSWeMR,AtomicBreakerMPMC</m>
+    <m p="primitives/simd_*">SimdF32x8Capsule,SimdF64x8Capsule,SimdI32x8Capsule,SimdI64x8Capsule,SimdU32x8Capsule,SimdU64x8Capsule,SimdFixedPointQ16x8Capsule,SimdSearchCapsule,AVX2Quantization</m>
+    <m p="primitives/fixed_point">Q8_8,Q16_16,Q32_32,Q48_16,FixedQ16_16Capsule,FinancialCapsule,Q16Fixed,Q16Jaccard,QuantizerCapsule</m>
+    <m p="collections/queue">QueueCapsule,UnboundedQueueCapsule,BoundedQueueCapsule,MPMCQueueCapsule,MPSCQueueCapsule,batch_enqueue,batch_dequeue</m>
+    <m p="collections/concurrent_map">ConcurrentMapCapsule,LockfreeHashTable,StatsCapsule64,HistogramCapsule</m>
+    <m p="collections/lockfree_btree">LockfreeBTree,CoWLeafCapsule,HybridBTreeCapsule,BatchBufferCapsule</m>
+    <m p="collections/async_log">AsyncLogCapsule</m>
+    <m p="collections/cache">CacheSlot,LockfreeCacheCapsule</m>
+    <m p="parallel/*">LockfreeList,WorkStealingQueue,ParallelBatchProcessor,ThreadLocalBatchBuffer,ResultSlot,LockfreeResultAggregator,LockfreeResultAggregatorV2,LockfreeResultAggregatorV3,ParallelDedupPipeline,ParallelTrainingCapsule</m>
+    <m p="composite/*">AtomicSimdCapsule,AtomicSimdF32x8,AtomicSimdCounter,AtomicSimdAccumulator,SimdFixedPointCapsule,SimdFixedQ16x8,FullCompositeCapsule,BatchAtomicSimdFixedQ16Capsule</m>
+    <m p="persistence/*">PersistentMmap,CapsuleMmapRegion,CapsuleMmapFile,PersistentMap,PersistentLog,PersistentAtomic,MmapManager,PersistentSimdVector,BatchPersistentWriter,BinaryWriterCapsule,BinaryReaderCapsule,PersistentDedupPipeline,MmapAtomic</m>
+    <m p="probabilistic/*">MinHashSignatureCapsule,MinHashSimdCapsule,LshBucketCapsule,MultiTableLshCapsule,HyperLogLogCapsule,CountMinSketchCapsule,BloomFilterCapsule,PersistentBloomFilter,PersistentMinHashIndex,PersistentLSHTable,PersistentDedupIndex</m>
+    <m p="protection/*">BuildHardening,EncryptedConfig,CryptoLicenseCapsule,KernelProtectionCapsule,ProtectionOrchestratorCapsule,ObfuscationCapsule,RemoteAttestationCapsule,TpmBindingCapsule,MemoryEncryptionCapsule,AnomalyDetectorCapsule,FuzzyExtractorCapsule,EncryptedStateCapsule,AuditTrailCapsule,IntegrityCheckCapsule,BuildHardeningCapsule,LicenseValidatorCapsule,HardwareBindingCapsule,ProtectionCoordinatorCapsule,ProtectionStatsCapsule,ProtectionConfigCapsule</m>
+    <m p="runtime/*">ReactorCapsule,ExecutorCapsule,EventQueueCapsule,TimerWheelCapsule,AsyncChannelCapsule,AsyncTcpCapsule,AsyncUdpCapsule,AsyncUnixSocketCapsule,AsyncProcessCapsule,AsyncSignalCapsule,AsyncPipeCapsule,AsyncFileCapsule,ProcessHandleCapsule,ProcessStateCapsule</m>
+    <m p="http/*">HttpServerCapsule,HttpRequestCapsule,HttpResponseCapsule,HttpRouterCapsule,HttpMiddlewareCapsule,HttpConnectionPoolCapsule</m>
+    <m p="observability/*">BTreeStatsCapsule,HybridStatsCapsule,StrategyLabelerCapsule</m>
+    <m p="batch/*">BatchCompressionCapsule,TokenizationBatchCapsule</m>
+    <m p="utils">hex_encode,hex_decode</m>
+    <m p="tui/*">TerminalCapabilityCapsule,ConfigurationCapsule,FileNavigatorCapsule,KeyboardInputHistoryCapsule,RenderBufferCapsule,ScreenStateCapsule,AuditLogCapsule</m>
+    <m p="install/*">InstallerStateCapsule,DownloadProgressCapsule,SignatureVerifierCapsule,InstallAuditTrailCapsule</m>
+  </modules>
+
+  <!-- Status: Deprecated, New, Breaking Changes -->
+  <status>
+    <deprecated>PersistentMmap→CapsuleMmapRegion|LockfreeResultAggregator→V3|LockfreeResultAggregatorV2→V3</deprecated>
+    <new>LockfreeBTree|CoWLeafCapsule|HybridBTreeCapsule|SimdSearchCapsule|BatchBufferCapsule|WorkloadDetectorCapsule|ReactorCapsule|ExecutorCapsule|EventQueueCapsule|TimerWheelCapsule|AsyncChannelCapsule|AsyncTcpCapsule|AsyncUdpCapsule|AsyncUnixSocketCapsule|AsyncProcessCapsule|AsyncSignalCapsule|AsyncPipeCapsule|AsyncFileCapsule|ProcessHandleCapsule|ProcessStateCapsule|SimdI64x8Capsule|SimdU32x8Capsule|SimdU64x8Capsule|AVX2Quantization|Q16Fixed|Q16Jaccard|QuantizerCapsule|BoundedQueueCapsule|MPMCQueueCapsule|MPSCQueueCapsule|batch_enqueue|batch_dequeue|ParallelDedupPipeline|ParallelTrainingCapsule|BatchCompressionCapsule|TokenizationBatchCapsule|BTreeStatsCapsule|HybridStatsCapsule|StrategyLabelerCapsule|HttpServerCapsule|HttpRequestCapsule|HttpResponseCapsule|HttpRouterCapsule|HttpMiddlewareCapsule|HttpConnectionPoolCapsule|BinaryWriterCapsule|BinaryReaderCapsule|PersistentDedupPipeline|MmapAtomic|PersistentMinHashIndex|PersistentLSHTable|AuditTrailCapsule|IntegrityCheckCapsule|BuildHardeningCapsule|LicenseValidatorCapsule|HardwareBindingCapsule|ProtectionCoordinatorCapsule|ProtectionStatsCapsule|ProtectionConfigCapsule|hex_encode|hex_decode|keyed_hash|TerminalCapabilityCapsule|ConfigurationCapsule|FileNavigatorCapsule|KeyboardInputHistoryCapsule|RenderBufferCapsule|ScreenStateCapsule|AuditLogCapsule|InstallerStateCapsule|DownloadProgressCapsule|SignatureVerifierCapsule|InstallAuditTrailCapsule</new>
+    <breaking>ConcurrentMapCapsule[MapEntry&lt;K,V&gt; race fix]|Verification v0.4.0[#[derive(ComputationalCapsule)] mandatory]</breaking>
+  </status>
+
+  <!-- ============================================================================
+       FEATURES REFERENCE - 81+ FLAGS (68 + 13 TUI/Install)
+       ============================================================================ -->
+  <features count="81+">
+    <g id="base" c="3">
+      <f n="std" d="-" p="Std lib support" t="all"/>
+      <f n="nightly" d="-" p="Nightly (portable_simd, const_fn_floating_point)" t="T2,T3,T6"/>
+      <f n="derive" d="-" p="Auto verify via #[derive(ComputationalCapsule)]" t="all"/>
+    </g>
+
+    <g id="hash" desc="Phase 2.2" c="3">
+      <f n="const-hashing" d="-" p="T0: 0ns compile-time hash (100×)" t="T0"/>
+      <f n="simd-hashing" d="portable_simd" p="T0: 2-8× for 4+ fields" t="T0,T2"/>
+      <f n="nightly-all" d="nightly" p="All nightly opts" t="T2,T3,T6"/>
+    </g>
+
+    <g id="atomic" desc="Phase 2.3" c="2">
+      <f n="nightly-atomic" d="nightly" p="T0: AtomicFromMut (zero-copy atomic views)" t="T0,T9"/>
+      <f n="stable-fallback" d="-" p="Fallback for stable Rust" t="T0"/>
+    </g>
+
+    <g id="cpu" desc="Phase 1" c="1">
+      <f n="cpu-capabilities" d="std" p="T1: Runtime CPU detection (AVX-512/AVX2/SSE4.2/NEON), &lt;10ns cached" t="T1"/>
+    </g>
+
+    <g id="serialize" desc="Phase 4" c="1">
+      <f n="capsule-serialize" d="crc32fast,crc" p="T0: FixedPointSerialize trait, audit trails" t="T0"/>
+    </g>
+
+    <g id="collections" desc="Phase 5 + Phase 11.0" c="11">
+      <f n="queue-bounded" d="std" p="T4: Bounded SPSC/MPMC queues (Phase 1)" t="T4"/>
+      <f n="queue-unbounded" d="std,queue-bounded" p="T4: Unbounded SPSC/MPMC queues with segment growth (Phase 2)" t="T4"/>
+      <f n="queue-batch" d="std,queue-unbounded" p="T4: Batch push/pop operations - 2× speedup for bulk workloads (Phase 3)" t="T4"/>
+      <f n="queue-all" d="queue-bounded,queue-unbounded,queue-batch" p="T4: All queue features (bounded + unbounded + batch)" t="T4"/>
+      <f n="async-log" d="tokio" p="T5: Async logging capsule" t="T5"/>
+      <f n="cache" d="-" p="T6: LockfreeCacheCapsule with random SipHash" t="T6"/>
+      <f n="cache-hmac" d="sha2,hmac" p="T6: HMAC-SHA256 integrity" t="T6"/>
+      <f n="cache-multi-tenant" d="-" p="T6: Multi-tenant isolation" t="T6"/>
+      <f n="cache-encryption" d="aes-gcm" p="T6: AES-256-GCM encryption" t="T6"/>
+      <f n="cache-security-full" d="sha2,hmac,aes-gcm" p="T6: All 4 security features" t="T6"/>
+      <f n="lockfree-btree" d="std" p="T1: LockfreeBTree (Phase 11.0, 5-10× vs RwLock&lt;BTreeMap&gt;, 8+ threads)" t="T1"/>
+      <f n="btree-cow-simd" d="std,portable_simd" p="T6: HybridBTreeCapsule (Phase 11.1, 15-30× for 1000+ writers, T1+T2+T4 CoW+SIMD+Batch)" t="T6"/>
+    </g>
+
+    <g id="parallel" desc="Phase 7-9" c="8">
+      <f n="parallel" d="std" p="T4: Base parallel primitives (WorkStealingQueue, ProgressTracker)" t="T4"/>
+      <f n="ultra-low-latency" d="-" p="T4: HFT mode (&lt;2μs P99.9, high CPU)" t="T4"/>
+      <f n="rt-priority" d="libc" p="T4: RT priority + CPU pinning (&lt;1μs P99.9, requires CAP_SYS_NICE)" t="T4"/>
+      <f n="adaptive-parallel" d="-" p="T4: CPU-adaptive work-stealing (8-256 cores)" t="T4"/>
+      <f n="platform-intel" d="-" p="T4: Intel Xeon mesh-aware optimizations" t="T4"/>
+      <f n="platform-amd" d="-" p="T4: AMD Threadripper/EPYC chiplet-aware" t="T4"/>
+      <f n="platform-arm" d="-" p="T4: ARM Graviton CMN-600 aware" t="T4"/>
+      <f n="nightly-adaptive" d="nightly" p="T4: SIMD batch stealing + atomic_from_mut" t="T4,T2"/>
+    </g>
+
+    <g id="fixed" desc="Phase 2.1" c="3">
+      <f n="fixed-point" d="-" p="T3: Q8.8, Q16.16, Q32.32, Q48.16" t="T3"/>
+      <f n="fixed-simd" d="nightly" p="T3+T2: SIMD-accelerated fixed-point" t="T3,T2"/>
+      <f n="financial-calcs" d="fixed-point" p="T3: Convenience preset for financial systems" t="T3"/>
+    </g>
+
+    <g id="composite" desc="Phase 11" c="7">
+      <f n="composite" d="fixed-point" p="T6: Multi-tier composites (T1+T2, T1+T3, T2+T3)" t="T6"/>
+      <f n="composite-all" d="nightly,fixed-point" p="T6: All composites including SIMD (T1+T2+T3)" t="T6"/>
+      <f n="tier1-tier2" d="portable_simd" p="T6: Atomic + SIMD (12× compound)" t="T6"/>
+      <f n="tier1-tier3" d="fixed-point" p="T6: Atomic + Fixed-Point (6× compound)" t="T6"/>
+      <f n="tier2-tier3" d="nightly,fixed-point" p="T6: SIMD + Fixed-Point (8× compound)" t="T6"/>
+      <f n="tier1-tier2-tier3" d="nightly,fixed-point" p="T6: Full composite (24× compound)" t="T6"/>
+      <f n="lockfree-executor" d="std" p="T6: LockfreeTaskExecutor (wait-free task coordination, T1+T4)" t="T6"/>
+    </g>
+
+    <g id="adaptive" desc="Phase 9.1" c="1">
+      <f n="adaptive-workload" d="-" p="T6: OLAP/OLTP workload mode detection (Phase 9.1)" t="T6"/>
+    </g>
+
+    <g id="circuit" desc="Phase 12" c="10">
+      <f n="circuit-breaker-standard64" d="-" p="T1: Full 64-bit layout (9 packed fields)" t="T1"/>
+      <f n="circuit-breaker-compact48" d="-" p="T1: 48-bit layout for embedded" t="T1"/>
+      <f n="circuit-breaker-mpmc" d="-" p="T1: Multi-writer variant (bounded CAS)" t="T1"/>
+      <f n="circuit-breaker-pmu" d="perfcnt" p="T1: Linux perf-event telemetry" t="T1"/>
+      <f n="circuit-breaker-auto-tune" d="-" p="T1: Adaptive policy calibration" t="T1"/>
+      <f n="circuit-breaker-serde" d="serde" p="T1: Serialization for diagnostics" t="T1"/>
+      <f n="circuit-breaker-adaptive" d="circuit-breaker-standard64,fixed-point" p="T1+T3: 50% FP reduction (EMA)" t="T1,T3"/>
+      <f n="histogram" d="chrono" p="T4: P50/P95/P99/P999 metrics (&lt;10ns record)" t="T4"/>
+      <f n="distributed-histogram" d="histogram" p="T8: Network histogram integration" t="T8"/>
+      <f n="quorum-reads" d="-" p="T8: 2/3 majority voting" t="T8"/>
+    </g>
+
+    <g id="network" desc="Phase L3/P1" c="6">
+      <f n="distributed" d="-" p="T8: Distributed cache (SipHash, HTTP/2, batch ops)" t="T8"/>
+      <f n="distributed-compression" d="-" p="T8: zstd compression (2-5× bandwidth)" t="T8"/>
+      <f n="distributed-audit" d="-" p="T8: Hash-chained audit trail (Q34)" t="T8"/>
+      <f n="distributed-all" d="-" p="T8: All P1 features (compression, audit, histogram)" t="T8"/>
+      <f n="network" d="-" p="T8: Network capsule with distributed cache" t="T8"/>
+      <f n="http-simd" d="portable_simd" p="T2: SIMD HTTP parsing (7× speedup)" t="T2"/>
+    </g>
+
+    <g id="persist" desc="Phase 13 + 2.5" c="12">
+      <f n="mmap-persistence" d="std,memmap2" p="T9: Legacy mmap (DEPRECATED - use capsule-mmap)" t="T9"/>
+      <f n="capsule-mmap" d="std" p="T9: Capsule-native mmap (zero deps, replaces memmap2)" t="T9"/>
+      <f n="capsule-os" d="capsule-mmap" p="T9: Future Capsule OS native syscalls" t="T9"/>
+      <f n="probabilistic" d="nightly" p="T10: MinHash/LSH collections" t="T10"/>
+      <f n="minhash-simd" d="portable_simd,probabilistic" p="T10+T2: SIMD vectorized MinHash (2-8×, 7.1× validated)" t="T10,T2"/>
+      <f n="persistent-minhash" d="mmap-persistence,probabilistic" p="T9+T10: Incremental LLM dedup (100×)" t="T9,T10"/>
+      <f n="persistent-lsh" d="mmap-persistence,probabilistic" p="T9+T10: Multi-table LSH (92-99% recall)" t="T9,T10"/>
+      <f n="persistent-dedup" d="mmap-persistence,probabilistic" p="T9+T10: Full dedup pipeline" t="T9,T10"/>
+      <f n="hll" d="-" p="T10: HyperLogLog cardinality estimation" t="T10"/>
+      <f n="hll-sharded" d="-" p="T10: Sharded HyperLogLog (4.3× @ 256c)" t="T10"/>
+      <f n="count-min-sketch" d="probabilistic" p="T10: Frequency counting (32KB, ±1% error)" t="T10"/>
+      <f n="count-min-simd" d="count-min-sketch,portable_simd" p="T10: SIMD hash (4× speedup, nightly)" t="T10"/>
+    </g>
+
+    <g id="bloom" desc="Phase 14" c="3">
+      <f n="bloom-filter" d="std" p="T10.2: Probabilistic membership (8KB, 0.08% FPR, &lt;50ns)" t="T10"/>
+      <f n="bloom-filter-simd" d="bloom-filter,portable_simd" p="T10.2: SIMD MurmurHash3 (5.95× speedup, nightly)" t="T10"/>
+      <f n="bloom-filter-persistent" d="bloom-filter,mmap-persistence,nightly-atomic" p="T9+T10: Crash-safe streaming dedup (&lt;100ms recovery)" t="T9,T10"/>
+    </g>
+
+    <g id="inference" desc="Inference" c="3">
+      <f n="inference-matmul" d="portable_simd" p="T2+T4: SIMD matrix multiply (4-8×)" t="T2,T4"/>
+      <f n="inference-quantization" d="fixed-point" p="T3: Fixed-point quantization (2-5×)" t="T3"/>
+      <f n="inference-attention" d="portable_simd" p="T2+T5: Streaming attention (3-6×)" t="T2,T5"/>
+    </g>
+
+    <g id="cnls" desc="Phase 4.2" c="4">
+      <f n="complex-simd" d="portable_simd" p="T2: ComplexF32x4 (10-13× speedup)" t="T2"/>
+      <f n="complex-fixed" d="fixed-point" p="T3: ComplexCell Q16.48 deterministic" t="T3"/>
+      <f n="cnls" d="complex-simd,complex-fixed,capsule-serialize" p="T6: CNLS quantum wave mechanics" t="T6"/>
+      <f n="quantum-wave" d="cnls" p="Meta: Phase 4.2 complete feature set" t="T6"/>
+    </g>
+
+    <g id="protection" desc="Phase P0+P1+P2 Binary Protection" c="12">
+      <f n="protection-build-hardening" d="-" p="T0: Compile-time customer ID encryption (0ns runtime)" t="T0"/>
+      <f n="protection-encrypted-state" d="aes-gcm" p="T9+T0: AES-256-GCM encrypted mmap state (100× deletion resistance)" t="T9,T0"/>
+      <f n="protection-crypto-license" d="ed25519-dalek,rsa" p="T1+T2: RSA-4096/Ed25519 license signature verification (2-8× SIMD)" t="T1,T2"/>
+      <f n="remote-attestation" d="rustls,hyper,tokio" p="T8+T1: TLS 1.3 weekly phone-home clone detection" t="T8,T1"/>
+      <f n="tpm-binding" d="tss-esapi" p="T9+Platform: TPM 2.0 EK hardware-unclonable binding" t="T9"/>
+      <f n="obfuscation" d="-" p="T6: Control-flow protection (T1+T2+T10 composite)" t="T6"/>
+      <f n="fuzzy-extractor" d="reed-solomon-erasure" p="T10+T3: Reed-Solomon PUF error correction (96%→99.9%)" t="T10,T3"/>
+      <f n="anomaly-detector" d="bloom-filter,hll" p="T10+T1: Adaptive tamper detection" t="T10,T1"/>
+      <f n="orchestrator" d="-" p="T6: 7-layer lockfree coordination" t="T6"/>
+      <f n="memory-encryption" d="platform-specific" p="T9: SGX/SEV/SecureEnclave" t="T9"/>
+      <f n="kernel-protection" d="-" p="Platform: Kernel module coordination (Linux)" t="T1"/>
+      <f n="protection-all" d="protection-build-hardening,protection-encrypted-state,protection-crypto-license,remote-attestation,tpm-binding,obfuscation,fuzzy-extractor,anomaly-detector,orchestrator,memory-encryption,kernel-protection" p="All protection primitives (P0+P1+P2, 11-layer)" t="T0,T1,T6,T8,T9,T10"/>
+    </g>
+
+    <g id="tui" desc="Phase TUI - Terminal User Interface" c="8">
+      <f n="tui-terminal" d="std" p="T1+T0: TerminalCapabilityCapsule (cached detection, 280× speedup)" t="T1,T0"/>
+      <f n="tui-config" d="std" p="T0+T1: ConfigurationCapsule (Q16.16 deterministic settings)" t="T0,T1"/>
+      <f n="tui-navigation" d="std,blake3" p="T1: FileNavigatorCapsule (Blake3 directory hashing)" t="T1"/>
+      <f n="tui-input" d="std" p="T1: KeyboardInputHistoryCapsule (input tracking, idle detection)" t="T1"/>
+      <f n="tui-render" d="std" p="T1: RenderBufferCapsule (60 FPS frame timing, 256B aligned)" t="T1"/>
+      <f n="tui-screen" d="std" p="T1: ScreenStateCapsule (back stack navigation, state machine)" t="T1"/>
+      <f n="tui-audit" d="std,blake3" p="T0+T1: AuditLogCapsule (Q34 hash-chained audit trails, &lt;50ns)" t="T0,T1"/>
+      <f n="tui-all" d="tui-terminal,tui-config,tui-navigation,tui-input,tui-render,tui-screen,tui-audit" p="TUI: All 7 Terminal UI capsules" t="T0,T1"/>
+    </g>
+
+    <g id="install" desc="Phase Install - Installation and Distribution" c="5">
+      <f n="install-state" d="std" p="T1: InstallerStateCapsule (10-phase state machine, &lt;15ns)" t="T1"/>
+      <f n="install-download" d="std" p="T8+T1: DownloadProgressCapsule (network progress tracking, 256B)" t="T8,T1"/>
+      <f n="install-verify" d="std,ed25519-dalek" p="T0: SignatureVerifierCapsule (Ed25519 verification, &lt;1ms)" t="T0"/>
+      <f n="install-audit" d="std,blake3" p="T0+T9: InstallAuditTrailCapsule (Q34 persistent audit, &lt;50ns record)" t="T0,T9"/>
+      <f n="install-all" d="install-state,install-download,install-verify,install-audit" p="Install: All 4 installer capsules (curl | sh ready)" t="T0,T1,T8,T9"/>
+    </g>
+  </features>
+
+  <!-- ============================================================================
+       IMPLEMENTATION
+       ============================================================================ -->
+  <impl modules="17">alignment|retry|verify|hash|primitives|patterns|simd_vectorization|collections|parallel|serialize|composite|circuit_breaker|persistence|probabilistic|distributed_cache|inference|http</impl>
+  <deps>Core: ZERO (no_std). Optional: tokio, hash libs, crc, perfcnt, serde, libc. Motto: "Zero dependencies, zero compromises"</deps>
+
+  <!-- ============================================================================
+       PHASES - FRAMEWORK ABBREVIATIONS
+       ============================================================================ -->
+  <fw-std>UCE34 (Q1-Q34), ASSUM (99.99%), T28 (530+ tests), B32 (fair baselines), I20 (20/20), COCA (100% lockfree)</fw-std>
+
+  <!-- ACTIVE PHASES (4) - FULL DETAIL -->
+  <phase-9-1>
+    <n>Adaptive Workload Detection (OLAP/OLTP Auto-Switching)</n>
+    <s>✅ DOCUMENTATION READY (Phase 9.1, atomic_capsule v0.6.1)</s>
+    <prob>Database workload varies: OLAP (read-heavy scans) vs OLTP (write-heavy transactions). Static modes suboptimal.</prob>
+    <sol>T6 Mixed (T1 atomic + T10 probabilistic) workload detector with real-time mode switching</sol>
+    <res>Auto-detect workload patterns (&lt;50ns detection overhead), adaptive WAL mode switching in kindly-db</res>
+    <feat>WorkloadDetectorCapsule: 64B, 2 atomic counters (reads/writes), HyperLogLog for cardinality | Modes: OLAP (scan-heavy, 90%+ reads, group commit), OLTP (transaction-heavy, 60%- reads, immediate sync), HYBRID (balanced, 1ms batching) | Mode switch: &lt;100ns atomic operation | Feature: adaptive-workload flag</feat>
+    <fw ref="fw-std"/>
+  </phase-9-1>
+
+  <phase-13>
+    <n>T9+T10 Persistent Deduplication (LLM Corpus Incremental Updates)</n>
+    <s>✅ PRODUCTION-READY (350+ tests, 100× speedup, 92-99% recall)</s>
+    <prob>Weekly LLM corpus dedup: 10M docs, 99% duplicates. Baseline: 106 min Python</prob>
+    <sol>T9+T10 persistent mmap-backed index + incremental updates</sol>
+    <res>65 sec weekly (after one-time 106 min setup) → 100× incremental speedup, 116-174× vs CPU baselines</res>
+    <feat>T9 Persistent: Atomic writes to mmap (&lt;50ns), crash-safe (gen counters + msync), recovery (&lt;100ms) | T10 MinHash: Q8.8 (256B vs 512B, 50% memory), 128 hashes, &lt;100μs sketch | T10 LSH: L=5 multi-table (92-99% recall vs 5-41% single), &lt;500ns insert/query | Incremental: Rebuild from mmap (1 sec vs 106 min), crash-safe weekly updates</feat>
+    <fw ref="fw-std"/>
+  </phase-13>
+
+  <phase-4-2>
+    <n>CNLS Quantum Wave Mechanics (T2+T3+T6)</n>
+    <s>⏳ MIGRATION COMPLETE (Week 1: primitives added to atomic_capsule)</s>
+    <prob>Complex-valued wave evolution for quantum emergence hypothesis</prob>
+    <sol>T2 SIMD complex + T3 fixed-point + T6 mixed composite + Q34 audit</sol>
+    <feat>ComplexF32x4: 10-13× SIMD speedup for 4× complex f32 operations | ComplexCell: Q16.48 deterministic complex arithmetic (32-byte) | CNLSRuleCapsule: T1+T3+Q34 mixed composite (128-byte, hash chain) | Single source of truth: All CNLS primitives in atomic_capsule</feat>
+    <fw>UCE34 (Q1-Q34), ASSUM (99.9%), T28 (41+ tests), B32 (pending), I20 (20/20), COCA (100% lockfree)</fw>
+  </phase-4-2>
+
+  <phase-p2>
+    <n>Adaptive Circuit Breaker (50% False Positive Reduction)</n>
+    <s>⏳ SPECIFICATION COMPLETE (Ready for implementation)</s>
+    <prob>Static thresholds: 48% false positive rate (temporary spikes trigger opens)</prob>
+    <sol>Online threshold learning: EMA with Q8.8 fixed-point (T1+T3 composition)</sol>
+    <tgt>50% FP reduction (48% → 24%), &lt;20ns eval latency (+5ns overhead)</tgt>
+    <feat>EMA learning: Q8.8 fixed-point, P95 threshold extraction, hysteresis (10%) | Zero unsafe: 100% safe Rust, atomic-only coordination | Adaptive thresholds: mu/sg/err learned from trip patterns | False positive tracking: Atomic counters for monitoring</feat>
+    <api>Policy::enable_adaptive(interval, alpha), Policy::disable_adaptive(), Policy::false_positive_rate(), update_adaptive_thresholds(), compute_ema_q8(), compute_p95_q8()</api>
+    <fw>UCE34 (Q1-Q34), ASSUM (99.5%), T28 (10+ property tests), B32 (fair baseline +5ns overhead), I20 (Q1-Q20)</fw>
+  </phase-p2>
+
+  <phase-tui>
+    <n>Terminal User Interface (TUI) Capsules</n>
+    <s>✅ PRODUCTION-READY (Phase TUI, atomic_capsule v0.7.0)</s>
+    <prob>CLI/TUI applications need high-performance, deterministic terminal capabilities, configuration, file navigation, input tracking, rendering, and audit logging</prob>
+    <sol>7 reusable T0+T1 computational capsules for 100% lockfree TUI architecture with Q34 compliance</sol>
+    <res>280× speedup (cached terminal capabilities), 100% deterministic (Q16.16 config), Q34-compliant hash-chained audit trails (&lt;50ns)</res>
+    <feat>TerminalCapabilityCapsule: T1 Atomic cached detection (280× cached lookups) | ConfigurationCapsule: T0+T1 Q16.16 deterministic settings (64B aligned) | FileNavigatorCapsule: T1 Blake3 directory hashing (128B aligned) | KeyboardInputHistoryCapsule: T1 input tracking + idle detection (&lt;5ns insert) | RenderBufferCapsule: T1 60 FPS frame timing (256B aligned) | ScreenStateCapsule: T1 back stack navigation + state machine | AuditLogCapsule: T0+T1 Q34 hash-chained audit (512B, &lt;50ns record)</feat>
+    <count>7 new capsules, 8 feature flags (tui-*, tui-all), 25+ tests (T28 Q1-Q28)</count>
+    <fw ref="fw-std"/>
+  </phase-tui>
+
+  <phase-install>
+    <n>Installation Capsules (One-Line Installer Infrastructure)</n>
+    <s>✅ PRODUCTION-READY (Phase Install, atomic_capsule v0.7.0)</s>
+    <prob>Need secure, fast, auditable one-line installer (curl | sh) for all kindly products (dedup, hft, dash, fqbit)</prob>
+    <sol>4 installer capsules (T0+T1+T8+T9 tiers) for universal installation orchestration</sol>
+    <res>Generic installer infrastructure, &lt;30s install overhead, Ed25519 signature verification (&lt;1ms), Q34 persistent audit trails</res>
+    <feat>InstallerStateCapsule: T1 10-phase state machine (&lt;15ns transitions) | DownloadProgressCapsule: T8 Network real-time progress tracking (256B aligned, moving average speed/ETA) | SignatureVerifierCapsule: T0 Ed25519 signature verification (&lt;1ms, deterministic) | InstallAuditTrailCapsule: T0+T9 persistent Q34 audit logs (hash-chained, crash-safe recovery &lt;100ms)</feat>
+    <count>4 new capsules, 5 feature flags (install-*, install-all), 38+ tests (T28 Q1-Q28)</count>
+    <fw ref="fw-std"/>
+  </phase-install>
+
+
+  <!-- RECENT COMPLETED PHASES (9) - TABULAR FORMAT -->
+  <recent>
+    phase-tui|TUI Capsules|✅ PROD|T0+T1 7 capsules (Terminal, Config, FileNav, Input, Render, Screen, Audit), 280× cached speedup, Q34 compliant, 25+ tests|fw-std
+    phase-install|Installer Capsules|✅ PROD|T0+T1+T8+T9 4 capsules (State, Download, Verify, Audit), Ed25519 verification, Q34 persistent audit, &lt;30s install|fw-std
+    phase-11-0|LockfreeBTree|✅ PROD|T1 Atomic B+ tree, 5-10× vs RwLock&lt;BTreeMap&gt; (8+ threads), &lt;50ns get, &lt;100ns insert, O(log N), 40+ tests, 99.5% ASSUM|fw-std
+    phase-2-5|Capsule-Mmap|✅ PROD|T9+T1+T0 100% lockfree, &lt;20ns alloc (vs ~50ns memmap2), Unix/Windows/Capsule OS|fw-std
+    phase-4-parallel|Parallel Batch|✅ PROD|T4+T1 9.6× speedup, 576K docs/sec @ 16 cores, ParallelBatchProcessor + LockfreeResultAggregator|fw-std
+    phase-4-3|Thread-Local Opt|✅ PROD|T1 Atomic 95% efficiency, 912K docs/sec, +18.8% improvement, 100% safe (eliminates 2 unsafe blocks)|fw-std
+    phase-4-4|100% Lockfree|✅ PROD|T1+T4 ConcurrentMapCapsule AtomicPtr-based, ZERO mutex achieved, &lt;100ns insert|fw-std
+    phase-15|Result Aggregator V4|✅ PROD|T6 Mixed (T1+T4) 100% COCA lockfree, &lt;50ns insert, &lt;5ms merge @ 100K, 3 primitives (LockfreeList, ResultSlot spec, AggregatorV2), 688+ tests|fw-std
+    phase-4-6|Callback Pattern|✅ PROD|T4 Batch ThreadLocalBatchBuffer + T6 Mixed LockfreeResultAggregatorV3, callback-based O(1) merge, 2 primitives (ThreadLocalBatchBuffer, AggregatorV3)|fw-std
+  </recent>
+
+  <!-- ARCHIVED PHASES (12) - SUMMARY -->
+  <archive>Phase 2.1: SIMD+Fixed (2-4×) | 2.2: Nightly (const-hash 0ns, simd-hash 2-8×) | 2.3: AtomicFromMut (T0 zero-copy) | 4: FixedPointSerialize (audit trails) | 5: Collections (116 tests, 100%) | 7-9: Parallel (26.7× HFT mode, adaptive 1-256c) | 11: Composites (12-100× compound) | 12: Circuit Breaker (Standard64/Compact48, &lt;5ns read) | 13: T9+T10 Persistent Dedup (100-174× speedup, 92-99% recall) | 14: Bloom Filter (T10.2 755 LOC, &lt;50ns insert, 5.95× SIMD hash) | L3: Distributed Cache (HTTP/2, 3 replicas, consistent hashing) | P1: Monitoring (MetricsCapsule, SimdHashCapsule, QuorumRead)</archive>
+
+  <!-- ============================================================================
+       TESTING & FRAMEWORKS
+       ============================================================================ -->
+  <testing>
+    <t28>Unit (300+: invariants, alignment, atomics) | Property (100+: concurrent, overflow) | Integration (80+: e2e) | Production (50+: stress, real-world)</t28>
+    <b32>Fair baselines (RwLock, Rayon, DashMap) | 1000+ iter, 95% CI | 10-50% typical, 2-10× exceptional, 100×+ extensive validation</b32>
+    <assum>99.99% safe (all assumptions documented, memory ordering audit, gen counters, ABA prevention)</assum>
+    <compile>Zero warnings | 688+ tests pass (530 base + 158 Phase 15) | 48+ benchmark suites</compile>
+  </testing>
+
+  <fw>UCE34 (Q1-Q34: all tiers 0-10, tier selection FIRST after Q1-Q9) | ASSUM (99.99% safe, 580+ tags) | B32 (K1-K70: K51-K70 for T7 GPU, T8 Network, T9 Persistent, T10 Probabilistic, fair baselines, rigor) | T28 (4-tier pyramid: 688+ tests) | I20 (Q1-Q20 integration, all verified) | COCA (100% lockfree: no mutex/RwLock, atomic only)</fw>
+
+  <!-- ============================================================================
+       KNOWN ISSUES & MANDATORY READING
+       ============================================================================ -->
+  <issues>
+    <i p="P3">4 documented primitives need code impl (SimdHebbianCapsule, EmaQ8_8Capsule, BatchRingBuffer, IncrementalCSRCapsule, AtomicFixedCapsule)</i>
+    <i p="P2">Missing 6 doc comments (integer_part, fractional_part, error struct fields) - cargo doc warnings</i>
+  </issues>
+
+  <!-- ============================================================================
+       ARCHITECTURE REFERENCE CATALOG (Novel Lockfree Patterns)
+       ============================================================================ -->
+  <architecture-patterns location="docs/architectures/">
+    <pattern n="HybridBatchPool" t="T4+T1" s="4.4×" l="&lt;20μs" d="Thread-local batching + multi-queue distribution">docs/architectures/HYBRID_BATCH_POOL.md (1,632 lines) | Use: High contention (50+ threads) | Speedup: 4.4× vs mutex via batching</pattern>
+    <pattern n="AtomicSlotPool" t="T1+T5" s="2.9×" l="&lt;30μs" d="Pre-allocated slots + lockfree free-list">docs/architectures/ATOMIC_SLOT_POOL.md (1,083 lines) | Use: Zero-allocation, embedded, deterministic latency</pattern>
+    <pattern n="SegmentedMPMC" t="T4" s="2.2×" l="&lt;40μs" d="√N segmentation + thread affinity">docs/architectures/SEGMENTED_MPMC.md (1,544 lines) | Use: Balanced contention (16-64 threads), NUMA systems</pattern>
+    <index>docs/architectures/INDEX.md | Navigation guide for all architecture patterns</index>
+    <usage>Reference when designing multi-producer coordination, high-contention systems, or lockfree pools</usage>
+  </architecture-patterns>
+
+  <reading>1:Computational Capsule.md (philosophy) | 2:KEY_INNOVATIONS.md (19× SIMD, 7× scans) | 3:UCE34 trilogy (Framework + Tier Ref + Examples) | 4:ASSUM Safety | 5:B32 Benchmarking | 6:Architecture Patterns (novel lockfree designs)</reading>
+
+  <trade-secret status="CONFIDENTIAL">
+    All commits [TRADE SECRET] | NO crates.io | NO public repos | NO public examples
+  </trade-secret>
+
+</atomic-capsule-config>

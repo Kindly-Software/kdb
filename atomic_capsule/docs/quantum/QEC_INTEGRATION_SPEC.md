@@ -49,7 +49,7 @@ Orchestrate syndrome extraction → decoding → error correction pipeline with 
 ### Framework Compliance
 
 - **UCE34**: Q1-Q34 systematic discovery (see QEC_INTEGRATION_UCE34.md)
-- **COCA**: 100% lockfree (no mutex/RwLock), cache-aligned (64B/256B)
+- **Chaos**: 100% lockfree (no mutex/RwLock), cache-aligned (64B/256B)
 - **B32**: Fair baselines (ideal decoder, validated speedup claims)
 - **T28**: 28 tests (unit/property/integration/production)
 - **ASSUM**: 99.99% safe (all assumptions verified)
@@ -1342,7 +1342,7 @@ pub fn push_syndrome_safe(
 
 **Innovation**: Adaptive decoder selection (1.53× speedup), Zero-copy syndrome sharing, Lockfree pipeline (<5% overhead), Hash-chain audit trail (Q34)
 
-**Compliance**: UCE34 (Q1-Q34), COCA (100% lockfree), B32 (fair baselines), T28 (28 tests), ASSUM (99.99% safe), Q34 (audit trails)
+**Compliance**: UCE34 (Q1-Q34), Chaos (100% lockfree), B32 (fair baselines), T28 (28 tests), ASSUM (99.99% safe), Q34 (audit trails)
 
 **Status**: Design complete, ready for implementation (see checklist above)
 

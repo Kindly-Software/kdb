@@ -77,7 +77,7 @@ struct SimpleCapsule {
   - Source: `/home/samuel/Docs/The Complete Catalog of Discoveries.md`
   - Real-world production data from high-frequency trading systems
 
-### COCA Compliance
+### Chaos Compliance
 
 - **Lockfree**: 100% atomic operations, zero mutex/RwLock
 - **TOCTOU prevention**: Built-in generation counters (32 bits per field)
@@ -226,5 +226,5 @@ The lint is fully framework-compliant (UCE34, ASSUM, B32) and ready for integrat
 
 ---
 **Implementation by**: Claude (Anthropic)
-**Framework**: UCE34 Systematic Discovery + COCA Computational Capsule Architecture
+**Framework**: UCE34 Systematic Discovery + Chaos Computational Capsule Architecture
 **Verification**: clippy-capsule-verify v0.1.0

@@ -1,6 +1,6 @@
 # Nightly Phase 2: Complete Session Summary (Nov 21, 2025)
 
-**Framework**: UCE34 + COCA + B32 + ASSUM + T28 + I20
+**Framework**: UCE34 + Chaos + B32 + ASSUM + T28 + I20
 **Session Type**: Continuation + Analysis + Design Expansion
 **Total Duration**: 2 sessions (implementation → analysis → design)
 
@@ -67,7 +67,7 @@ where
 
 ### Research Question
 
-**"Can we stabilize const generics ourselves using UCE34 COCA framework?"**
+**"Can we stabilize const generics ourselves using UCE34 Chaos framework?"**
 
 ### Methodology
 
@@ -132,7 +132,7 @@ where
 1. **/tmp/const_generics_analysis.md** (737 lines)
    - Very thorough technical analysis by Haiku subagent
    - Compiler dependency breakdown (rustc modules)
-   - COCA-compatible alternatives (evaluated & rejected)
+   - Chaos-compatible alternatives (evaluated & rejected)
    - Existing crate patterns (typenum, heapless comparison)
 
 2. **NIGHTLY_PHASE_2_ANALYSIS_AND_RECOMMENDATION.md** (2,300+ lines)
@@ -264,7 +264,7 @@ const fn validate_bloom_params(size: usize, k: u32, fpr: f64) -> usize {
 1. Executive Summary (200 lines, 13 primitives overview table)
 2. Individual Primitive Specs (13 × 200 lines = 2,600 lines)
 3. Implementation Roadmap (300 lines, 12-week timeline)
-4. Framework Compliance Matrix (200 lines, UCE34/COCA/ASSUM/B32/T28/I20)
+4. Framework Compliance Matrix (200 lines, UCE34/Chaos/ASSUM/B32/T28/I20)
 5. Code Examples (500 lines, 4 realistic usage examples)
 6. Appendices (Testing strategy, feature flags, migration guide)
 
@@ -341,7 +341,7 @@ const fn validate_bloom_params(size: usize, k: u32, fpr: f64) -> usize {
 - **Q33**: Verification (#[derive(ComputationalCapsule)])
 - **Q34**: Auditability (ASSUM tags, hash-chain audit trails)
 
-### COCA (100% Lockfree)
+### Chaos (100% Lockfree)
 
 - Zero mutex/RwLock in any primitive
 - Atomic operations only (T1 components)
@@ -502,7 +502,7 @@ const fn validate_bloom_params(size: usize, k: u32, fpr: f64) -> usize {
 - ✅ Stabilization analysis complete (STAY NIGHTLY recommendation)
 - ✅ 13 primitives designed (50-100× compound speedups)
 - ✅ 12-week implementation roadmap ready
-- ✅ Framework compliance validated (UCE34, COCA, ASSUM, B32, T28, I20)
+- ✅ Framework compliance validated (UCE34, Chaos, ASSUM, B32, T28, I20)
 
 **Recommendation**:
 1. **Commit design** (this session's work)

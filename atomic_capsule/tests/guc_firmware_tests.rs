@@ -561,8 +561,8 @@ fn test_layout_no_padding_issues() {
 // ============================================================================
 
 #[test]
-fn test_coca_lockfree_enforcement() {
-    // COCA: Verify zero mutex/RwLock usage in implementation
+fn test_chaos_lockfree_enforcement() {
+    // Chaos: Verify zero mutex/RwLock usage in implementation
     // (This is enforced by type system - GuCFirmwareCapsule only uses AtomicU64)
     let capsule = GuCFirmwareCapsule::new();
 

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App Sandbox (REQUIRED for Mac App Store) -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+
+    <!-- File Access: User-selected files (drag & drop, file dialogs) -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+
+    <!-- GPU Access (CRITICAL for Metal/Vulkan/ROCm) -->
+    <key>com.apple.security.device.gpu</key>
+    <true/>
+
+    <!-- JIT/Metal Shader Compilation (required for GPU compute) -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+
+    <!-- Network (optional, for license validation or streaming) -->
+    <!-- Uncomment if needed for Gumroad license checks or HTTP streaming -->
+    <!--
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <key>com.apple.security.network.server</key>
+    <true/>
+    -->
+
+    <!-- Temporary Exception Networks (for outbound connections) -->
+    <!-- Remove for production, use only during development -->
+    <!--
+    <key>com.apple.security.temporary-exception.network.client</key>
+    <true/>
+    -->
+
+    <!-- Hardened Runtime (required for notarization) -->
+    <key>com.apple.security.get-task-allow</key>
+    <false/>
+
+    <!-- Disable Library Validation (for third-party libraries like ROCm) -->
+    <!-- WARNING: Apple may reject this in App Store review -->
+    <!-- Use only if absolutely necessary for ROCm/HIP FFI -->
+    <!--
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    -->
+
+    <!-- Audio/Video Capture (if encoding from camera/mic) -->
+    <!--
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    <key>com.apple.security.device.camera</key>
+    <true/>
+    -->
+
+    <!-- Print (if generating reports) -->
+    <!--
+    <key>com.apple.security.print</key>
+    <true/>
+    -->
+
+    <!-- Address Book (if metadata includes contact info) -->
+    <!--
+    <key>com.apple.security.personal-information.addressbook</key>
+    <true/>
+    -->
+
+    <!-- Location (if geotagging videos) -->
+    <!--
+    <key>com.apple.security.personal-information.location</key>
+    <true/>
+    -->
+
+    <!-- Calendars (if scheduling encodes) -->
+    <!--
+    <key>com.apple.security.personal-information.calendars</key>
+    <true/>
+    -->
+</dict>
+</plist>

@@ -83,7 +83,9 @@ fn benchmark_count_min_sketch_const(c: &mut Criterion) {
 
 #[cfg(not(feature = "nightly-const-probabilistic"))]
 fn benchmark_count_min_sketch_const(_c: &mut Criterion) {
-    eprintln!("Skipping CountMinSketchConst benchmarks (requires nightly-const-probabilistic feature)");
+    eprintln!(
+        "Skipping CountMinSketchConst benchmarks (requires nightly-const-probabilistic feature)"
+    );
 }
 
 criterion_group!(benches, benchmark_count_min_sketch_const);

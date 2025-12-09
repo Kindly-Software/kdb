@@ -1,0 +1,3104 @@
+warning: user-defined alias `bench` is ignored, because it is shadowed by a built-in command
+warning: `panic` setting is ignored for `bench` profile
+warning: `panic` setting is ignored for `bench` profile
+warning: `panic` setting is ignored for `test` profile
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling atomic_capsule v0.6.1 (/home/samuel/Primitives/atomic_capsule)
+warning: unexpected `cfg` condition value: `std`
+  --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:34:7
+   |
+34 | #[cfg(feature = "std")]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+   = help: consider adding `std` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unexpected `cfg` condition value: `std`
+  --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:84:7
+   |
+84 | #[cfg(feature = "std")]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+   = help: consider adding `std` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:418:7
+    |
+418 | #[cfg(feature = "std")]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:424:7
+    |
+424 | #[cfg(feature = "std")]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:639:7
+    |
+639 | #[cfg(feature = "std")]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:386:11
+    |
+386 |     #[cfg(feature = "std")]
+    |           ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:394:15
+    |
+394 |     #[cfg(not(feature = "std"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: enum `AuditError` is never used
+  --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:39:10
+   |
+39 | pub enum AuditError {
+   |          ^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: enum `MigrationStatus` is never used
+  --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:96:10
+   |
+96 | pub enum MigrationStatus {
+   |          ^^^^^^^^^^^^^^^
+
+warning: associated function `from_u8` is never used
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:109:12
+    |
+107 | impl MigrationStatus {
+    | -------------------- associated function in this implementation
+108 |     /// Parse u8 into MigrationStatus
+109 |     pub fn from_u8(value: u8) -> Option<Self> {
+    |            ^^^^^^^
+
+warning: multiple associated items are never used
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:202:12
+    |
+178 | impl MigrationLogEntry {
+    | ---------------------- associated items in this implementation
+...
+202 |     pub fn record(
+    |            ^^^^^^
+...
+261 |     pub fn fast_hash(&self) -> u64 {
+    |            ^^^^^^^^^
+...
+266 |     pub fn prev_fast_hash(&self) -> u64 {
+    |            ^^^^^^^^^^^^^^
+...
+271 |     pub fn generation(&self) -> u64 {
+    |            ^^^^^^^^^^
+...
+276 |     pub fn timestamp_ns(&self) -> u64 {
+    |            ^^^^^^^^^^^^
+...
+281 |     pub fn status(&self) -> MigrationStatus {
+    |            ^^^^^^
+...
+291 |     pub fn capsule_name(&self) -> Result<&str, AuditError> {
+    |            ^^^^^^^^^^^^
+...
+311 |     pub fn verify_integrity(&self) -> Result<(), AuditError> {
+    |            ^^^^^^^^^^^^^^^^
+...
+348 |     fn compute_entry_hash(prev: u64, ts: u64, name: &[u8; 64], status: u8) -> u64 {
+    |        ^^^^^^^^^^^^^^^^^^
+...
+395 |     fn current_timestamp_ns() -> u64 {
+    |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `MigrationStats` is never constructed
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:648:12
+    |
+648 | pub struct MigrationStats {
+    |            ^^^^^^^^^^^^^^
+
+warning: methods `success_rate` and `failure_rate` are never used
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:664:12
+    |
+662 | impl MigrationStats {
+    | ------------------- methods in this implementation
+663 |     /// Calculate success rate (0.0 - 100.0)
+664 |     pub fn success_rate(&self) -> f64 {
+    |            ^^^^^^^^^^^^
+...
+672 |     pub fn failure_rate(&self) -> f64 {
+    |            ^^^^^^^^^^^^
+
+warning: associated function `with_source` is never used
+  --> /home/samuel/Primitives/atomic_capsule_derive/src/field_size.rs:73:12
+   |
+61 | impl FieldSizeCalculator {
+   | ------------------------ associated function in this implementation
+...
+73 |     pub fn with_source(source: String) -> Self {
+   |            ^^^^^^^^^^^
+
+warning: field `skip_send_sync` is never read
+  --> /home/samuel/Primitives/atomic_capsule_derive/src/parser.rs:33:9
+   |
+13 | pub struct CapsuleAttributes {
+   |            ----------------- field in this struct
+...
+33 |     pub skip_send_sync: bool,
+   |         ^^^^^^^^^^^^^^
+   |
+   = note: `CapsuleAttributes` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: `atomic_capsule_derive` (lib) generated 15 warnings
+   Compiling kindly_dedup v1.13.2 (/home/samuel/Primitives/kindly_dedup)
+warning: unused import: `MmapManager`
+  --> /home/samuel/Primitives/atomic_capsule/src/persistence/persistent_atomic.rs:22:38
+   |
+22 | use super::mmap_manager::{MmapError, MmapManager};
+   |                                      ^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `atomic_capsule_derive::ComputationalCapsule`
+   --> /home/samuel/Primitives/atomic_capsule/src/protection/crypto_license.rs:131:5
+    |
+131 | use atomic_capsule_derive::ComputationalCapsule;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `atomic_capsule_derive::ComputationalCapsule`
+   --> /home/samuel/Primitives/atomic_capsule/src/protection/orchestrator.rs:174:5
+    |
+174 | use atomic_capsule_derive::ComputationalCapsule;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unexpected `cfg` condition value: `nightly-simd`
+  --> /home/samuel/Primitives/atomic_capsule/src/text/tokenization_batch.rs:67:7
+   |
+67 | #[cfg(feature = "nightly-simd")]
+   |       ^^^^^^^^^^--------------
+   |                 |
+   |                 help: there is a expected value with a similar name: `"nightly-all"`
+   |
+   = note: expected values for `feature` are: `DISABLED_PENDING_TRAIT_UPDATE`, `adaptive-parallel`, `alloc`, `anomaly-detection`, `async-broadcast`, `async-channels`, `async-log`, `async-mpsc`, `async-oneshot`, `async-watch`, `atomic-core`, `audit-q34`, `audit-trail`, `auto_tune`, `batch-native`, `batch-wasm`, `bloom-filter`, `bloom-filter-all`, `bloom-filter-persistent`, `bloom-filter-simd`, `btree-batch`, `btree-cow`, `btree-cow-simd`, `btree-simd`, `cache`, `cache-encryption`, `cache-hmac`, `cache-multi-tenant`, `cache-security-full`, `capsule-mmap`, `capsule-os`, `capsule-serialize`, `circuit-breaker-adaptive`, `circuit-breaker-auto-tune`, and `circuit-breaker-compact48` and 133 more
+   = help: consider adding `nightly-simd` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: requested on the command line with `-W unexpected-cfgs`
+
+warning: unexpected `cfg` condition value: `nightly-simd`
+   --> /home/samuel/Primitives/atomic_capsule/src/text/tokenization_batch.rs:265:11
+    |
+265 |     #[cfg(feature = "nightly-simd")]
+    |           ^^^^^^^^^^--------------
+    |                     |
+    |                     help: there is a expected value with a similar name: `"nightly-all"`
+    |
+    = note: expected values for `feature` are: `DISABLED_PENDING_TRAIT_UPDATE`, `adaptive-parallel`, `alloc`, `anomaly-detection`, `async-broadcast`, `async-channels`, `async-log`, `async-mpsc`, `async-oneshot`, `async-watch`, `atomic-core`, `audit-q34`, `audit-trail`, `auto_tune`, `batch-native`, `batch-wasm`, `bloom-filter`, `bloom-filter-all`, `bloom-filter-persistent`, `bloom-filter-simd`, `btree-batch`, `btree-cow`, `btree-cow-simd`, `btree-simd`, `cache`, `cache-encryption`, `cache-hmac`, `cache-multi-tenant`, `cache-security-full`, `capsule-mmap`, `capsule-os`, `capsule-serialize`, `circuit-breaker-adaptive`, `circuit-breaker-auto-tune`, and `circuit-breaker-compact48` and 133 more
+    = help: consider adding `nightly-simd` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `nightly-simd`
+   --> /home/samuel/Primitives/atomic_capsule/src/text/tokenization_batch.rs:199:15
+    |
+199 |         #[cfg(feature = "nightly-simd")]
+    |               ^^^^^^^^^^--------------
+    |                         |
+    |                         help: there is a expected value with a similar name: `"nightly-all"`
+    |
+    = note: expected values for `feature` are: `DISABLED_PENDING_TRAIT_UPDATE`, `adaptive-parallel`, `alloc`, `anomaly-detection`, `async-broadcast`, `async-channels`, `async-log`, `async-mpsc`, `async-oneshot`, `async-watch`, `atomic-core`, `audit-q34`, `audit-trail`, `auto_tune`, `batch-native`, `batch-wasm`, `bloom-filter`, `bloom-filter-all`, `bloom-filter-persistent`, `bloom-filter-simd`, `btree-batch`, `btree-cow`, `btree-cow-simd`, `btree-simd`, `cache`, `cache-encryption`, `cache-hmac`, `cache-multi-tenant`, `cache-security-full`, `capsule-mmap`, `capsule-os`, `capsule-serialize`, `circuit-breaker-adaptive`, `circuit-breaker-auto-tune`, and `circuit-breaker-compact48` and 133 more
+    = help: consider adding `nightly-simd` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `nightly-simd`
+   --> /home/samuel/Primitives/atomic_capsule/src/text/tokenization_batch.rs:204:19
+    |
+204 |         #[cfg(not(feature = "nightly-simd"))]
+    |                   ^^^^^^^^^^--------------
+    |                             |
+    |                             help: there is a expected value with a similar name: `"nightly-all"`
+    |
+    = note: expected values for `feature` are: `DISABLED_PENDING_TRAIT_UPDATE`, `adaptive-parallel`, `alloc`, `anomaly-detection`, `async-broadcast`, `async-channels`, `async-log`, `async-mpsc`, `async-oneshot`, `async-watch`, `atomic-core`, `audit-q34`, `audit-trail`, `auto_tune`, `batch-native`, `batch-wasm`, `bloom-filter`, `bloom-filter-all`, `bloom-filter-persistent`, `bloom-filter-simd`, `btree-batch`, `btree-cow`, `btree-cow-simd`, `btree-simd`, `cache`, `cache-encryption`, `cache-hmac`, `cache-multi-tenant`, `cache-security-full`, `capsule-mmap`, `capsule-os`, `capsule-serialize`, `circuit-breaker-adaptive`, `circuit-breaker-auto-tune`, and `circuit-breaker-compact48` and 133 more
+    = help: consider adding `nightly-simd` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: use of deprecated struct `probabilistic::minhash::migration::LegacyMinHashSignature`: Use MinHashSignatureCapsule (Q8.8) instead
+   --> /home/samuel/Primitives/atomic_capsule/src/probabilistic/minhash.rs:451:10
+    |
+451 |     impl LegacyMinHashSignature {
+    |          ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated struct `probabilistic::minhash::migration::LegacyMinHashSignature`: Use MinHashSignatureCapsule (Q8.8) instead
+   --> /home/samuel/Primitives/atomic_capsule/src/probabilistic/minhash.rs:486:65
+    |
+486 |     pub fn q8_8_to_legacy(capsule: &MinHashSignatureCapsule) -> LegacyMinHashSignature {
+    |                                                                 ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `probabilistic::minhash::migration::LegacyMinHashSignature`: Use MinHashSignatureCapsule (Q8.8) instead
+   --> /home/samuel/Primitives/atomic_capsule/src/probabilistic/minhash.rs:491:9
+    |
+491 |         LegacyMinHashSignature {
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated field `probabilistic::minhash::migration::LegacyMinHashSignature::signature`: Use MinHashSignatureCapsule (Q8.8) instead
+   --> /home/samuel/Primitives/atomic_capsule/src/probabilistic/minhash.rs:464:37
+    |
+464 |                 new_signature[i] = (self.signature[i] & 0xFFFF) as u16;
+    |                                     ^^^^^^^^^^^^^^
+
+warning: use of deprecated field `probabilistic::minhash::migration::LegacyMinHashSignature::signature`: Use MinHashSignatureCapsule (Q8.8) instead
+   --> /home/samuel/Primitives/atomic_capsule/src/probabilistic/minhash.rs:473:20
+    |
+473 |             Self { signature }
+    |                    ^^^^^^^^^
+
+warning: use of deprecated field `probabilistic::minhash::migration::LegacyMinHashSignature::signature`: Use MinHashSignatureCapsule (Q8.8) instead
+   --> /home/samuel/Primitives/atomic_capsule/src/probabilistic/minhash.rs:492:13
+    |
+492 |             signature: legacy_signature,
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> /home/samuel/Primitives/atomic_capsule/src/protection/encrypted_state.rs:284:32
+    |
+284 |         let nonce_obj = Nonce::from_slice(&nonce);
+    |                                ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> /home/samuel/Primitives/atomic_capsule/src/protection/encrypted_state.rs:382:32
+    |
+382 |         let nonce_obj = Nonce::from_slice(&nonce);
+    |                                ^^^^^^^^^^
+
+warning: value assigned to `failed_task` is never read
+   --> /home/samuel/Primitives/atomic_capsule/src/parallel/migration_batch.rs:177:21
+    |
+177 |                     failed_task = None;
+    |                     ^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> /home/samuel/Primitives/atomic_capsule/src/probabilistic/bloom_filter_sharded.rs:465:13
+    |
+465 |         let mut new = Box::new(Self::new());
+    |             ----^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `ciphertext_len`
+   --> /home/samuel/Primitives/atomic_capsule/src/protection/encrypted_state.rs:361:14
+    |
+361 |         let (ciphertext_len, nonce, tag, ciphertext) = unsafe {
+    |              ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+help: if this is intentional, prefix it with an underscore
+    |
+361 |         let (_ciphertext_len, nonce, tag, ciphertext) = unsafe {
+    |              +
+help: you might have meant to pattern match on the similarly named constant `MIN_ALIGNMENT`
+    |
+361 -         let (ciphertext_len, nonce, tag, ciphertext) = unsafe {
+361 +         let (MIN_ALIGNMENT, nonce, tag, ciphertext) = unsafe {
+    |
+
+warning: field `expected_len` is never read
+   --> /home/samuel/Primitives/atomic_capsule/src/parallel/lockfree_list.rs:430:5
+    |
+428 | pub struct LockfreeListIter<'a, T> {
+    |            ---------------- field in this struct
+429 |     current: *mut Node<T>,
+430 |     expected_len: usize,
+    |     ^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `is_occupied` is never used
+   --> /home/samuel/Primitives/atomic_capsule/src/collections/append_only_map_optimized.rs:100:8
+    |
+ 88 | impl<K, V> MapEntry<K, V> {
+    | ------------------------- method in this implementation
+...
+100 |     fn is_occupied(&self) -> bool {
+    |        ^^^^^^^^^^^
+
+warning: method `try_claim` is never used
+   --> /home/samuel/Primitives/atomic_capsule/src/collections/concurrent_map.rs:216:8
+    |
+168 | impl<K, V> MapEntry<K, V> {
+    | ------------------------- method in this implementation
+...
+216 |     fn try_claim(&self, hash: u64, value: *mut V) -> Result<(), u64> {
+    |        ^^^^^^^^^
+
+warning: method `try_get` is never used
+   --> /home/samuel/Primitives/atomic_capsule/src/collections/entry.rs:453:19
+    |
+348 | / impl<'a, K, V> OccupiedEntry<'a, K, V>
+349 | | where
+350 | |     K: Hash + Eq + Clone + Send + Sync,
+351 | |     V: Send + Sync,
+    | |___________________- method in this implementation
+...
+453 |       pub(crate) fn try_get(&self) -> Option<&V> {
+    |                     ^^^^^^^
+
+warning: fields `lsh_tables` and `similarity_threshold` are never read
+   --> /home/samuel/Primitives/atomic_capsule/src/collections/persistent_dedup.rs:273:5
+    |
+264 | pub struct PersistentDedupImpl {
+    |            ------------------- fields in this struct
+...
+273 |     lsh_tables: MultiTableLshCapsule,
+    |     ^^^^^^^^^^
+...
+286 |     similarity_threshold: f32,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+   --> /home/samuel/Primitives/atomic_capsule/src/primitives/mod.rs:54:1
+    |
+ 54 | pub mod cpu_capabilities;
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: the lint level is defined here
+   --> /home/samuel/Primitives/atomic_capsule/src/lib.rs:124:9
+    |
+124 | #![warn(missing_docs, rust_2018_idioms)]
+    |         ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> /home/samuel/Primitives/atomic_capsule/src/error.rs:143:23
+    |
+143 |     InvalidFileSize { expected: usize, actual: usize },
+    |                       ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> /home/samuel/Primitives/atomic_capsule/src/error.rs:143:40
+    |
+143 |     InvalidFileSize { expected: usize, actual: usize },
+    |                                        ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> /home/samuel/Primitives/atomic_capsule/src/error.rs:146:20
+    |
+146 |     InvalidMagic { expected: u64, actual: u64 },
+    |                    ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> /home/samuel/Primitives/atomic_capsule/src/error.rs:146:35
+    |
+146 |     InvalidMagic { expected: u64, actual: u64 },
+    |                                   ^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> /home/samuel/Primitives/atomic_capsule/src/error.rs:161:25
+    |
+161 |     InsufficientSpace { required: usize, available: usize },
+    |                         ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> /home/samuel/Primitives/atomic_capsule/src/error.rs:161:42
+    |
+161 |     InsufficientSpace { required: usize, available: usize },
+    |                                          ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+  --> /home/samuel/Primitives/atomic_capsule/src/collections/sync_flush_task.rs:34:5
+   |
+34 |     pub fn new(msg: &str) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> /home/samuel/Primitives/atomic_capsule/src/collections/sync_flush_task.rs:48:5
+   |
+48 |     pub fn as_str(&self) -> &str {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/persistence/mmap_manager.rs:34:24
+   |
+34 |     InvalidAlignment { offset: u64, required: u64 },
+   |                        ^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/persistence/mmap_manager.rs:34:37
+   |
+34 |     InvalidAlignment { offset: u64, required: u64 },
+   |                                     ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/persistence/mmap_manager.rs:37:24
+   |
+37 |     CapacityExceeded { requested: usize, available: usize },
+   |                        ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/persistence/mmap_manager.rs:37:42
+   |
+37 |     CapacityExceeded { requested: usize, available: usize },
+   |                                          ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/persistence/mmap_manager.rs:49:26
+   |
+49 |     InvalidRegionIndex { index: usize, max: usize },
+   |                          ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/persistence/mmap_manager.rs:49:40
+   |
+49 |     InvalidRegionIndex { index: usize, max: usize },
+   |                                        ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/persistence/mmap_manager.rs:52:26
+   |
+52 |     GenerationMismatch { expected: u64, actual: u64 },
+   |                          ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/persistence/mmap_manager.rs:52:41
+   |
+52 |     GenerationMismatch { expected: u64, actual: u64 },
+   |                                         ^^^^^^^^^^^
+
+warning: `atomic_capsule` (lib) generated 40 warnings (run `cargo fix --lib -p atomic_capsule` to apply 4 suggestions)
+warning: unused import: `UnionFind`
+  --> src/pipeline.rs:22:72
+   |
+22 | use atomic_capsule::probabilistic::{tokenize, MinHashSignatureCapsule, UnionFind};
+   |                                                                        ^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `atomic_capsule::auditable::hex`
+  --> src/protection/audit.rs:85:5
+   |
+85 | use atomic_capsule::auditable::hex;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::atomic::Ordering`
+  --> src/protection/dedup_audit.rs:21:5
+   |
+21 | use std::sync::atomic::Ordering;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `AtomicUsize` and `Ordering`
+  --> src/resource_limits.rs:28:25
+   |
+28 | use std::sync::atomic::{AtomicUsize, Ordering};
+   |                         ^^^^^^^^^^^  ^^^^^^^^
+
+warning: usage of an `unsafe` block
+    --> src/utils/terminal.rs:1129:9
+     |
+1129 | /         unsafe {
+1130 | |             if libc::ioctl(fd, libc::TIOCGWINSZ as _, &mut ws as *mut _) == 0 {
+1131 | |                 let rows = u16::from_ne_bytes([ws[0], ws[1]]) as usize;
+1132 | |                 let cols = u16::from_ne_bytes([ws[2], ws[3]]) as usize;
+...    |
+1137 | |         }
+     | |_________^
+     |
+note: the lint level is defined here
+    --> src/lib.rs:58:9
+     |
+  58 | #![warn(unsafe_code)]
+     |         ^^^^^^^^^^^
+
+warning: unused import: `atomic_capsule::auditable::hex`
+  --> src/benchmarking/audit_logger.rs:48:5
+   |
+48 | use atomic_capsule::auditable::hex;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::thread`
+  --> src/thread_local_batch.rs:66:5
+   |
+66 | use std::thread;
+   |     ^^^^^^^^^^^
+
+warning: implementation of an `unsafe` trait
+   --> src/thread_local_batch.rs:126:1
+    |
+126 | unsafe impl<T: Send + 'static> Send for ThreadLocalBatchBufferCapsule<T> {}
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: implementation of an `unsafe` trait
+   --> src/thread_local_batch.rs:134:1
+    |
+134 | unsafe impl<T: Send + 'static> Sync for ThreadLocalBatchBufferCapsule<T> {}
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `DocId` and `JaccardThreshold`
+  --> src/phase6_3_integration.rs:81:23
+   |
+81 | use crate::pipeline::{DocId, JaccardThreshold, PipelineError};
+   |                       ^^^^^  ^^^^^^^^^^^^^^^^
+
+warning: unused import: `atomic_capsule::probabilistic::UnionFind`
+  --> src/phase6_3_integration.rs:82:5
+   |
+82 | use atomic_capsule::probabilistic::UnionFind;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+  --> src/phase6_3_integration.rs:83:5
+   |
+83 | use std::sync::Arc;
+   |     ^^^^^^^^^^^^^^
+
+warning: unused import: `atomic_capsule_derive::ComputationalCapsule`
+  --> src/batch_minhash.rs:82:5
+   |
+82 | use atomic_capsule_derive::ComputationalCapsule;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> src/protection/demo_limiter.rs:144:28
+    |
+144 |         let nonce = Nonce::from_slice(&nonce_bytes);
+    |                            ^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> src/protection/demo_limiter.rs:147:55
+    |
+147 |         let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key));
+    |                                                       ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> src/protection/demo_limiter.rs:331:28
+    |
+331 |         let nonce = Nonce::from_slice(&nonce_bytes);
+    |                            ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> src/protection/demo_limiter.rs:334:55
+    |
+334 |         let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key));
+    |                                                       ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> src/protection/encryption.rs:162:55
+    |
+162 |         let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
+    |                                                       ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> src/protection/encryption.rs:164:29
+    |
+164 |             .encrypt(Nonce::from_slice(&nonce), plaintext.as_ref())
+    |                             ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> src/protection/encryption.rs:206:55
+    |
+206 |         let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
+    |                                                       ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> src/protection/encryption.rs:208:29
+    |
+208 |             .decrypt(Nonce::from_slice(&self.nonce), ciphertext_with_tag.as_ref())
+    |                             ^^^^^^^^^^
+
+warning: unused variable: `doc_id`
+   --> src/bloom_sharded.rs:244:25
+    |
+244 |     pub fn query(&self, doc_id: usize, text: &str) -> bool {
+    |                         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_doc_id`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `doc_id`
+   --> src/bloom_sharded.rs:299:26
+    |
+299 |     pub fn insert(&self, doc_id: usize, text: &str) {
+    |                          ^^^^^^ help: if this is intentional, prefix it with an underscore: `_doc_id`
+
+warning: value assigned to `eax` is never read
+   --> src/protection/tamper_detection.rs:608:30
+    |
+608 |                 inout("eax") eax,
+    |                              ^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `eax` is never read
+   --> src/protection/tamper_detection.rs:633:30
+    |
+633 |                 inout("eax") eax,
+    |                              ^^^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: unused variable: `e`
+   --> src/config_validation.rs:240:57
+    |
+240 |     limits.check_document_count(num_documents).map_err(|e| {
+    |                                                         ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `e`
+   --> src/config_validation.rs:248:58
+    |
+248 |     limits.check_memory_estimate(num_documents).map_err(|e| {
+    |                                                          ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `nanos`
+    --> src/utils/terminal.rs:1288:9
+     |
+1288 |     let nanos = timestamp_ns % 1_000_000_000;
+     |         ^^^^^
+     |
+help: if this is intentional, prefix it with an underscore
+     |
+1288 |     let _nanos = timestamp_ns % 1_000_000_000;
+     |         +
+help: you might have meant to pattern match on the similarly named constant `STATUS_REVOKED`
+     |
+1288 -     let nanos = timestamp_ns % 1_000_000_000;
+1288 +     let license_capsule::STATUS_REVOKED = timestamp_ns % 1_000_000_000;
+     |
+
+warning: unused variable: `file`
+   --> src/benchmarking/audit_logger.rs:236:13
+    |
+236 |         let file = std::fs::OpenOptions::new()
+    |             ^^^^ help: if this is intentional, prefix it with an underscore: `_file`
+
+warning: unused variable: `base_id`
+   --> src/corpus_generation.rs:148:28
+    |
+148 | fn generate_near_duplicate(base_id: usize, variation_idx: usize) -> String {
+    |                            ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_base_id`
+
+warning: unused variable: `f`
+   --> src/thread_local_batch.rs:176:33
+    |
+176 |     fn with_buffer<F, R>(&self, f: F) -> R
+    |                                 ^ help: if this is intentional, prefix it with an underscore: `_f`
+
+warning: field `cpu_caps` is never read
+   --> src/pipeline.rs:158:5
+    |
+128 | pub struct DedupPipeline<'a> {
+    |            ------------- field in this struct
+...
+158 |     cpu_caps: &'a atomic_capsule::CpuCapabilityCapsule,
+    |     ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `SLOWDOWN_THRESHOLD` is never used
+  --> src/protection/tamper_detection.rs:79:7
+   |
+79 | const SLOWDOWN_THRESHOLD: f64 = 2.0;
+   |       ^^^^^^^^^^^^^^^^^^
+
+warning: constant `BATCH_SIZE` is never used
+  --> src/thread_local_batch.rs:71:7
+   |
+71 | const BATCH_SIZE: usize = 1024;
+   |       ^^^^^^^^^^
+
+warning: field `callback` is never read
+   --> src/thread_local_batch.rs:112:5
+    |
+105 | pub struct ThreadLocalBatchBufferCapsule<T: Send + 'static> {
+    |            ----------------------------- field in this struct
+...
+112 |     callback: Arc<dyn Fn(&[T]) -> Result<(), ThreadLocalBatchError> + Send + Sync>,
+    |     ^^^^^^^^
+
+warning: method `with_buffer` is never used
+   --> src/thread_local_batch.rs:176:8
+    |
+136 | impl<T: Send + 'static> ThreadLocalBatchBufferCapsule<T> {
+    | -------------------------------------------------------- method in this implementation
+...
+176 |     fn with_buffer<F, R>(&self, f: F) -> R
+    |        ^^^^^^^^^^^
+
+warning: constant `SHARD_CAPACITY` is never used
+  --> src/streaming_lsh_bucketer.rs:36:7
+   |
+36 | const SHARD_CAPACITY: usize = 131_072; // 2^17 per shard (doubled for test capacity)
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `TOTAL_CAPACITY` is never used
+  --> src/streaming_lsh_bucketer.rs:37:7
+   |
+37 | const TOTAL_CAPACITY: usize = NUM_SHARDS * SHARD_CAPACITY; // 262,144 total
+   |       ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/pipeline.rs:41:29
+   |
+41 |     DocumentIdOutOfBounds { doc_id: usize, capacity: usize },
+   |                             ^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> src/lib.rs:54:9
+   |
+54 | #![warn(missing_docs)]
+   |         ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/pipeline.rs:41:44
+   |
+41 |     DocumentIdOutOfBounds { doc_id: usize, capacity: usize },
+   |                                            ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/pipeline.rs:48:25
+   |
+48 |     SignatureNotFound { doc_id: usize },
+   |                         ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/pipeline.rs:51:25
+   |
+51 |     LshBucketingError { reason: String },
+   |                         ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/pipeline.rs:54:29
+   |
+54 |     ResourceLimitExceeded { reason: String },
+   |                             ^^^^^^^^^^^^^^
+
+warning: variable `NUM_BANDS` should have a snake case name
+   --> src/pipeline.rs:486:13
+    |
+486 |         let NUM_BANDS: usize = num_bands;
+    |             ^^^^^^^^^ help: convert the identifier to snake case: `num_bands`
+    |
+    = note: `#[warn(non_snake_case)]` (part of `#[warn(nonstandard_style)]`) on by default
+
+warning: variable `ROWS_PER_BAND` should have a snake case name
+   --> src/pipeline.rs:487:13
+    |
+487 |         let ROWS_PER_BAND: usize = rows_per_band;
+    |             ^^^^^^^^^^^^^ help: convert the identifier to snake case: `rows_per_band`
+
+warning: missing documentation for a struct field
+   --> src/protection/demo_limiter.rs:401:20
+    |
+401 |     LimitReached { current: u64, limit: u64 },
+    |                    ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/protection/demo_limiter.rs:401:34
+    |
+401 |     LimitReached { current: u64, limit: u64 },
+    |                                  ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/protection/demo_limiter.rs:405:9
+    |
+405 |         expected: [u8; 32],
+    |         ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/protection/demo_limiter.rs:406:9
+    |
+406 |         actual: [u8; 32],
+    |         ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/protection/hardware_id.rs:135:9
+    |
+135 |         expected: [u8; 32],
+    |         ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/protection/hardware_id.rs:136:9
+    |
+136 |         actual: [u8; 32],
+    |         ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/protection/license.rs:81:5
+   |
+81 |     Valid = 0,
+   |     ^^^^^
+
+warning: missing documentation for a variant
+  --> src/protection/license.rs:82:5
+   |
+82 |     GracePeriod = 1,
+   |     ^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/protection/license.rs:83:5
+   |
+83 |     Expired = 2,
+   |     ^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/protection/license.rs:84:5
+   |
+84 |     HardwareMismatch = 3,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/protection/tamper_detection.rs:121:9
+    |
+121 |         tamper_type: TamperType,
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/protection/tamper_detection.rs:122:9
+    |
+122 |         cooldown_days: u64,
+    |         ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/protection/tamper_detection.rs:127:9
+    |
+127 |         tamper_type: TamperType,
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/protection/tamper_detection.rs:128:9
+    |
+128 |         days_until_permanent: u64,
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/protection/tamper_detection.rs:133:9
+    |
+133 |         tamper_type: TamperType,
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/protection/tamper_detection.rs:141:20
+    |
+141 |     LayersFailed { count: usize },
+    |                    ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/protection/tamper_detection.rs:144:27
+    |
+144 |     CriticalLayerFailed { layer: usize },
+    |                           ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/protection/tamper_detection.rs:147:20
+    |
+147 |     InvalidLayer { layer: usize },
+    |                    ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/protection/tamper_detection.rs:156:35
+    |
+156 |     InsufficientBaselineSamples { required: usize, provided: usize },
+    |                                   ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/protection/tamper_detection.rs:156:52
+    |
+156 |     InsufficientBaselineSamples { required: usize, provided: usize },
+    |                                                    ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/protection/protection_system.rs:155:1
+    |
+155 | pub const LAYER_CRYPTO_LICENSE: usize = 1; // P0
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/protection/protection_system.rs:156:1
+    |
+156 | pub const LAYER_ENCRYPTED_STATE: usize = 2; // P0
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/protection/protection_system.rs:157:1
+    |
+157 | pub const LAYER_REMOTE_ATTESTATION: usize = 3; // P1
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/protection/protection_system.rs:158:1
+    |
+158 | pub const LAYER_TPM_BINDING: usize = 4; // P1
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/protection/protection_system.rs:159:1
+    |
+159 | pub const LAYER_OBFUSCATION: usize = 5; // P1
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/protection/protection_system.rs:160:1
+    |
+160 | pub const LAYER_FUZZY_EXTRACTOR: usize = 6; // P1
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/protection/protection_system.rs:161:1
+    |
+161 | pub const LAYER_ANOMALY_DETECTOR: usize = 7; // P2 (NEW)
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/protection/protection_system.rs:162:1
+    |
+162 | pub const LAYER_MEMORY_ENCRYPTION: usize = 8; // P2 (NEW)
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/protection/protection_system.rs:163:1
+    |
+163 | pub const LAYER_KERNEL_PROTECTION: usize = 9; // P2 (NEW)
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/protection/protection_system.rs:164:1
+    |
+164 | pub const LAYER_OBSERVABILITY: usize = 10; // P2 (NEW)
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:42:5
+   |
+42 |     Black,
+   |     ^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:43:5
+   |
+43 |     Red,
+   |     ^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:44:5
+   |
+44 |     Green,
+   |     ^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:45:5
+   |
+45 |     Yellow,
+   |     ^^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:46:5
+   |
+46 |     Blue,
+   |     ^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:47:5
+   |
+47 |     Magenta,
+   |     ^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:48:5
+   |
+48 |     Cyan,
+   |     ^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:49:5
+   |
+49 |     White,
+   |     ^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:50:5
+   |
+50 |     BrightBlack,
+   |     ^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:51:5
+   |
+51 |     BrightRed,
+   |     ^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:52:5
+   |
+52 |     BrightGreen,
+   |     ^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:53:5
+   |
+53 |     BrightYellow,
+   |     ^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:54:5
+   |
+54 |     BrightBlue,
+   |     ^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:55:5
+   |
+55 |     BrightMagenta,
+   |     ^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:56:5
+   |
+56 |     BrightCyan,
+   |     ^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:57:5
+   |
+57 |     BrightWhite,
+   |     ^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:60:5
+   |
+60 |     ByzantinePurple,  // RGB(112, 41, 99) - Main brand purple
+   |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:61:5
+   |
+61 |     RoyalPurple,      // RGB(120, 81, 169)
+   |     ^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:62:5
+   |
+62 |     DeepPurple,       // RGB(75, 0, 130)
+   |     ^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:63:5
+   |
+63 |     LightPurple,      // RGB(189, 140, 191)
+   |     ^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:66:5
+   |
+66 |     ByzantineGold,    // RGB(207, 181, 59) - Main brand gold
+   |     ^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:67:5
+   |
+67 |     BrightGold,       // RGB(255, 215, 0)
+   |     ^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:68:5
+   |
+68 |     DeepGold,         // RGB(184, 134, 11)
+   |     ^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/utils/terminal.rs:69:5
+   |
+69 |     RoseGold,         // RGB(183, 110, 121)
+   |     ^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/utils/terminal.rs:119:5
+    |
+119 |     Reset,
+    |     ^^^^^
+
+warning: missing documentation for a variant
+   --> src/utils/terminal.rs:120:5
+    |
+120 |     Bold,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> src/utils/terminal.rs:121:5
+    |
+121 |     Dim,
+    |     ^^^
+
+warning: missing documentation for a variant
+   --> src/utils/terminal.rs:122:5
+    |
+122 |     Italic,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> src/utils/terminal.rs:123:5
+    |
+123 |     Underline,
+    |     ^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:213:5
+    |
+213 |     fn color(&self, color: Color) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:216:5
+    |
+216 |     fn black(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:217:5
+    |
+217 |     fn red(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:218:5
+    |
+218 |     fn green(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:219:5
+    |
+219 |     fn yellow(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:220:5
+    |
+220 |     fn blue(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:221:5
+    |
+221 |     fn magenta(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:222:5
+    |
+222 |     fn cyan(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:223:5
+    |
+223 |     fn white(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:224:5
+    |
+224 |     fn bright_black(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:225:5
+    |
+225 |     fn bright_red(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:226:5
+    |
+226 |     fn bright_green(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:227:5
+    |
+227 |     fn bright_yellow(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:228:5
+    |
+228 |     fn bright_blue(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:229:5
+    |
+229 |     fn bright_magenta(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:230:5
+    |
+230 |     fn bright_cyan(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:231:5
+    |
+231 |     fn bright_white(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:234:5
+    |
+234 |     fn byzantine_purple(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:235:5
+    |
+235 |     fn royal_purple(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:236:5
+    |
+236 |     fn deep_purple(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:237:5
+    |
+237 |     fn light_purple(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:240:5
+    |
+240 |     fn byzantine_gold(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:241:5
+    |
+241 |     fn bright_gold(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:242:5
+    |
+242 |     fn deep_gold(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:243:5
+    |
+243 |     fn rose_gold(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:246:5
+    |
+246 |     fn bold(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:247:5
+    |
+247 |     fn dim(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:248:5
+    |
+248 |     fn italic(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:249:5
+    |
+249 |     fn underline(&self) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/utils/terminal.rs:876:5
+    |
+876 |     fn with_emoji(&self, emoji: &str) -> String;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:541:9
+    |
+541 |         pub const BRAND_PRIMARY: &str = "💜";    // Purple heart - primary brand
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:542:9
+    |
+542 |         pub const BRAND_SECONDARY: &str = "💛";  // Gold heart - secondary brand
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:543:9
+    |
+543 |         pub const SUCCESS: &str = "✅";           // Success indicator
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:544:9
+    |
+544 |         pub const ROCKET: &str = "🚀";           // Launch/speed
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:545:9
+    |
+545 |         pub const CROWN: &str = "👑";            // Premium/royal
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:546:9
+    |
+546 |         pub const GEM: &str = "💎";              // Value/precious
+    |         ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:555:9
+    |
+555 |         pub const SUCCESS: &str = "✓";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:556:9
+    |
+556 |         pub const CHECK: &str = "✓";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:557:9
+    |
+557 |         pub const CHECKMARK: &str = "✅";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:558:9
+    |
+558 |         pub const FAIL: &str = "✗";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:559:9
+    |
+559 |         pub const CROSS: &str = "✗";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:560:9
+    |
+560 |         pub const ERROR: &str = "❌";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:561:9
+    |
+561 |         pub const WARNING: &str = "⚠";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:562:9
+    |
+562 |         pub const CAUTION: &str = "⚠️";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:563:9
+    |
+563 |         pub const INFO: &str = "ℹ";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:564:9
+    |
+564 |         pub const QUESTION: &str = "❓";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:565:9
+    |
+565 |         pub const PENDING: &str = "⏳";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:566:9
+    |
+566 |         pub const LOADING: &str = "⌛";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:567:9
+    |
+567 |         pub const WAIT: &str = "⏸";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:576:9
+    |
+576 |         pub const ROCKET: &str = "🚀";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:577:9
+    |
+577 |         pub const LIGHTNING: &str = "⚡";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:578:9
+    |
+578 |         pub const FIRE: &str = "🔥";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:579:9
+    |
+579 |         pub const SPARKLES: &str = "✨";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:580:9
+    |
+580 |         pub const BOOM: &str = "💥";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:581:9
+    |
+581 |         pub const TURBO: &str = "🏎";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:582:9
+    |
+582 |         pub const FAST: &str = "⚡";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:583:9
+    |
+583 |         pub const SLOW: &str = "🐌";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:584:9
+    |
+584 |         pub const ZIPPING: &str = "💨";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:585:9
+    |
+585 |         pub const POWER: &str = "⚡";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:594:9
+    |
+594 |         pub const PURPLE_HEART: &str = "💜";     // Primary brand
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:595:9
+    |
+595 |         pub const GOLD_HEART: &str = "💛";       // Secondary brand
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:596:9
+    |
+596 |         pub const PURPLE_CIRCLE: &str = "🟣";    // Purple circle
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:597:9
+    |
+597 |         pub const GOLD_CIRCLE: &str = "🟡";      // Gold circle
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:598:9
+    |
+598 |         pub const FLEUR_DE_LIS: &str = "⚜️";     // Fleur-de-lis (Byzantine)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:599:9
+    |
+599 |         pub const CRYSTAL: &str = "🔮";          // Crystal ball (mystical)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:600:9
+    |
+600 |         pub const PALETTE: &str = "🎨";          // Art palette
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:601:9
+    |
+601 |         pub const STAR: &str = "⭐";             // Star
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:602:9
+    |
+602 |         pub const GLOWING_STAR: &str = "🌟";     // Glowing star
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:603:9
+    |
+603 |         pub const DIZZY: &str = "💫";            // Dizzy/magical
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:604:9
+    |
+604 |         pub const THEATER: &str = "🎭";          // Theater masks (Byzantine)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:605:9
+    |
+605 |         pub const CROWN: &str = "👑";            // Royalty/Byzantine
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:606:9
+    |
+606 |         pub const GEM: &str = "💎";              // Value/Premium
+    |         ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:607:9
+    |
+607 |         pub const TROPHY: &str = "🏆";           // Achievement
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:608:9
+    |
+608 |         pub const MEDAL: &str = "🏅";            // Recognition
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:609:9
+    |
+609 |         pub const SCROLL: &str = "📜";           // Byzantine/Ancient
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:610:9
+    |
+610 |         pub const CASTLE: &str = "🏰";           // Byzantine architecture
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:619:9
+    |
+619 |         pub const CHART: &str = "📊";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:620:9
+    |
+620 |         pub const GRAPH_UP: &str = "📈";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:621:9
+    |
+621 |         pub const GRAPH_DOWN: &str = "📉";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:622:9
+    |
+622 |         pub const MONEY: &str = "💰";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:623:9
+    |
+623 |         pub const COIN: &str = "🪙";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:624:9
+    |
+624 |         pub const DATABASE: &str = "🗄";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:625:9
+    |
+625 |         pub const FOLDER: &str = "📁";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:626:9
+    |
+626 |         pub const FILE: &str = "📄";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:627:9
+    |
+627 |         pub const MEMO: &str = "📝";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:628:9
+    |
+628 |         pub const BAR_CHART: &str = "📊";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:629:9
+    |
+629 |         pub const TREND: &str = "📈";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:630:9
+    |
+630 |         pub const TABLE: &str = "📋";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:639:9
+    |
+639 |         pub const WRENCH: &str = "🔧";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:640:9
+    |
+640 |         pub const HAMMER: &str = "🔨";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:641:9
+    |
+641 |         pub const GEAR: &str = "⚙";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:642:9
+    |
+642 |         pub const MAGNIFY: &str = "🔍";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:643:9
+    |
+643 |         pub const SEARCH: &str = "🔍";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:644:9
+    |
+644 |         pub const KEY: &str = "🔑";
+    |         ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:645:9
+    |
+645 |         pub const LOCK: &str = "🔒";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:646:9
+    |
+646 |         pub const UNLOCK: &str = "🔓";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:647:9
+    |
+647 |         pub const SHIELD: &str = "🛡";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:648:9
+    |
+648 |         pub const SECURITY: &str = "🔐";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:649:9
+    |
+649 |         pub const TOOLBOX: &str = "🧰";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:650:9
+    |
+650 |         pub const WRENCH_HAMMER: &str = "🛠";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:659:9
+    |
+659 |         pub const RIGHT: &str = "→";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:660:9
+    |
+660 |         pub const LEFT: &str = "←";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:661:9
+    |
+661 |         pub const UP: &str = "↑";
+    |         ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:662:9
+    |
+662 |         pub const DOWN: &str = "↓";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:663:9
+    |
+663 |         pub const RIGHT_ARROW: &str = "➡";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:664:9
+    |
+664 |         pub const LEFT_ARROW: &str = "⬅";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:665:9
+    |
+665 |         pub const UP_ARROW: &str = "⬆";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:666:9
+    |
+666 |         pub const DOWN_ARROW: &str = "⬇";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:667:9
+    |
+667 |         pub const DIAGONAL_UP: &str = "↗";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:668:9
+    |
+668 |         pub const DIAGONAL_DOWN: &str = "↘";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:669:9
+    |
+669 |         pub const DOUBLE_RIGHT: &str = "⇒";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:670:9
+    |
+670 |         pub const DOUBLE_LEFT: &str = "⇐";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:679:9
+    |
+679 |         pub const BULLET: &str = "•";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:680:9
+    |
+680 |         pub const DIAMOND: &str = "◆";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:681:9
+    |
+681 |         pub const SQUARE: &str = "■";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:682:9
+    |
+682 |         pub const CIRCLE: &str = "●";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:683:9
+    |
+683 |         pub const TRIANGLE: &str = "▲";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:684:9
+    |
+684 |         pub const HOURGLASS: &str = "⌛";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:685:9
+    |
+685 |         pub const ASTERISK: &str = "*";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:686:9
+    |
+686 |         pub const PLUS: &str = "+";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:687:9
+    |
+687 |         pub const MINUS: &str = "−";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:688:9
+    |
+688 |         pub const EQUALS: &str = "=";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:689:9
+    |
+689 |         pub const PIPE: &str = "│";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:690:9
+    |
+690 |         pub const DASH: &str = "─";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:699:9
+    |
+699 |         pub const RED_HEART: &str = "❤️";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:700:9
+    |
+700 |         pub const ORANGE_HEART: &str = "🧡";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:701:9
+    |
+701 |         pub const YELLOW_HEART: &str = "💛";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:702:9
+    |
+702 |         pub const GREEN_HEART: &str = "💚";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:703:9
+    |
+703 |         pub const BLUE_HEART: &str = "💙";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:704:9
+    |
+704 |         pub const PURPLE_HEART: &str = "💜";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:705:9
+    |
+705 |         pub const BLACK_HEART: &str = "🖤";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:706:9
+    |
+706 |         pub const WHITE_HEART: &str = "🤍";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:707:9
+    |
+707 |         pub const BROWN_HEART: &str = "🤎";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:708:9
+    |
+708 |         pub const BROKEN_HEART: &str = "💔";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:709:9
+    |
+709 |         pub const FIRE_HEART: &str = "❤️🔥";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:710:9
+    |
+710 |         pub const BANDAGE_HEART: &str = "❤️🩹";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:711:9
+    |
+711 |         pub const MULTI_HEART: &str = "💕";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:712:9
+    |
+712 |         pub const SPARKLING_HEART: &str = "💖";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:713:9
+    |
+713 |         pub const HEART_EXCLAMATION: &str = "💗";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:722:9
+    |
+722 |         pub const MOON: &str = "🌙";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:723:9
+    |
+723 |         pub const STAR: &str = "⭐";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:724:9
+    |
+724 |         pub const GLOWING_STAR: &str = "🌟";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:725:9
+    |
+725 |         pub const SPARKLES: &str = "✨";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:726:9
+    |
+726 |         pub const SUN: &str = "☀️";
+    |         ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:727:9
+    |
+727 |         pub const SUNNY: &str = "🌞";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:728:9
+    |
+728 |         pub const RAINBOW: &str = "🌈";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:729:9
+    |
+729 |         pub const LIGHTNING: &str = "⚡";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:730:9
+    |
+730 |         pub const FIRE: &str = "🔥";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:731:9
+    |
+731 |         pub const WATER: &str = "💧";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:732:9
+    |
+732 |         pub const WAVE: &str = "🌊";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:733:9
+    |
+733 |         pub const FLOWER: &str = "🌸";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:734:9
+    |
+734 |         pub const BLOSSOM: &str = "🌺";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:735:9
+    |
+735 |         pub const SUNFLOWER: &str = "🌻";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:736:9
+    |
+736 |         pub const ROSE: &str = "🌹";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:745:9
+    |
+745 |         pub const COMPUTER: &str = "💻";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:746:9
+    |
+746 |         pub const KEYBOARD: &str = "⌨️";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:747:9
+    |
+747 |         pub const DESKTOP: &str = "🖥";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:748:9
+    |
+748 |         pub const MOUSE: &str = "🖱";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:749:9
+    |
+749 |         pub const FLOPPY: &str = "💾";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:750:9
+    |
+750 |         pub const DISC: &str = "💿";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:751:9
+    |
+751 |         pub const DVD: &str = "📀";
+    |         ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:752:9
+    |
+752 |         pub const PLUG: &str = "🔌";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:753:9
+    |
+753 |         pub const BATTERY: &str = "🔋";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:754:9
+    |
+754 |         pub const SATELLITE: &str = "📡";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:755:9
+    |
+755 |         pub const ROCKET: &str = "🛰";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:756:9
+    |
+756 |         pub const CALCULATOR: &str = "🧮";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:757:9
+    |
+757 |         pub const MOBILE: &str = "📱";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:758:9
+    |
+758 |         pub const GEAR: &str = "⚙️";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:759:9
+    |
+759 |         pub const WRENCH: &str = "🔧";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:768:9
+    |
+768 |         pub const ALARM: &str = "⏰";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:769:9
+    |
+769 |         pub const STOPWATCH: &str = "⏱";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:770:9
+    |
+770 |         pub const TIMER: &str = "⏲";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:771:9
+    |
+771 |         pub const HOURGLASS: &str = "⏳";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:772:9
+    |
+772 |         pub const HOURGLASS_DONE: &str = "⌛";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:773:9
+    |
+773 |         pub const CLOCK_1: &str = "🕐";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:774:9
+    |
+774 |         pub const CLOCK_2: &str = "🕑";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:775:9
+    |
+775 |         pub const CLOCK_3: &str = "🕒";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:776:9
+    |
+776 |         pub const ANCIENT_CLOCK: &str = "🕰";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:777:9
+    |
+777 |         pub const CALENDAR: &str = "📅";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:778:9
+    |
+778 |         pub const CALENDAR_ALT: &str = "📆";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:779:9
+    |
+779 |         pub const CALENDAR_SPIRAL: &str = "🗓";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:788:9
+    |
+788 |         pub const PARTY: &str = "🎉";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:789:9
+    |
+789 |         pub const CONFETTI: &str = "🎊";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:790:9
+    |
+790 |         pub const BALLOON: &str = "🎈";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:791:9
+    |
+791 |         pub const FIREWORKS: &str = "🎆";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:792:9
+    |
+792 |         pub const SPARKLER: &str = "🎇";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:793:9
+    |
+793 |         pub const SPARKLES: &str = "✨";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:794:9
+    |
+794 |         pub const GIFT: &str = "🎁";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:795:9
+    |
+795 |         pub const TROPHY: &str = "🏆";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:796:9
+    |
+796 |         pub const GOLD_MEDAL: &str = "🥇";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:797:9
+    |
+797 |         pub const SILVER_MEDAL: &str = "🥈";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:798:9
+    |
+798 |         pub const BRONZE_MEDAL: &str = "🥉";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:799:9
+    |
+799 |         pub const MILITARY_MEDAL: &str = "🎖";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:800:9
+    |
+800 |         pub const BADGE: &str = "🏅";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:809:9
+    |
+809 |         pub const COFFEE: &str = "☕";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:810:9
+    |
+810 |         pub const PIZZA: &str = "🍕";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:811:9
+    |
+811 |         pub const BURGER: &str = "🍔";
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:812:9
+    |
+812 |         pub const FRIES: &str = "🍟";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:813:9
+    |
+813 |         pub const TACO: &str = "🌮";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:814:9
+    |
+814 |         pub const BURRITO: &str = "🌯";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:815:9
+    |
+815 |         pub const NOODLES: &str = "🍜";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:816:9
+    |
+816 |         pub const BENTO: &str = "🍱";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:817:9
+    |
+817 |         pub const SUSHI: &str = "🍣";
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:818:9
+    |
+818 |         pub const BEER: &str = "🍺";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:819:9
+    |
+819 |         pub const BEER_MUG: &str = "🍻";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:820:9
+    |
+820 |         pub const CHAMPAGNE: &str = "🥂";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:821:9
+    |
+821 |         pub const WINE: &str = "🍷";
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:822:9
+    |
+822 |         pub const WINE_BOTTLE: &str = "🍾";
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:831:9
+    |
+831 |         pub const EAGLE: &str = "🦅";        // Imperial bird
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:832:9
+    |
+832 |         pub const LION: &str = "🦁";         // Royal beast
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:833:9
+    |
+833 |         pub const DRAGON: &str = "🐉";       // Byzantine mythical
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:834:9
+    |
+834 |         pub const UNICORN: &str = "🦄";      // Magical
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:835:9
+    |
+835 |         pub const BUTTERFLY: &str = "🦋";    // Transformation
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:836:9
+    |
+836 |         pub const BEE: &str = "🐝";          // Industrious
+    |         ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:837:9
+    |
+837 |         pub const OWL: &str = "🦉";          // Wise
+    |         ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:838:9
+    |
+838 |         pub const PHOENIX: &str = "🔥";      // Rebirth (implicit)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:839:9
+    |
+839 |         pub const FOX: &str = "🦊";          // Cunning
+    |         ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:840:9
+    |
+840 |         pub const WOLF: &str = "🐺";         // Strong
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:841:9
+    |
+841 |         pub const PENGUIN: &str = "🐧";      // Formality
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:842:9
+    |
+842 |         pub const SWAN: &str = "🦢";         // Grace
+    |         ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:843:9
+    |
+843 |         pub const HORSE: &str = "🐴";        // Power
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:844:9
+    |
+844 |         pub const DOLPHIN: &str = "🐬";      // Intelligence
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:845:9
+    |
+845 |         pub const WHALE: &str = "🐳";        // Majesty
+    |         ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:901:5
+    |
+901 |     pub const VERTICAL: &str = "│";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:902:5
+    |
+902 |     pub const TOP_LEFT: &str = "┌";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:903:5
+    |
+903 |     pub const TOP_RIGHT: &str = "┐";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:904:5
+    |
+904 |     pub const BOTTOM_LEFT: &str = "└";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:905:5
+    |
+905 |     pub const BOTTOM_RIGHT: &str = "┘";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:906:5
+    |
+906 |     pub const TOP_TEE: &str = "┬";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:907:5
+    |
+907 |     pub const BOTTOM_TEE: &str = "┴";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:908:5
+    |
+908 |     pub const LEFT_TEE: &str = "├";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:909:5
+    |
+909 |     pub const RIGHT_TEE: &str = "┤";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:910:5
+    |
+910 |     pub const CROSS: &str = "┼";
+    |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:914:5
+    |
+914 |     pub const HEAVY_VERTICAL: &str = "┃";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:915:5
+    |
+915 |     pub const HEAVY_TOP_LEFT: &str = "┏";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:916:5
+    |
+916 |     pub const HEAVY_TOP_RIGHT: &str = "┓";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:917:5
+    |
+917 |     pub const HEAVY_BOTTOM_LEFT: &str = "┗";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:918:5
+    |
+918 |     pub const HEAVY_BOTTOM_RIGHT: &str = "┛";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:919:5
+    |
+919 |     pub const HEAVY_TOP_TEE: &str = "┳";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:920:5
+    |
+920 |     pub const HEAVY_BOTTOM_TEE: &str = "┻";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:921:5
+    |
+921 |     pub const HEAVY_LEFT_TEE: &str = "┣";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:922:5
+    |
+922 |     pub const HEAVY_RIGHT_TEE: &str = "┫";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:923:5
+    |
+923 |     pub const HEAVY_CROSS: &str = "╋";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:927:5
+    |
+927 |     pub const DOUBLE_VERTICAL: &str = "║";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:928:5
+    |
+928 |     pub const DOUBLE_TOP_LEFT: &str = "╔";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:929:5
+    |
+929 |     pub const DOUBLE_TOP_RIGHT: &str = "╗";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:930:5
+    |
+930 |     pub const DOUBLE_BOTTOM_LEFT: &str = "╚";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:931:5
+    |
+931 |     pub const DOUBLE_BOTTOM_RIGHT: &str = "╝";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:932:5
+    |
+932 |     pub const DOUBLE_TOP_TEE: &str = "╦";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:933:5
+    |
+933 |     pub const DOUBLE_BOTTOM_TEE: &str = "╩";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:934:5
+    |
+934 |     pub const DOUBLE_LEFT_TEE: &str = "╠";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:935:5
+    |
+935 |     pub const DOUBLE_RIGHT_TEE: &str = "╣";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:936:5
+    |
+936 |     pub const DOUBLE_CROSS: &str = "╬";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:940:5
+    |
+940 |     pub const MIXED_TOP_RIGHT: &str = "╕";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:941:5
+    |
+941 |     pub const MIXED_BOTTOM_LEFT: &str = "╘";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:942:5
+    |
+942 |     pub const MIXED_BOTTOM_RIGHT: &str = "╙";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:946:5
+    |
+946 |     pub const ROUNDED_TOP_RIGHT: &str = "╮";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:947:5
+    |
+947 |     pub const ROUNDED_BOTTOM_LEFT: &str = "╰";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:948:5
+    |
+948 |     pub const ROUNDED_BOTTOM_RIGHT: &str = "╯";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:952:5
+    |
+952 |     pub const DARK_SHADE: &str = "▓";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:953:5
+    |
+953 |     pub const MEDIUM_SHADE: &str = "▒";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/utils/terminal.rs:954:5
+    |
+954 |     pub const LIGHT_SHADE: &str = "░";
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/numa_allocation.rs:90:24
+   |
+90 |     AllocationFailed { requested: usize, reason: String },
+   |                        ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/numa_allocation.rs:90:42
+   |
+90 |     AllocationFailed { requested: usize, reason: String },
+   |                                          ^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/license_capsule.rs:106:5
+    |
+106 |     Expired,
+    |     ^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/license_capsule.rs:109:5
+    |
+109 |     Revoked,
+    |     ^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/license_capsule.rs:112:5
+    |
+112 |     LimitExceeded,
+    |     ^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/license_capsule.rs:115:5
+    |
+115 |     InvalidChecksum,
+    |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/license_capsule.rs:118:5
+    |
+118 |     InvalidKeyFormat,
+    |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/license_capsule.rs:121:5
+    |
+121 |     SystemTimeError,
+    |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/license_capsule.rs:124:5
+    |
+124 |     NotInitialized,
+    |     ^^^^^^^^^^^^^^
+
+warning: missing documentation for a type alias
+   --> src/license_capsule.rs:127:1
+    |
+127 | pub type LicenseResult<T> = Result<T, LicenseError>;
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/license_capsule.rs:132:5
+    |
+132 |     Trial = 1,
+    |     ^^^^^
+
+warning: missing documentation for a variant
+   --> src/license_capsule.rs:133:5
+    |
+133 |     Starter = 2,
+    |     ^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/license_capsule.rs:134:5
+    |
+134 |     Pro = 3,
+    |     ^^^
+
+warning: missing documentation for a variant
+   --> src/license_capsule.rs:135:5
+    |
+135 |     Enterprise = 4,
+    |     ^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/license_capsule.rs:139:5
+    |
+139 |     pub fn duration_days(&self) -> u64 {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/license_capsule.rs:148:5
+    |
+148 |     pub fn limit_gb(&self) -> Option<u64> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+   --> src/license_capsule.rs:157:5
+    |
+157 |     pub fn from_u8(val: u8) -> Option<Self> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/license_capsule.rs:171:5
+    |
+171 |     Valid,
+    |     ^^^^^
+
+warning: missing documentation for a variant
+   --> src/license_capsule.rs:172:5
+    |
+172 |     Expired,
+    |     ^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/license_capsule.rs:173:5
+    |
+173 |     Revoked,
+    |     ^^^^^^^
+
+warning: `kindly_dedup` (lib) generated 386 warnings (run `cargo fix --lib -p kindly_dedup` to apply 10 suggestions)
+warning: unused import: `std::fs`
+  --> src/bin/deploy_validate_6900hx.rs:45:5
+   |
+45 | use std::fs;
+   |     ^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `atomic_capsule::auditable::hex`
+  --> src/bin/audit_viewer.rs:59:5
+   |
+59 | use atomic_capsule::auditable::hex;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `self`
+  --> src/bin/audit_viewer.rs:61:15
+   |
+61 | use std::fs::{self, File};
+   |               ^^^^
+
+warning: field `output` is never read
+   --> src/bin/deploy_validate_6900hx.rs:141:5
+    |
+112 | struct ValidationResults {
+    |        ----------------- field in this struct
+...
+141 |     output: String,
+    |     ^^^^^^
+    |
+    = note: `ValidationResults` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> benches/dedup_bench.rs:101:18
+    |
+101 |                 |mut pipeline| black_box(pipeline.find_duplicates(black_box(0.85))),
+    |                  ----^^^^^^^^
+    |                  |
+    |                  help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused `Result` that must be used
+  --> benches/dedup_bench.rs:76:21
+   |
+76 |                     pipeline.add_document(black_box(i), black_box(doc));
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+   = note: `#[warn(unused_must_use)]` (part of `#[warn(unused)]`) on by default
+help: use `let _ = ...` to ignore the resulting value
+   |
+76 |                     let _ = pipeline.add_document(black_box(i), black_box(doc));
+   |                     +++++++
+
+warning: unused `Result` that must be used
+  --> benches/dedup_bench.rs:97:25
+   |
+97 |                         pipeline.add_document(i, &doc);
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+   |
+97 |                         let _ = pipeline.add_document(i, &doc);
+   |                         +++++++
+
+warning: unused `Result` that must be used
+   --> benches/dedup_bench.rs:126:21
+    |
+126 |                     pipeline.add_document(i, &doc);
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+126 |                     let _ = pipeline.add_document(i, &doc);
+    |                     +++++++
+
+warning: unused `Result` that must be used
+   --> benches/dedup_bench.rs:152:21
+    |
+152 |                     pipeline.add_document(i * 5 + j, &doc);
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+152 |                     let _ = pipeline.add_document(i * 5 + j, &doc);
+    |                     +++++++
+
+warning: unused `Result` that must be used
+   --> benches/dedup_bench.rs:172:17
+    |
+172 |                 pipeline.add_document(i, &doc);
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+172 |                 let _ = pipeline.add_document(i, &doc);
+    |                 +++++++
+
+warning: associated constants `RED`, `GREEN`, `YELLOW`, `BLUE`, `MAGENTA`, and `WHITE` are never used
+  --> src/bin/audit_viewer.rs:79:11
+   |
+73 | impl Colors {
+   | ----------- associated constants in this implementation
+...
+79 |     const RED: &'static str = "\x1b[31m";
+   |           ^^^
+80 |     const GREEN: &'static str = "\x1b[32m";
+   |           ^^^^^
+81 |     const YELLOW: &'static str = "\x1b[33m";
+   |           ^^^^^^
+82 |     const BLUE: &'static str = "\x1b[34m";
+   |           ^^^^
+83 |     const MAGENTA: &'static str = "\x1b[35m";
+   |           ^^^^^^^
+84 |     const CYAN: &'static str = "\x1b[36m";
+85 |     const WHITE: &'static str = "\x1b[37m";
+   |           ^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `kindly_dedup` (bin "deploy_validate_6900hx") generated 2 warnings (run `cargo fix --bin "deploy_validate_6900hx"` to apply 1 suggestion)
+warning: `kindly_dedup` (bin "audit_viewer") generated 3 warnings (run `cargo fix --bin "audit_viewer"` to apply 2 suggestions)
+warning: `kindly_dedup` (bench "dedup_bench") generated 6 warnings (run `cargo fix --bench "dedup_bench"` to apply 1 suggestion)
+    Finished `bench` profile [optimized] target(s) in 1m 13s
+     Running benches/dedup_bench.rs (target/release/deps/dedup_bench-c5677fb76dad5abb)
+Gnuplot not found, using plotters backend
+Benchmarking add_document/10
+Benchmarking add_document/10: Warming up for 3.0000 s
+Benchmarking add_document/10: Collecting 100 samples in estimated 5.9542 s (20200 iterations)
+Benchmarking add_document/10: Analyzing
+add_document/10         time:   [246.75 µs 264.68 µs 286.79 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+slope  [246.75 µs 286.79 µs] R^2            [0.0693767 0.0675988]
+mean   [275.63 µs 299.75 µs] std. dev.      [44.499 µs 78.810 µs]
+median [260.39 µs 299.90 µs] med. abs. dev. [37.434 µs 61.883 µs]
+Benchmarking add_document/100
+Benchmarking add_document/100: Warming up for 3.0000 s
+Benchmarking add_document/100: Collecting 100 samples in estimated 5.2177 s (1500 iterations)
+Benchmarking add_document/100: Analyzing
+add_document/100        time:   [2.8881 ms 3.1203 ms 3.3886 ms]
+Found 17 outliers among 100 measurements (17.00%)
+  9 (9.00%) high mild
+  8 (8.00%) high severe
+mean   [2.8881 ms 3.3886 ms] std. dev.      [783.58 µs 1.7209 ms]
+median [2.6981 ms 2.7922 ms] med. abs. dev. [202.63 µs 456.00 µs]
+Benchmarking add_document/1000
+Benchmarking add_document/1000: Warming up for 3.0000 s
+Benchmarking add_document/1000: Collecting 100 samples in estimated 5.2219 s (200 iterations)
+Benchmarking add_document/1000: Analyzing
+add_document/1000       time:   [31.457 ms 32.218 ms 32.968 ms]
+Found 21 outliers among 100 measurements (21.00%)
+  4 (4.00%) low severe
+  9 (9.00%) low mild
+  8 (8.00%) high mild
+mean   [31.457 ms 32.968 ms] std. dev.      [3.2216 ms 4.4608 ms]
+median [31.730 ms 32.085 ms] med. abs. dev. [501.29 µs 3.0666 ms]
+
+Benchmarking find_duplicates/10
+Benchmarking find_duplicates/10: Warming up for 3.0000 s
+Benchmarking find_duplicates/10: Collecting 100 samples in estimated 7.5262 s (10100 iterations)
+Benchmarking find_duplicates/10: Analyzing
+find_duplicates/10      time:   [360.97 µs 382.68 µs 407.82 µs]
+slope  [360.97 µs 407.82 µs] R^2            [0.0128446 0.0126300]
+mean   [439.92 µs 478.44 µs] std. dev.      [86.229 µs 108.13 µs]
+median [476.88 µs 501.11 µs] med. abs. dev. [48.626 µs 101.82 µs]
+Benchmarking find_duplicates/100
+Benchmarking find_duplicates/100: Warming up for 3.0000 s
+Benchmarking find_duplicates/100: Collecting 100 samples in estimated 5.1215 s (1900 iterations)
+Benchmarking find_duplicates/100: Analyzing
+find_duplicates/100     time:   [627.72 µs 667.96 µs 718.48 µs]
+Found 13 outliers among 100 measurements (13.00%)
+  2 (2.00%) low mild
+  11 (11.00%) high severe
+mean   [627.72 µs 718.48 µs] std. dev.      [105.89 µs 333.65 µs]
+median [606.95 µs 619.40 µs] med. abs. dev. [18.263 µs 40.020 µs]
+Benchmarking find_duplicates/1000
+Benchmarking find_duplicates/1000: Warming up for 3.0000 s
+Benchmarking find_duplicates/1000: Collecting 100 samples in estimated 5.6248 s (200 iterations)
+Benchmarking find_duplicates/1000: Analyzing
+find_duplicates/1000    time:   [4.7935 ms 4.9484 ms 5.1019 ms]
+mean   [4.7935 ms 5.1019 ms] std. dev.      [726.23 µs 846.14 µs]
+median [5.0177 ms 5.3143 ms] med. abs. dev. [468.91 µs 1.4007 ms]
+
+Benchmarking end_to_end/10
+Benchmarking end_to_end/10: Warming up for 3.0000 s
+Benchmarking end_to_end/10: Collecting 100 samples in estimated 6.0148 s (10100 iterations)
+Benchmarking end_to_end/10: Analyzing
+end_to_end/10           time:   [863.29 µs 894.74 µs 922.35 µs]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+slope  [863.29 µs 922.35 µs] R^2            [0.1990780 0.2006062]
+mean   [726.55 µs 806.37 µs] std. dev.      [168.24 µs 245.48 µs]
+median [613.72 µs 762.25 µs] med. abs. dev. [79.467 µs 278.28 µs]
+Benchmarking end_to_end/100
+Benchmarking end_to_end/100: Warming up for 3.0000 s
+Benchmarking end_to_end/100: Collecting 100 samples in estimated 5.1546 s (1400 iterations)
+Benchmarking end_to_end/100: Analyzing
+end_to_end/100          time:   [3.8388 ms 3.9390 ms 4.0480 ms]
+Found 17 outliers among 100 measurements (17.00%)
+  17 (17.00%) high mild
+mean   [3.8388 ms 4.0480 ms] std. dev.      [444.42 µs 602.04 µs]
+median [3.6355 ms 3.7042 ms] med. abs. dev. [77.932 µs 192.34 µs]
+Benchmarking end_to_end/1000
+Benchmarking end_to_end/1000: Warming up for 3.0000 s
+Benchmarking end_to_end/1000: Collecting 100 samples in estimated 9.3906 s (200 iterations)
+Benchmarking end_to_end/1000: Analyzing
+end_to_end/1000         time:   [47.837 ms 48.657 ms 49.532 ms]
+Found 18 outliers among 100 measurements (18.00%)
+  18 (18.00%) high severe
+mean   [47.837 ms 49.532 ms] std. dev.      [3.5854 ms 4.9561 ms]
+median [46.405 ms 47.340 ms] med. abs. dev. [1.2985 ms 2.1682 ms]
+
+Benchmarking realistic_dedup/near_duplicates_100
+Benchmarking realistic_dedup/near_duplicates_100: Warming up for 3.0000 s
+Benchmarking realistic_dedup/near_duplicates_100: Collecting 100 samples in estimated 5.0819 s (2000 iterations)
+Benchmarking realistic_dedup/near_duplicates_100: Analyzing
+realistic_dedup/near_duplicates_100
+                        time:   [2.3934 ms 2.4396 ms 2.4905 ms]
+Found 16 outliers among 100 measurements (16.00%)
+  2 (2.00%) high mild
+  14 (14.00%) high severe
+mean   [2.3934 ms 2.4905 ms] std. dev.      [195.11 µs 289.53 µs]
+median [2.3255 ms 2.3634 ms] med. abs. dev. [51.122 µs 100.36 µs]
+Benchmarking realistic_dedup/mostly_unique_100
+Benchmarking realistic_dedup/mostly_unique_100: Warming up for 3.0000 s
+Benchmarking realistic_dedup/mostly_unique_100: Collecting 100 samples in estimated 5.0357 s (2100 iterations)
+Benchmarking realistic_dedup/mostly_unique_100: Analyzing
+realistic_dedup/mostly_unique_100
+                        time:   [3.0575 ms 3.0980 ms 3.1382 ms]
+mean   [3.0575 ms 3.1382 ms] std. dev.      [189.05 µs 221.72 µs]
+median [3.0022 ms 3.1933 ms] med. abs. dev. [208.78 µs 322.30 µs]
+

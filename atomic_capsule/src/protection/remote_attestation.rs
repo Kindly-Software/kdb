@@ -61,7 +61,7 @@
 //! - **T28**: 20+ tests (unit/property/integration/production, all 4 tiers)
 //! - **B32**: Fair baseline (file-based license), honest metrics (500ms P99 measured)
 //! - **I20**: 20/20 integration (DualAtomicU64 composition, tokio runtime integration)
-//! - **COCA**: 100% lockfree (no mutex/RwLock, atomic state only)
+//! - **Chaos**: 100% lockfree (no mutex/RwLock, atomic state only)
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};

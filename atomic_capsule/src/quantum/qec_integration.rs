@@ -30,7 +30,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q1-Q34 systematic discovery
-//! - **COCA**: 100% lockfree (no mutex/RwLock), cache-aligned (64B/256B)
+//! - **Chaos**: 100% lockfree (no mutex/RwLock), cache-aligned (64B/256B)
 //! - **B32**: Fair baselines (ideal decoder, validated speedup claims)
 //! - **T28**: 28 tests (unit/property/integration/production)
 //! - **ASSUM**: 99.99% safe (all assumptions verified)
@@ -600,7 +600,7 @@ pub const THRESHOLD_D9: u16 = 40;  // d=9: 81/2 = 40
 /// - 10,000+ cycles/sec throughput
 /// - >90% logical error suppression
 ///
-/// **Framework Compliance**: UCE34, COCA (100% lockfree), B32, T28, ASSUM (99.99% safe), I20, Q34 (audit trails)
+/// **Framework Compliance**: UCE34, Chaos (100% lockfree), B32, T28, ASSUM (99.99% safe), I20, Q34 (audit trails)
 pub struct QECIntegrationCapsule {
     /// Pipeline state (64B, atomic coordination)
     pipeline_state: QECPipelineState,

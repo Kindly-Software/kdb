@@ -10,7 +10,7 @@
 //! - Dedup: 1.5-2.0× speedup (67-79s vs 118.39s, PROJECTED)
 //! - Total: 1.21-1.35× speedup (148-160s vs 199.16s, TARGET)
 //!
-//! ## COCA Compliance
+//! ## Chaos Compliance
 //! - 100% lockfree (no Mutex/RwLock)
 //! - Arc<AtomicU64> state machine (5 phases)
 //! - Atomic coordination for progress tracking
@@ -285,7 +285,7 @@ impl Default for ParallelDedupV2Config {
 ///
 /// Orchestrates parallel deduplication with lockfree coordination.
 /// Features:
-/// - 100% COCA compliant (lockfree, cache-aligned)
+/// - 100% Chaos compliant (lockfree, cache-aligned)
 /// - Arc<> wrapped lockfree capsules with interior mutability
 /// - Interior mutability (&self methods via AtomicU32/U64) enables Arc<> sharing
 /// - No Mutex/RwLock (pure atomic operations)

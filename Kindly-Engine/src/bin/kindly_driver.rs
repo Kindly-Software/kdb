@@ -5,10 +5,13 @@
 use kindly_engine::ballistics::{
     apply_fire_control_for_ids, BallisticsCapsule, FireControlProfileCapsule,
 };
+use kindly_engine::battle_ai::{intent_ndjson_line, BattleAiIntent};
 use kindly_engine::courier::{CourierCapsule, Doctrine};
 use kindly_engine::fire_doctrine::{FireDoctrineCapsule, FireDoctrineMode};
 use kindly_engine::formation::FormationCapsule;
+use kindly_engine::campaign::CampaignMetacapsule;
 use kindly_engine::command::{commanders_to_generals, CommanderCapsule, CommandHierarchyCapsule};
+use kindly_engine::diplomacy::DiplomaticStateCapsule;
 use kindly_engine::general::{snapshot_generals, GeneralCapsule};
 use kindly_engine::grenade::GrenadeCapsule;
 use kindly_engine::kgpu_bridge::{
@@ -26,7 +29,9 @@ use kindly_engine::order::{
 };
 use kindly_engine::pathing::PathingCapsule;
 use kindly_engine::physics::PhysicsPreset;
+use kindly_engine::province_economy::ProvinceEconomyCapsule;
 use kindly_engine::strategic_map::{ProvinceCapsule, StrategicMapCapsule, WeatherKeyframe};
+use kindly_engine::siege::SiegeCapsule;
 use kindly_engine::supply::{SupplyRoad, SupplySnapshot};
 use kindly_engine::telemetry::TelemetryCapsule;
 use kindly_engine::terrain::{TerrainGridCapsule, TerrainSnapshot};
@@ -87,6 +92,55 @@ fn nearest_target_id(
         }
     }
     best.map(|(idx, _)| idx)
+}
+
+fn build_intent_ndjson(
+    tick: u64,
+    stats: Option<&kindly_engine::tick::ShardTickStats>,
+) -> Option<String> {
+    let st = stats?;
+    if st.ai_generation_lsb == 0
+        && st.ai_threat_x_tile == 0
+        && st.ai_dominant_stance == 0
+        && st.ai_intent_payload == 0
+    {
+        return None;
+    }
+    let intent = BattleAiIntent {
+        dominant_stance: st.ai_dominant_stance,
+        doctrine_mode: st.ai_doctrine_mode,
+        threat_centroid_x_tile: st.ai_threat_x_tile,
+        threat_centroid_z_tile: st.ai_threat_z_tile,
+        generation_lsb: st.ai_generation_lsb,
+    };
+    Some(intent_ndjson_line(tick, intent))
+}
+
+fn build_dashboard_ndjson(
+    tick: u64,
+    stats: Option<&kindly_engine::tick::ShardTickStats>,
+) -> Option<String> {
+    let st = stats?;
+    let ai = format!(
+        "\"ai\":{{\"dominant_stance\":{},\"doctrine_mode\":{},\"threat_centroid\":[{},{}],\"generation_lsb\":{}}}",
+        st.ai_dominant_stance,
+        st.ai_doctrine_mode,
+        st.ai_threat_x_tile,
+        st.ai_threat_z_tile,
+        st.ai_generation_lsb
+    );
+    let threat = format!(
+        "\"threat\":{{\"pressure_q16\":{},\"fog_visible_contacts\":{},\"fog_visible_ratio_q16\":{}}}",
+        st.threat_pressure_q16, st.visible_contacts, st.visible_ratio_q16
+    );
+    let ops = format!(
+        "\"ops\":{{\"congestion_bucket\":{},\"ops_backpressure_q16\":{},\"command_delay_p95_bucket\":{},\"courier_eta_p95_bucket\":{}}}",
+        st.ops_congestion_bucket,
+        st.ops_backpressure_q16,
+        st.command_delay_p95_bucket,
+        st.courier_eta_p95_bucket
+    );
+    Some(format!("{{\"tick\":{tick},{ai},{threat},{ops}}}"))
 }
 
 #[derive(Debug, Clone)]
@@ -620,6 +674,9 @@ fn main() {
     for (idx, formation) in formations.iter().enumerate() {
         strategic_map.set_ammo(idx as u32, formation.snapshot().ammo);
     }
+    let diplomacy = DiplomaticStateCapsule::new(2);
+    let economy = ProvinceEconomyCapsule::new();
+    let mut campaign = CampaignMetacapsule::new(strategic_map, diplomacy, economy);
 
     // Overlay ingestion (no GPU side-effects; just demonstrates overlay publication).
     let overlay_capsule = RenderOverlayCapsule::new();
@@ -633,6 +690,8 @@ fn main() {
     let mut kgpu_sink: Option<KgpuRenderSinkCapsule> = None;
     let mut kgpu_ingest = KgpuIngestCapsule::new(2_048);
     let command_delays = CommandDelayBufferCapsule::new();
+    let intent_stream = env::var("INTENT_NDJSON").is_ok();
+    let dashboard_stream = env::var("DASHBOARD_NDJSON").is_ok();
     #[cfg(all(feature = "kgpu-driver-linux", target_os = "linux"))]
     {
         if cfg.use_kgpu_driver {
@@ -662,8 +721,8 @@ fn main() {
 
     for sim_tick in 0..10 {
         // Campaign-driven supply/weather feeds (no placeholders).
-        let strat_snap = strategic_map.step(sim_tick);
-        let supply_snap = &strat_snap.supply;
+        let strat_snap = campaign.step(sim_tick);
+        let supply_snap = &strat_snap.strategic.supply;
 
         // If target ID is known, resolve deterministic fire-control with shooter/target snapshots.
         if let Some(order) = orders.pop_order() {
@@ -702,12 +761,12 @@ fn main() {
 
         if strat_clock.should_fire(sim_tick) {
             let courier_eta_hint = Some(courier.debug_snapshot().base_eta_ticks);
-            strategic.apply(
-                sim_tick,
-                &orders,
-                &formations,
-                supply_snap,
-                courier_eta_hint,
+                strategic.apply(
+                    sim_tick,
+                    &orders,
+                    &formations,
+                    supply_snap,
+                    courier_eta_hint,
             );
             orders
                 .push_order(OrderKind::ArtilleryFire, 0, payload_a, payload_b)
@@ -752,6 +811,7 @@ fn main() {
             Some(&grenades),
             None,
             None,
+            None,
             Some(supply_snap),
             Some(&courier),
             Some(&fire_doctrine),
@@ -760,10 +820,20 @@ fn main() {
             Some(&general_snaps),
             Some(&command_hierarchy),
             Some(&commander_snaps),
-            Some(&strat_snap),
+            Some(&strat_snap.strategic),
             Some(&command_delays),
         );
         let stats = tick_world::<16>(sim_tick, &[shard]);
+        if intent_stream {
+            if let Some(intent_line) = build_intent_ndjson(sim_tick, stats.get(0)) {
+                println!("{intent_line}");
+            }
+        }
+        if dashboard_stream {
+            if let Some(dash_line) = build_dashboard_ndjson(sim_tick, stats.get(0)) {
+                println!("{dash_line}");
+            }
+        }
 
         // Produce a render view and publish overlays for kgpu.
         let shard_views = [&formations[..]];
@@ -891,14 +961,22 @@ fn run_stream_with_io_uring(
             p
         })
         .collect();
-    let mut campaign = StrategicMapCapsule::new(provinces, supply_roads, weather_script);
+    let mut strategic_map = StrategicMapCapsule::new(provinces, supply_roads, weather_script);
     for (idx, formation) in formations.iter().enumerate() {
-        campaign.set_ammo(idx as u32, formation.snapshot().ammo);
+        strategic_map.set_ammo(idx as u32, formation.snapshot().ammo);
     }
+    let diplomacy = DiplomaticStateCapsule::new(2);
+    let economy = ProvinceEconomyCapsule::new();
+    let mut campaign = CampaignMetacapsule::new(strategic_map, diplomacy, economy);
     let strat_snap = campaign.step(0);
-    let supply_snap = &strat_snap.supply;
+    let supply_snap = &strat_snap.strategic.supply;
 
     let structures: Vec<StructureCapsule> = Vec::new();
+    let siege_capsule = if structures.is_empty() {
+        None
+    } else {
+        Some(SiegeCapsule::new_from_structures(&structures))
+    };
 
     let mut driver = DriverCapsule::new(
         runtime,
@@ -913,6 +991,7 @@ fn run_stream_with_io_uring(
         &mut snapshot_mmap,
         formations,
         &structures,
+        siege_capsule.as_ref(),
         None,
         orders,
         telemetry,
@@ -931,7 +1010,7 @@ fn run_stream_with_io_uring(
         pathings,
         None,
         Some(supply_snap),
-        Some(&strat_snap),
+        Some(&strat_snap.strategic),
         None,
         None,
         None,
@@ -940,9 +1019,10 @@ fn run_stream_with_io_uring(
     let frame = driver
         .step(
             &[shard],
+            Some(&strat_snap.strategic),
+            Some(&strat_snap.diplomacy),
+            Some(&strat_snap.economy),
             Some(&strat_snap),
-            None,
-            None,
             Some(&command_delays),
             kgpu_sink.as_deref_mut(),
         )

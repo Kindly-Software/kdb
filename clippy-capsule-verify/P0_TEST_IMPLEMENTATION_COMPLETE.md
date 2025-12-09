@@ -14,7 +14,7 @@ Successfully implemented **20 comprehensive tests** for the two P0 (Priority 0) 
 - **P0.1 CAPSULE_MUTEX_VIOLATION**: 10 tests (7 fail, 3 pass)
 - **P0.2 CAPSULE_UNALIGNED_VIOLATION**: 10 tests (6 fail, 4 pass)
 
-All tests follow UCE34 T28 framework requirements, COCA principles, and ASSUM safety standards.
+All tests follow UCE34 T28 framework requirements, Chaos principles, and ASSUM safety standards.
 
 ---
 
@@ -218,11 +218,11 @@ find tests/ui/p0_*_violation -name "*.rs" | sort
 | **Q15-Q21 (Integration)** | ✅ 100% | Tests integrate with clippy lint infrastructure |
 | **Q22-Q28 (Production)** | ✅ 100% | Tests cover real-world capsule patterns |
 
-### COCA (Computational Capsule) Compliance
+### Chaos (Computational Capsule) Compliance
 
-- ✅ All tests use `#[repr(C, align(N))]` (COCA requirement)
+- ✅ All tests use `#[repr(C, align(N))]` (Chaos requirement)
 - ✅ Pass tests use 100% atomic primitives (lockfree mandate)
-- ✅ Fail tests demonstrate violations of COCA principles
+- ✅ Fail tests demonstrate violations of Chaos principles
 - ✅ Tests cover all three alignment tiers (64B/128B/256B)
 
 ### ASSUM (Safety) Compliance
@@ -249,7 +249,7 @@ find tests/ui/p0_*_violation -name "*.rs" | sort
 - ✅ **Validation script confirms all tests exist**
 - ✅ **Comprehensive documentation** (README + SUMMARY)
 - ✅ **UCE34 T28 framework compliance**
-- ✅ **COCA pattern compliance**
+- ✅ **Chaos pattern compliance**
 - ✅ **ASSUM safety compliance**
 
 ---
@@ -301,7 +301,7 @@ find tests/ui/p0_*_violation -name "*.rs" | sort
 ## References
 
 ### Core Documentation
-- **COCA**: `/home/samuel/Docs/The Computational Capsule.md`
+- **Chaos**: `/home/samuel/Docs/The Computational Capsule.md`
 - **UCE34 Framework**: `/home/samuel/CLAUDE.md` § UCE34
 - **T28 Testing**: `/home/samuel/CLAUDE.md` § T28 Framework
 - **ASSUM Safety**: `/home/samuel/CLAUDE.md` § ASSUM Framework
@@ -320,9 +320,9 @@ find tests/ui/p0_*_violation -name "*.rs" | sort
 
 ## Acknowledgments
 
-All tests follow the **UCE34 T28 framework** for comprehensive testing, **COCA principles** for computational capsule architecture, and **ASSUM standards** for safety verification.
+All tests follow the **UCE34 T28 framework** for comprehensive testing, **Chaos principles** for computational capsule architecture, and **ASSUM standards** for safety verification.
 
-**Framework Compliance**: UCE34 ✅ | T28 ✅ | COCA ✅ | ASSUM ✅ | B32 ⏱️
+**Framework Compliance**: UCE34 ✅ | T28 ✅ | Chaos ✅ | ASSUM ✅ | B32 ⏱️
 
 ---
 

@@ -111,7 +111,7 @@ Speedup vs Dolma: 5.5×
 ## Framework Compliance
 
 ✅ **UCE34**: Q10 T5 Streaming tier selection, Q34 audit trails
-✅ **COCA**: 100% lockfree (zero mutex/RwLock)
+✅ **Chaos**: 100% lockfree (zero mutex/RwLock)
 ✅ **ASSUM**: 99.99% safe (verified stress tests, crash recovery)
 ✅ **B32**: EXCEPTIONAL tier validated (real-world workloads)
 ✅ **T28**: 186 comprehensive tests (unit/property/integration/production)

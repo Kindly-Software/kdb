@@ -39,7 +39,7 @@ CliffordOptimizerCapsule optimizes quantum circuits composed of Clifford gates (
 - **5-10× depth reduction**: Validated on surface code syndrome circuits (distance 3-10)
 - **<100μs optimization latency**: Real-time compilation for 1-10 kHz syndrome extraction
 - **100% correctness**: Stabilizer equivalence guaranteed via property tests
-- **Lockfree coordination**: COCA-compliant (no mutex/RwLock)
+- **Lockfree coordination**: Chaos-compliant (no mutex/RwLock)
 - **SIMD-accelerated**: 2-4× speedup for gate matrix operations (T2)
 - **Batch parallelism**: 4-8× speedup for independent gate analysis (T4)
 
@@ -1342,6 +1342,6 @@ fn main() -> Result<(), OptimizerError> {
 4. **Depth reduction** (2-5× additional): Topological layering + layer compaction
 5. **100% correctness**: Stabilizer equivalence validation (property tested)
 
-**Framework Compliance**: UCE34 (Q1-Q34), COCA (lockfree), B32 (fair baselines), T28 (28 tests), ASSUM (99.99% safe), I20 (integration validated), Q34 (audit trail).
+**Framework Compliance**: UCE34 (Q1-Q34), Chaos (lockfree), B32 (fair baselines), T28 (28 tests), ASSUM (99.99% safe), I20 (integration validated), Q34 (audit trail).
 
 **Next Document**: See `CIRCUIT_REWRITING_RULES.md` for detailed optimization algorithms.

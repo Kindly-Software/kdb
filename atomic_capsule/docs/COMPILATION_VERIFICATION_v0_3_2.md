@@ -1187,7 +1187,7 @@ Use this checklist when adding new computational capsules:
 - [ ] **Step 13:** Update documentation:
   - Add to COMPILATION_VERIFICATION_v0_3_2.md
   - Add to UCE34_EXAMPLES.md (if breakthrough)
-  - Update COCA_VERIFICATION_REPORT.md
+  - Update Chaos_VERIFICATION_REPORT.md
 
 ---
 

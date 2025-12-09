@@ -6,7 +6,7 @@
 
 ## Overview
 
-This document describes the automated CI/CD setup for enforcing COCA (Computational Capsule) compliance via `clippy-capsule-verify`. The automation provides:
+This document describes the automated CI/CD setup for enforcing Chaos (Computational Capsule) compliance via `clippy-capsule-verify`. The automation provides:
 
 - **One-command setup**: `./scripts/setup-ci.sh` configures everything
 - **Platform support**: GitHub Actions, GitLab CI, local git hooks
@@ -599,7 +599,7 @@ grep -E "capsule_|missing_capsule" clippy-report.json | wc -l
 - **UCE34 Q30**: Validation via automated linting
 - **UCE34 Q33**: Lockfree enforcement (P0.1, P0.4)
 - **UCE34 Q34**: Auditability via commit-msg hook and CI/CD artifacts
-- **COCA**: 100% lockfree mandate enforced
+- **Chaos**: 100% lockfree mandate enforced
 - **B32**: Performance benchmarks (5s pre-commit, 30s pre-push)
 - **ASSUM**: Safety assumptions verified via lints
 - **I20**: Integration validation (zero breaking changes)
@@ -622,7 +622,7 @@ grep -E "capsule_|missing_capsule" clippy-report.json | wc -l
 - **GitHub workflow**: `.github/workflows/clippy-capsule-verify.yml`
 - **GitLab template**: `.gitlab-ci.yml.template`
 - **Integration guide**: `CI_CD_INTEGRATION_GUIDE.xml`
-- **COCA foundation**: `/home/samuel/Docs/The Computational Capsule.md`
+- **Chaos foundation**: `/home/samuel/Docs/The Computational Capsule.md`
 - **UCE34 framework**: `/home/samuel/CLAUDE.md`
 
 ---

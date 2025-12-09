@@ -361,7 +361,7 @@ cargo test --features "std,tls" --test acme_cert_manager_tests -- --nocapture
 - Q13-Q24: Implementation + error handling
 - Q25-Q34: Optimization, validation, compliance
 
-### ✅ COCA (100% Computational Capsule)
+### ✅ Chaos (100% Computational Capsule)
 - All fields are `Atomic*` types
 - 512-byte cache-aligned structure
 - Zero mutex/RwLock dependency
@@ -454,12 +454,12 @@ audit.log(Operation::CertRenewal, {
 ### Core Documentation
 - `/home/samuel/Primitives/atomic_capsule/CLAUDE.md` - Capsule primitives (250+ capsules)
 - `/home/samuel/Primitives/CLAUDE.md` - Computational Capsule foundation
-- `/home/samuel/Docs/The Computational Capsule.md` - COCA philosophy
+- `/home/samuel/Docs/The Computational Capsule.md` - Chaos philosophy
 - `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md` - Performance breakthroughs
 
 ### Framework References
 - **UCE34**: `xml/frameworks/uce34.xml` (Q1-Q34 systematic discovery)
-- **COCA**: `xml/shared/shared-components.xml` (tier definitions, decision trees)
+- **Chaos**: `xml/shared/shared-components.xml` (tier definitions, decision trees)
 - **ASSUM**: `xml/frameworks/assum.xml` (assumption verification patterns)
 - **B32**: `xml/frameworks/b32.xml` (benchmarking methodology)
 - **T28**: `xml/frameworks/t28.xml` (4-tier testing strategy)

@@ -32,7 +32,10 @@ mod benches {
         let elapsed = start.elapsed();
         println!("8×8 matmul (1000 iterations): {:?}", elapsed);
         // Expected: <5μs per iteration
-        assert!(elapsed.as_micros() < 50_000, "8×8 matmul should be <50ms for 1000 iterations");
+        assert!(
+            elapsed.as_micros() < 50_000,
+            "8×8 matmul should be <50ms for 1000 iterations"
+        );
     }
 
     #[test]
@@ -46,7 +49,10 @@ mod benches {
         let elapsed = start.elapsed();
         println!("8×8 transpose (1000 iterations): {:?}", elapsed);
         // Expected: <2μs per iteration
-        assert!(elapsed.as_micros() < 20_000, "8×8 transpose should be <20ms for 1000 iterations");
+        assert!(
+            elapsed.as_micros() < 20_000,
+            "8×8 transpose should be <20ms for 1000 iterations"
+        );
     }
 
     #[test]
@@ -61,7 +67,10 @@ mod benches {
         let elapsed = start.elapsed();
         println!("8×8 scale (1000 iterations): {:?}", elapsed);
         // Expected: <1μs per iteration
-        assert!(elapsed.as_micros() < 10_000, "8×8 scale should be <10ms for 1000 iterations");
+        assert!(
+            elapsed.as_micros() < 10_000,
+            "8×8 scale should be <10ms for 1000 iterations"
+        );
     }
 
     #[test]
@@ -76,7 +85,10 @@ mod benches {
         let elapsed = start.elapsed();
         println!("64×64 matmul (100 iterations): {:?}", elapsed);
         // Expected: <500μs per iteration = <50ms total
-        assert!(elapsed.as_millis() < 100, "64×64 matmul should be <100ms for 100 iterations");
+        assert!(
+            elapsed.as_millis() < 100,
+            "64×64 matmul should be <100ms for 100 iterations"
+        );
     }
 
     #[test]

@@ -434,7 +434,7 @@ None exported by default (can be extended):
 ### Documentation
 
 - **User Guide**: See module documentation in `src/lib.rs`
-- **Architecture**: Computational Capsule framework (COCA)
+- **Architecture**: Computational Capsule framework (Chaos)
 - **Benchmarks**: `benches/b32_mcp_latency.rs`
 - **Examples**: `examples/mcp_server_demo.rs`
 

@@ -1,0 +1,50 @@
+# Clapi Configuration Example
+#
+# This configuration file demonstrates how to set up the Clapi proxy server
+# for AI API call protection with budget enforcement and provider routing.
+
+# Server listen address
+listen_addr = "127.0.0.1:8080"
+
+# Default budget for new users (cents)
+# $100.00 = 100_00 cents
+default_budget = 100_00
+
+# Audit log file path
+audit_log_path = "/var/log/clapi/audit.log"
+
+# Request timeout (seconds)
+request_timeout_secs = 30
+
+# Provider configurations
+#
+# Multiple providers can be configured for failover.
+# The first provider is primary, subsequent providers are fallbacks.
+
+[[providers]]
+name = "openai"
+base_url = "https://api.openai.com"
+api_key = "sk-YOUR_OPENAI_API_KEY_HERE"
+priority = 0
+models = ["gpt-4", "gpt-4-turbo", "gpt-3.5-turbo"]
+
+[[providers]]
+name = "anthropic"
+base_url = "https://api.anthropic.com"
+api_key = "sk-ant-YOUR_ANTHROPIC_API_KEY_HERE"
+priority = 1
+models = ["claude-3-opus", "claude-3-sonnet", "claude-3-haiku"]
+
+# Example: Add more providers for failover
+# [[providers]]
+# name = "cohere"
+# base_url = "https://api.cohere.ai"
+# api_key = "YOUR_COHERE_API_KEY_HERE"
+# priority = 2
+# models = ["command", "command-light"]
+
+# Notes:
+# - priority: Lower values = higher priority (0 = primary)
+# - Budget tracking is per-user via budget_id in requests
+# - Audit log records all requests for compliance
+# - Provider health is tracked automatically via RoutingCapsule128

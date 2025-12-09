@@ -29,8 +29,8 @@
 //! 3. **Speedup Validation**: Direct comparison (scalar vs AVX2)
 //! 4. **Production Workload**: Realistic multi-gate circuits
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use atomic_capsule::quantum_pure::cz_gate::CZGateCapsule;
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 
 /// Helper: Create equal superposition state
 fn create_equal_superposition(num_amplitudes: usize) -> (Vec<f64>, Vec<f64>) {
@@ -59,12 +59,8 @@ fn bench_cz_scalar_baseline(c: &mut Criterion) {
             &num_qubits,
             |b, &nq| {
                 b.iter(|| {
-                    gate.apply(
-                        black_box(&mut real),
-                        black_box(&mut imag),
-                        black_box(nq),
-                    )
-                    .unwrap();
+                    gate.apply(black_box(&mut real), black_box(&mut imag), black_box(nq))
+                        .unwrap();
                 });
             },
         );
@@ -93,12 +89,8 @@ fn bench_cz_avx2_optimized(c: &mut Criterion) {
             &num_qubits,
             |b, &nq| {
                 b.iter(|| {
-                    gate.apply_avx2(
-                        black_box(&mut real),
-                        black_box(&mut imag),
-                        black_box(nq),
-                    )
-                    .unwrap();
+                    gate.apply_avx2(black_box(&mut real), black_box(&mut imag), black_box(nq))
+                        .unwrap();
                 });
             },
         );
@@ -129,12 +121,8 @@ fn bench_cz_speedup_validation(c: &mut Criterion) {
                 &num_qubits,
                 |b, &nq| {
                     b.iter(|| {
-                        gate.apply(
-                            black_box(&mut real),
-                            black_box(&mut imag),
-                            black_box(nq),
-                        )
-                        .unwrap();
+                        gate.apply(black_box(&mut real), black_box(&mut imag), black_box(nq))
+                            .unwrap();
                     });
                 },
             );
@@ -149,12 +137,8 @@ fn bench_cz_speedup_validation(c: &mut Criterion) {
                 &num_qubits,
                 |b, &nq| {
                     b.iter(|| {
-                        gate.apply_avx2(
-                            black_box(&mut real),
-                            black_box(&mut imag),
-                            black_box(nq),
-                        )
-                        .unwrap();
+                        gate.apply_avx2(black_box(&mut real), black_box(&mut imag), black_box(nq))
+                            .unwrap();
                     });
                 },
             );

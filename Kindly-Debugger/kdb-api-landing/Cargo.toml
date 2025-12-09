@@ -2,7 +2,7 @@
 name = "kdb-api-landing"
 version = "0.1.0"
 edition = "2021"
-description = "API documentation landing page for api.kindly.services"
+description = "API documentation landing page for api.kindly.software"
 license = "Proprietary"
 
 [lib]

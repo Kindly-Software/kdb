@@ -4,7 +4,7 @@
 **Status**: ✅ PRODUCTION READY (Week 1 Phase: MCP Excellence)
 **Lines of Code**: 850+ lines
 **Integration**: atomic_mcp_server (src/server.rs)
-**Framework Compliance**: UCE34 (Q10 T6 Mixed), COCA (100% lockfree), ASSUM (99.99%), B32, T28, I20
+**Framework Compliance**: UCE34 (Q10 T6 Mixed), Chaos (100% lockfree), ASSUM (99.99%), B32, T28, I20
 
 ---
 
@@ -168,7 +168,7 @@ The embedded `_documentation` field enables:
 ✅ Q33: ComputationalCapsule verification (compile-time via derive macro)
 ✅ Q34: Q34 audit trails (hash-chain integrity for compliance)
 
-#### COCA (Computational Capsule Architecture)
+#### Chaos (Computational Capsule Architecture)
 ✅ 100% lockfree (zero Mutex/RwLock)
 ✅ Atomic-only coordination (AtomicU64 state machines)
 ✅ Cache-aligned (64B/128B for false-sharing prevention)

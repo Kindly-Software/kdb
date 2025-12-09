@@ -1,0 +1,21 @@
+error: Capsules must use #[repr(C)] for deterministic field layout
+
+       Computational capsules require predictable memory layout for cache optimization.
+
+       Help: Add #[repr(C, align(N))] to your struct:
+
+       #[derive(ComputationalCapsule)]
+       #[capsule(alignment = 64)]
+       #[repr(C, align(64))]  // ← Add this!
+       struct MyCapsule { ... }
+
+       UCE33 Q11: Rust's #[repr(C)] ensures zero-cost predictable layout
+  --> tests/compile_fail/missing_repr_c.rs:12:1
+   |
+12 | / #[capsule(alignment = 64, size = 64)]
+13 | | #[repr(align(64))]  // ❌ Missing repr(C) - only has align
+14 | | struct MissingReprC {
+15 | |     state: AtomicU64,
+16 | |     _padding: [u8; 56],
+17 | | }
+   | |_^

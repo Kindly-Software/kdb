@@ -10,7 +10,7 @@
 // - JA3S: Server-side TLS fingerprinting for evasion detection
 // - Known bot patterns: Selenium, Puppeteer, Playwright, curl, Python requests, Go http
 //
-// Framework Compliance: UCE34 (Q1-Q34), COCA (100% lockfree), ASSUM (99.5%+), B32, T28, I20
+// Framework Compliance: UCE34 (Q1-Q34), Chaos (100% lockfree), ASSUM (99.5%+), B32, T28, I20
 
 use core::sync::atomic::{AtomicU64, Ordering};
 

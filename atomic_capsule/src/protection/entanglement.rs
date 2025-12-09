@@ -27,7 +27,7 @@
 //! └─────────────────────────────────────────────────────────────┘
 //! ```
 //!
-//! # COCA Compliance
+//! # Chaos Compliance
 //! - 256B cache-aligned (L2 cache line)
 //! - 100% lockfree (AtomicU64 only)
 //! - Generates zero false positives (deterministic)

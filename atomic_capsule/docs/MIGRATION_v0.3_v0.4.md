@@ -426,7 +426,7 @@ agg.append(0, result);
 
 **Key Difference**:
 - V1/V2: Blocking `merge()` call (O(n) time)
-- V3: Callback-based merge (O(1) time, COCA compliant)
+- V3: Callback-based merge (O(1) time, Chaos compliant)
 
 See **docs/PHASE15_V3_MIGRATION_GUIDE.md** for complete details.
 

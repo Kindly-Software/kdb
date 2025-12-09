@@ -1,0 +1,84 @@
+# Clippy Capsule Verification Configuration
+# Location: Project root (same directory as Cargo.toml)
+# Framework: UCE34 Q30-Q34 (Validation + Auditability)
+# Copy to .clippy.toml to enable: cp .clippy.toml.example .clippy.toml
+
+# ============================================================================
+# P0 CRITICAL LINTS (DENY - Compile Errors)
+# ============================================================================
+
+# P0.1: No Mutex/RwLock in capsules (lockfree mandate)
+capsule-mutex-violation = "deny"
+
+# P0.2: Size must be multiple of alignment (cache-line alignment)
+capsule-unaligned-violation = "deny"
+
+# P0.3: T1 Atomic capsules need generation counters (TOCTOU prevention)
+capsule-missing-generation = "deny"
+
+# P0.4: T1 capsules must only use atomic types (lockfree violation)
+capsule-non-atomic-field = "deny"
+
+# ============================================================================
+# P1 HIGH LINTS (WARN - Should Address)
+# ============================================================================
+
+# P1.0: Capsules need compile-time verification
+missing-capsule-verification = "warn"
+
+# ============================================================================
+# P2 MEDIUM LINTS (ALLOW - Future Enforcement)
+# ============================================================================
+
+# P2.1-P2.3: Not yet implemented (v0.2.0)
+
+# ============================================================================
+# STANDARD CLIPPY CONFIGURATION
+# ============================================================================
+
+# Enforce standard clippy warnings as errors in CI
+# (Keep as warnings for local development)
+all-lints = "warn"
+
+# Specific clippy lints to enforce
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+
+# Disable noisy lints
+# (Capsule patterns have legitimate use cases for these)
+module-name-repetitions = "allow"
+struct-excessive-bools = "allow"
+similar-names = "allow"
+
+# Performance lints (always enforce)
+perf = { level = "warn", priority = 1 }
+
+# ============================================================================
+# MSRV (Minimum Supported Rust Version)
+# ============================================================================
+
+# Require Rust 1.77.0+ (nightly features via rust-toolchain.toml)
+msrv = "1.77.0"
+
+# ============================================================================
+# CUSTOM LINT THRESHOLDS
+# ============================================================================
+
+# Complexity thresholds
+cognitive-complexity-threshold = 25
+type-complexity-threshold = 500
+
+# Function thresholds
+too-many-arguments-threshold = 8
+too-many-lines-threshold = 150
+
+# ============================================================================
+# ALLOWED EXTERNAL TYPES (FFI EXCEPTIONS)
+# ============================================================================
+
+# External FFI types that don't need capsule verification
+# (Controlled by external libraries, not our code)
+allowed-unverified-types = [
+    "ExternalCapsule",
+    "LegacyCapsule",
+]

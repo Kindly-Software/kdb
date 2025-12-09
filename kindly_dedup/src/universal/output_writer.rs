@@ -1,5 +1,10 @@
 //! MmapOutputWriterCapsule - Zero-Copy JSONL Output Writer (T9 Persistent)
 //!
+//! # Clippy Suppressions
+//! - `dead_code`: Experimental functions retained for future development
+
+#![allow(dead_code)]
+
 //! # Overview
 //!
 //! High-performance memory-mapped output writer for duplicate clusters with:
@@ -39,7 +44,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q1-Q34 complete (T9 Persistent tier selection, Q34 audit trails)
-//! - **COCA**: 100% lockfree (atomic_capsule primitives only, no mutex)
+//! - **Chaos**: 100% lockfree (atomic_capsule primitives only, no mutex)
 //! - **ASSUM**: 99.99% safe (3 critical assumptions, all verified)
 //! - **B32**: Fair baseline comparison (100K clusters/sec conservative estimate)
 //! - **T28**: Comprehensive tests (unit/property/integration/production)

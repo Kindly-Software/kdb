@@ -7,7 +7,7 @@
 ## Overview
 
 clippy-capsule-verify is a custom Clippy lint plugin that enforces Computational Capsule
-Architecture (COCA) compliance at compile-time. It catches 90-95% of COCA violations
+Architecture (Chaos) compliance at compile-time. It catches 90-95% of Chaos violations
 instantly, providing 100× faster detection than manual code review with <2% compilation
 overhead and zero runtime impact.
 
@@ -48,7 +48,7 @@ overhead and zero runtime impact.
 1. **Immediate Value**: 100× faster violation detection (instant vs 30-120 min manual review)
 2. **Low Overhead**: <2% compilation impact, zero runtime cost
 3. **High Accuracy**: 90-95% detection rate with <5% false positives
-4. **Comprehensive**: Covers all critical COCA violations (lockfree, alignment, generation)
+4. **Comprehensive**: Covers all critical Chaos violations (lockfree, alignment, generation)
 5. **Developer-Friendly**: Clear diagnostics, actionable suggestions, easy suppression
 
 ### ⚠️ Known Limitations (Acceptable for Alpha)
@@ -99,7 +99,7 @@ overhead and zero runtime impact.
 
 ### Phase 3: Early Adopter Program (4 weeks, Dec 28 - Jan 24)
 
-**Scope**: External teams using COCA architecture
+**Scope**: External teams using Chaos architecture
 
 **Goal**: Feedback collection, edge case discovery
 
@@ -125,9 +125,9 @@ overhead and zero runtime impact.
 ### Long-term ROI
 
 - **Reduced Tech Debt**: Automated enforcement prevents accumulation of violations
-- **Training Acceleration**: Instant feedback reduces COCA learning curve 50%
+- **Training Acceleration**: Instant feedback reduces Chaos learning curve 50%
 - **Compliance Assurance**: SOX/SOC2/GDPR/HIPAA audit trail support (Q34)
-- **Ecosystem Growth**: Enables confident adoption of COCA architecture
+- **Ecosystem Growth**: Enables confident adoption of Chaos architecture
 
 ## Risk Mitigation
 
@@ -149,7 +149,7 @@ overhead and zero runtime impact.
 ## Framework Compliance
 
 - **UCE34**: Q10 tier validation, Q33 verification, Q34 auditability
-- **COCA**: 100% lockfree mandate, cache-aligned, compile-time verification
+- **Chaos**: 100% lockfree mandate, cache-aligned, compile-time verification
 - **B32**: <2% overhead validated, fair baselines, reproducible results
 - **T28**: 77 tests (unit/UI/integration), phased rollout plan
 - **ASSUM**: 99.5% safe detection, conservative patterns, documented assumptions

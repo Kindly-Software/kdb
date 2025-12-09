@@ -95,16 +95,16 @@ use std::sync::Arc;
 
 use crate::bloom_sharded::ShardedDedupBloomFilter;
 use crate::disk_backed_bucket_index::DiskBackedBucketIndex;
-use crate::disk_backed_bucket_reader::{BucketData, DiskBackedBucketReader};
+use crate::disk_backed_bucket_reader::DiskBackedBucketReader;
 use crate::disk_backed_bucket_writer::{DiskBackedBucketError, DiskBackedBucketResult, DiskBackedBucketWriter};
-use crate::streaming_bucket_verifier::StreamingBucketVerifier;
+use crate::streaming_bucket_verifier::{StreamingBucketVerifier, NoOpSignatureStore};
 
 /// Type alias for document ID
 pub type DocId = usize;
 
 /// Disk-backed hierarchical LSH capsule (T9+T1+T5+T10)
 ///
-/// # COCA Architecture
+/// # Chaos Architecture
 ///
 /// **Alignment**: 64 bytes (HotTier) to prevent false sharing
 /// **Coordination**: Lockfree atomics for statistics (T1 Atomic)
@@ -400,8 +400,11 @@ impl DiskBackedHierarchicalLsh {
         // 1. Flush all buffered writes to disk
         self.bucket_writer.flush()?;
 
-        // 2. Create streaming verifier (O(1) RAM per bucket)
-        let verifier = Arc::new(StreamingBucketVerifier::new(self.threshold).map_err(|e| {
+        // 2. Create streaming verifier (O(1) RAM per bucket) with NoOp signature store
+        // Note: NoOpSignatureStore returns 100% similarity (conservative estimate) since
+        // this code path doesn't have access to the full signature storage
+        let store = NoOpSignatureStore;
+        let verifier = Arc::new(StreamingBucketVerifier::new(self.threshold, store).map_err(|e| {
             DiskBackedBucketError::IoError(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 format!("Verifier creation failed: {}", e),
@@ -420,7 +423,11 @@ impl DiskBackedHierarchicalLsh {
                 Ok(bucket_data) => {
                     // Verify bucket: Generate all pairs above threshold
                     let bucket_vec = vec![bucket_data.doc_ids];
-                    let pairs = verifier.verify_buckets_streaming(&bucket_vec);
+                    let pairs = verifier.verify_buckets_streaming(&bucket_vec)
+                        .map_err(|e| DiskBackedBucketError::IoError(std::io::Error::new(
+                            std::io::ErrorKind::Other,
+                            format!("Bucket verification failed: {}", e),
+                        )))?;
 
                     // Accumulate pairs
                     all_pairs.extend(pairs);
@@ -438,7 +445,7 @@ impl DiskBackedHierarchicalLsh {
         }
 
         // 5. Convert u64 pairs to DocId pairs
-        let doc_id_pairs: Vec<(DocId, DocId)> = all_pairs.iter().map(|(a, b)| (*a as DocId, *b as DocId)).collect();
+        let doc_id_pairs: Vec<(DocId, DocId)> = all_pairs.into_iter().map(|(a, b)| (a as DocId, b as DocId)).collect();
 
         Ok(doc_id_pairs)
     }

@@ -14,7 +14,7 @@
 //! - Parallel target: ~17.5s (8 cores, 8× speedup)
 //! - Chunk size: 16MB (optimal for CPU cache)
 //!
-//! # COCA Principles Applied
+//! # Chaos Principles Applied
 //! - **128-byte alignment**: Atomic metrics capsule
 //! - **DualAtomicU64**: Primary (bytes) + Secondary (zones)
 //! - **100% lockfree**: Rayon work-stealing, atomic counters

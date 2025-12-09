@@ -98,7 +98,7 @@
 //!
 //! # Architecture
 //!
-//! ## Computational Capsule (COCA) Compliance
+//! ## Computational Capsule (Chaos) Compliance
 //!
 //! - **100% Lockfree**: All coordination via atomics (no mutex/RwLock)
 //! - **Cache-Aligned**: 128B prevents false sharing
@@ -149,7 +149,7 @@
 //! # Framework Compliance Summary
 //!
 //! - **UCE34**: Q1-Q12 complete, T2 SIMD tier
-//! - **COCA**: 100% lockfree, cache-aligned, verified
+//! - **Chaos**: 100% lockfree, cache-aligned, verified
 //! - **ASSUM**: 99.99% safe (7 assumptions, 2 verifications)
 //! - **B32**: Fair baseline (scalar), 3-4× validated speedup
 //! - **T28**: 28 comprehensive tests (see tests/cz_gate_t28.rs)
@@ -195,6 +195,7 @@ use std::simd::{f64x4, Mask};
 /// - #ASSUME_CACHE_ALIGNED: 128B alignment (compile-time verified)
 #[repr(C, align(128))]
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
+#[cfg_attr(feature = "derive", capsule(alignment = 128))]
 pub struct CZGateCapsule {
     /// First qubit index
     qubit1: AtomicU32,

@@ -946,5 +946,5 @@ Dequantization: 256 × (1 load + 1 div) = ~500ns
 **Document Status**: Architecture Complete (Pre-Implementation)
 **Version**: 1.0
 **Date**: 2025-10-26
-**Frameworks**: UCE34, IMPL-2 V3.1, COCA, ASSUM, B32, T28
+**Frameworks**: UCE34, IMPL-2 V3.1, Chaos, ASSUM, B32, T28
 **Trade Secret Protection**: All implementations will be tagged [TRADE SECRET]

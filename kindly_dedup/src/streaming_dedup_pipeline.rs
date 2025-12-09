@@ -43,18 +43,15 @@
 
 use crate::bloom_sharded::ShardedDedupBloomFilter;
 use crate::concurrent_union_find::ConcurrentUnionFind;
-use crate::pairs_iterator::PairsIterator;
 use crate::pipeline::{DocId, PipelineError};
 use atomic_capsule::collections::queue::UnboundedQueueCapsule;
 use atomic_capsule::collections::{ConcurrentMapCapsuleV2, PushError, QueueCapsule, MPMC};
-use atomic_capsule::parallel::{HybridBatchPool, LockfreeList, ThreadPool};
+use atomic_capsule::parallel::ThreadPool;
 use atomic_capsule::primitives::fixed_point::Q16_16;
 use atomic_capsule::probabilistic::{tokenize, MinHashSignatureCapsule};
 use atomic_capsule::CpuCapabilityCapsule;
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
-use std::thread;
-use std::thread::available_parallelism;
 
 // MIGRATION NOTE (2025-11-15): Hierarchical LSH integration
 // Added hierarchical_lsh, coarse_bucket, hierarchical_pairs_iterator modules
@@ -70,6 +67,50 @@ use crate::simd_minhash;
 // OPTION D: VEC-BASED SIGNATURE STORAGE (5-8 GB Memory Savings)
 // ============================================================================
 
+use std::cell::UnsafeCell;
+
+/// Wrapper to make UnsafeCell Send + Sync for interior mutability
+///
+/// # SAFETY
+/// - Single-writer per slot guaranteed by sequential DocIds (each doc_id appears once)
+/// - Validity flag prevents reads of uninitialized data (Acquire/Release ordering)
+/// - No resizing after construction (fixed capacity)
+#[repr(transparent)]
+struct SignatureSlot(UnsafeCell<MinHashSignatureCapsule>);
+
+// SAFETY: SignatureSlot is only accessed through atomic validity flags
+// which provide proper synchronization. Each slot is written exactly once
+// (single-writer per doc_id) and reads only occur after the validity flag is set.
+unsafe impl Send for SignatureSlot {}
+unsafe impl Sync for SignatureSlot {}
+
+impl SignatureSlot {
+    fn new(value: MinHashSignatureCapsule) -> Self {
+        SignatureSlot(UnsafeCell::new(value))
+    }
+
+    /// Write signature (must be called with proper synchronization)
+    ///
+    /// # SAFETY
+    /// Caller must ensure:
+    /// - Only one writer per slot (guaranteed by sequential doc_ids)
+    /// - Validity flag set AFTER write completes (Release ordering)
+    #[inline]
+    unsafe fn write(&self, value: MinHashSignatureCapsule) {
+        *self.0.get() = value;
+    }
+
+    /// Read signature (must be called after validity flag check)
+    ///
+    /// # SAFETY
+    /// Caller must ensure:
+    /// - Validity flag was checked with Acquire ordering before read
+    #[inline]
+    unsafe fn read(&self) -> MinHashSignatureCapsule {
+        (*self.0.get()).clone()
+    }
+}
+
 /// Lockfree signature storage using direct Vec indexing (T1 Atomic tier)
 ///
 /// # Memory Comparison (1M documents)
@@ -80,11 +121,11 @@ use crate::simd_minhash;
 /// # Architecture
 /// - Pre-allocated Vec with fixed capacity (no dynamic growth)
 /// - Direct indexing: O(1) access vs O(log N) HashMap
-/// - AtomicU64 flags for lockfree concurrent access (replaced crossbeam AtomicCell)
+/// - UnsafeCell + AtomicU64 flags for proper interior mutability (FIXED: heap corruption bug)
 /// - Generation counter for version tracking (Q34 audit compliance)
 ///
 /// # UCE34 Q10c
-/// - **T1 Atomic**: Lockfree via AtomicU64 flags + generation counter (100% COCA)
+/// - **T1 Atomic**: Lockfree via AtomicU64 flags + generation counter (100% Chaos)
 /// - **Direct indexing**: Sequential DocIds (0..num_docs) enable Vec lookup
 /// - **Pre-allocated**: Fixed memory footprint (no HashMap overhead)
 ///
@@ -92,12 +133,14 @@ use crate::simd_minhash;
 /// - #ASSUME_SEQUENTIAL_DOCIDS: DocIds are sequential 0..num_docs (enforced by caller)
 /// - #ASSUME_BOUNDS_CHECK: Vec indexing validates doc_id < capacity
 /// - #ASSUME_LOCKFREE_ATOMICS: AtomicU64 provides lockfree CAS operations
-/// - #ASSUME_COPY_SIGNATURE: MinHashSignatureCapsule is Copy ([u16; 128])
+/// - #ASSUME_SINGLE_WRITER: Each doc_id is written exactly once (enforced by pipeline)
+/// - #VERIFY_INTERIOR_MUTABILITY: UnsafeCell provides proper interior mutability (FIX: 2025-11-29)
 #[repr(C, align(64))]
 struct SignatureStorage {
     /// Pre-allocated Vec of signatures (fixed size at construction)
-    /// Each slot holds MinHashSignatureCapsule (256 bytes, Copy type)
-    signatures: Vec<MinHashSignatureCapsule>,
+    /// Each slot holds MinHashSignatureCapsule (256 bytes) wrapped in UnsafeCell
+    /// UnsafeCell provides proper interior mutability without aliasing violations
+    signatures: Vec<SignatureSlot>,
 
     /// Validity flags: AtomicU64 per slot indicates if signature is set
     /// Packed as bitmap: bit N = doc_id N is valid (AtomicU64 covers 64 docs/slot)
@@ -120,7 +163,9 @@ impl SignatureStorage {
     /// - 10M docs: 2.5 GB signatures + 156 KB flags = **2.5001 GB**
     /// - vs 5-8 GB HashMap (95-97% reduction maintained)
     fn new(capacity: usize) -> Self {
-        let signatures = vec![MinHashSignatureCapsule::default(); capacity];
+        let signatures = (0..capacity)
+            .map(|_| SignatureSlot::new(MinHashSignatureCapsule::default()))
+            .collect();
         let flag_capacity = (capacity + 63) / 64; // Ceil division for bitmap
         let validity_flags = (0..flag_capacity)
             .map(|_| AtomicU64::new(0))
@@ -146,18 +191,24 @@ impl SignatureStorage {
     /// - Generation increment: ~3ns (atomic fetch_add)
     /// - **Total: <20ns** (vs 100-500ns HashMap insert)
     ///
-    /// # COCA Compliance
+    /// # Chaos Compliance
     /// - 100% lockfree (no mutex, pure atomics)
-    /// - Zero crossbeam dependencies
+    /// - Proper interior mutability via UnsafeCell (fixed heap corruption bug)
     fn insert(&self, doc_id: DocId, signature: MinHashSignatureCapsule) {
         if doc_id < self.signatures.len() {
-            // Direct write (safe: Vec allocated at construction, no resizing)
+            // Write through UnsafeCell (proper interior mutability)
+            // SAFETY:
+            // 1. Bounds checked above
+            // 2. Single-writer per doc_id guaranteed by sequential DocIds
+            // 3. Validity flag set AFTER write with Release ordering
+            // 4. UnsafeCell provides proper interior mutability (no aliasing violation)
+            #[allow(unsafe_code)]
             unsafe {
-                let ptr = self.signatures.as_ptr() as *mut MinHashSignatureCapsule;
-                *ptr.add(doc_id) = signature;
+                self.signatures[doc_id].write(signature);
             }
 
-            // Mark validity flag (lockfree atomic OR)
+            // Mark validity flag (lockfree atomic OR) with Release ordering
+            // This ensures the write above is visible to readers who see the flag
             let flag_idx = doc_id / 64;
             let bit = (doc_id % 64) as u32;
             if flag_idx < self.validity_flags.len() {
@@ -191,13 +242,18 @@ impl SignatureStorage {
     /// - **Total: <60ns** (vs 100-200ns HashMap lookup)
     fn get(&self, doc_id: DocId) -> Option<MinHashSignatureCapsule> {
         if doc_id < self.signatures.len() {
-            // Check validity flag (lockfree atomic AND)
+            // Check validity flag with Acquire ordering (synchronizes with Release in insert)
             let flag_idx = doc_id / 64;
             let bit = (doc_id % 64) as u32;
             if flag_idx < self.validity_flags.len() {
                 let flags = self.validity_flags[flag_idx].load(Ordering::Acquire);
                 if (flags & (1u64 << bit)) != 0 {
-                    return Some(self.signatures[doc_id].clone());
+                    // SAFETY: Validity flag was set with Release ordering after write,
+                    // and we loaded it with Acquire ordering, so the write is visible
+                    #[allow(unsafe_code)]
+                    unsafe {
+                        return Some(self.signatures[doc_id].read());
+                    }
                 }
             }
             None
@@ -247,8 +303,11 @@ const BATCH_SIZE: usize = 100;
 /// - Expected speedup: 1 / (0.01 + 0.18 + 0.81) = 1.05× from Jaccard alone
 /// - But also reduces lock contention and cache misses in union-find
 /// - Total expected: 1.5-2.5× on pair verification stage
+#[allow(dead_code)] // Reserved for future T4 Batch parallelization
 const PAIR_BATCH_SIZE: usize = 50_000; // Tune: 10K-100K based on L3 cache
+#[allow(dead_code)] // Reserved for future T4 Batch parallelization
 const T4_BATCH_CAPACITY: usize = 64; // Tasks per thread before flush
+#[allow(dead_code)] // Reserved for future T4 Batch parallelization
 const T4_NUM_QUEUES: usize = 8; // Striped queue count
 
 // ============================================================================
@@ -317,7 +376,7 @@ pub struct StreamingDedupPipeline {
     // Hierarchical LSH configuration (stores parameters and statistics)
     hierarchical_lsh_config: Arc<HierarchicalLshCapsule>,
 
-    // Shared state (lockfree concurrent access, COCA compliant)
+    // Shared state (lockfree concurrent access, Chaos compliant)
     // OPTION D (2025-11-16): Vec-based storage (5-8 GB memory savings vs HashMap)
     signatures: Arc<SignatureStorage>,
     cpu_caps: &'static CpuCapabilityCapsule,
@@ -353,6 +412,7 @@ pub struct StreamingDedupPipeline {
 
     // Phase 3: Timing infrastructure for progress tracking
     start_time: Arc<AtomicU64>, // Nanoseconds since epoch
+    #[allow(dead_code)] // Reserved for future completion timing
     end_time: Arc<AtomicU64>,
 
     // Phase 3: Q34 Audit trail integration
@@ -361,11 +421,15 @@ pub struct StreamingDedupPipeline {
 
     // Configuration
     num_documents: usize,
+    #[allow(dead_code)] // Stored for validation, not actively used
     num_threads: usize,
+    #[allow(dead_code)] // Legacy parameter, kept for backward compatibility
     num_bands: usize,     // Phase 2: Adaptive LSH parameters
+    #[allow(dead_code)] // Legacy parameter, kept for backward compatibility
     rows_per_band: usize, // Phase 2: Adaptive LSH parameters
 }
 
+#[allow(deprecated)] // This is the implementation of the deprecated struct itself
 impl StreamingDedupPipeline {
     /// Create new streaming pipeline
     pub fn new(num_documents: usize, num_threads: usize) -> Result<Self, PipelineError> {
@@ -426,7 +490,7 @@ impl StreamingDedupPipeline {
             .map(|_| Arc::new(ConcurrentMapCapsuleV2::new()))
             .collect();
 
-        // Initialize shared state (100% lockfree, COCA compliant)
+        // Initialize shared state (100% lockfree, Chaos compliant)
         // OPTION D (2025-11-16): Pre-allocate Vec with exact capacity (256 MB for 1M docs)
         // Memory: num_documents × 256 bytes (vs 5-8 GB HashMap overhead)
         let signatures = Arc::new(SignatureStorage::new(num_documents));
@@ -659,10 +723,14 @@ impl StreamingDedupPipeline {
         let union_find = ConcurrentUnionFind::new(self.num_documents);
 
         // Drain pairs queue (already verified during add_documents_iter)
+        #[cfg(feature = "benchmarking")]
         let mut pairs_consumed = 0;
         while let Some((doc1, doc2)) = self.pairs_queue.pop() {
             union_find.union(doc1, doc2);
-            pairs_consumed += 1;
+            #[cfg(feature = "benchmarking")]
+            {
+                pairs_consumed += 1;
+            }
         }
 
         #[cfg(feature = "benchmarking")]
@@ -685,7 +753,7 @@ impl StreamingDedupPipeline {
     // ///
     // /// **Tier**: T4 Batch (executed in parallel by HybridBatchPool workers)
     // /// **Purpose**: Compute Jaccard similarity for all pairs in batch and union matching docs
-    // /// **COCA Compliance**: 100% lockfree (atomic operations only on union_find)
+    // /// **Chaos Compliance**: 100% lockfree (atomic operations only on union_find)
     // ///
     // /// **ASSUM Safety**:
     // /// - #ASSUME_BATCH_INTEGRITY: All pairs in batch are valid (DocId < num_documents)
@@ -828,7 +896,7 @@ impl StreamingDedupPipeline {
         for _ in 0..num_workers {
             let token_q = self.token_queue.clone();
             let sig_q = self.signature_queue.clone();
-            let cpu_caps = self.cpu_caps; // Static reference, just copy
+            let cpu_caps = self.cpu_caps; // Static reference, used for SIMD dispatch
             let counter = self.signatures_computed.clone();
             let signatures = self.signatures.clone();
             let shutdown = self.shutdown.clone();
@@ -877,9 +945,12 @@ impl StreamingDedupPipeline {
                             };
 
                             #[cfg(not(feature = "simd-minhash"))]
-                            let signature = MinHashSignatureCapsule::compute_signature(&token_refs);
+                            let signature = {
+                                let _ = cpu_caps; // Mark as used
+                                MinHashSignatureCapsule::compute_signature(&token_refs)
+                            };
 
-                            // Store signature (lockfree, COCA compliant)
+                            // Store signature (lockfree, Chaos compliant)
                             signatures.insert(doc_id, signature.clone());
 
                             // Push to output queue (bounded: retry on full)
@@ -1009,7 +1080,8 @@ impl StreamingDedupPipeline {
                                     None => {
                                         let new_bucket = CoarseBucketCapsule::new(coarse_band, coarse_hash);
                                         let trait_obj: Arc<dyn CoarseBucketLike> = new_bucket;
-                                        let _ = shard.insert(bucket_key, trait_obj.clone());
+                                        // Insert returns old value (None for new entry, safe to ignore)
+                                        let _old = shard.insert(bucket_key, trait_obj.clone());
                                         trait_obj
                                     }
                                 };
@@ -1052,7 +1124,7 @@ impl StreamingDedupPipeline {
                                                     // Push to pairs queue (UNBOUNDED: never blocks)
                                                     // NOTE: May generate duplicate pairs (same pair verified multiple times)
                                                     // This is OK: Union-Find is idempotent
-                                                    pairs_q.push(pair);
+                                                    let _ = pairs_q.push(pair); // Unbounded queue, push never fails
                                                     pairs_verified.fetch_add(1, Ordering::Relaxed);
                                                 }
                                             }
@@ -1122,6 +1194,9 @@ impl StreamingDedupPipeline {
     // METRICS
     // ========================================================================
 
+    /// Get current pipeline metrics
+    ///
+    /// Returns counters for documents processed, skipped, and any panics
     pub fn metrics(&self) -> PipelineMetrics {
         PipelineMetrics {
             documents_ingested: self.documents_ingested.load(Ordering::Relaxed),
@@ -1295,6 +1370,7 @@ impl StreamingDedupPipeline {
         ((now - start) as f64) / 1_000_000_000.0
     }
 
+    #[allow(dead_code)] // Reserved for future timing needs
     fn now_nanos(&self) -> u64 {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -1318,6 +1394,7 @@ impl StreamingDedupPipeline {
 // PHASE 3: DROP IMPLEMENTATION (Graceful cleanup)
 // ========================================================================
 
+#[allow(deprecated)] // This is the implementation of the deprecated struct itself
 impl Drop for StreamingDedupPipeline {
     fn drop(&mut self) {
         // Ensure clean shutdown on drop
@@ -1331,18 +1408,28 @@ impl Drop for StreamingDedupPipeline {
 // HELPER TYPES
 // ============================================================================
 
+/// Pipeline metrics for monitoring progress and errors
 #[derive(Debug, Clone, Copy)]
 pub struct PipelineMetrics {
+    /// Total documents ingested into pipeline
     pub documents_ingested: usize,
+    /// Documents successfully tokenized
     pub documents_tokenized: usize,
-    pub documents_skipped: usize, // Phase 2: Bloom pre-filter skip count
+    /// Documents skipped by Bloom pre-filter
+    pub documents_skipped: usize,
+    /// MinHash signatures computed
     pub signatures_computed: usize,
+    /// Candidate pairs verified for duplication
     pub pairs_verified: usize,
 
     // Phase 3: Panic counters
+    /// Tokenization worker panics
     pub tokenization_panics: usize,
+    /// MinHash worker panics
     pub minhash_panics: usize,
+    /// LSH bucketing worker panics
     pub lsh_panics: usize,
+    /// Verification worker panics
     pub verification_panics: usize,
 }
 
@@ -1350,26 +1437,40 @@ pub struct PipelineMetrics {
 // PHASE 3: PROGRESS TRACKING TYPES
 // ========================================================================
 
+/// Queue depth monitoring for backpressure analysis
 #[derive(Debug, Clone, Copy)]
 pub struct QueueDepths {
+    /// Ingest queue depth (documents waiting for tokenization)
     pub ingest: usize,
+    /// Tokenization queue depth (tokens waiting for MinHash)
     pub tokenization: usize,
+    /// Signatures queue depth (signatures waiting for LSH)
     pub signatures: usize,
-    pub pairs: usize, // Pairs queue depth (unbounded, monitor for pathological loads)
+    /// Pairs queue depth (verified pairs waiting for Union-Find)
+    pub pairs: usize,
 }
 
+/// Per-stage metrics for detailed progress tracking
 #[derive(Debug, Clone, Copy)]
 pub struct StageMetrics {
+    /// Tokenization stage metrics
     pub tokenization: StageMetric,
+    /// MinHash stage metrics
     pub minhash: StageMetric,
+    /// LSH bucketing stage metrics
     pub lsh: StageMetric,
+    /// Verification stage metrics
     pub verification: StageMetric,
 }
 
+/// Individual stage metric counters
 #[derive(Debug, Clone, Copy)]
 pub struct StageMetric {
+    /// Documents processed by this stage
     pub processed: usize,
+    /// Documents skipped by this stage
     pub skipped: usize,
+    /// Worker panics in this stage
     pub panics: usize,
 }
 
@@ -1384,6 +1485,7 @@ pub struct StageMetric {
 /// # ASSUM Safety
 /// - #ASSUME_BAND_HASH_DETERMINISTIC: Same signature + band_idx + rows_per_band → same hash
 /// - #VERIFY_BAND_HASH_DETERMINISTIC: FNV-1a is deterministic, no random state
+#[allow(dead_code)] // Reserved for legacy LSH parameter compatibility
 fn compute_band_hash_with_params(signature: &MinHashSignatureCapsule, band_idx: usize, rows_per_band: usize) -> u64 {
     let start = band_idx * rows_per_band;
     let end = (start + rows_per_band).min(signature.signature().len());

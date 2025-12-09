@@ -223,6 +223,7 @@ fn generate_request_id() -> u64 {
 /// Map MCP method name to Command
 pub fn method_to_command(method: &str) -> Result<Command, String> {
     match method {
+        // Core debugging commands
         "debugger/attach" => Ok(Command::Continue), // Attach requires Continue permission
         "debugger/set_breakpoint" => Ok(Command::Breakpoint),
         "debugger/continue" => Ok(Command::Continue),
@@ -232,8 +233,35 @@ pub fn method_to_command(method: &str) -> Result<Command, String> {
         "debugger/get_variables" => Ok(Command::Read),
         "debugger/read_memory" => Ok(Command::Read),
         "debugger/write_memory" => Ok(Command::Write),
-        "debugger/find_similar_bugs" => Ok(Command::Read), // Read-only analysis
-        "debugger/export_trace" => Ok(Command::Read),      // Read-only export
+        "debugger/find_similar_bugs" => Ok(Command::Read), // T10 probabilistic search
+        "debugger/export_trace" => Ok(Command::Read),      // T5 streaming export
+
+        // Admin tools (no authentication required - quota/license queries)
+        "debugger/quota_status" => Ok(Command::Read),
+        "debugger/license_info" => Ok(Command::Read),
+        "debugger/get_comprehensive_audit" => Ok(Command::Read),
+
+        // Session pool management
+        "debugger/allocate_session" => Ok(Command::Read),
+        "debugger/release_session" => Ok(Command::Read),
+        "debugger/get_session_tier" => Ok(Command::Read),
+        "debugger/upgrade_session" => Ok(Command::Read),
+        "debugger/get_pool_stats" => Ok(Command::Read),
+
+        // Memory replay (COW tracking)
+        "debugger/enable_memory_replay" => Ok(Command::Read),
+        "debugger/capture_memory_snapshot" => Ok(Command::Read),
+        "debugger/read_memory_at_snapshot" => Ok(Command::Read),
+        "debugger/navigate_to_snapshot" => Ok(Command::Read),
+        "debugger/get_memory_replay_stats" => Ok(Command::Read),
+        "debugger/verify_memory_integrity" => Ok(Command::Read),
+
+        // Access control (Observer/Operator)
+        "debugger/get_access_mode" => Ok(Command::Read),
+        "debugger/request_operator_challenge" => Ok(Command::Read),
+        "debugger/elevate_to_operator" => Ok(Command::Write), // Elevation requires Write
+        "debugger/revoke_operator" => Ok(Command::Read),
+
         _ => Err(format!("Unknown method: {}", method)),
     }
 }

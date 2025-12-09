@@ -2,13 +2,13 @@
 //!
 //! **Enforces 100% lockfree mandate: NO Mutex/RwLock in computational capsules.**
 //!
-//! ## Why This Matters (COCA Mandate)
+//! ## Why This Matters (Chaos Mandate)
 //!
 //! The Computational Capsule Architecture requires absolute lockfree compliance:
 //! - **Mutex overhead**: 30-100ns per operation (vs <10ns atomic)
 //! - **Lock contention**: Destroys deterministic latency guarantees
 //! - **Priority inversion**: Unacceptable in real-time systems
-//! - **COCA compliance**: 100% lockfree is NON-NEGOTIABLE
+//! - **Chaos compliance**: 100% lockfree is NON-NEGOTIABLE
 //!
 //! ## Lint Specification
 //!
@@ -66,7 +66,7 @@ use crate::utils::has_repr_c_align;
 declare_lint! {
     /// **Detects Mutex/RwLock in computational capsule structs.**
     ///
-    /// Computational capsules MUST be 100% lockfree. Mutexes violate the COCA
+    /// Computational capsules MUST be 100% lockfree. Mutexes violate the Chaos
     /// (Computational Capsule Architecture) mandate and cause:
     /// - 30-100ns overhead per operation (vs <10ns atomic)
     /// - Non-deterministic latency (lock contention)
@@ -77,7 +77,7 @@ declare_lint! {
     /// - **Performance**: Mutex has 10-100× latency overhead vs atomics
     /// - **Determinism**: Lock contention causes unpredictable latency spikes
     /// - **Real-time**: Cannot guarantee <100ns critical path with locks
-    /// - **COCA mandate**: 100% lockfree is non-negotiable
+    /// - **Chaos mandate**: 100% lockfree is non-negotiable
     ///
     /// ## Example (Bad)
     /// ```rust,ignore
@@ -112,7 +112,7 @@ declare_lint! {
     ///
     /// ## References
     /// - UCE34 Framework: Q33 (Atomic Capsule Verification)
-    /// - COCA Mandate: `<advanced-patterns-core>` in `/home/samuel/CLAUDE.md`
+    /// - Chaos Mandate: `<advanced-patterns-core>` in `/home/samuel/CLAUDE.md`
     /// - Performance: B32 Framework (10-100× latency difference documented)
     pub CAPSULE_MUTEX_VIOLATION,
     Deny,
@@ -268,7 +268,7 @@ fn emit_mutex_violation_diagnostic(
         lint.note("  • Context switch overhead (~1-10μs)");
         lint.note("  • Priority inversion in real-time systems");
         lint.note("  • Non-deterministic latency (lock contention)");
-        lint.note("  • Defeats COCA 100% lockfree mandate");
+        lint.note("  • Defeats Chaos 100% lockfree mandate");
 
         // Lockfree alternatives (ranked by use case)
         lint.note("");
@@ -302,7 +302,7 @@ fn emit_mutex_violation_diagnostic(
         lint.note("━━━ Framework Compliance ━━━");
         lint.note("");
         for line in format_framework_compliance(&[
-            ("COCA", "100% lockfree mandate (NON-NEGOTIABLE)"),
+            ("Chaos", "100% lockfree mandate (NON-NEGOTIABLE)"),
             ("UCE34 Q33", "Atomic capsule verification"),
             ("B32", "10-100× proven speedups, 95% CI"),
             ("T28", "Production-tested patterns"),

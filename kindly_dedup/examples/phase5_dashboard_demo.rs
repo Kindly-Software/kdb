@@ -1,7 +1,7 @@
 //! Phase 5 Optimization Dashboard Demo
 //!
 //! Educational demonstration of optimization contribution table and real-time metrics dashboard.
-//! 100% lockfree using AtomicU64 counters (COCA compliance).
+//! 100% lockfree using AtomicU64 counters (Chaos compliance).
 //!
 //! # UCE34 Q28 (Simplicity)
 //!
@@ -85,7 +85,7 @@ fn main() {
     println!("  ✓ 100% lockfree (AtomicU64 for all metrics)");
     println!("\nFramework Compliance:");
     println!("  ✓ UCE34 Q28 (Simplicity - educational clarity)");
-    println!("  ✓ COCA (100% lockfree, cache-aligned capsules)");
+    println!("  ✓ Chaos (100% lockfree, cache-aligned capsules)");
     println!("  ✓ B32 (BREAKTHROUGH tier - 580× speedup validated)");
     println!();
 }

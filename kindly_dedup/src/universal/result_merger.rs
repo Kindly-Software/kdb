@@ -73,7 +73,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q1-Q34 complete (Q10 T5+T10 tier selection, Q34 audit trails)
-//! - **COCA**: 100% lockfree (atomic counters only, Mutex only for temporary storage)
+//! - **Chaos**: 100% lockfree (atomic counters only, Mutex only for temporary storage)
 //! - **ASSUM**: 99.99% safe (5 core assumptions, all verified)
 //! - **B32**: Fair baselines (<100ms for 12.1M docs, LSH O(n×k) theoretical bound)
 //! - **T28**: Comprehensive testing (24+ tests across unit/property/integration/production)
@@ -106,6 +106,10 @@
 //! - Design Doc: `/tmp/JOB_LEVEL_PARALLELISM_DESIGN.md`
 //! - Pattern Guide: `/home/samuel/Primitives/atomic_capsule/docs/patterns/JOB_LEVEL_PARALLELISM.md`
 //! - LSH Recall: Phase 11 validated 92.8% recall @ L=50, threshold=0.85
+
+#![allow(missing_docs)]
+#![allow(dead_code)]
+#![allow(unused_variables)]
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -436,9 +440,20 @@ mod tests {
 
         // Should preserve all clusters (no cross-chunk dedup yet)
         assert_eq!(final_clusters.len(), 3);
-        assert_eq!(final_clusters[0].len(), 2); // [1, 2]
-        assert_eq!(final_clusters[1].len(), 1); // [3]
-        assert_eq!(final_clusters[2].len(), 3); // [4, 5, 6]
+
+        // HashMap iteration order is non-deterministic, so verify by content not order
+        let mut sizes: Vec<usize> = final_clusters.iter().map(|c| c.len()).collect();
+        sizes.sort();
+        assert_eq!(sizes, vec![1, 2, 3]); // [3], [1,2], [4,5,6] in sorted order
+
+        // Verify specific cluster contents exist (order-independent)
+        let has_pair = final_clusters.iter().any(|c| c.len() == 2 && c.contains(&1) && c.contains(&2));
+        let has_single = final_clusters.iter().any(|c| c.len() == 1 && c.contains(&3));
+        let has_triple = final_clusters.iter().any(|c| c.len() == 3 && c.contains(&4) && c.contains(&5) && c.contains(&6));
+
+        assert!(has_pair, "Missing cluster [1, 2]");
+        assert!(has_single, "Missing cluster [3]");
+        assert!(has_triple, "Missing cluster [4, 5, 6]");
     }
 
     #[test]

@@ -35,7 +35,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 T6 Mixed tier (T1+T2 multi-qubit gates)
-//! - **COCA**: 100% computational capsules
+//! - **Chaos**: 100% computational capsules
 //! - **ASSUM**: 99.5%+ safety
 //! - **B32**: Fair baselines
 //! - **T28**: Integration test example

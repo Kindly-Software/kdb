@@ -22,7 +22,7 @@
 //! - **B32**: <10ns overhead validated, 7.1× SIMD speedup validated
 //! - **T28**: Testing infrastructure ready (95+ tests for CpuCapabilityCapsule, 33 for dispatcher)
 //! - **I20**: Q1-Q20 integration framework (both paths return same MinHashSignatureCapsule)
-//! - **COCA**: 100% lockfree (no mutex/RwLock, feature flags are immutable)
+//! - **Chaos**: 100% lockfree (no mutex/RwLock, feature flags are immutable)
 //!
 //! ## Usage
 //!

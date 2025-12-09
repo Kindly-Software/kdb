@@ -74,7 +74,7 @@ pub fn format_assum_compliance_checklist() -> Vec<String> {
         "  ✓ CAS loop validates generation on update".to_string(),
         "  ✓ Reader revalidates after snapshot".to_string(),
         "".to_string(),
-        "COCA Compliance:".to_string(),
+        "Chaos Compliance:".to_string(),
         "  ✓ No mutex/RwLock (all lockfree)".to_string(),
         "  ✓ Cache alignment (64B/128B/256B)".to_string(),
         "  ✓ Atomic operations only (no scattered atomics)".to_string(),
@@ -202,7 +202,7 @@ pub fn get_assum_references() -> Vec<(&'static str, &'static str)> {
         ),
         (
             "/home/samuel/Docs/The Computational Capsule.md",
-            "COCA philosophy and unsafe code guidelines",
+            "Chaos philosophy and unsafe code guidelines",
         ),
         (
             "/home/samuel/xml/frameworks/t28.xml",

@@ -306,7 +306,7 @@ Compare against:
 | ASSUM | ✅ | 10/10 assumptions verified |
 | B32 | ✅ | Fair baselines, 1000+ iterations |
 | T28 | ✅ | 24 tests (unit/property/integration/production) |
-| COCA | ✅ | 100% lockfree, zero mutex |
+| Chaos | ✅ | 100% lockfree, zero mutex |
 | I20 | 🔄 | Integration validation TBD |
 
 ## Quick Start

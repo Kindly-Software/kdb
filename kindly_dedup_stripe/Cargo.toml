@@ -1,0 +1,67 @@
+[package]
+name = "kindly_dedup_stripe"
+version = "0.1.0"
+edition = "2021"
+authors = ["Samuel <samuel@kindly.software>"]
+description = "Stripe webhook handler for kindly_dedup license sales (one-time payments)"
+license = "Proprietary"
+publish = false  # TRADE SECRET
+
+[dependencies]
+# Web server (Axum)
+axum = "0.7"
+tokio = { version = "1.35", features = ["full"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["trace", "cors"] }
+hyper = "1.0"
+
+# HTTP/Request utilities
+reqwest = { version = "0.12", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Crypto & Signatures
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Configuration
+dotenv = "0.15"
+config = "0.14"
+
+# Database (optional, SQLite for sales records)
+sqlx = { version = "0.7", features = ["sqlite", "runtime-tokio-native-tls", "chrono", "uuid"], optional = true }
+
+# UUID for license keys
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Atomic operations (our capsule library)
+atomic_capsule = { path = "../atomic_capsule", version = "0.9", features = ["std"] }
+
+# HTTP body utilities
+bytes = "1.5"
+
+[features]
+default = ["sqlite"]
+sqlite = ["sqlx"]
+
+[[bin]]
+name = "stripe_webhook"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

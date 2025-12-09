@@ -32,7 +32,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 T9 Persistent + T1 Atomic tier selection
-//! - **COCA**: 100% lockfree except for file writes (unavoidable for durability)
+//! - **Chaos**: 100% lockfree except for file writes (unavoidable for durability)
 //! - **ASSUM**: #ASSUME_FILE_WRITES_ATOMIC, #ASSUME_CRC64_COLLISIONS_RARE
 //! - **T28**: 10 comprehensive tests (unit/integration/crash recovery)
 //! - **B32**: Fair baselines, <50ns append target validated
@@ -125,8 +125,9 @@ pub struct WalWriter {
     /// Path to WAL file (used for reopening after recovery)
     wal_path: PathBuf,
 
-    /// Padding to cache-align to 64 bytes
-    _padding: [u8; 24],
+    /// Padding to cache-align to 64 bytes (64 - 56 = 8)
+    /// Fields: file(8) + current_offset(8) + entry_count(8) + generation(4) + [pad4] + wal_path(24) = 56
+    _padding: [u8; 8],
 }
 
 impl WalWriter {

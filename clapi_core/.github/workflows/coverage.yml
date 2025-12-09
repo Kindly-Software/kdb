@@ -1,0 +1,117 @@
+name: Coverage Dashboard
+
+on:
+  push:
+    branches: [ main, phase* ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run coverage every day at 2am UTC
+    - cron: '0 2 * * *'
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+  MIN_COVERAGE: 80.0
+
+jobs:
+  coverage:
+    name: Code Coverage (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        rust: [nightly]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+          components: llvm-tools-preview
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-coverage-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin --version 0.27.3
+
+      - name: Install jq (for JSON parsing)
+        run: sudo apt-get update && sudo apt-get install -y jq bc
+
+      - name: Run coverage analysis
+        run: ./scripts/coverage.sh --ci
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./target/coverage/cobertura.xml
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Upload HTML coverage report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: coverage-report
+          path: target/coverage/index.html
+          retention-days: 30
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const coverage = JSON.parse(fs.readFileSync('./target/coverage/tarpaulin-report.json'));
+            const coveragePct = coverage.coverage.toFixed(2);
+            const threshold = process.env.MIN_COVERAGE;
+            const status = coveragePct >= threshold ? '✅ PASS' : '❌ FAIL';
+
+            const body = `## ${status} Coverage Report
+
+            - **Total Coverage**: ${coveragePct}%
+            - **Threshold**: ${threshold}%
+            - **Lines Covered**: ${coverage.files.reduce((sum, f) => sum + f.covered, 0)}
+            - **Total Lines**: ${coverage.files.reduce((sum, f) => sum + f.coverable, 0)}
+
+            ${coveragePct >= threshold ? 'Coverage meets minimum threshold.' : 'Coverage below minimum threshold - please add tests.'}
+
+            [View full report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.name,
+              body: body
+            });
+
+      - name: Fail if coverage below threshold
+        run: |
+          COVERAGE=$(jq -r '.coverage' target/coverage/tarpaulin-report.json)
+          echo "Coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < $MIN_COVERAGE" | bc -l) )); then
+            echo "::error::Coverage ${COVERAGE}% below threshold ${MIN_COVERAGE}%"
+            exit 1
+          fi

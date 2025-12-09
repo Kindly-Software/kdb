@@ -63,14 +63,13 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 (T6 Mixed tier), Q33 (derive verification), Q34 (audit trails)
-//! - **COCA**: 100% lockfree (AtomicU64 only, no mutex/RwLock)
+//! - **Chaos**: 100% lockfree (AtomicU64 only, no mutex/RwLock)
 //! - **ASSUM**: 99.99% safe (8 documented assumptions, all verified)
 //! - **B32**: <50ns snapshot, <100ns state transitions (atomic operations)
 //! - **T28**: 14 tests (7 unit Q1-Q7, 7 integration Q15-Q21)
 //! - **I20**: Zero breaking changes (backward compatible API)
 
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
 use thiserror::Error;
 
 /// Orchestrator state machine FSM
@@ -552,7 +551,7 @@ impl DedupMetacapsule {
     #[inline]
     pub fn activate_worker(&self, worker_id: u8) {
         if worker_id < 8 {
-            let bit_position = (1u64 << (38 + worker_id as u64));
+            let bit_position = 1u64 << (38 + worker_id as u64);
             self.secondary.fetch_or(bit_position, Ordering::Release);
         }
     }

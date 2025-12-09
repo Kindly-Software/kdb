@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<benchmark-results xmlns="http://kindly.software/schemas/benchmark-results"
+                   version="1.0.0"
+                   timestamp="2025-11-09T21:23:51Z">
+
+  <metadata>
+    <run-id>84411127-e3e9-4411-8814-8c3ed282fa22</run-id>
+    <framework-version>kindly_bench 1.0.0</framework-version>
+    <b32-compliant>true</b32-compliant>
+  </metadata>
+
+  <hardware>
+    <cpu>
+      <model>Intel(R) Core(TM) Ultra 7 155H</model>
+      <microarchitecture>Meteor Lake</microarchitecture>
+      <cores-total>22</cores-total>
+      <cache-line-bytes>64</cache-line-bytes>
+    </cpu>
+    <memory>
+      <size-gb>30</size-gb>
+    </memory>
+  </hardware>
+
+  <benchmarks>
+    <benchmark id="Q16_16_Multiplication">
+      <name>Q16_16_Multiplication</name>
+      <tier>T3-FixedPoint</tier>
+      <baseline-kind>F64</baseline-kind>
+      <optimized>
+        <samples>10000</samples>
+        <mean-ns>16.38</mean-ns>
+        <median-ns>16.00</median-ns>
+        <p95-ns>17.00</p95-ns>
+        <p99-ns>18.00</p99-ns>
+        <stddev-ns>1.84</stddev-ns>
+        <min-ns>15.00</min-ns>
+        <max-ns>179.00</max-ns>
+        <outliers>21</outliers>
+        <confidence-interval-95>
+          <lower-bound-ns>16.35</lower-bound-ns>
+          <upper-bound-ns>16.42</upper-bound-ns>
+        </confidence-interval-95>
+      </optimized>
+      <baseline>
+        <samples>10000</samples>
+        <mean-ns>14.31</mean-ns>
+        <median-ns>14.00</median-ns>
+        <p95-ns>15.00</p95-ns>
+        <p99-ns>16.00</p99-ns>
+        <stddev-ns>2.94</stddev-ns>
+        <min-ns>13.00</min-ns>
+        <max-ns>280.00</max-ns>
+        <outliers>15</outliers>
+        <confidence-interval-95>
+          <lower-bound-ns>14.25</lower-bound-ns>
+          <upper-bound-ns>14.37</upper-bound-ns>
+        </confidence-interval-95>
+      </baseline>
+      <speedup>
+        <mean-speedup>0.87</mean-speedup>
+        <median-speedup>0.88</median-speedup>
+        <p95-speedup>0.88</p95-speedup>
+        <confidence-interval-95>
+          <lower-bound>0.87</lower-bound>
+          <upper-bound>0.88</upper-bound>
+        </confidence-interval-95>
+      </speedup>
+      <classification>
+        <tier>Typical</tier>
+        <confidence>High</confidence>
+      </classification>
+      <recommendation>
+        <action>Optimize</action>
+        <reasoning>TYPICAL (1.1-1.5×) speedup with HIGH confidence (95% CI). Flags: PerformanceRegression</reasoning>
+        <next-steps>Performance gains below target. Consider additional optimizations: SIMD, fixed-point arithmetic, batch processing, or tier stacking.</next-steps>
+      </recommendation>
+    </benchmark>
+  </benchmarks>
+
+</benchmark-results>

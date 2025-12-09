@@ -2,7 +2,7 @@
 //!
 //! **P0.3 CRITICAL**: Detects T1 (Atomic) capsules without generation counters.
 //!
-//! ## UCE34 Q10 (Tier Selection) & COCA Mandate
+//! ## UCE34 Q10 (Tier Selection) & Chaos Mandate
 //!
 //! Generation counters are **mandatory** for T1 (Atomic) tier capsules to prevent
 //! TOCTOU (time-of-check-time-of-use) races:
@@ -274,7 +274,7 @@ fn emit_missing_generation_diagnostic<'tcx>(
             lint.note("━━━ Framework Compliance ━━━");
             lint.note("");
             for line in format_framework_compliance(&[
-                ("COCA", "TOCTOU prevention (T1 tier requirement)"),
+                ("Chaos", "TOCTOU prevention (T1 tier requirement)"),
                 ("UCE34 Q10", "Generation counter mandate"),
                 ("ASSUM", "Document exceptions with safety proof"),
                 ("B32", "3-10× proven latency prevention"),

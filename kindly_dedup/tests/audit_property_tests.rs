@@ -17,7 +17,7 @@
 //! - **T28**: Tier 2 (Property Testing) - 7+ properties
 //! - **ASSUM**: #ASSUME_HASH_CHAIN_TAMPER_DETECTION verified
 //! - **B32**: Performance properties validated
-//! - **COCA**: 100% lockfree (concurrent property tests)
+//! - **Chaos**: 100% lockfree (concurrent property tests)
 
 use kindly_dedup::benchmarking::{AuditLogger, BenchmarkAuditEntry, BenchmarkConfig, BenchmarkResult, EnvironmentInfo};
 use proptest::prelude::*;

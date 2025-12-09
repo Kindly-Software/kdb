@@ -27,7 +27,7 @@
 //! - **Q12**: Nightly features = portable_simd, const_fn_floating_point
 //! - **Q31-Q34**: Validation, auditability, compliance
 //!
-//! ## COCA (Computational Capsule) Requirements
+//! ## Chaos (Computational Capsule) Requirements
 //!
 //! - **100% Lockfree**: AtomicU64 coordination only, NO mutex/RwLock
 //! - **Cache-Aligned**: 128-byte alignment (HotTier) prevents false sharing

@@ -5,6 +5,8 @@
 //! **ASSUM Safety**: Uses unsafe code for CPUID intrinsics (hardware detection).
 //! All unsafe blocks are encapsulated and verified.
 
+#![allow(dead_code)]
+
 #![allow(unsafe_code)] // Required for CPUID hardware detection
 //!
 //! ## Escalation Tiers (I20-Enhanced with Encrypted State)
@@ -1142,7 +1144,7 @@ pub fn check_protection_full() -> Result<(), ProtectionError> {
 /// # Architecture
 /// - T1 Atomic: Single AtomicU64 load from PROTECTION_STATUS
 /// - T5 Streaming: Background thread runs check_protection_full() every 100ms
-/// - COCA Compliant: 100% lockfree, no mutex/RwLock
+/// - Chaos Compliant: 100% lockfree, no mutex/RwLock
 ///
 /// # ASSUM Tags
 /// - #ASSUME_STATUS_VALID: Status value 0-4 (enforced by background thread)

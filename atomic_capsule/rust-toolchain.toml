@@ -1,0 +1,14 @@
+# Phase 2: Inference Primitives - Nightly Rust Toolchain
+# IMPL-2 V3.1: Nightly-first development (cutting-edge methods DEFAULT)
+#
+# Nightly Features Required:
+# - portable_simd: f32x8, i16x8 SIMD operations (MANDATORY for inference)
+# - const_fn_floating_point_arithmetic: Compile-time weight initialization (BENEFICIAL)
+# - generic_const_exprs: Compile-time dimension validation (OPTIONAL, incomplete)
+#
+# Fallback: Stable Rust gracefully degrades (feature-gated, no runtime cost)
+
+[toolchain]
+channel = "nightly"
+components = ["rustfmt", "clippy", "rust-src"]
+profile = "default"

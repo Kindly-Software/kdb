@@ -52,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Metrics
 - Tests: 51/51 passing (100%)
 - Compilation: 0 errors, 0 warnings
-- Framework compliance: 6/6 (UCE34, COCA, ASSUM, B32, T28, I20)
+- Framework compliance: 6/6 (UCE34, Chaos, ASSUM, B32, T28, I20)
 - Developer ROI: 40-150 hours saved per year
 
 ## [0.1.0-alpha.1] - 2025-11-23

@@ -30,7 +30,7 @@
 //! - **Backpressure check**: <1ns (atomic load)
 //! - **Memory overhead**: 128 bytes (fixed) + 8× buffer headers (1024 bytes typical)
 //!
-//! ## COCA Compliance
+//! ## Chaos Compliance
 //!
 //! - **100% Lockfree**: No mutex/RwLock, pure atomic coordination
 //! - **Per-worker isolation**: Each worker writes to its own buffer, no contention
@@ -40,15 +40,16 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 (T1 tier selection), Q33 (deterministic), Q34 (audit trails)
-//! - **COCA**: 100% lockfree, no mutex, cache-aligned buffers
+//! - **Chaos**: 100% lockfree, no mutex, cache-aligned buffers
 //! - **ASSUM**: All memory ordering assumptions documented with #VERIFY
 //! - **B32**: <20ns push, <10μs drain (fair baseline: sequential extraction)
 //! - **T28**: 4-tier tests (unit/property/integration/production)
 //! - **I20**: Zero breaking changes, API stability guaranteed
 
+#![allow(dead_code)]
+
 use atomic_capsule::probabilistic::MinHashSignatureCapsule;
 use std::sync::atomic::{AtomicU64, AtomicU32, Ordering};
-use std::sync::Arc;
 use std::cell::UnsafeCell;
 
 /// Document ID type (from signature_capsule module)
@@ -634,6 +635,7 @@ unsafe impl Sync for OutputAggregatorCapsule {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Arc;
 
     // ========================================
     // UNIT TESTS (6 tests)

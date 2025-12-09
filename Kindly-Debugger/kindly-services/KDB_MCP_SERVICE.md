@@ -275,4 +275,4 @@ sudo systemctl stop kdb-mcp.socket
 
 **Last Updated**: 2025-12-04
 **Framework**: UCE34 (T6 Mixed)
-**Compliance**: COCA, ASSUM 99.99%, T28, B32
+**Compliance**: Chaos, ASSUM 99.99%, T28, B32

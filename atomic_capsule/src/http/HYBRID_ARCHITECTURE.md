@@ -637,7 +637,7 @@ pub use adaptive::{find_colon_adaptive as find_colon, find_crlf_adaptive as find
 | **ASSUM** | ✅ 99.9% SAFE | Zero unsafe in dispatch logic |
 | **T28** | ⏳ PENDING | 120+ tests planned |
 | **B32** | ⏳ PENDING | Fair baselines, 95% CI |
-| **COCA** | ✅ 100% LOCKFREE | No mutex/RwLock |
+| **Chaos** | ✅ 100% LOCKFREE | No mutex/RwLock |
 
 ---
 

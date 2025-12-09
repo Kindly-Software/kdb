@@ -1,0 +1,359 @@
+warning: user-defined alias `bench` is ignored, because it is shadowed by a built-in command
+warning: method `forward_scalar` is never used
+   --> src/primitives/inference.rs:107:8
+    |
+ 80 | impl SIMDMatMulCapsule {
+    | ---------------------- method in this implementation
+...
+107 |     fn forward_scalar(&self, input: &[f32]) -> Vec<f32> {
+    |        ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `num_heads` is never read
+   --> src/primitives/inference.rs:176:5
+    |
+175 | pub struct FlashAttentionCapsule {
+    |            --------------------- field in this struct
+176 |     num_heads: usize,
+    |     ^^^^^^^^^
+    |
+    = note: `FlashAttentionCapsule` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: method `forward_standard` is never used
+   --> src/primitives/inference.rs:211:8
+    |
+181 | impl FlashAttentionCapsule {
+    | -------------------------- method in this implementation
+...
+211 |     fn forward_standard(&self, query: &[f32], key: &[f32], value: &[f32], seq_len: usize) -> Vec<f32> {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: fields `zero_point` and `bits` are never read
+   --> src/primitives/inference.rs:332:5
+    |
+330 | pub struct QuantizationCapsule {
+    |            ------------------- fields in this struct
+331 |     scale: f32,
+332 |     zero_point: i8,
+    |     ^^^^^^^^^^
+333 |     bits: u8,
+    |     ^^^^
+    |
+    = note: `QuantizationCapsule` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: `kindly_inference` (lib) generated 4 warnings
+    Finished `bench` profile [optimized] target(s) in 0.05s
+     Running benches/inference_primitives_bench.rs (target/release/deps/inference_primitives_bench-42a1c09a2b33982a)
+Gnuplot not found, using plotters backend
+Benchmarking matmul/scalar_baseline/4096
+Benchmarking matmul/scalar_baseline/4096: Warming up for 3.0000 s
+Benchmarking matmul/scalar_baseline/4096: Collecting 100 samples in estimated 5.8353 s (600 iterations)
+Benchmarking matmul/scalar_baseline/4096: Analyzing
+matmul/scalar_baseline/4096
+                        time:   [9.8591 ms 9.9139 ms 9.9710 ms]
+                        thrpt:  [410.79 Kelem/s 413.16 Kelem/s 415.46 Kelem/s]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+Benchmarking matmul/simd_capsule/4096
+Benchmarking matmul/simd_capsule/4096: Warming up for 3.0000 s
+Benchmarking matmul/simd_capsule/4096: Collecting 100 samples in estimated 5.3001 s (1300 iterations)
+Benchmarking matmul/simd_capsule/4096: Analyzing
+matmul/simd_capsule/4096
+                        time:   [3.8725 ms 3.9130 ms 3.9553 ms]
+                        thrpt:  [1.0356 Melem/s 1.0468 Melem/s 1.0577 Melem/s]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking matmul/scalar_baseline/8192
+Benchmarking matmul/scalar_baseline/8192: Warming up for 3.0000 s
+Benchmarking matmul/scalar_baseline/8192: Collecting 100 samples in estimated 8.9422 s (200 iterations)
+Benchmarking matmul/scalar_baseline/8192: Analyzing
+matmul/scalar_baseline/8192
+                        time:   [38.724 ms 38.951 ms 39.186 ms]
+                        thrpt:  [209.05 Kelem/s 210.32 Kelem/s 211.55 Kelem/s]
+Found 11 outliers among 100 measurements (11.00%)
+  8 (8.00%) low mild
+  1 (1.00%) high mild
+  2 (2.00%) high severe
+Benchmarking matmul/simd_capsule/8192
+Benchmarking matmul/simd_capsule/8192: Warming up for 3.0000 s
+Benchmarking matmul/simd_capsule/8192: Collecting 100 samples in estimated 6.2743 s (400 iterations)
+Benchmarking matmul/simd_capsule/8192: Analyzing
+matmul/simd_capsule/8192
+                        time:   [14.653 ms 14.867 ms 15.168 ms]
+                        thrpt:  [540.09 Kelem/s 551.02 Kelem/s 559.06 Kelem/s]
+Found 5 outliers among 100 measurements (5.00%)
+  3 (3.00%) high mild
+  2 (2.00%) high severe
+
+Benchmarking attention/standard_baseline/128
+Benchmarking attention/standard_baseline/128: Warming up for 3.0000 s
+Benchmarking attention/standard_baseline/128: Collecting 50 samples in estimated 5.7360 s (7650 iterations)
+Benchmarking attention/standard_baseline/128: Analyzing
+attention/standard_baseline/128
+                        time:   [617.35 µs 635.66 µs 661.01 µs]
+                        thrpt:  [193.64 Kelem/s 201.37 Kelem/s 207.34 Kelem/s]
+Benchmarking attention/flash_capsule/128
+Benchmarking attention/flash_capsule/128: Warming up for 3.0000 s
+Benchmarking attention/flash_capsule/128: Collecting 50 samples in estimated 5.2798 s (19k iterations)
+Benchmarking attention/flash_capsule/128: Analyzing
+attention/flash_capsule/128
+                        time:   [271.30 µs 274.56 µs 279.39 µs]
+                        thrpt:  [458.14 Kelem/s 466.21 Kelem/s 471.80 Kelem/s]
+Found 4 outliers among 50 measurements (8.00%)
+  1 (2.00%) low mild
+  1 (2.00%) high mild
+  2 (4.00%) high severe
+Benchmarking attention/standard_baseline/512
+Benchmarking attention/standard_baseline/512: Warming up for 3.0000 s
+Benchmarking attention/standard_baseline/512: Collecting 50 samples in estimated 5.3549 s (550 iterations)
+Benchmarking attention/standard_baseline/512: Analyzing
+attention/standard_baseline/512
+                        time:   [11.029 ms 11.311 ms 11.566 ms]
+                        thrpt:  [44.268 Kelem/s 45.266 Kelem/s 46.425 Kelem/s]
+Found 8 outliers among 50 measurements (16.00%)
+  8 (16.00%) low severe
+Benchmarking attention/flash_capsule/512
+Benchmarking attention/flash_capsule/512: Warming up for 3.0000 s
+
+Warning: Unable to complete 50 samples in 5.0s. You may wish to increase target time to 6.8s, enable flat sampling, or reduce sample count to 30.
+Benchmarking attention/flash_capsule/512: Collecting 50 samples in estimated 6.7957 s (1275 iterations)
+Benchmarking attention/flash_capsule/512: Analyzing
+attention/flash_capsule/512
+                        time:   [5.3300 ms 5.3605 ms 5.3919 ms]
+                        thrpt:  [94.957 Kelem/s 95.513 Kelem/s 96.060 Kelem/s]
+Found 3 outliers among 50 measurements (6.00%)
+  2 (4.00%) low mild
+  1 (2.00%) high mild
+
+Benchmarking quantization/f32_baseline/4096
+Benchmarking quantization/f32_baseline/4096: Warming up for 3.0000 s
+Benchmarking quantization/f32_baseline/4096: Collecting 1000 samples in estimated 5.0140 s (24M iterations)
+Benchmarking quantization/f32_baseline/4096: Analyzing
+quantization/f32_baseline/4096
+                        time:   [207.80 ns 208.39 ns 208.99 ns]
+                        thrpt:  [19.599 Gelem/s 19.655 Gelem/s 19.711 Gelem/s]
+Found 45 outliers among 1000 measurements (4.50%)
+  11 (1.10%) low mild
+  29 (2.90%) high mild
+  5 (0.50%) high severe
+Benchmarking quantization/int8_capsule_roundtrip/4096
+Benchmarking quantization/int8_capsule_roundtrip/4096: Warming up for 3.0000 s
+Benchmarking quantization/int8_capsule_roundtrip/4096: Collecting 1000 samples in estimated 5.1743 s (1.0M iterations)
+Benchmarking quantization/int8_capsule_roundtrip/4096: Analyzing
+quantization/int8_capsule_roundtrip/4096
+                        time:   [5.0959 µs 5.1051 µs 5.1147 µs]
+                        thrpt:  [800.83 Melem/s 802.34 Melem/s 803.78 Melem/s]
+Found 88 outliers among 1000 measurements (8.80%)
+  4 (0.40%) low mild
+  64 (6.40%) high mild
+  20 (2.00%) high severe
+Benchmarking quantization/int8_capsule_quantize/4096
+Benchmarking quantization/int8_capsule_quantize/4096: Warming up for 3.0000 s
+Benchmarking quantization/int8_capsule_quantize/4096: Collecting 1000 samples in estimated 6.2670 s (1.5M iterations)
+Benchmarking quantization/int8_capsule_quantize/4096: Analyzing
+quantization/int8_capsule_quantize/4096
+                        time:   [4.1721 µs 4.1748 µs 4.1780 µs]
+                        thrpt:  [980.37 Melem/s 981.13 Melem/s 981.75 Melem/s]
+Found 161 outliers among 1000 measurements (16.10%)
+  7 (0.70%) low mild
+  44 (4.40%) high mild
+  110 (11.00%) high severe
+Benchmarking quantization/f32_baseline/8192
+Benchmarking quantization/f32_baseline/8192: Warming up for 3.0000 s
+Benchmarking quantization/f32_baseline/8192: Collecting 1000 samples in estimated 5.3164 s (8.0M iterations)
+Benchmarking quantization/f32_baseline/8192: Analyzing
+quantization/f32_baseline/8192
+                        time:   [739.77 ns 745.96 ns 752.11 ns]
+                        thrpt:  [10.892 Gelem/s 10.982 Gelem/s 11.074 Gelem/s]
+Found 86 outliers among 1000 measurements (8.60%)
+  67 (6.70%) low severe
+  1 (0.10%) low mild
+  7 (0.70%) high mild
+  11 (1.10%) high severe
+Benchmarking quantization/int8_capsule_roundtrip/8192
+Benchmarking quantization/int8_capsule_roundtrip/8192: Warming up for 3.0000 s
+
+Warning: Unable to complete 1000 samples in 5.0s. You may wish to increase target time to 5.1s, enable flat sampling, or reduce sample count to 700.
+Benchmarking quantization/int8_capsule_roundtrip/8192: Collecting 1000 samples in estimated 5.0915 s (500k iterations)
+Benchmarking quantization/int8_capsule_roundtrip/8192: Analyzing
+quantization/int8_capsule_roundtrip/8192
+                        time:   [9.0451 µs 9.0592 µs 9.0752 µs]
+                        thrpt:  [902.68 Melem/s 904.28 Melem/s 905.68 Melem/s]
+Found 32 outliers among 1000 measurements (3.20%)
+  31 (3.10%) high mild
+  1 (0.10%) high severe
+Benchmarking quantization/int8_capsule_quantize/8192
+Benchmarking quantization/int8_capsule_quantize/8192: Warming up for 3.0000 s
+Benchmarking quantization/int8_capsule_quantize/8192: Collecting 1000 samples in estimated 8.4770 s (1.0M iterations)
+Benchmarking quantization/int8_capsule_quantize/8192: Analyzing
+quantization/int8_capsule_quantize/8192
+                        time:   [8.8268 µs 8.8433 µs 8.8600 µs]
+                        thrpt:  [924.61 Melem/s 926.35 Melem/s 928.08 Melem/s]
+Found 136 outliers among 1000 measurements (13.60%)
+  2 (0.20%) low mild
+  79 (7.90%) high mild
+  55 (5.50%) high severe
+Benchmarking quantization/f32_baseline/16384
+Benchmarking quantization/f32_baseline/16384: Warming up for 3.0000 s
+Benchmarking quantization/f32_baseline/16384: Collecting 1000 samples in estimated 5.2396 s (4.0M iterations)
+Benchmarking quantization/f32_baseline/16384: Analyzing
+quantization/f32_baseline/16384
+                        time:   [1.2285 µs 1.2295 µs 1.2307 µs]
+                        thrpt:  [13.313 Gelem/s 13.325 Gelem/s 13.337 Gelem/s]
+Found 56 outliers among 1000 measurements (5.60%)
+  52 (5.20%) high mild
+  4 (0.40%) high severe
+Benchmarking quantization/int8_capsule_roundtrip/16384
+Benchmarking quantization/int8_capsule_roundtrip/16384: Warming up for 3.0000 s
+Benchmarking quantization/int8_capsule_roundtrip/16384: Collecting 1000 samples in estimated 5.0180 s (240k iterations)
+Benchmarking quantization/int8_capsule_roundtrip/16384: Analyzing
+quantization/int8_capsule_roundtrip/16384
+                        time:   [20.276 µs 20.319 µs 20.365 µs]
+                        thrpt:  [804.53 Melem/s 806.32 Melem/s 808.05 Melem/s]
+Found 32 outliers among 1000 measurements (3.20%)
+  5 (0.50%) low mild
+  16 (1.60%) high mild
+  11 (1.10%) high severe
+Benchmarking quantization/int8_capsule_quantize/16384
+Benchmarking quantization/int8_capsule_quantize/16384: Warming up for 3.0000 s
+
+Warning: Unable to complete 1000 samples in 5.0s. You may wish to increase target time to 9.1s, enable flat sampling, or reduce sample count to 520.
+Benchmarking quantization/int8_capsule_quantize/16384: Collecting 1000 samples in estimated 9.0805 s (500k iterations)
+Benchmarking quantization/int8_capsule_quantize/16384: Analyzing
+quantization/int8_capsule_quantize/16384
+                        time:   [18.120 µs 18.194 µs 18.265 µs]
+                        thrpt:  [897.03 Melem/s 900.52 Melem/s 904.18 Melem/s]
+Found 3 outliers among 1000 measurements (0.30%)
+  3 (0.30%) high mild
+
+Benchmarking quantized_matmul/f32_matmul_baseline/512
+Benchmarking quantized_matmul/f32_matmul_baseline/512: Warming up for 3.0000 s
+Benchmarking quantized_matmul/f32_matmul_baseline/512: Collecting 100 samples in estimated 5.1945 s (45k iterations)
+Benchmarking quantized_matmul/f32_matmul_baseline/512: Analyzing
+quantized_matmul/f32_matmul_baseline/512
+                        time:   [108.22 µs 109.16 µs 110.16 µs]
+                        thrpt:  [4.6476 Melem/s 4.6905 Melem/s 4.7312 Melem/s]
+Benchmarking quantized_matmul/int8_matmul_capsule/512
+Benchmarking quantized_matmul/int8_matmul_capsule/512: Warming up for 3.0000 s
+Benchmarking quantized_matmul/int8_matmul_capsule/512: Collecting 100 samples in estimated 5.0042 s (25k iterations)
+Benchmarking quantized_matmul/int8_matmul_capsule/512: Analyzing
+quantized_matmul/int8_matmul_capsule/512
+                        time:   [187.70 µs 188.48 µs 189.30 µs]
+                        thrpt:  [2.7048 Melem/s 2.7164 Melem/s 2.7277 Melem/s]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) high mild
+Benchmarking quantized_matmul/f32_matmul_baseline/1024
+Benchmarking quantized_matmul/f32_matmul_baseline/1024: Warming up for 3.0000 s
+Benchmarking quantized_matmul/f32_matmul_baseline/1024: Collecting 100 samples in estimated 7.4056 s (15k iterations)
+Benchmarking quantized_matmul/f32_matmul_baseline/1024: Analyzing
+quantized_matmul/f32_matmul_baseline/1024
+                        time:   [469.93 µs 473.24 µs 476.64 µs]
+                        thrpt:  [2.1484 Melem/s 2.1638 Melem/s 2.1791 Melem/s]
+Found 1 outliers among 100 measurements (1.00%)
+  1 (1.00%) low mild
+Benchmarking quantized_matmul/int8_matmul_capsule/1024
+Benchmarking quantized_matmul/int8_matmul_capsule/1024: Warming up for 3.0000 s
+Benchmarking quantized_matmul/int8_matmul_capsule/1024: Collecting 100 samples in estimated 7.7465 s (10k iterations)
+Benchmarking quantized_matmul/int8_matmul_capsule/1024: Analyzing
+quantized_matmul/int8_matmul_capsule/1024
+                        time:   [726.15 µs 730.63 µs 735.28 µs]
+                        thrpt:  [1.3927 Melem/s 1.4015 Melem/s 1.4102 Melem/s]
+Found 4 outliers among 100 measurements (4.00%)
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+Benchmarking quantized_matmul/f32_matmul_baseline/2048
+Benchmarking quantized_matmul/f32_matmul_baseline/2048: Warming up for 3.0000 s
+Benchmarking quantized_matmul/f32_matmul_baseline/2048: Collecting 100 samples in estimated 5.1343 s (2100 iterations)
+Benchmarking quantized_matmul/f32_matmul_baseline/2048: Analyzing
+quantized_matmul/f32_matmul_baseline/2048
+                        time:   [2.3504 ms 2.3710 ms 2.3923 ms]
+                        thrpt:  [856.09 Kelem/s 863.78 Kelem/s 871.35 Kelem/s]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high mild
+Benchmarking quantized_matmul/int8_matmul_capsule/2048
+Benchmarking quantized_matmul/int8_matmul_capsule/2048: Warming up for 3.0000 s
+Benchmarking quantized_matmul/int8_matmul_capsule/2048: Collecting 100 samples in estimated 5.0104 s (500 iterations)
+Benchmarking quantized_matmul/int8_matmul_capsule/2048: Analyzing
+quantized_matmul/int8_matmul_capsule/2048
+                        time:   [10.190 ms 10.476 ms 10.774 ms]
+                        thrpt:  [190.09 Kelem/s 195.49 Kelem/s 200.99 Kelem/s]
+
+Benchmarking batch_scaling/scalar_batch/1
+Benchmarking batch_scaling/scalar_batch/1: Warming up for 3.0000 s
+Benchmarking batch_scaling/scalar_batch/1: Collecting 100 samples in estimated 5.3510 s (500 iterations)
+Benchmarking batch_scaling/scalar_batch/1: Analyzing
+batch_scaling/scalar_batch/1
+                        time:   [12.757 ms 13.599 ms 14.485 ms]
+                        thrpt:  [282.78 Kelem/s 301.21 Kelem/s 321.07 Kelem/s]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high mild
+Benchmarking batch_scaling/simd_batch/1
+Benchmarking batch_scaling/simd_batch/1: Warming up for 3.0000 s
+Benchmarking batch_scaling/simd_batch/1: Collecting 100 samples in estimated 5.5121 s (1000 iterations)
+Benchmarking batch_scaling/simd_batch/1: Analyzing
+batch_scaling/simd_batch/1
+                        time:   [3.5153 ms 3.5558 ms 3.5987 ms]
+                        thrpt:  [1.1382 Melem/s 1.1519 Melem/s 1.1652 Melem/s]
+Found 3 outliers among 100 measurements (3.00%)
+  2 (2.00%) high mild
+  1 (1.00%) high severe
+Benchmarking batch_scaling/scalar_batch/4
+Benchmarking batch_scaling/scalar_batch/4: Warming up for 3.0000 s
+Benchmarking batch_scaling/scalar_batch/4: Collecting 100 samples in estimated 9.4301 s (200 iterations)
+Benchmarking batch_scaling/scalar_batch/4: Analyzing
+batch_scaling/scalar_batch/4
+                        time:   [65.147 ms 69.926 ms 74.881 ms]
+                        thrpt:  [218.80 Kelem/s 234.31 Kelem/s 251.49 Kelem/s]
+Benchmarking batch_scaling/simd_batch/4
+Benchmarking batch_scaling/simd_batch/4: Warming up for 3.0000 s
+Benchmarking batch_scaling/simd_batch/4: Collecting 100 samples in estimated 5.7121 s (300 iterations)
+Benchmarking batch_scaling/simd_batch/4: Analyzing
+batch_scaling/simd_batch/4
+                        time:   [15.160 ms 15.509 ms 15.892 ms]
+                        thrpt:  [1.0310 Melem/s 1.0564 Melem/s 1.0807 Melem/s]
+Found 8 outliers among 100 measurements (8.00%)
+  6 (6.00%) high mild
+  2 (2.00%) high severe
+Benchmarking batch_scaling/scalar_batch/16
+Benchmarking batch_scaling/scalar_batch/16: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 17.3s, or reduce sample count to 20.
+Benchmarking batch_scaling/scalar_batch/16: Collecting 100 samples in estimated 17.309 s (100 iterations)
+Benchmarking batch_scaling/scalar_batch/16: Analyzing
+batch_scaling/scalar_batch/16
+                        time:   [164.44 ms 165.98 ms 167.53 ms]
+                        thrpt:  [391.20 Kelem/s 394.85 Kelem/s 398.54 Kelem/s]
+Benchmarking batch_scaling/simd_batch/16
+Benchmarking batch_scaling/simd_batch/16: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 6.2s, or reduce sample count to 80.
+Benchmarking batch_scaling/simd_batch/16: Collecting 100 samples in estimated 6.2230 s (100 iterations)
+Benchmarking batch_scaling/simd_batch/16: Analyzing
+batch_scaling/simd_batch/16
+                        time:   [58.916 ms 59.472 ms 60.052 ms]
+                        thrpt:  [1.0913 Melem/s 1.1020 Melem/s 1.1124 Melem/s]
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high mild
+Benchmarking batch_scaling/scalar_batch/32
+Benchmarking batch_scaling/scalar_batch/32: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 33.6s, or reduce sample count to 10.
+Benchmarking batch_scaling/scalar_batch/32: Collecting 100 samples in estimated 33.603 s (100 iterations)
+Benchmarking batch_scaling/scalar_batch/32: Analyzing
+batch_scaling/scalar_batch/32
+                        time:   [329.15 ms 332.11 ms 335.10 ms]
+                        thrpt:  [391.14 Kelem/s 394.67 Kelem/s 398.21 Kelem/s]
+Benchmarking batch_scaling/simd_batch/32
+Benchmarking batch_scaling/simd_batch/32: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 12.6s, or reduce sample count to 30.
+Benchmarking batch_scaling/simd_batch/32: Collecting 100 samples in estimated 12.610 s (100 iterations)
+Benchmarking batch_scaling/simd_batch/32: Analyzing
+batch_scaling/simd_batch/32
+                        time:   [126.62 ms 128.76 ms 131.29 ms]
+                        thrpt:  [998.30 Kelem/s 1.0180 Melem/s 1.0352 Melem/s]
+Found 10 outliers among 100 measurements (10.00%)
+  7 (7.00%) high mild
+  3 (3.00%) high severe
+

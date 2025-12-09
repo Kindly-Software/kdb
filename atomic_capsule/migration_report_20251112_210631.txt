@@ -1,0 +1,8 @@
+Migration Report - Wed Nov 12 09:06:31 PM EST 2025
+=========================
+Derive Count: 93
+Manual Remaining: 124
+  - verify_capsule_properties: 74
+  - verify_alignment_only: 22
+  - manual assertions: 28
+Progress: 42%

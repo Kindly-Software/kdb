@@ -40,7 +40,7 @@
 
 **Framework Compliance**:
 - ✅ UCE34 (Q1-Q34 complete)
-- ✅ COCA (100% computational capsule architecture)
+- ✅ Chaos (100% computational capsule architecture)
 - ✅ ASSUM (8+ assumptions verified)
 - ✅ B32 (fair baselines, 95% CI, 1000+ iterations)
 - ✅ T28 (90 tests planned)
@@ -271,7 +271,7 @@ head=0x0000_0001_0000_0005 → gen=1, idx=5 (wrapped once)
 | Framework | Requirement | Status |
 |-----------|-------------|--------|
 | **UCE34** | Q1-Q34 complete | ✅ (HW_INTERFACE_UCE34.md) |
-| **COCA** | 100% computational capsules | ✅ (DmaBuffer, SyncPrimitive, CommandQueue) |
+| **Chaos** | 100% computational capsules | ✅ (DmaBuffer, SyncPrimitive, CommandQueue) |
 | **ASSUM** | 8+ assumptions verified | ✅ (pinned memory, atomics, alignment, PCIe, CAS) |
 | **B32** | Fair baselines, 95% CI | ✅ (Criterion benchmarks planned) |
 | **T28** | 90 tests (4 tiers) | ✅ (HW_INTERFACE_T28.md) |
@@ -441,7 +441,7 @@ pool.alloc() // <10ns (atomic pop from lockfree stack)
 
 **Safety Guaranteed**: 99.99% safe code (FFI isolated in <1% of codebase), 100% lockfree coordination (no mutex/RwLock in fast paths), 8 ASSUM tags verified.
 
-**Framework Compliant**: UCE34 (Q1-Q34), COCA (100% computational capsules), ASSUM (8+ assumptions), B32 (fair baselines), T28 (90 tests), I20 (zero breaking changes).
+**Framework Compliant**: UCE34 (Q1-Q34), Chaos (100% computational capsules), ASSUM (8+ assumptions), B32 (fair baselines), T28 (90 tests), I20 (zero breaking changes).
 
 **Novel Contributions**:
 1. Zero-cost trait abstraction (0ns overhead vs raw FFI)

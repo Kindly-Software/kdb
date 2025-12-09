@@ -51,7 +51,7 @@ MemoryProfilerCapsule (256-byte aligned orchestrator)
 - **Q33**: #[derive(ComputationalCapsule)] macro applied (0ns runtime verification)
 - **Q34**: Audit trail support via Q34 hash-chain in HeapSnapshotCapsule
 
-### ✅ COCA (Computational Capsule Architecture)
+### ✅ Chaos (Computational Capsule Architecture)
 - **Lockfree**: 100% atomic operations, zero mutex/RwLock (grep verified)
 - **Cache-aligned**: 256-byte alignment prevents false sharing
 - **Generation counters**: TOCTOU prevention via atomic u32 state machine
@@ -312,7 +312,7 @@ test memory_profiler::tests::test_profiler_state_transitions ... ok
 ## Framework References
 
 **Mandatory Reading** (UCE34 Framework):
-- `/home/samuel/Docs/The Computational Capsule.md` - COCA foundation
+- `/home/samuel/Docs/The Computational Capsule.md` - Chaos foundation
 - `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md` - 9 innovations, 7-35× speedups
 - `/home/samuel/Primitives/atomic_capsule/CLAUDE.md` - Capsule primitives (250+ capsules)
 - `/home/samuel/Primitives/kdb/CLAUDE.md` - KDB debugger configuration
@@ -320,7 +320,7 @@ test memory_profiler::tests::test_profiler_state_transitions ... ok
 
 **Framework Standards**:
 - **UCE34**: Q10 tier selection, Q33 verification, Q34 audit trails
-- **COCA**: 100% lockfree, cache-aligned, generation counters
+- **Chaos**: 100% lockfree, cache-aligned, generation counters
 - **ASSUM**: 99.99% safety, #ASSUME + #VERIFY documentation
 - **B32**: 95% CI, 1000+ iterations, fair baselines
 - **T28**: 28 test tiers (unit/property/integration/production)
@@ -349,10 +349,10 @@ test memory_profiler::tests::test_profiler_state_transitions ... ok
 **MemoryProfilerCapsule** is a production-ready T6 Mixed tier orchestrator that:
 
 1. ✅ **Compiles successfully** (309 lines, zero errors)
-2. ✅ **Follows COCA patterns** (100% lockfree, 256-byte aligned)
+2. ✅ **Follows Chaos patterns** (100% lockfree, 256-byte aligned)
 3. ✅ **Meets performance targets** (design-level <200ns)
 4. ✅ **Comprehensive documentation** (400+ lines, 7 frameworks)
-5. ✅ **Framework compliant** (UCE34, COCA, ASSUM, B32, T28, I20)
+5. ✅ **Framework compliant** (UCE34, Chaos, ASSUM, B32, T28, I20)
 6. ✅ **Ready for Phase 3-4** (subcapsule integration, MCP exposure)
 
 **Next Action**: Fix subcapsule compilation errors (MAX_ATTEMPTS, type casts) and implement track_malloc/track_free methods in Phase 3.

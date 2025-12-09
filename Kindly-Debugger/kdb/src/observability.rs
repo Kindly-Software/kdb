@@ -12,7 +12,7 @@
 //! - ASSUM: Atomic counters verified, zero unsafe code in fast paths
 //! - B32: Fair baselines (health check <100ms, metrics <50ms)
 //! - T28: Production-grade monitoring
-//! - COCA: T1 Atomic (lockfree counters)
+//! - Chaos: T1 Atomic (lockfree counters)
 
 use crate::health::HealthStatus;
 use crate::metrics::MetricsCapsule;

@@ -40,7 +40,7 @@ Implemented `#[derive(CapsuleDeserialize)]` proc macro in `atomic_capsule_derive
    - Added module import for `deserialize_codegen`
    - Implemented `#[proc_macro_derive(CapsuleDeserialize)]`
    - Comprehensive documentation with examples, attributes, and ASSUM framework
-   - Framework compliance notes (UCE34, ASSUM, B32, T28, I20, COCA)
+   - Framework compliance notes (UCE34, ASSUM, B32, T28, I20, Chaos)
 
 2. **Cargo.toml** (+1 line)
    - Added dev-dependency: `atomic_capsule` with features `["std", "capsule-serialize"]`
@@ -148,4 +148,4 @@ println!("Amount: {}, Fee: {}", payment.amount, payment.fee);
 | **Error Cases** | InsufficientData, InvalidFormat, VersionMismatch |
 | **Struct Variants** | Named fields, tuple structs, unit structs |
 | **Safety Target** | 99.99% (ASSUM framework, all assumptions verified) |
-| **Framework Stack** | UCE34 + ASSUM + B32 + T28 + I20 + COCA |
+| **Framework Stack** | UCE34 + ASSUM + B32 + T28 + I20 + Chaos |

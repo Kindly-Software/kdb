@@ -1,0 +1,117 @@
+[package]
+name = "kiang"
+version = "0.1.0"
+edition = "2024"
+authors = ["Samuel <samuel@kindly.software>"]
+description = "KIANG - Kindly Intel Arc Native Graphics: Atomic capsule-based graphics driver for Intel Arc GPUs"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/kindly-ai/kiang"
+keywords = ["graphics", "intel", "arc", "xe", "atomic"]
+categories = ["hardware-support", "rendering"]
+
+# Nightly Rust features for advanced optimization (Q32 Enhancement)
+# - const_fn_floating_point_arithmetic: Compile-time thermal threshold calculations
+# - atomic_from_mut: Zero-cost atomic conversions from mutable references
+# - portable_simd: Future vectorized operations for batch GPU state processing
+
+[dependencies]
+# Atomic circuit breaker (existing implementation)
+atomic_breaker = { path = "../atomic_breaker", features = ["standard64", "std"] }
+
+# Async runtime for coordination
+tokio = { version = "1.45", features = ["full"], optional = true }
+
+# Atomics and lockfree primitives
+crossbeam-utils = "0.8"
+parking_lot = "0.12"
+portable-atomic = { workspace = true }
+
+# DRM/GEM bindings
+drm = { version = "0.14", optional = true }
+drm-ffi = { version = "0.8", optional = true }
+
+# Memory mapping
+memmap2 = "0.9"
+nix = { version = "0.29", features = ["mman", "ioctl"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Bit manipulation
+bitflags = "2.6"
+
+[dev-dependencies]
+criterion = "0.5"
+proptest = "1.5"
+
+[[bench]]
+name = "atomic_capsule_bench"
+harness = false
+
+[[bench]]
+name = "fence_bench"
+harness = false
+
+[[bench]]
+name = "context_bench"
+harness = false
+
+[[bench]]
+name = "guc_ctb_bench"
+harness = false
+
+[[bench]]
+name = "coordinator_bench"
+harness = false
+
+[features]
+default = ["drm-backend"]
+drm-backend = ["drm", "drm-ffi"]
+async-runtime = ["tokio"]
+# Nightly features for advanced optimization (UCE32 Q32)
+nightly = []
+# SIMD optimizations using portable_simd (nightly)
+simd = []
+# Real kernel driver integration (requires hardware and permissions)
+real_driver = ["drm-backend"]
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[lints]
+workspace = true
+
+[[bench]]
+name = "submission_pipeline_bench"
+harness = false
+
+[[bench]]
+name = "iommu_bench"
+harness = false
+
+[[bench]]
+name = "reclamation_bench"
+harness = false
+
+[[bench]]
+name = "real_driver_bench"
+harness = false
+
+[[bench]]
+name = "error_recovery_bench"
+harness = false
+
+[[bench]]
+name = "simd_batch_bench"
+harness = false
+
+[[bench]]
+name = "metrics_collection_bench"
+harness = false
+
+[[bench]]
+name = "simd_ops_bench"
+harness = false

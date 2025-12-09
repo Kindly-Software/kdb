@@ -8,5 +8,5 @@
 pub mod mesh_gradient;
 pub mod particles;
 
-pub use mesh_gradient::MeshGradient;
+pub use mesh_gradient::{MeshGradient, RenderBackend};
 pub use particles::ParticleSystem;

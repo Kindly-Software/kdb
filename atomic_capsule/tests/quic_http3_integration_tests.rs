@@ -17,7 +17,7 @@
 //!
 //! **Framework Compliance**:
 //! - UCE34: Q10 T6 Mixed tier selection ✅
-//! - COCA: 100% lockfree (zero mutex/RwLock) ✅
+//! - Chaos: 100% lockfree (zero mutex/RwLock) ✅
 //! - ASSUM: 99.99% safe (all assumptions documented) ✅
 //! - B32: Fair baselines (Quinn QUIC), conservative 2-5×, optimistic 10-20× ✅
 //! - T28: 28 tests across 4 tiers ✅

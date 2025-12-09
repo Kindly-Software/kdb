@@ -5,7 +5,7 @@
 //! Lockfree buffer management for GPU memory using atomic state.
 //! Pools buffers for reuse to avoid allocation overhead.
 //!
-//! # COCA Compliance
+//! # Chaos Compliance
 //!
 //! 100% lockfree via atomic free-list pattern:
 //! - Each buffer slot has atomic state (free/in_use)
@@ -16,7 +16,7 @@
 //! # Framework Compliance
 //!
 //! - UCE34: Q10 T1 Atomic tier (lockfree coordination)
-//! - COCA: 100% lockfree via atomic free-list
+//! - Chaos: 100% lockfree via atomic free-list
 //! - ASSUM: Buffer sizes validated, all assumptions documented
 //! - B32: Performance targets documented
 
@@ -65,7 +65,7 @@ fn unpack_slot_state(packed: u64) -> (u64, u16, u32) {
 
 /// A single slot in the buffer pool (cache-line aligned)
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 ///
 /// Uses atomic state for lockfree slot management:
 /// - state: Tracks slot status (empty/free/in_use) + next_free + generation
@@ -141,7 +141,7 @@ fn unpack_pool_state(packed: u64) -> (u16, u16, u16) {
 ///
 /// Manages a pool of GPU buffers for reuse using a lockfree free-list.
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 ///
 /// 100% lockfree implementation:
 /// - Atomic free-list head with CAS for acquire/release
@@ -241,7 +241,7 @@ impl GpuBufferPoolCapsule {
     ///
     /// * `max_pool_size` - Maximum number of buffers to pool
     ///
-    /// # COCA Compliance
+    /// # Chaos Compliance
     ///
     /// Initializes lockfree free-list structure with atomic slots.
     pub fn new(max_pool_size: usize) -> Self {
@@ -289,7 +289,7 @@ impl GpuBufferPoolCapsule {
     /// Returns None if no suitable buffer is available.
     /// This is the fast path (<10ns when buffer available).
     ///
-    /// # COCA Compliance
+    /// # Chaos Compliance
     ///
     /// Uses CAS loop on free-list head for lockfree acquire.
     /// Scans slots for suitable buffer (size + usage match).
@@ -427,7 +427,7 @@ impl GpuBufferPoolCapsule {
     ///
     /// This is the primary API for buffer acquisition.
     ///
-    /// # COCA Compliance
+    /// # Chaos Compliance
     ///
     /// Lockfree: try_acquire uses CAS, create_buffer is allocation-only.
     pub fn acquire_or_create(
@@ -455,7 +455,7 @@ impl GpuBufferPoolCapsule {
 
     /// Create a new GPU buffer
     ///
-    /// # COCA Compliance
+    /// # Chaos Compliance
     ///
     /// Allocation-only, no locking. State update is atomic.
     pub fn create_buffer(
@@ -504,7 +504,7 @@ impl GpuBufferPoolCapsule {
     ///
     /// Buffer is added to pool if pool is not full, otherwise dropped.
     ///
-    /// # COCA Compliance
+    /// # Chaos Compliance
     ///
     /// Uses CAS to find empty slot and update free-list head.
     pub fn release(&self, buffer: Buffer, size: u64, usage: BufferUsages) {
@@ -575,7 +575,7 @@ impl GpuBufferPoolCapsule {
 
     /// Clear all pooled buffers
     ///
-    /// # COCA Compliance
+    /// # Chaos Compliance
     ///
     /// Resets all slot states atomically.
     pub fn clear(&mut self) {

@@ -1,6 +1,6 @@
 # Kindly Services HTTP Server
 
-**Production-ready static file server using UCE34/COCA capsule architecture**
+**Production-ready static file server using UCE34/Chaos capsule architecture**
 
 ## Overview
 
@@ -62,7 +62,7 @@ Output:
 [Kindly-Services/1.0] Starting server on port 8082
 [Kindly-Services/1.0] Serving directory: /home/samuel/Primitives/kindly-services/dist/
 [Kindly-Services/1.0] UCE34 Tier: T6 Mixed (T1 Atomic + T2 SIMD)
-[Kindly-Services/1.0] COCA Compliance: 100% lockfree, zero mutex
+[Kindly-Services/1.0] Chaos Compliance: 100% lockfree, zero mutex
 [Kindly-Services/1.0] Listening on http://0.0.0.0:8082
 [Kindly-Services/1.0] Ready to serve requests (Ctrl+C to stop)
 ```
@@ -194,7 +194,7 @@ All assumptions documented and verified:
 | **SPA Support** | ❌ No | ✅ Yes (index.html fallback) |
 | **Cache Control** | Basic | Production-ready (1 year) |
 | **Audit Trail** | ❌ No | ✅ Yes (Q34 compliant) |
-| **COCA Compliance** | ❌ No | ✅ 100% lockfree |
+| **Chaos Compliance** | ❌ No | ✅ 100% lockfree |
 | **Test Coverage** | Minimal | 12 tests (100% critical paths) |
 
 ## Future Enhancements (Not Implemented)
@@ -216,7 +216,7 @@ These features are deliberately excluded from this proprietary implementation to
 ## References
 
 - **UCE34 Framework**: `/home/samuel/CLAUDE.md` § Mandatory Capsule Architecture
-- **COCA Principles**: `/home/samuel/Docs/The Computational Capsule.md`
+- **Chaos Principles**: `/home/samuel/Docs/The Computational Capsule.md`
 - **StaticFileServerCapsule**: `/home/samuel/Primitives/atomic_capsule/src/http/static_file_server.rs`
 - **PathValidator**: Pattern from StaticFileServerCapsule (lines 705-770)
 - **MimeTypeIndex**: Pattern from StaticFileServerCapsule (lines 305-491)

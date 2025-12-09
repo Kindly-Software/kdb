@@ -10,12 +10,14 @@
 
 #![allow(unused)]
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 
 #[cfg(feature = "nightly-const-probabilistic")]
 mod benches {
     use super::*;
-    use atomic_capsule::probabilistic::{HyperLogLogConst, validate_hll_precision, calculate_hll_error};
+    use atomic_capsule::probabilistic::{
+        calculate_hll_error, validate_hll_precision, HyperLogLogConst,
+    };
 
     /// Benchmark insert performance for P14
     pub fn bench_insert_p14(c: &mut Criterion) {

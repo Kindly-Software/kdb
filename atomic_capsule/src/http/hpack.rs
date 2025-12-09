@@ -38,7 +38,7 @@
 //! - B32: Fair baseline comparison (raw vs Huffman-encoded)
 //! - T28: 28+ comprehensive tests (unit/property/integration/production)
 //! - I20: Zero breaking changes
-//! - COCA: 100% lockfree atomic operations
+//! - Chaos: 100% lockfree atomic operations
 //!
 //! **RFC 7541 Sections**:
 //! - Section 2: Overview (static/dynamic tables, encoding modes)

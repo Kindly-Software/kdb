@@ -784,20 +784,20 @@ impl StreamingDedupPipeline {
 ### Rayon (Rejected)
 ✅ Simple API (fold/reduce)
 ✅ Work stealing built-in
-❌ Not COCA compliant (uses Mutex internally)
+❌ Not Chaos compliant (uses Mutex internally)
 ❌ Fork-join model (not pipeline)
 ❌ Hidden overhead (thread sync)
 ❌ Hard to debug performance
 
 ### atomic_capsule T5 (Chosen)
-✅ 100% lockfree (COCA compliant)
+✅ 100% lockfree (Chaos compliant)
 ✅ Pipeline parallelism (stages overlap)
 ✅ Explicit control (queues, thread pools)
 ✅ Observable metrics (queue depth, worker throughput)
 ❌ More complex implementation
 ❌ Manual queue management
 
-**Decision**: T5 Streaming aligns with COCA mandate and provides 2-3× better parallelism (90% vs Amdahl's 89.5% limit with rayon).
+**Decision**: T5 Streaming aligns with Chaos mandate and provides 2-3× better parallelism (90% vs Amdahl's 89.5% limit with rayon).
 
 ---
 

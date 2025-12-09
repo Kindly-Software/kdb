@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Bundle Identification -->
+    <key>CFBundleIdentifier</key>
+    <string>software.kindly.av1</string>
+    <key>CFBundleName</key>
+    <string>kindly-av1</string>
+    <key>CFBundleDisplayName</key>
+    <string>kindly-av1</string>
+    <key>CFBundleExecutable</key>
+    <string>kindly-av1</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
+
+    <!-- Version Information -->
+    <key>CFBundleVersion</key>
+    <string>1.0.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+
+    <!-- System Requirements -->
+    <key>LSMinimumSystemVersion</key>
+    <string>11.0</string>
+    <key>LSRequiresNativeExecution</key>
+    <true/>
+
+    <!-- Application Category -->
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.video</string>
+
+    <!-- Display Settings -->
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+
+    <!-- Document Types -->
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Video File</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>LSHandlerRank</key>
+            <string>Default</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>mp4</string>
+                <string>mkv</string>
+                <string>avi</string>
+                <string>mov</string>
+                <string>webm</string>
+                <string>y4m</string>
+                <string>yuv</string>
+                <string>ivf</string>
+            </array>
+            <key>CFBundleTypeIconFile</key>
+            <string>AppIcon</string>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>AV1 Bitstream</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>LSHandlerRank</key>
+            <string>Default</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>ivf</string>
+                <string>obu</string>
+            </array>
+            <key>CFBundleTypeIconFile</key>
+            <string>AppIcon</string>
+        </dict>
+    </array>
+
+    <!-- Human Interface -->
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2025 Kindly Software. All rights reserved.</string>
+
+    <!-- Privacy Descriptions (required for sandboxing) -->
+    <key>NSAppleEventsUsageDescription</key>
+    <string>kindly-av1 needs access to AppleScript events for automation integration.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>kindly-av1 may access camera for live video encoding.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>kindly-av1 may access microphone for audio encoding.</string>
+
+    <!-- Terminal App Settings -->
+    <key>LSUIElement</key>
+    <false/>
+    <key>NSRequiresAquaSystemAppearance</key>
+    <false/>
+
+    <!-- GPU/Metal Support -->
+    <key>NSSupportsAutomaticGraphicsSwitching</key>
+    <true/>
+
+    <!-- URL Schemes (for license activation) -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>kindly-av1 License</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>kindly-av1</string>
+            </array>
+        </dict>
+    </array>
+
+    <!-- Exported UTIs (for AV1 files) -->
+    <key>UTExportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>software.kindly.av1.ivf</string>
+            <key>UTTypeDescription</key>
+            <string>AV1 Video File</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.data</string>
+                <string>public.content</string>
+            </array>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>ivf</string>
+                </array>
+                <key>public.mime-type</key>
+                <array>
+                    <string>video/av1</string>
+                </array>
+            </dict>
+        </dict>
+    </array>
+</dict>
+</plist>

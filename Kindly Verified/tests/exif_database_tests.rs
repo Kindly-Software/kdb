@@ -28,7 +28,7 @@ fn unit_002_capsule_alignment_64_bytes() {
     assert_eq!(
         addr % 64,
         0,
-        "Capsule must be 64-byte cache-line aligned (COCA requirement)"
+        "Capsule must be 64-byte cache-line aligned (Chaos requirement)"
     );
 }
 
@@ -1038,7 +1038,7 @@ fn production_010_audit_trail_integrity() {
 }
 
 #[test]
-fn production_011_compliance_coca_lockfree() {
+fn production_011_compliance_chaos_lockfree() {
     // Test that capsule uses only atomics (no mutex/RwLock)
     let mut capsule = EXIFCameraDatabaseCapsule::new();
 

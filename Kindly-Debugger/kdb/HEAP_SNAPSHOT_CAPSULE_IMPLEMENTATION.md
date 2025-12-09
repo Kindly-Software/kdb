@@ -347,7 +347,7 @@ println!("Heap at snapshot {}: {} bytes", n, heap_snapshot.heap_size_bytes);
 - **KDB Roadmap**: `/home/samuel/Primitives/kdb/KDB_AI_ONLY_ROADMAP.md` (Week 4)
 - **Architecture**: `/home/samuel/Primitives/kdb/KDB_AI_AGENT_REDESIGN_FINAL.md` (Memory Profiling section)
 - **UCE34 Framework**: `/home/samuel/Docs/CLAUDE.md` (Tier selection, Q33 verification)
-- **COCA Standards**: `/home/samuel/Docs/The Computational Capsule.md`
+- **Chaos Standards**: `/home/samuel/Docs/The Computational Capsule.md`
 
 ---
 

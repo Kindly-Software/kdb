@@ -1,0 +1,318 @@
+name: Persistent Capsule Verification (T28 4-Tier)
+
+on:
+  push:
+    branches: [ main, phase2.4.1-derive-macro-migration ]
+    paths:
+      - 'src/persistence/**'
+      - 'tests/persistent_*.rs'
+      - 'Cargo.toml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/persistence/**'
+      - 'tests/persistent_*.rs'
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Job 1: Compile-Time Verification
+  compile_verify:
+    name: Compile-Time Verification (0ns overhead)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust Nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Verify Capsules Compile
+        run: |
+          cargo build --features "mmap-persistence,nightly-atomic" \
+            --lib --release
+
+      - name: Check No Warnings
+        run: |
+          cargo build --features "mmap-persistence,nightly-atomic" \
+            --lib 2>&1 | tee build.log
+          if grep -q "warning:" build.log; then
+            echo "❌ Build warnings detected"
+            exit 1
+          fi
+          echo "✅ Zero warnings"
+
+  # Job 2: T28 Tier 1 - Unit Tests (<10ms per test)
+  tier1_unit:
+    name: T28 Tier 1 - Unit Tests (65 tests)
+    runs-on: ubuntu-latest
+    needs: compile_verify
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+
+      - name: Run Unit Tests
+        run: |
+          cargo test --features "mmap-persistence,nightly-atomic" \
+            --test persistent_unit_tests \
+            -- --test-threads=1 --nocapture
+
+      - name: Verify Test Count
+        run: |
+          TEST_COUNT=$(cargo test --features "mmap-persistence,nightly-atomic" \
+            --test persistent_unit_tests -- --list 2>&1 | grep -c "test_")
+          echo "Unit tests: $TEST_COUNT"
+          if [ "$TEST_COUNT" -lt 65 ]; then
+            echo "❌ Expected 65+ unit tests, found $TEST_COUNT"
+            exit 1
+          fi
+          echo "✅ Unit test count verified: $TEST_COUNT"
+
+  # Job 3: T28 Tier 2 - Property Tests (<100ms per test)
+  tier2_property:
+    name: T28 Tier 2 - Property Tests (30 tests)
+    runs-on: ubuntu-latest
+    needs: tier1_unit
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+
+      - name: Run Property Tests
+        run: |
+          cargo test --features "mmap-persistence,nightly-atomic" \
+            --test persistent_property_tests \
+            -- --test-threads=1 --nocapture
+
+      - name: Verify Property Test Count
+        run: |
+          TEST_COUNT=$(cargo test --features "mmap-persistence,nightly-atomic" \
+            --test persistent_property_tests -- --list 2>&1 | grep -c "prop_")
+          echo "Property tests: $TEST_COUNT"
+          if [ "$TEST_COUNT" -lt 30 ]; then
+            echo "❌ Expected 30+ property tests, found $TEST_COUNT"
+            exit 1
+          fi
+          echo "✅ Property test count verified: $TEST_COUNT"
+
+  # Job 4: T28 Tier 3 - Integration Tests (<500ms per test)
+  tier3_integration:
+    name: T28 Tier 3 - Integration Tests (23 tests)
+    runs-on: ubuntu-latest
+    needs: tier2_property
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+
+      - name: Run Integration Tests
+        run: |
+          cargo test --features "mmap-persistence,nightly-atomic" \
+            --test persistent_integration_tests \
+            -- --test-threads=1 --nocapture
+
+      - name: Verify Integration Test Count
+        run: |
+          TEST_COUNT=$(cargo test --features "mmap-persistence,nightly-atomic" \
+            --test persistent_integration_tests -- --list 2>&1 | grep -c "test_")
+          echo "Integration tests: $TEST_COUNT"
+          if [ "$TEST_COUNT" -lt 23 ]; then
+            echo "❌ Expected 23+ integration tests, found $TEST_COUNT"
+            exit 1
+          fi
+          echo "✅ Integration test count verified: $TEST_COUNT"
+
+  # Job 5: T28 Tier 4 - Production Tests (<5s per test)
+  tier4_production:
+    name: T28 Tier 4 - Production Tests (19 tests, quick)
+    runs-on: ubuntu-latest
+    needs: tier3_integration
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+
+      - name: Run Production Tests (Quick)
+        run: |
+          cargo test --features "mmap-persistence,nightly-atomic" \
+            --test persistent_production_tests \
+            -- --test-threads=1 --nocapture
+
+      - name: Verify Production Test Count
+        run: |
+          TEST_COUNT=$(cargo test --features "mmap-persistence,nightly-atomic" \
+            --test persistent_production_tests -- --list 2>&1 | grep -c "test_")
+          echo "Production tests: $TEST_COUNT"
+          if [ "$TEST_COUNT" -lt 19 ]; then
+            echo "❌ Expected 19+ production tests, found $TEST_COUNT"
+            exit 1
+          fi
+          echo "✅ Production test count verified: $TEST_COUNT"
+
+  # Job 6: Stress Tests (Optional, Manual Trigger)
+  tier4_stress:
+    name: T28 Tier 4 - Stress Tests (7 tests, ignored by default)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[stress-test]')
+    needs: tier4_production
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+
+      - name: Run Stress Tests
+        run: |
+          cargo test --features "mmap-persistence,nightly-atomic" \
+            --test persistent_production_tests \
+            -- --ignored --test-threads=1 --nocapture
+        timeout-minutes: 30
+
+  # Job 7: Clippy Linting
+  clippy:
+    name: Clippy Lint (Zero Warnings)
+    runs-on: ubuntu-latest
+    needs: compile_verify
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          components: clippy
+          override: true
+
+      - name: Run Clippy
+        run: |
+          cargo clippy --features "mmap-persistence,nightly-atomic" \
+            --lib -- -D warnings
+
+      - name: Future: Verify Capsule Lint (when clippy-capsule-verify is ready)
+        run: |
+          echo "⏳ clippy::missing_capsule_verification not yet available"
+          echo "Will be enabled in v0.5.0 when clippy-capsule-verify is integrated"
+
+  # Job 8: Documentation Check
+  docs:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    needs: compile_verify
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+
+      - name: Generate Docs
+        run: |
+          cargo doc --features "mmap-persistence,nightly-atomic" \
+            --no-deps --lib
+
+      - name: Check for Missing Docs
+        run: |
+          cargo doc --features "mmap-persistence,nightly-atomic" \
+            --no-deps --lib 2>&1 | tee docs.log
+          if grep -q "warning:" docs.log; then
+            echo "⚠️ Documentation warnings detected (non-blocking)"
+          else
+            echo "✅ Documentation complete"
+          fi
+
+  # Job 9: ASSUM Safety Audit
+  assum_audit:
+    name: ASSUM Safety Audit (99.5% target)
+    runs-on: ubuntu-latest
+    needs: [tier1_unit, tier2_property, tier3_integration, tier4_production]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Count Unsafe Blocks
+        run: |
+          UNSAFE_COUNT=$(grep -r "unsafe" src/persistence/ | wc -l)
+          TOTAL_LOC=$(find src/persistence/ -name "*.rs" -exec wc -l {} + | tail -1 | awk '{print $1}')
+          SAFE_PERCENT=$(echo "scale=2; (1 - $UNSAFE_COUNT / $TOTAL_LOC) * 100" | bc)
+          echo "Unsafe blocks: $UNSAFE_COUNT"
+          echo "Total LOC: $TOTAL_LOC"
+          echo "Safe percentage: $SAFE_PERCENT%"
+          if (( $(echo "$SAFE_PERCENT < 99.0" | bc -l) )); then
+            echo "❌ Safety target not met: $SAFE_PERCENT% < 99.0%"
+            exit 1
+          fi
+          echo "✅ Safety audit passed: $SAFE_PERCENT%"
+
+      - name: Verify ASSUM Tags
+        run: |
+          ASSUME_COUNT=$(grep -r "#ASSUME" src/persistence/ | wc -l)
+          VERIFY_COUNT=$(grep -r "#VERIFY" src/persistence/ | wc -l)
+          echo "ASSUME tags: $ASSUME_COUNT"
+          echo "VERIFY tags: $VERIFY_COUNT"
+          if [ "$ASSUME_COUNT" -ne "$VERIFY_COUNT" ]; then
+            echo "⚠️ Warning: ASSUME/VERIFY count mismatch ($ASSUME_COUNT vs $VERIFY_COUNT)"
+          else
+            echo "✅ All assumptions verified: $ASSUME_COUNT/$VERIFY_COUNT"
+          fi
+
+  # Job 10: Summary Report
+  summary:
+    name: Test Summary Report
+    runs-on: ubuntu-latest
+    needs: [tier1_unit, tier2_property, tier3_integration, tier4_production, clippy, docs, assum_audit]
+    if: always()
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "# T28 4-Tier Test Pyramid - Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Tier | Tests | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Tier 1: Unit | 65 | ${{ needs.tier1_unit.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tier 2: Property | 30 | ${{ needs.tier2_property.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tier 3: Integration | 23 | ${{ needs.tier3_integration.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tier 4: Production | 19 | ${{ needs.tier4_production.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **TOTAL** | **137** | **${{ job.status }}** |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Quality Checks" >> $GITHUB_STEP_SUMMARY
+          echo "- Clippy: ${{ needs.clippy.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Docs: ${{ needs.docs.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ASSUM: ${{ needs.assum_audit.result }}" >> $GITHUB_STEP_SUMMARY
+
+# Notification on failure
+  notify_failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [tier1_unit, tier2_property, tier3_integration, tier4_production]
+    if: failure()
+    steps:
+      - name: Failure Notification
+        run: |
+          echo "❌ T28 Test Suite Failed"
+          echo "Please review test logs and fix failures before merging"
+          exit 1

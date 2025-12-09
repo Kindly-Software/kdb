@@ -287,4 +287,4 @@ The P0 lint test suite is **production-ready** with comprehensive coverage of:
 
 ---
 
-**Framework**: UCE34 T28 | COCA 100% Lockfree | ASSUM 99.5%+ Safety | B32 Fair Baseline
+**Framework**: UCE34 T28 | Chaos 100% Lockfree | ASSUM 99.5%+ Safety | B32 Fair Baseline

@@ -1,0 +1,17 @@
+[Unit]
+Description=Capsule Cache (Computational Capsule Redis-style)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/env bash -lc 'cd /home/samuel/Primitives && AUTH_TOKEN=${AUTH_TOKEN:-} AOF_PATH=${AOF_PATH:-/var/lib/capsule_cache/aof.log} SLOWLOG_PATH=${SLOWLOG_PATH:-/var/log/capsule_cache/slowlog.tsv} SHARDS=${SHARDS:-1} SHARD_CAPACITY=${SHARD_CAPACITY:-16384} cargo run -p capsule_cache --bin server -- 0.0.0.0:7379'
+Restart=on-failure
+RestartSec=2
+LimitNOFILE=1048576
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+WorkingDirectory=/home/samuel/Primitives
+User=samuel
+Group=samuel
+
+[Install]
+WantedBy=multi-user.target

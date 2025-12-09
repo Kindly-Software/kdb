@@ -64,68 +64,49 @@ pub fn Pricing() -> impl IntoView {
             name: "Hobby",
             price: "$0",
             period: "forever",
-            description: "MCP handshake for casual debugging",
+            description: "Free forever - unlimited sessions during 7-day launch promo!",
             features: vec![
-                "5 debugging sessions/month",
-                "Basic time-travel debugging",
-                "MCP protocol support",
-                "Local debugging only",
+                "🎉 LAUNCH: Unlimited for 7 days!",
+                "5 sessions/month (after promo)",
+                "Time-travel debugging",
+                "MCP protocol (any platform)",
+                "Works with Claude Code, Cursor",
                 "Community support",
-                "GitHub issues",
             ],
-            cta_text: "Get Started",
-            cta_url: "https://github.com/kindly-software/kdb",
-            is_featured: false,
-        },
-        PricingTier {
-            name: "Starter",
-            price: "$15",
-            period: "/month",
-            description: "Regular debugging for side projects",
-            features: vec![
-                "20 debugging sessions/month",
-                "Everything in Hobby",
-                "Enhanced audit trails",
-                "Email support",
-                "7-day snapshot retention",
-            ],
-            cta_text: "Subscribe",
-            cta_url: "mailto:support@kindly.software?subject=Starter%20License",
-            is_featured: false,
-        },
-        PricingTier {
-            name: "Developer",
-            price: "$39",
-            period: "/month",
-            description: "Professional debugging for individuals",
-            features: vec![
-                "100 debugging sessions/month",
-                "Everything in Starter",
-                "Remote debugging API",
-                "REST API access",
-                "Priority support",
-                "1 seat license",
-            ],
-            cta_text: "Get Started",
-            cta_url: "mailto:support@kindly.software?subject=Developer%20License",
+            cta_text: "Start Free",
+            cta_url: "#signup",
             is_featured: true,
         },
         PricingTier {
-            name: "Professional",
-            price: "$199",
-            period: "/month",
-            description: "Unlimited debugging for teams",
+            name: "Pro",
+            price: "Coming Soon",
+            period: "",
+            description: "Extended sessions for professional developers",
             features: vec![
-                "Unlimited debugging sessions",
-                "Everything in Developer",
-                "5 seat licenses",
-                "SOC2/GDPR compliance",
-                "Shared audit logs",
+                "Unlimited sessions",
+                "Everything in Hobby",
+                "Extended snapshot retention",
                 "Priority support",
-                "SLA guarantee",
+                "REST API access",
             ],
-            cta_text: "Get Started",
-            cta_url: "mailto:support@kindly.software?subject=Professional%20License",
+            cta_text: "Join Waitlist",
+            cta_url: "#signup",
+            is_featured: false,
+        },
+        PricingTier {
+            name: "Team",
+            price: "Coming Soon",
+            period: "",
+            description: "Collaboration features for development teams",
+            features: vec![
+                "Everything in Pro",
+                "5 seat licenses",
+                "Shared audit logs",
+                "Team management",
+                "SOC2/GDPR ready",
+            ],
+            cta_text: "Join Waitlist",
+            cta_url: "#signup",
             is_featured: false,
         },
         PricingTier {
@@ -134,7 +115,7 @@ pub fn Pricing() -> impl IntoView {
             period: "contact us",
             description: "Full compliance for regulated industries",
             features: vec![
-                "Everything in Professional",
+                "Everything in Team",
                 "Unlimited seats",
                 "HIPAA/SOX/FINRA",
                 "Dedicated infrastructure",
@@ -168,13 +149,13 @@ pub fn Pricing() -> impl IntoView {
                 <div style=header_style>
                     <h2 style=section_title_style>"Simple, Transparent Pricing"</h2>
                     <p style=section_subtitle_style>
-                        "Compliance-ready from day one. Rate limits: 60 snapshots/min, 100/session."
+                        "Compliance-ready from day one. 🎉 Launch Week: Hobby tier unlimited!"
                     </p>
                 </div>
 
-                // First 4 tiers in grid
+                // First 3 tiers in grid
                 <div style=grid_style class="pricing-grid">
-                    {tiers[..4].iter().map(|tier| {
+                    {tiers[..3].iter().map(|tier| {
                         let card_style = if tier.is_featured {
                             "
                                 background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.05));
@@ -337,7 +318,7 @@ pub fn Pricing() -> impl IntoView {
 
                 // Enterprise tier (horizontal card)
                 {
-                    let enterprise = &tiers[4];
+                    let enterprise = &tiers[3];
                     view! {
                         <div style=enterprise_card_style class="pricing-card enterprise-card">
                             <div>

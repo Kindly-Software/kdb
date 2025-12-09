@@ -1,0 +1,268 @@
+================================================================================
+KINDLY-AV1 GPU BENCHMARK INFRASTRUCTURE - QUICK REFERENCE
+================================================================================
+
+CURRENT STATUS (2025-11-26)
+---------------------------
+✅ Benchmark code: Fully written & compilable (2 benchmark files, 879 lines)
+✅ GPU implementation: Complete (1432 lines GpuMotionEstimationCapsule)
+✅ CPU fallback: Working (1.37ms @ 1080p = 26-33× faster than target)
+✅ Vulkan backend: Compiles (gpu-vulkan feature functional)
+❌ ROCm backend: BLOCKED (82 errors in atomic_capsule gpu-rocm feature)
+❌ GPU dispatch: Not happening (CPU fallback runs instead of GPU)
+
+WHY GPU ISN'T RUNNING
+---------------------
+Problem 1: atomic_capsule gpu-rocm has 82 compilation errors
+  → ROCm dispatch code cannot execute
+  → HIP kernel is compiled but cannot be called
+
+Problem 2: gpu_stress_bench has TODO placeholders instead of GPU kernels
+  → Lines 149, 307: cpu_sgemm() hardcoded instead of calling GPU
+  → MATMUL and FFT benchmarks running on CPU only
+
+Problem 3: GPU feature detection works but dispatch is conditional
+  → If GPU not available, silently falls back to CPU
+  → No error message, no GPU speedup logged
+
+================================================================================
+BENCHMARK FILES
+================================================================================
+
+1. gpu_motion_bench.rs (398 lines) - Motion Estimation
+   -------------------------------------------------------
+   Location: /home/samuel/Primitives/kindly-av1/benches/gpu_motion_bench.rs
+   
+   Resolutions: 64×64, 320×240, 1280×720, 1920×1088
+   Strategies: CPU baseline, GPU (if available), search range sensitivity
+   B32 Compliance: ✅ 100 samples, 95% CI, 1000+ iterations
+   
+   Current: CPU only (1.37ms @ 1080p)
+   Expected GPU: 10-20× speedup (Vulkan: 50-200×, ROCm: 100-500×)
+
+2. gpu_stress_bench.rs (481 lines) - Comprehensive Stress Testing
+   ---------------------------------------------------------------
+   Location: /home/samuel/Primitives/kindly-av1/benches/gpu_stress_bench.rs
+   
+   Workloads:
+   - benchmark_matmul: 1024² to 4096² matrix multiplication (❌ CPU only)
+   - benchmark_memory_bandwidth: 64-512 MB linear/strided access (✅ works)
+   - benchmark_fft_stress: 1K to 256K point FFT (✅ works)
+   - benchmark_thermal_stress: 3+ minute sustained load (✅ works)
+   - benchmark_encoder_pipeline: Full AV1 encoding simulation (✅ works)
+
+   B32 Compliance: ✅ Proper sample sizes, measurement times
+   Current: CPU baseline only
+   Missing: GPU SGEMM and FFT kernels (TODO lines 149, 307)
+
+================================================================================
+GPU IMPLEMENTATION (src/encoder/)
+================================================================================
+
+GpuMotionEstimationCapsule (512B, T7 Heterogeneous)
+- Lines: 1432 total
+- Size: 512 bytes (64B cache-aligned)
+- Tier: T7 GPU/CPU hybrid
+- Lockfree: 100% COCA compliant
+
+GPU Detection (Lines 354-473):
+1. Try ROCm (if feature enabled)
+2. Try Vulkan (if feature enabled)
+3. Fallback to CPU diamond search
+
+GPU Dispatch (Lines 631-999):
+- ROCm path: #[cfg(feature = "gpu-rocm")] - BLOCKED by atomic_capsule
+- Vulkan path: #[cfg(feature = "gpu-vulkan")] - Implemented, conditional
+- CPU path: Always available, falls back silently
+
+CPU Diamond Search:
+- Algorithm: Fast motion estimation pattern
+- Performance: 1.37ms @ 1080p (60× faster than typical encoder targets)
+- Fallback: Used when GPU unavailable or initialization fails
+
+Vulkan Backend (src/encoder/vulkan_motion/)
+- capsule.rs (808 lines): VulkanMotionContext orchestration
+- vulkan_backend.rs (573 lines): Instance, device, pipeline, dispatch
+- vulkan_shader_loader.rs (410 lines): SPIR-V precompilation
+- Status: Compiles with --features gpu-vulkan
+- Performance target: 50-200× speedup
+- Fallback: Silent CPU fallback if GPU unavailable
+
+ROCm/HIP Backend
+- HIP kernel: kernels/motion_estimation.hip (515 lines)
+- Compiled: kernels/motion_estimation.co (14.5KB gfx1035)
+- Host API: kernels/motion_estimation_host.h
+- Status: Kernel compiled ✅, runtime dispatch blocked ❌
+- Performance target: 100-500× speedup
+- Issue: atomic_capsule gpu-rocm feature has 82 compilation errors
+
+================================================================================
+FEATURE FLAGS
+================================================================================
+
+Cargo.toml (Lines 60-67):
+  gpu-rocm = ["atomic_capsule/gpu-rocm"]
+  gpu-vulkan = ["dep:ash", "dep:gpu-allocator"]
+  gpu = ["gpu-rocm"]
+
+Build Status:
+  ✅ cargo build --release                    (CPU fallback only)
+  ✅ cargo build --release --features gpu-vulkan  (Vulkan enabled)
+  ❌ cargo build --release --features gpu-rocm    (82 errors, blocked)
+
+Build Dependencies:
+  [build-dependencies]
+  shaderc = "0.8"  # GLSL → SPIR-V compiler
+
+Conditional Compilation:
+  #[cfg(feature = "gpu-vulkan")]     → Vulkan code
+  #[cfg(feature = "gpu-rocm")]       → ROCm code (blocked)
+  #[cfg(target_os = "linux")]        → Linux-only features
+  #[cfg(all(linux, gpu-rocm))]       → Batch size tuning (blocked)
+
+================================================================================
+HARDWARE/DRIVERS REQUIRED
+================================================================================
+
+For Vulkan Backend (Ready to Test):
+  Hardware: Any GPU with Vulkan 1.3 support
+    - NVIDIA: RTX 20 series+
+    - AMD: RDNA+
+    - Intel: Arc A-series
+  Software:
+    - Vulkan SDK 1.3+
+    - Vulkan driver (depends on GPU vendor)
+    - ShaderC (already in build.rs)
+
+For ROCm Backend (Blocked):
+  Hardware: AMD GPU (RDNA or CDNA)
+    - Current kindly-hub: AMD 680M ✅
+    - Example: RX 5000+ series
+  Software:
+    - ROCm 6.0+ (installed at kindly-hub ✅)
+    - HIP compiler (hipcc) ✅
+    - rocBLAS library
+  Current issue:
+    - atomic_capsule gpu-rocm feature has 82 errors
+    - Feature must be fixed before GPU dispatch works
+
+================================================================================
+WHAT'S MISSING
+================================================================================
+
+Critical (Blocks GPU Execution)
+1. Fix atomic_capsule gpu-rocm feature (82 errors)
+   - Investigate HIP FFI incompatibility
+   - Fix upstream dependency issue
+   - Re-enable #[cfg(feature = "gpu-rocm")] dispatch
+
+2. Implement GPU kernels in stress benchmarks
+   - benchmark_matmul: Add GPU SGEMM (lines 101-159)
+   - benchmark_fft_stress: Add GPU FFT (lines 280-313)
+   - Replace TODO placeholders at lines 149, 307
+   - Use rocBLAS/cuBLAS for SGEMM, rocFFT/cuFFT for FFT
+
+3. Add actual GPU dispatch (not CPU fallback)
+   - benchmark_matmul: if backend == Vulkan { vulkan_sgemm() }
+   - benchmark_matmul: else if backend == Rocm { rocm_sgemm() }
+   - Same pattern for FFT stress test
+
+Medium Priority
+4. Complete GPU determinism tests (T28 Q29-Q35)
+   - Verify bit-exact output across runs
+   - Test CPU/GPU consistency
+   - Validate floating-point precision
+
+5. Add GPU timing breakdown
+   - GPU init time
+   - Kernel dispatch time
+   - Memory readback time
+   - Total E2E time
+
+Low Priority
+6. Multi-GPU support
+   - Device selection
+   - Load balancing
+   - Dual-GPU testing
+
+7. GPU memory profiling
+   - Peak memory usage
+   - Allocation/deallocation overhead
+
+8. Advanced query pools (for timing)
+   - Detailed kernel timing
+   - Cache behavior analysis
+
+================================================================================
+PERFORMANCE TARGETS (B32 Framework)
+================================================================================
+
+CPU Baseline (Validated):
+  64×64:       16.7µs  (60,240 fps)
+  320×240:     52.4µs  (19,083 fps)
+  1280×720:    606.9µs (1,648 fps)
+  1920×1088:   1.37ms  (730 fps) ← 26-33× faster than 35-45ms target
+
+Vulkan Target:
+  Expected: 50-200× speedup
+  1920×1088: <27.4µs to <7.1µs (50-200× speedup)
+  Realistic: 10-20× speedup (1.37ms → 70-140µs)
+
+ROCm Target:
+  Expected: 100-500× speedup
+  1920×1088: <13.7µs (100× speedup) to <2.7µs (500×)
+  Realistic: 10-20× speedup (1.37ms → 70-140µs) after optimization
+
+B32 Requirements:
+  ✅ 95% confidence interval
+  ✅ 1000+ iterations (100 samples × 10+ per sample)
+  ✅ Fair baseline (CPU diamond search, not strawman)
+  ✅ Reproducible (kindly-hub hardware)
+  ✅ Realistic workloads (actual AV1 encoder patterns)
+
+================================================================================
+RUNNING BENCHMARKS
+================================================================================
+
+Current (CPU Only):
+  cd /home/samuel/Primitives/kindly-av1
+  ssh samuel@kindly-hub "cargo bench --bench gpu_motion_bench"
+  ssh samuel@kindly-hub "cargo bench --bench gpu_stress_bench"
+  
+  Output: CPU baseline metrics only
+
+With Vulkan (When Ready):
+  cargo build --release --features gpu-vulkan
+  ssh samuel@kindly-hub "cargo bench --bench gpu_motion_bench"
+  
+  Expected: GPU dispatch if Vulkan available, CPU fallback otherwise
+
+With ROCm (When Fixed):
+  cargo build --release --features gpu-rocm  # Currently fails
+  ssh samuel@kindly-hub "cargo bench --bench gpu_motion_bench"
+  
+  Expected: GPU dispatch on AMD GPU, CPU fallback on other hardware
+
+================================================================================
+KEY CODE LOCATIONS
+================================================================================
+
+Benchmarks:
+  /home/samuel/Primitives/kindly-av1/benches/gpu_motion_bench.rs     (motion est.)
+  /home/samuel/Primitives/kindly-av1/benches/gpu_stress_bench.rs     (stress)
+
+GPU Implementation:
+  /home/samuel/Primitives/kindly-av1/src/encoder/gpu_motion.rs       (main capsule)
+  /home/samuel/Primitives/kindly-av1/src/encoder/vulkan_motion/      (Vulkan backend)
+
+GPU Kernels:
+  /home/samuel/Primitives/kindly-av1/kernels/motion_estimation.hip   (HIP kernel)
+  /home/samuel/Primitives/kindly-av1/kernels/motion_estimation.comp  (GLSL shader)
+
+Configuration:
+  /home/samuel/Primitives/kindly-av1/Cargo.toml                      (features, deps)
+  /home/samuel/Primitives/kindly-av1/build.rs                        (shader compilation)
+
+================================================================================
+END OF QUICK REFERENCE
+================================================================================

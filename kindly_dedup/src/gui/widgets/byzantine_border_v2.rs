@@ -1,8 +1,8 @@
-//! Byzantine ornate borders using container styling (iced 0.10 compatible)
+//! Byzantine ornate borders using container styling (iced 0.13 compatible)
 //! Phase 2 Quick Win #2: Custom decorative borders without Stack widget
 //!
 //! **Architecture**:
-//! - Container-based with custom style (no Stack needed)
+//! - Container-based with closure styling (iced 0.13 API)
 //! - Simple double-line boxes + corner accents
 //! - Gold color palette matching Byzantine theme
 //!
@@ -14,7 +14,7 @@
 //! - I20: Zero breaking changes (new module, additive only)
 
 use iced::widget::{container, Container};
-use iced::{Background, Color, Element, Length, Theme};
+use iced::{Background, Border, Color, Element, Length};
 
 use crate::gui::theme::colors::{with_alpha, CARD_BG, GOLD_BRIGHT, GOLD_DARK, PURPLE_LIGHT, TEXT_PRIMARY};
 
@@ -64,30 +64,17 @@ impl<'a, Message> ByzantineBorder<'a, Message> {
             .width(self.width)
             .height(self.height)
             .padding(self.padding)
-            .style(iced::theme::Container::Custom(Box::new(ByzantineBorderStyle)))
+            .style(|_theme| container::Style {
+                background: Some(Background::Color(with_alpha(CARD_BG, 0.75))),
+                border: Border {
+                    color: GOLD_DARK,
+                    width: 3.0,
+                    radius: 16.0.into(),
+                },
+                text_color: Some(TEXT_PRIMARY),
+                ..Default::default()
+            })
             .into()
-    }
-}
-
-/// Byzantine border style (double-line gold border)
-struct ByzantineBorderStyle;
-
-impl container::StyleSheet for ByzantineBorderStyle {
-    type Style = Theme;
-
-    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
-        container::Appearance {
-            // Semi-transparent purple background (matching glassmorphic cards)
-            background: Some(Background::Color(with_alpha(CARD_BG, 0.75))),
-
-            // Byzantine border: 3px gold with rounded corners
-            border_radius: 16.0.into(),
-            border_width: 3.0,
-            border_color: GOLD_DARK,
-
-            // High-contrast text for readability
-            text_color: Some(TEXT_PRIMARY),
-        }
     }
 }
 
@@ -129,29 +116,17 @@ impl<'a, Message> SimpleByzantineCard<'a, Message> {
             .width(self.width)
             .height(self.height)
             .padding(28) // Extra padding to accommodate visual border effect
-            .style(iced::theme::Container::Custom(Box::new(NestedBorderStyle)))
+            .style(|_theme| container::Style {
+                background: Some(Background::Color(with_alpha(CARD_BG, 0.8))),
+                border: Border {
+                    color: GOLD_BRIGHT,
+                    width: 2.0,
+                    radius: 18.0.into(),
+                },
+                text_color: Some(TEXT_PRIMARY),
+                ..Default::default()
+            })
             .into()
-    }
-}
-
-/// Nested border style (double-line effect using inner shadow simulation)
-struct NestedBorderStyle;
-
-impl container::StyleSheet for NestedBorderStyle {
-    type Style = Theme;
-
-    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
-        container::Appearance {
-            // Semi-transparent purple background
-            background: Some(Background::Color(with_alpha(CARD_BG, 0.8))),
-
-            // Outer gold border
-            border_radius: 18.0.into(),
-            border_width: 2.0,
-            border_color: GOLD_BRIGHT,
-
-            text_color: Some(TEXT_PRIMARY),
-        }
     }
 }
 
@@ -193,29 +168,17 @@ impl<'a, Message> PremiumByzantineCard<'a, Message> {
             .width(self.width)
             .height(self.height)
             .padding(24)
-            .style(iced::theme::Container::Custom(Box::new(PremiumBorderStyle)))
+            .style(|_theme| container::Style {
+                background: Some(Background::Color(with_alpha(CARD_BG, 0.9))),
+                border: Border {
+                    color: GOLD_BRIGHT,
+                    width: 3.0,
+                    radius: 20.0.into(),
+                },
+                text_color: Some(TEXT_PRIMARY),
+                ..Default::default()
+            })
             .into()
-    }
-}
-
-/// Premium border style (bright gold with purple accent)
-struct PremiumBorderStyle;
-
-impl container::StyleSheet for PremiumBorderStyle {
-    type Style = Theme;
-
-    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
-        container::Appearance {
-            // More opaque background for premium cards
-            background: Some(Background::Color(with_alpha(CARD_BG, 0.9))),
-
-            // Bright gold border (premium effect)
-            border_radius: 20.0.into(),
-            border_width: 3.0,
-            border_color: GOLD_BRIGHT,
-
-            text_color: Some(TEXT_PRIMARY),
-        }
     }
 }
 

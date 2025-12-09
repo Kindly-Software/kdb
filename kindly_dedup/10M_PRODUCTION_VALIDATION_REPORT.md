@@ -4,7 +4,7 @@
 **Corpus**: C4 10.2M documents (`test_data/c4_1b_final.jsonl`)
 **Hardware**: AMD Ryzen 9 6900HX (8c/16t), 64GB DDR5-4800
 **Test Duration**: ~49 minutes for 1-thread baseline
-**Framework**: UCE34 (Q1-Q34), COCA, ASSUM (99.99%), B32, T28, I20
+**Framework**: UCE34 (Q1-Q34), Chaos, ASSUM (99.99%), B32, T28, I20
 
 ---
 
@@ -276,7 +276,7 @@ timeout 3600 ./target/release/test_parallel_speedup \
 | Framework | Status | Details |
 |-----------|--------|---------|
 | **UCE34** | ⚠️ PARTIAL | Q1-Q7 pass, Q10 tier mismatch (T6 claimed, performs like T0), Q34 audit pending |
-| **COCA** | ✅ PASS | 100% lockfree, atomic coordination (unverified at scale) |
+| **Chaos** | ✅ PASS | 100% lockfree, atomic coordination (unverified at scale) |
 | **ASSUM** | ⚠️ PENDING | 99.99% assumed safe, but parallel safety unvalidated |
 | **B32** | ❌ FAIL | Fair baseline (DedupPipeline: 60K), measured 3,474 docs/sec (EXCEPTIONAL FAIL) |
 | **T28** | ⚠️ PARTIAL | 2/4 thread configs completed, parallel reliability unknown |

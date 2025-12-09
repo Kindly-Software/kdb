@@ -18,7 +18,7 @@
 // - Q33: Compile-time verification (#[derive(ComputationalCapsule)])
 // - Q34: Error tracking for validation failures
 //
-// COCA COMPLIANCE:
+// Chaos COMPLIANCE:
 // - Lockfree: 100% atomic operations (AtomicU64 for metadata)
 // - Cache-aligned: 128B perfect alignment
 // - Generation counters: TOCTOU prevention on batch operations

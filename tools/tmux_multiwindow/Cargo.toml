@@ -1,0 +1,21 @@
+[package]
+name = "tmux_multiwindow"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.76"
+authors = ["Samuel <maintainer@example.com>"]
+description = "T1 Atomic Capsule for multi-window tmux coordination across monitors (<100ns window state ops, zero-mutex, 128B aligned)"
+license = "Apache-2.0 OR MIT"
+keywords = ["tmux", "tilix", "multiwindow", "capsule", "atomic"]
+categories = ["command-line-utilities", "development-tools"]
+
+# Zero runtime dependencies - pure lockfree atomics
+# Only std library needed for SystemTime and process spawning
+
+[[bin]]
+name = "tmux-spread"
+path = "src/bin/tmux-spread.rs"
+
+[[bin]]
+name = "cargo-dashboard"
+path = "src/bin/cargo-dashboard.rs"

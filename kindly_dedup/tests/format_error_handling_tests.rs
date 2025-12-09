@@ -9,7 +9,7 @@
 //! Framework Compliance:
 //! - **T28**: Comprehensive testing (Unit tier tests for error paths)
 //! - **ASSUM**: 99.99% safety validation
-//! - **COCA**: 100% lockfree error handling
+//! - **Chaos**: 100% lockfree error handling
 
 #[cfg(test)]
 mod format_error_tests {

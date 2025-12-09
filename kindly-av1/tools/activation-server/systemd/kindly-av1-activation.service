@@ -1,0 +1,58 @@
+# kindly-av1 Activation Server SystemD Service
+# [TRADE SECRET] - Deploy to kindly-hub only
+#
+# Installation:
+#   sudo cp kindly-av1-activation.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now kindly-av1-activation
+#
+# Environment variables (set in override or service file):
+#   - ED25519_SIGNING_KEY: Base64-encoded private key
+#   - PORT: HTTP port (default: 8080)
+#   - GUMROAD_PRODUCT_ID: Gumroad product ID
+#   - GUMROAD_WEBHOOK_SECRET: Webhook HMAC secret (optional)
+
+[Unit]
+Description=kindly-av1 License Activation Server
+Documentation=https://docs.kindly.dev/kindly-av1/activation
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=samuel
+Group=samuel
+WorkingDirectory=/home/samuel/kindly-av1-activation
+
+# Binary location
+ExecStart=/home/samuel/kindly-av1-activation/bin/activation-server
+
+# Restart policy
+Restart=on-failure
+RestartSec=5s
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+
+# Environment file for secrets (create this file manually)
+EnvironmentFile=-/home/samuel/kindly-av1-activation/.env
+
+# Resource limits
+LimitNOFILE=65535
+MemoryMax=256M
+CPUQuota=100%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=kindly-av1-activation
+
+[Install]
+WantedBy=multi-user.target

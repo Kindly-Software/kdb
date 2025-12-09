@@ -2,7 +2,7 @@
 
 **Date**: 2025-11-15
 **Capsule #**: 6 of 7 (atomic_mcp_server security architecture)
-**Framework**: UCE34 (Full Q1-Q34) + COCA + ASSUM + B32 + T28 + I20
+**Framework**: UCE34 (Full Q1-Q34) + Chaos + ASSUM + B32 + T28 + I20
 **Status**: ✅ Production Ready (v0.1.0)
 
 ---
@@ -16,7 +16,7 @@ The application:
 - Never handles encrypted data or TLS handshakes
 - Provides <10ns certificate status checks
 - Includes automatic renewal tracking and failure reporting
-- Fully compliant with UCE34, COCA, ASSUM, B32, T28, I20 frameworks
+- Fully compliant with UCE34, Chaos, ASSUM, B32, T28, I20 frameworks
 
 ---
 
@@ -146,7 +146,7 @@ pub fn renewal_stats(&self) -> (u64, u64, u64) {
 
 ---
 
-## COCA Compliance
+## Chaos Compliance
 
 ✅ **100% Computational Capsule**:
 - Structure: `#[repr(C, align(512))]` (proper alignment)
@@ -156,7 +156,7 @@ pub fn renewal_stats(&self) -> (u64, u64, u64) {
 
 **Comparison to Traditional Approaches**:
 
-| Aspect | Traditional | TlsCapsule (COCA) |
+| Aspect | Traditional | TlsCapsule (Chaos) |
 |--------|------------|-------------------|
 | **Thread Safety** | Mutex<Option<Cert>> | AtomicU64 fields |
 | **Latency** | 100-500ns (lock contention) | <10ns (atomic load) |
@@ -408,7 +408,7 @@ alert: CertificateRenewalFailed
 
 **Documentation**:
 - UCE34 Framework: `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/uce34.xml`
-- COCA: `/home/samuel/Docs/The Computational Capsule.md`
+- Chaos: `/home/samuel/Docs/The Computational Capsule.md`
 - Atomic Patterns: `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md`
 
 **Deployment**:
@@ -429,7 +429,7 @@ alert: CertificateRenewalFailed
 | Framework | Status | Notes |
 |-----------|--------|-------|
 | **UCE34** | ✅ Full | Q1-Q34, T8 Network tier, Q34 audit trail |
-| **COCA** | ✅ Full | 100% computational capsule, 512B aligned |
+| **Chaos** | ✅ Full | 100% computational capsule, 512B aligned |
 | **ASSUM** | ✅ 99.99% | All assumptions verified, zero gaps |
 | **B32** | ✅ Fair | 0ns app overhead, proxy handles TLS |
 | **T28** | ✅ 6/28 | 6 unit tests (property/integration planned) |

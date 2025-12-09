@@ -35,7 +35,7 @@
 
 **Compilation**: ✅ Success  
 **Runtime**: ✅ Stable, zero regressions  
-**Framework Compliance**: ✅ UCE34, B32, T28, ASSUM, COCA  
+**Framework Compliance**: ✅ UCE34, B32, T28, ASSUM, Chaos  
 
 **Recommendation**: ✅ **DEPLOY NOW**
 
@@ -250,7 +250,7 @@ cargo flamegraph --release --bench hybrid_lsh_throughput \
 | **B32** | ✅ Validated | ❌ Not tested | ❌ Not tested | ⚠️ Claims invalid |
 | **T28** | ✅ Tested | ❌ Compile fail | ❌ Compile fail | ✅ Tested |
 | **ASSUM** | ✅ 99.99% | ✅ Zero unsafe | ✅ Zero unsafe | ✅ 99.99% |
-| **COCA** | ✅ Lockfree | ✅ Lockfree | ✅ Lockfree | ✅ Lockfree |
+| **Chaos** | ✅ Lockfree | ✅ Lockfree | ✅ Lockfree | ✅ Lockfree |
 
 ---
 

@@ -17,7 +17,7 @@
 //! - **T28**: Tier 1 (Unit Testing) - 10+ tests
 //! - **ASSUM**: All assumptions verified with tests
 //! - **B32**: Performance targets enforced (<200ns per audit event)
-//! - **COCA**: 100% lockfree (atomic_capsule primitives)
+//! - **Chaos**: 100% lockfree (atomic_capsule primitives)
 //! - **UCE34**: Q34 compliance validation
 
 use atomic_capsule::primitives::fixed_point::Q16_16;

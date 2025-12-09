@@ -214,7 +214,7 @@ Based on proven patterns from `/home/samuel/Primitives/atomic_capsule/`:
 - **Overhead**: SIMD overhead ~25% (alignment, load/store, reduction)
 - **Reproducibility**: Benchmarks validated on x86_64 AVX2
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 
 - **100% Lockfree**: No mutex/RwLock (single-threaded by design)
 - **Cache-Aligned**: 64B for optimal SIMD performance

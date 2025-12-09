@@ -15,6 +15,7 @@
 mod license_tests {
     use kdb::ptrace::license::{LicenseError, LicenseTier, LicenseValidatorCapsule, VerificationState};
     use kdb::ptrace::quota::QuotaTrackerCapsule;
+    use std::sync::atomic::Ordering;
     use std::sync::Arc;
     use std::thread;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -183,8 +184,7 @@ mod license_tests {
         fn test_expiration_check_expired() {
             let validator = LicenseValidatorCapsule::new_unverified();
 
-            // Set to expired using test helper
-            #[cfg(any(test, feature = "test-helpers"))]
+            // Set to expired using test helper (requires test-helpers feature)
             validator.set_expiration_for_test(1);
 
             let result = validator.check_expiration();
@@ -202,7 +202,6 @@ mod license_tests {
                 .unwrap()
                 .as_secs()
                 + (365 * 24 * 3600); // 1 year from now
-            #[cfg(any(test, feature = "test-helpers"))]
             validator.set_expiration_for_test(future);
 
             let result = validator.check_expiration();
@@ -219,13 +218,11 @@ mod license_tests {
                 .as_secs();
 
             // 30 days from now
-            #[cfg(any(test, feature = "test-helpers"))]
             validator.set_expiration_for_test(now + (30 * 24 * 3600));
             let days = validator.days_until_expiration();
             assert!(days >= 29 && days <= 31);
 
             // Already expired
-            #[cfg(any(test, feature = "test-helpers"))]
             validator.set_expiration_for_test(now - 1000);
             assert_eq!(validator.days_until_expiration(), 0);
         }
@@ -247,7 +244,6 @@ mod license_tests {
             let validator = LicenseValidatorCapsule::new_unverified();
             let org_name = "Test Organization";
             let org_hash = LicenseValidatorCapsule::compute_org_hash(org_name);
-            #[cfg(any(test, feature = "test-helpers"))]
             validator.set_org_hash_for_test(org_hash);
 
             // Correct org
@@ -576,7 +572,6 @@ mod license_tests {
                 .unwrap()
                 .as_secs()
                 + (365 * 24 * 3600);
-            #[cfg(any(test, feature = "test-helpers"))]
             validator.set_expiration_for_test(future);
 
             let start = std::time::Instant::now();
@@ -663,11 +658,8 @@ mod license_tests {
         #[test]
         fn test_status_consistency() {
             let validator = LicenseValidatorCapsule::new_unverified();
-            #[cfg(any(test, feature = "test-helpers"))]
-            {
-                validator.set_tier_for_test(LicenseTier::Developer);
-                validator.set_verification_state_for_test(VerificationState::Valid);
-            }
+            validator.set_tier_for_test(LicenseTier::Developer);
+            validator.set_verification_state_for_test(VerificationState::Valid);
 
             // Multiple calls should return consistent results
             let status1 = validator.get_status();

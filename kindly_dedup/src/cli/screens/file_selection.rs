@@ -11,7 +11,7 @@
 //! ## UCE34 Framework Compliance
 //! - **Q10 (Tier)**: T1 Atomic (FileNavigatorCapsule for atomic navigation)
 //! - **Q11 (Rust)**: 100% safe Rust, zero unsafe code
-//! - **Q13 (Architecture)**: Single-purpose screen for file selection with COCA compliance
+//! - **Q13 (Architecture)**: Single-purpose screen for file selection with Chaos compliance
 //! - **Q14 (Pattern)**: FileNavigatorCapsule + MenuStateCapsule for atomic coordination
 //! - **Q28 (Simplicity)**: Clear, focused file browser with atomic state management
 //! - **Q31 (Rust Transform)**: Type-safe, compiler-verified file navigation

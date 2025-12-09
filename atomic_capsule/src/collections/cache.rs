@@ -465,6 +465,19 @@ impl<V> CacheSlot<V> {
         (last, hits)
     }
 
+    /// Remaining TTL in Q16.16 units, if not expired.
+    #[cfg(feature = "std")]
+    #[inline]
+    pub fn ttl_remaining_q16_16(&self) -> Option<u64> {
+        let now = now_q16_16();
+        let expiry = self.ttl_expiry.load(Ordering::Acquire);
+        if now >= expiry {
+            None
+        } else {
+            Some(expiry - now)
+        }
+    }
+
     /// Get current generation counter (for TOCTOU detection)
     ///
     /// # Performance
@@ -1224,6 +1237,81 @@ where
         }
 
         evicted
+    }
+
+    /// Clear all entries regardless of TTL (full flush).
+    ///
+    /// # Returns
+    /// - Number of entries cleared.
+    pub fn clear_all(&self) -> usize {
+        let mut cleared = 0;
+        for slot in self.slots.iter() {
+            if !slot.is_empty() {
+                slot.clear();
+                cleared += 1;
+            }
+        }
+        cleared
+    }
+
+    /// Scan up to `limit` key hashes for non-empty, non-expired slots.
+    ///
+    /// Returned hashes may contain duplicates when keys are overwritten.
+    pub fn scan_hashes(&self, limit: usize) -> Vec<u64> {
+        let mut out = Vec::with_capacity(limit.min(self.capacity));
+        for slot in self.slots.iter() {
+            if out.len() >= limit {
+                break;
+            }
+            let hash = slot.key_hash.load(Ordering::Acquire);
+            if hash != 0 && !slot.is_expired() {
+                out.push(hash);
+            }
+        }
+        out
+    }
+
+    /// Remaining TTL for a key, if present and not expired.
+    ///
+    /// # Returns
+    /// - `Some(Duration)` when the key exists and is unexpired.
+    /// - `None` if the key is missing or expired.
+    pub fn ttl(&self, key: &K) -> Option<Duration> {
+        let key_hash = CacheSlot::<V>::hash_key(key);
+        let mut index = (key_hash as usize) & self.capacity_mask;
+        let mut probe_distance = 0;
+
+        while probe_distance < 256 {
+            let slot = &self.slots[index];
+            let gen_before = slot.generation.load(Ordering::Acquire);
+            let stored_hash = slot.key_hash.load(Ordering::Acquire);
+
+            if stored_hash == 0 {
+                return None;
+            }
+
+            if stored_hash == key_hash {
+                if let Some(ttl_q) = slot.ttl_remaining_q16_16() {
+                    let secs = ttl_q / Q16_16_SCALE;
+                    let frac = ttl_q % Q16_16_SCALE;
+                    let nanos = (frac.saturating_mul(1_000_000_000)) / Q16_16_SCALE;
+                    return Some(Duration::new(secs, nanos as u32));
+                } else {
+                    return None;
+                }
+            }
+
+            // Retry if generation changed during read
+            let gen_after = slot.generation.load(Ordering::Acquire);
+            if gen_before != gen_after {
+                continue;
+            }
+
+            index = (index + 1) & self.capacity_mask;
+            probe_distance += 1;
+        }
+
+        None
     }
 
     /// Get cache capacity

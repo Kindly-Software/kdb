@@ -1,4 +1,4 @@
-//! Phase 4.4 Lockfree Tests - 100% COCA Compliance Validation
+//! Phase 4.4 Lockfree Tests - 100% Chaos Compliance Validation
 //!
 //! **Purpose**: Validate ConcurrentMapCapsule integration eliminates last mutex
 //!
@@ -15,7 +15,7 @@
 //! - **ASSUM**: 100% safe + 100% lockfree (zero mutex verification)
 //! - **B32**: Performance validation (target: maintain 95% efficiency or better)
 //! - **T28**: 15+ comprehensive tests
-//! - **COCA**: 100% lockfree mandate (zero mutex/RwLock)
+//! - **Chaos**: 100% lockfree mandate (zero mutex/RwLock)
 
 use atomic_capsule::CpuCapabilityCapsule;
 #[cfg(feature = "parallel-dedup")]

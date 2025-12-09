@@ -1,0 +1,54 @@
+[package]
+name = "kindly-av1-api-server"
+version = "0.1.0"
+edition = "2021"
+authors = ["Kindly Team"]
+description = "SOTA video conversion API server for kindly-av1"
+license = "Proprietary"
+publish = false
+
+[dependencies]
+# Internal atomic_capsule primitives (100% lockfree, cache-aligned)
+atomic_capsule = { path = "../../../atomic_capsule", features = [
+    "std",
+    "http",              # HttpServerCapsule, HttpRouterCapsule, HttpMiddlewareCapsule
+    "protection",        # LicenseValidatorCapsule, RateLimiterCapsule
+    "parallel",          # ParallelBatchProcessor for concurrent encoding
+    "runtime",           # AsyncFileCapsule for file I/O
+    "nightly",           # portable_simd for SIMD acceleration
+] }
+
+# Job persistence and tracking
+rusqlite = { version = "0.32", features = ["bundled"] }
+uuid = { version = "1.10", features = ["v4", "serde"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Async runtime (minimal usage, atomic_capsule provides most async primitives)
+tokio = { version = "1.40", features = ["rt", "fs", "io-util"], optional = true }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+[features]
+default = ["tokio-compat"]
+tokio-compat = ["tokio"]  # Optional tokio compatibility for file I/O
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.release-with-debug]
+inherits = "release"
+debug = true
+strip = false

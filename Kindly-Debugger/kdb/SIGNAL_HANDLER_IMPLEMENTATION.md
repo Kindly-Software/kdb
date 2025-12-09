@@ -2,7 +2,7 @@
 
 **Status**: ✅ PRODUCTION READY
 **Date**: 2025-11-14
-**Framework**: UCE34 (Q10-Q12) + COCA + ASSUM + B32 + T28
+**Framework**: UCE34 (Q10-Q12) + Chaos + ASSUM + B32 + T28
 
 ---
 
@@ -221,7 +221,7 @@ Offset  Field                Size    Alignment
 - All operations atomic (no partial state)
 - Monitoring metrics built-in
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 
 ✅ **100% Compliant**:
 - Atomic-based: No mutex/RwLock
@@ -480,7 +480,7 @@ rustc -O /tmp/verify_signal_handler.rs -o /tmp/verify_signal_handler
 ## Reference
 
 - **Specification**: `/home/samuel/Primitives/kdb/MCP_PTRACE_CAPSULE_ARCHITECTURE.md` Section 9
-- **Framework**: UCE34 (Q10-Q12), ASSUM, B32, T28, COCA
+- **Framework**: UCE34 (Q10-Q12), ASSUM, B32, T28, Chaos
 - **Comparable**: GDB ptrace backend, LLDB ptrace backend
 
 ---

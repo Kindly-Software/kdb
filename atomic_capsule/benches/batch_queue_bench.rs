@@ -80,10 +80,8 @@
 //!   If 2×:        EXCEPTIONAL (requires extensive validation)
 //! ```
 
-use atomic_capsule::collections::queue::{UnboundedQueueCapsule, SPSC, MPMC};
-use criterion::{
-    black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput,
-};
+use atomic_capsule::collections::queue::{UnboundedQueueCapsule, MPMC, SPSC};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::sync::Arc;
 use std::thread;
 
@@ -501,7 +499,9 @@ fn bench_concurrent_batch_mpmc(c: &mut Criterion) {
         let batch_size = 32; // Fixed batch size for this test
         let batches_per_thread = items_per_thread / batch_size;
 
-        group.throughput(Throughput::Elements((num_threads * items_per_thread) as u64));
+        group.throughput(Throughput::Elements(
+            (num_threads * items_per_thread) as u64,
+        ));
 
         // Individual operations baseline
         group.bench_with_input(
@@ -550,7 +550,8 @@ fn bench_concurrent_batch_mpmc(c: &mut Criterion) {
                             thread::spawn(move || {
                                 for batch_idx in 0..batches_per_thread {
                                     let start = t * 10000 + batch_idx * batch_size as u64;
-                                    let items: Vec<u64> = (start..start + batch_size as u64).collect();
+                                    let items: Vec<u64> =
+                                        (start..start + batch_size as u64).collect();
 
                                     // TODO: Replace with q.push_batch(&items) when implemented
                                     for &item in &items {

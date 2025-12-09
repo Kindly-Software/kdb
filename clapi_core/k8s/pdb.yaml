@@ -1,0 +1,141 @@
+# Pod Disruption Budget for clapi_core (P3-E11)
+#
+# Prevents voluntary disruptions from taking down all pods simultaneously
+#
+# Features:
+# - minAvailable: 2 (high availability)
+# - Protects against: voluntary disruptions (kubectl drain, cluster autoscaler, etc.)
+# - Does NOT protect against: involuntary disruptions (node failures, hardware issues)
+#
+# Usage:
+#   kubectl apply -f k8s/pdb.yaml
+#   kubectl get pdb clapi-pdb
+#   kubectl describe pdb clapi-pdb
+#
+# Documentation: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: clapi-pdb
+  namespace: default
+  labels:
+    app: clapi
+    component: availability
+    tier: backend
+    version: v0.4.9
+  annotations:
+    # High availability policy
+    clapi.dev/availability-target: "99.9%"
+    clapi.dev/max-unavailable: "1"
+    clapi.dev/min-available: "2"
+
+spec:
+  # Minimum available pods (strategy: minAvailable)
+  minAvailable: 2
+
+  # Alternative strategy (commented out):
+  # maxUnavailable: 1  # Maximum 1 pod unavailable during disruptions
+
+  # Pod selector (must match StatefulSet labels)
+  selector:
+    matchLabels:
+      app: clapi
+      tier: backend
+
+  # Unhealthy pod eviction policy
+  # Determines how PDB handles unhealthy pods during voluntary disruptions
+  unhealthyPodEvictionPolicy: IfHealthyBudget
+
+---
+
+# Pod Disruption Budget (Alternative: maxUnavailable strategy)
+# Uncomment this if you prefer maxUnavailable over minAvailable
+#
+# apiVersion: policy/v1
+# kind: PodDisruptionBudget
+# metadata:
+#   name: clapi-pdb-maxunavailable
+#   namespace: default
+#   labels:
+#     app: clapi
+# spec:
+#   maxUnavailable: 1
+#   selector:
+#     matchLabels:
+#       app: clapi
+
+---
+
+# Notes on PDB Configuration
+#
+# 1. Disruption Types:
+#    Voluntary:
+#      - kubectl drain (node maintenance)
+#      - kubectl delete pod (manual deletion)
+#      - Cluster autoscaler (node scaling down)
+#      - DaemonSet updates
+#      - StatefulSet updates (if not carefully configured)
+#
+#    Involuntary:
+#      - Node failure (hardware, network)
+#      - Out-of-memory kills
+#      - Pod crashes
+#      - Security-driven terminations
+#
+# 2. Strategy Comparison:
+#    minAvailable: 2
+#      - Always keep at least 2 pods running
+#      - Better for high availability
+#      - Works well with StatefulSets (ordered scaling)
+#
+#    maxUnavailable: 1
+#      - Allow at most 1 pod to be unavailable
+#      - Better for rolling updates
+#      - More flexible with variable replica counts
+#
+# 3. Interaction with HPA:
+#    - HPA scales up/down: PDB ensures min availability during scaling
+#    - Example: 3 replicas → scale to 10 → PDB keeps ≥2 available
+#    - Example: 10 replicas → scale to 3 → PDB prevents <2 available
+#
+# 4. StatefulSet Rolling Update:
+#    StatefulSet updateStrategy:
+#      rollingUpdate:
+#        partition: 0  # Update all pods
+#    PDB ensures:
+#      - Only 1 pod updated at a time (if minAvailable: 2, replicas: 3)
+#      - Update blocks if availability violated
+#
+# 5. Testing PDB:
+#    # Trigger voluntary disruption
+#    kubectl drain <node-name> --ignore-daemonsets --delete-emptydir-data
+#
+#    # Verify PDB blocks disruption
+#    kubectl describe pdb clapi-pdb
+#    # Should show:
+#    #   Allowed disruptions: 1
+#    #   Current: 3
+#    #   Desired: 2
+#    #   Total: 3
+#
+# 6. Monitoring PDB Events:
+#    kubectl get events --field-selector involvedObject.name=clapi-pdb --watch
+#
+# 7. Troubleshooting:
+#    If deployments/updates are stuck:
+#      - Check PDB status: kubectl get pdb
+#      - Verify pod health: kubectl get pods -l app=clapi
+#      - Review events: kubectl describe pdb clapi-pdb
+#      - Temporarily delete PDB (emergency only): kubectl delete pdb clapi-pdb
+#
+# 8. Production Recommendations:
+#    - minAvailable: 2 (for 3 replicas)
+#    - minAvailable: N-1 (for N replicas, N ≥ 3)
+#    - maxUnavailable: 1 (for N replicas, N ≥ 3)
+#    - Avoid minAvailable: 1 (single point of failure during disruptions)
+#
+# 9. Cost vs Availability Trade-offs:
+#    - minAvailable: 2, replicas: 3 → 99.9% availability, $150/month
+#    - minAvailable: 3, replicas: 5 → 99.99% availability, $250/month
+#    - minAvailable: 5, replicas: 10 → 99.999% availability, $500/month

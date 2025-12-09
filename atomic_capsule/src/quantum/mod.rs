@@ -68,7 +68,7 @@
 //! - **ASSUM**: 99.5%+ safety (all quantum errors documented, deterministic simulation)
 //! - **B32**: Fair quantum vs classical baselines (Shor's vs trial division, Grover's vs linear search)
 //! - **T28**: 28 comprehensive tests (unit/property/integration/production)
-//! - **COCA**: 100% computational capsule (T1 Atomic coordination + T11 quantum simulation)
+//! - **Chaos**: 100% computational capsule (T1 Atomic coordination + T11 quantum simulation)
 //!
 //! # Usage Example
 //!
@@ -259,7 +259,7 @@ pub use clifford_optimizer::{CliffordOptimizerCapsule, CliffordGate, GateCapsule
 ///
 /// **Performance**: 10-13× speedup vs scalar baseline (Phase 4.2 validated)
 ///
-/// **Framework Compliance**: UCE34, COCA, ASSUM, B32, T28 (41+ tests), I20
+/// **Framework Compliance**: UCE34, Chaos, ASSUM, B32, T28 (41+ tests), I20
 ///
 /// # Example
 ///

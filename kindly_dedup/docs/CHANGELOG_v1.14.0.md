@@ -11,7 +11,7 @@
 
 Migrated from rayon to pure atomic_capsule::parallel primitives, implementing 3 critical fixes to eliminate parallelization bottlenecks and achieve production-ready parallel deduplication.
 
-**Key Achievement**: Eliminated 5,000ms CAS contention (27% of pipeline), achieving 1.4-1.7× speedup while maintaining 100% COCA compliance.
+**Key Achievement**: Eliminated 5,000ms CAS contention (27% of pipeline), achieving 1.4-1.7× speedup while maintaining 100% Chaos compliance.
 
 ---
 
@@ -115,7 +115,7 @@ let merged: Vec<(DocId, Signature)> =
 - **Benefit**: 2,000ms contention elimination (2.4% of total 16.7μs)
 
 **Framework Compliance**:
-- **COCA Mandate**: Thread-local buffers are 100% lockfree in hot path
+- **Chaos Mandate**: Thread-local buffers are 100% lockfree in hot path
 - **ASSUM #2**: #ASSUME_MUTEX_AFTER_WORK: Lock only after all parallel work completes (VERIFIED: no worker contention)
 
 ---
@@ -157,7 +157,7 @@ for chunk in doc_ids.chunks(chunk_size) {
 - **Total speedup**: 1.42-1.67× (1.4-1.7× achieved)
 
 **Framework Compliance**:
-- **COCA Mandate**: LockfreeResultAggregator is 100% atomic, zero Mutex
+- **Chaos Mandate**: LockfreeResultAggregator is 100% atomic, zero Mutex
 - **T1 Atomic Tier**: <50ns coordination per operation (vs 500ns Mutex)
 - **ASSUM #3**: #ASSUME_LOCKFREE_AGGREGATOR: AtomicPtr-based aggregation scales (VERIFIED: stress tests + design)
 
@@ -260,7 +260,7 @@ Migration required: **Zero**
 
 ## Framework Compliance
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 
 **Requirement**: 100% lockfree (zero rayon, zero mutex in hot path)
 
@@ -402,7 +402,7 @@ All known issues from v1.13.2 remain out of scope for v1.14.0 (parallel optimiza
 | Eliminate rayon | ✅ Yes | ✅ Complete | Zero external deps |
 | 1.4-1.7× speedup | ⏳ Pending | ⏳ Benchmarks | Expected range |
 | 85-100K docs/sec | ⏳ Pending | ⏳ Benchmarks | 16 cores validation |
-| 100% COCA compliant | ✅ Yes | ✅ Complete | Pure atomic_capsule |
+| 100% Chaos compliant | ✅ Yes | ✅ Complete | Pure atomic_capsule |
 | Zero breaking changes | ✅ Yes | ✅ Complete | Backward compatible |
 | 99.99% safe (ASSUM) | ✅ Yes | ✅ Complete | All assumptions verified |
 
@@ -418,7 +418,7 @@ All known issues from v1.13.2 remain out of scope for v1.14.0 (parallel optimiza
 - [ ] Version bumped in Cargo.toml (1.13.2 → 1.14.0)
 - [ ] Release tag created (v1.14.0)
 - [ ] Binary built and smoke-tested
-- [ ] Framework compliance verified (COCA/UCE34/ASSUM/B32/T28/I20)
+- [ ] Framework compliance verified (Chaos/UCE34/ASSUM/B32/T28/I20)
 - [ ] Documentation reviewed and complete
 
 ---
@@ -426,7 +426,7 @@ All known issues from v1.13.2 remain out of scope for v1.14.0 (parallel optimiza
 ## Credits
 
 **Implementation**: Claude (2025-11-13 to 2025-11-14)
-**Frameworks**: UCE34 (systematic discovery), COCA (lockfree design), ASSUM (safety), B32 (benchmarking)
+**Frameworks**: UCE34 (systematic discovery), Chaos (lockfree design), ASSUM (safety), B32 (benchmarking)
 **Review**: Automated compliance validation via clippy, cargo check, test suite
 
 ---

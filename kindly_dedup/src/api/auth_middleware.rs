@@ -26,7 +26,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 T1 Atomic (lockfree coordination), Q34 (audit trail)
-//! - **COCA**: 100% computational capsules (no mutex/RwLock)
+//! - **Chaos**: 100% computational capsules (no mutex/RwLock)
 //! - **ASSUM**: 99.99% safe (zero unsafe code)
 //! - **B32**: <100ns authentication overhead
 //! - **T28**: Comprehensive testing (unit/property/integration)

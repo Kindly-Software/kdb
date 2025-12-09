@@ -1,0 +1,147 @@
+AV1 SEQUENCE HEADER BITSTREAM - VISUAL BIT-LEVEL TRACE
+=======================================================
+
+INPUT: profile=0, level=0, 64x64 dimensions, mono_chrome=true, color_description_present=false
+PAYLOAD BYTES: 0x18 0x15 0x7F 0xFD 0x10
+
+BINARY LAYOUT (MSB-first, bit 0 = leftmost):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Byte 0: 0x18 = 0b 0 0 0 | 1 | 1 | 0 0 0 0 0
+        BITS:   0 1 2   3 4   5 6 7 8 9
+        
+Byte 1: 0x15 = 0b 0 0 0 1 0 1 0 1
+        BITS:   8 9 10 11 12 13 14 15
+
+Byte 2: 0x7F = 0b 0 1 1 1 1 1 1 1
+        BITS:   16 17 18 19 20 21 22 23
+
+Byte 3: 0xFD = 0b 1 1 1 1 1 1 0 1
+        BITS:   24 25 26 27 28 29 30 31
+
+Byte 4: 0x10 = 0b 0 0 0 1 0 0 0 0
+        BITS:   32 33 34 35 36 37 38 39
+
+
+SPEC-COMPLIANT DECODING:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Bit Position [0:3]:    seq_profile                       = 0b000 = 0      ✓
+Bit Position [3]:      still_picture                     = 0b1   = 1      ✓
+Bit Position [4]:      reduced_still_picture_header      = 0b1   = 1      ✓
+Bit Position [5:10]:   seq_level_idx[0]                  = 0b00000 = 0    ✓
+Bit Position [10:14]:  frame_width_bits_minus_1          = 0b0101 = 5    ✓
+Bit Position [14:18]:  frame_height_bits_minus_1         = 0b0101 = 5    ✓
+Bit Position [18:24]:  max_frame_width_minus_1           = 0b111111 = 63 ✓
+Bit Position [24:30]:  max_frame_height_minus_1          = 0b111111 = 63 ✓
+
+──────────── START OF COLOR_CONFIG() ────────────
+
+Bit Position [30:32]:  Frame height remainder            = 0b11 = continue
+Bit Position [32]:     high_bitdepth                     = 0b0   = 0      ✓
+Bit Position [33]:     mono_chrome f(1) for profile!=1   = 0b0   = 0      ✗ EXPECTED 1
+Bit Position [34]:     color_description_present_flag    = 0b0   = 0      ✓
+Bit Position [35]:     color_range (mono case)           = 0b1   = 1      ✗ EXPECTED 0
+Bit Position [36]:     film_grain_params_present         = 0b0   = 0      ✓
+Bit Position [37]:     trailing_one_bit                  = 0b0   = 0      ✗ EXPECTED 1
+Bit Position [38:40]:  trailing_zero_bits (padding)      = 0b00  = 0      ✓
+
+
+EXPECTED VS ACTUAL - COLOR_CONFIG SECTION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+                    Bit [32] [33] [34] [35] [36] [37] [38] [39]
+                           ↓     ↓    ↓    ↓    ↓    ↓    ↓    ↓
+Expected (correct): Byte 4 = 0b0  1  0  0  0  1  0  0  = 0x44
+Actual (buggy):     Byte 4 = 0b0  0  0  1  0  0  0  0  = 0x10
+                                 ✓  ✗  ✓  ✗  ✓  ✗  ✓  ✓
+                                    MISMATCH      MISMATCH
+
+
+COMPLETE VISUAL COMPARISON:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+EXPECTED (if code executes):
+  Byte 0: 0x18 = 0b[000][1][1][00000]
+          BITS: [seq_profile=0][still_pic=1][reduced=1][seq_level=0....]
+          ✓ MATCHES actual
+
+  Byte 1: 0x15 = 0b[00][0101][0101]
+          BITS: [...seq_level cont'd][width_bits=5][height_bits start=5...]
+          ✓ MATCHES actual
+
+  Byte 2: 0x7F = 0b[01111111]
+          BITS: [width=63 (6 bits)][height=63 (2 bits)...]
+          ✓ MATCHES actual
+
+  Byte 3: 0xFD = 0b[11111101]
+          BITS: [height=63 (4 bits)][high_bitdepth=0][mono=1]??
+          ✓ MATCHES actual (first 7 bits are dimension continuation)
+
+  Byte 4: 0x44 = 0b[01000100]
+          BITS: [mono=1][color_desc=0][color_range=0][film_grain=0][trailing_one=1][pad=00]
+          ✗ ACTUAL IS 0x10
+
+ACTUAL (from encoding):
+  Byte 0: 0x18 = 0b[000][1][1][00000]  ✓ Matches
+  Byte 1: 0x15 = 0b[00][0101][0101]    ✓ Matches
+  Byte 2: 0x7F = 0b[01111111]          ✓ Matches
+  Byte 3: 0xFD = 0b[11111101]          ✓ Matches
+  Byte 4: 0x10 = 0b[00010000]          ✗ MISMATCH!
+
+
+CRITICAL FINDINGS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. BITS [0:30] are CORRECT (profile, dimensions all match)
+   
+2. BITS [30:36] are PARTIALLY CORRECT:
+   - Bit 32 (high_bitdepth) = 0 ✓
+   - Bits [33:36] show WRONG VALUES
+   
+3. MISSING mono_chrome BIT:
+   - Code: bw.write_bit(mono_chrome) where mono_chrome = true
+   - Expected: BITS[33] = 1
+   - Actual: BITS[33] = 0
+   - This bit is COMPLETELY MISSING from output!
+   
+4. WRONG color_range VALUE:
+   - Code: bw.write_bit(config.color_range) where color_range = false
+   - Expected: BITS[35] = 0
+   - Actual: BITS[35] = 1
+   - This bit is INVERTED!
+   
+5. MISSING trailing_one_bit:
+   - Code: write_trailing_bits() unconditionally writes bit=1
+   - Expected: BITS[37] = 1
+   - Actual: BITS[37] = 0
+   - This function either didn't execute OR write_bit failed!
+
+
+BIT SHIFT HYPOTHESIS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+If write_color_config() is NOT being called:
+  - We jump directly from max_frame_height_minus_1 (bit 30) to film_grain (bit 36)
+  - This skips: high_bitdepth, mono_chrome, color_description_present, color_range (6 bits!)
+  
+This would explain:
+  - Why BITS[32:36] look wrong
+  - Why mono_chrome (bit 33) is missing
+  - Why color_range (bit 35) has garbage value
+  - Why BITS alignment is off
+
+
+DECODER IMPACT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+dav1d parser reads:
+  high_bitdepth = 0
+  mono_chrome = ??? (WRONG/MISSING)
+  color_description_present = ??? (SHIFTED)
+  
+Result: INVALID SYNTAX → BITSTREAM REJECTED
+
+
+END OF TRACE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

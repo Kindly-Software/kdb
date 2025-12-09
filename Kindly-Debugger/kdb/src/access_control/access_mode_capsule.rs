@@ -14,7 +14,7 @@
 //! |  3=Expired  |               |                   |
 //! ```
 //!
-//! # COCA Compliance
+//! # Chaos Compliance
 //!
 //! - 100% lockfree (zero mutex/RwLock)
 //! - 128-byte aligned (cache-friendly, no false sharing)
@@ -163,7 +163,7 @@ pub enum AccessModeError {
 /// Total: 128 bytes, 64-byte aligned
 /// ```
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 ///
 /// - T1 Atomic tier: Single AtomicU64 for all state
 /// - 128-byte size: Occupies 2 cache lines for optimal performance

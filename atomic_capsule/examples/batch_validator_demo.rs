@@ -2,7 +2,7 @@
 //!
 //! **Demonstrates**: Production-grade batch signature verification with real cryptography
 //! **Tier**: T4 Batch (8-16× speedup vs sequential)
-//! **Frameworks**: UCE34, COCA, ASSUM, B32, T28
+//! **Frameworks**: UCE34, Chaos, ASSUM, B32, T28
 //!
 //! **Usage**:
 //! ```bash

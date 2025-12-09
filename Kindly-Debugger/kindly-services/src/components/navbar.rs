@@ -202,9 +202,9 @@ pub fn Navbar() -> impl IntoView {
             <div style=nav_links_style class="nav-links-desktop">
                 <a href="#features" style=link_style class="nav-link">"Features"</a>
                 <a href="#pricing" style=link_style class="nav-link">"Pricing"</a>
-                <a href="https://github.com/kindly-software/kdb" style=link_style class="nav-link" target="_blank">"GitHub"</a>
-                <a href="#pricing" style=cta_button_style class="cta-btn">
-                    "Get Started"
+                <a href="#docs" style=link_style class="nav-link">"Docs"</a>
+                <a href="#signup" style=cta_button_style class="cta-btn">
+                    "Start Free"
                 </a>
             </div>
 
@@ -227,8 +227,8 @@ pub fn Navbar() -> impl IntoView {
             <div style=mobile_menu_style>
                 <a href="#features" style=mobile_link_style class="mobile-link" on:click=close_menu>"Features"</a>
                 <a href="#pricing" style=mobile_link_style class="mobile-link" on:click=close_menu>"Pricing"</a>
-                <a href="https://github.com/kindly-software/kdb" style=mobile_link_style class="mobile-link" target="_blank">"GitHub"</a>
-                <a href="#pricing" style=mobile_cta_style on:click=close_menu>"Get Started"</a>
+                <a href="#docs" style=mobile_link_style class="mobile-link" on:click=close_menu>"Docs"</a>
+                <a href="#signup" style=mobile_cta_style on:click=close_menu>"Start Free"</a>
             </div>
         </nav>
     }

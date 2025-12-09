@@ -141,7 +141,7 @@ mod command_router_tests {
         // - All errors propagated with ?
         // - Pattern matching exhaustive
 
-        // COCA (100% lockfree):
+        // Chaos (100% lockfree):
         // - CommandRouter is stateless (zero-sized)
         // - No mutex/RwLock/Arc/Atomic needed
         // - Idempotent operations (multiple routers OK)

@@ -21,7 +21,7 @@
 //!
 //! ## Framework Compliance:
 //! - UCE34 Q10: T1 Atomic tier (lockfree coordination)
-//! - COCA: 100% lockfree, no mutex/RwLock
+//! - Chaos: 100% lockfree, no mutex/RwLock
 //! - ASSUM: All unsafe documented with #ASSUME/#VERIFY
 
 use std::sync::atomic::{AtomicU64, Ordering};

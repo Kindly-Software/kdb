@@ -3,7 +3,7 @@
 **Status**: ✅ Production-Ready (Agent-C implementation complete, Nov 21, 2025)
 **Tier**: T1 Atomic (128B cache-aligned, lockfree coordination)
 **Performance**: <200ns rewrite latency, 3-5× target speedup via fusion
-**Framework Compliance**: UCE34, COCA, B32, T28, ASSUM, I20
+**Framework Compliance**: UCE34, Chaos, B32, T28, ASSUM, I20
 
 ---
 
@@ -517,7 +517,7 @@ println!("Gate reduction: {:.2}%",
 - **Q33**: Manual verification via `const _VERIFY` (128B size/align)
 - **Q34**: Audit trail via statistics (total_fusions, gates_eliminated, latency)
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 
 - **100% Lockfree**: Zero mutex/RwLock (atomic statistics only)
 - **Cache-Aligned**: 128B alignment prevents false sharing

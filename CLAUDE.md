@@ -2,188 +2,227 @@
 
 Core primitives for lockfree, high-performance systems using computational capsule architecture.
 
-## COCA (Computational Capsule) - Quick Reference
+## Chaos (Computational Capsule) - Quick Reference
 
-**Mandatory Reading**:
-1. `/home/samuel/Docs/The Computational Capsule.md` - Foundation patterns
-2. `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md` - Proven 2-19× speedups
-3. `UCE34_FRAMEWORK.md` - Tier selection (Q1-Q34)
-4. `UCE34_TIER_REFERENCE.md` + `UCE34_EXAMPLES.md` - Implementation guide
+See `/home/samuel/CLAUDE.md` § Mandatory Capsule Architecture for:
+- Mandatory reading list (4 docs + XML frameworks)
+- Core mandate (100% lockfree, cache-aligned 64B/128B/256B, generation counters)
+- Foundation crate (`atomic_capsule/`: tiered alignment, `#[derive(ComputationalCapsule)]`, zero deps)
+- Requirements (UCE34/ASSUM/B32/T28/I20/Q34 compliance)
 
-**Core Mandate**: 100% lockfree (NO mutex/RwLock), cache-aligned (64B/128B/256B), generation counters (TOCTOU prevention).
+## Mandatory Internal Dependency Usage
 
-## Foundation Crate: atomic_capsule
+<mandatory-internal-dependencies priority="ABSOLUTE">
+<rule>ALWAYS use internal Primitives dependencies. NEVER add external crates when internal equivalents exist.</rule>
 
-**Source**: `/home/samuel/Primitives/atomic_capsule/`
+<enforcement>
+  <parallelism>
+    <forbidden>rayon, tokio::spawn, std::thread::spawn (bare)</forbidden>
+    <required>atomic_capsule::parallel (T4 Batch tier, 10-100× speedup, 100% lockfree)</required>
+    <reason>External parallelism uses mutex/channels (100× slower). atomic_capsule::parallel uses lockfree queues with generation counters.</reason>
+  </parallelism>
 
-**Features**:
-- **Tiered Alignment**: HotTier (64B), WarmTier (128B), ColdTier (256B)
-- **Verification**: `#[derive(ComputationalCapsule)]` (0ns runtime, <20ms compile)
-- **Zero Deps**: Core is no_std, optional features minimal (siphasher, crc32fast, memmap2, tokio)
-- **Replaced**: DashMap, RwLock, Mutex, tokio::broadcast, hdrhistogram (all → lockfree capsules)
+  <async-runtime>
+    <forbidden>tokio, async-std, smol (as primary runtime)</forbidden>
+    <required>atomic_capsule::runtime (T5 Streaming tier, <10ns coordination)</required>
+    <reason>External runtimes use Arc/Mutex coordination. atomic_capsule runtime uses DualAtomicU64 capsules.</reason>
+  </async-runtime>
 
-**Requirements**: 100% lockfree, atomic primitives only, UCE34/ASSUM/B32/T28/I20 compliance.
+  <collections>
+    <forbidden>std::collections::HashMap, DashMap, parking_lot</forbidden>
+    <required>atomic_capsule::collections (T1 Atomic tier, 3-59× speedup, 100% lockfree)</required>
+    <examples>
+      - ConcurrentMapCapsule (3-59× vs std::HashMap)
+      - LockfreeHashTable (3.9× vs DashMap)
+      - HistogramCapsule (50× vs std::HashMap)
+    </examples>
+  </collections>
+
+  <hashing>
+    <forbidden>std::hash::DefaultHasher, ahash, fxhash</forbidden>
+    <required>atomic_capsule::hash (T0 Auditable tier, 0ns-8× speedup)</required>
+    <examples>
+      - const_hash (0ns compile-time hashing)
+      - simd_hash (2-8× vs scalar)
+      - AtomicHash64/256 (<50ns lockfree)
+    </examples>
+  </hashing>
+
+  <simd>
+    <forbidden>packed_simd, simdeez, wide</forbidden>
+    <required>atomic_capsule::simd (T2 SIMD tier, 2-53× speedup, portable_simd)</required>
+    <reason>External SIMD libs lack capsule integration. atomic_capsule SIMD uses cache-aligned capsules with generation counters.</reason>
+  </simd>
+
+  <probability>
+    <forbidden>hyperloglog, bloom (external crates)</forbidden>
+    <required>atomic_capsule::probabilistic (T10 Probabilistic tier, 99.97% memory reduction)</required>
+    <examples>
+      - HyperLogLog (99.97% memory reduction vs HashSet)
+      - BloomFilter (<10ns queries, 0.083% FPR)
+      - MinHash (23-30× vs Python datasketch)
+    </examples>
+  </probability>
+</enforcement>
+
+<exceptions>
+  <allowed-external>
+    <crate>criterion</crate>
+    <reason>Benchmarking only, not production code</reason>
+  </allowed-external>
+  <allowed-external>
+    <crate>proptest</crate>
+    <reason>Property testing only, not production code</reason>
+  </allowed-external>
+  <allowed-external>
+    <crate>serde</crate>
+    <reason>Serialization standard, no internal equivalent</reason>
+  </allowed-external>
+  <allowed-external>
+    <crate>thiserror, anyhow</crate>
+    <reason>Error handling standard, minimal runtime</reason>
+  </allowed-external>
+</exceptions>
+
+<violation-consequences>
+  <performance>External dependencies cause 3-100× performance loss due to mutex/Arc/channels vs lockfree capsules</performance>
+  <safety>External dependencies bypass Chaos verification (no #[derive(ComputationalCapsule)])</safety>
+  <maintenance>External dependencies increase attack surface and audit complexity</maintenance>
+  <compliance>External dependencies may violate UCE34/ASSUM/B32/T28 framework requirements</compliance>
+</violation-consequences>
+
+<verification>
+  <command>cargo tree | grep -E "rayon|tokio|dashmap|parking_lot|ahash|packed_simd"</command>
+  <expected>NO MATCHES (except test/bench dependencies)</expected>
+  <action>If matches found, replace with atomic_capsule equivalents immediately</action>
+</verification>
+</mandatory-internal-dependencies>
 
 ## XML Documentation Best Practices
 
-<?xml version="1.0" encoding="UTF-8"?>
-<xml-best-practices version="1.0">
-  <mandate priority="ABSOLUTE">All structured documentation MUST use XML format for optimal LLM parsing</mandate>
+**Full Guide**: See `docs/XML_BEST_PRACTICES.xml` for LLM-optimized documentation standards.
 
-  <benefits>
-    <benefit>10-30× faster queries (XPath 5s vs Markdown parsing 30-60s)</benefit>
-    <benefit>100% accuracy via schema validation</benefit>
-    <benefit>Unambiguous structure (no format ambiguity)</benefit>
-    <benefit>Machine-readable (standard parsers: xmllint, XPath, lxml)</benefit>
-    <benefit>Cross-reference integrity (xs:ID/xs:IDREF validation)</benefit>
-  </benefits>
+**Quick Reference**: Use XML for APIs/deployments/test-reports. 10-30× faster queries, 100% accuracy, <20K token budgets. XPath validation mandatory (`xmllint --noout file.xml`).
 
-  <token-budgeting>
-    <limit type="safety" tokens="20000" desc="Optimal LLM comprehension"/>
-    <limit type="absolute" tokens="30000" desc="Parser limit"/>
-    <estimation>bytes ÷ 4 ≈ tokens</estimation>
-    <action>Split files exceeding 20K tokens into logical parts</action>
-  </token-budgeting>
+## XML Framework Discovery (XPath)
 
-  <when-to-use>
-    <use-xml priority="MANDATORY">
-      <case>Architecture specifications (system design, capsule layouts)</case>
-      <case>Deployment procedures (multi-step processes, configurations)</case>
-      <case>API references (commands, parameters, responses)</case>
-      <case>Test reports (framework compliance, metrics)</case>
-      <case>Session summaries (achievements, implementations, frameworks)</case>
-    </use-xml>
-    <use-markdown priority="ACCEPTABLE">
-      <case>README files (project overview, quick start)</case>
-      <case>Philosophy documents (high-level concepts)</case>
-      <case>Changelog/release notes (chronological updates)</case>
-    </use-markdown>
-  </when-to-use>
+**Index**: `docs/xml/INDEX.xml` | **Query Guide**: `docs/xml/XPATH_QUERIES.md` (82+ queries)
 
-  <structure-guidelines>
-    <rule>Use attributes for metadata (tier, size, count, status)</rule>
-    <rule>Use elements for content (descriptions, code, data)</rule>
-    <rule>Use CDATA for code blocks (preserves formatting, no escaping)</rule>
-    <rule>Entity-escape HTML symbols (&amp;lt; &amp;gt; &amp;amp;)</rule>
-    <rule>Hierarchical structure (clear parent-child relationships)</rule>
-    <rule>Self-documenting element names (descriptive, no abbreviations)</rule>
-  </structure-guidelines>
+### File Inventory (5,500+ lines)
 
-  <cdata-usage>
-    <when>Code blocks (Rust, Bash, any programming language)</when>
-    <when>XML-like content (examples, snippets)</when>
-    <when>Preserve exact formatting (whitespace, newlines)</when>
-    <syntax><![CDATA[<code><![CDATA[
-fn main() {
-    println!("Hello, world!");  // No escaping needed
-}
-]]]]><![CDATA[></code>]]></syntax>
-    <note>Double CDATA closing (]]]]+&lt;![CDATA[&gt;) for nested CDATA in examples</note>
-  </cdata-usage>
+| Category | File | Lines | XPath Root |
+|----------|------|-------|------------|
+| **Origin** | `xml/origin/computational-capsule-philosophy.xml` | 669 | `//core-philosophy` `//tier-system` `//anti-patterns` |
+| **Origin** | `xml/origin/atomic-capsule-patterns.xml` | 523 | `//named-patterns` `//design-rules` `//swemr-pattern` |
+| **Origin** | `xml/origin/key-innovations.xml` | 850 | `//validated-innovations` `//unexploited-opportunities` |
+| **Architecture** | `xml/metacapsule-patterns.xml` | 851 | `//pattern-catalog` `//topology-definitions` `//lifecycle-states` |
+| **Architecture** | `xml/capsule-connections.xml` | 373 | `//connection-types` `//inter-tier-rules` |
+| **API** | `xml/capsule-api-template.xml` | 538 | `//template` `//examples` |
+| **API** | `xml/capsule-apis/*.xml` | 5 files | `//capsule-api` `//methods` `//state-transitions` |
+| **Reference** | `METACAPSULE_ARCHITECTURE.xml` | 369 | `//topologies` `//lifecycle` `//coordination-protocols` |
 
-  <validation-workflow>
-    <step id="1">Create XML with proper namespaces</step>
-    <step id="2">Create XSD schema (optional but recommended)</step>
-    <step id="3">Validate: xmllint --noout --schema schema.xsd file.xml</step>
-    <step id="4">Check tokens: wc -c file.xml, divide by 4, ensure &lt;20K</step>
-    <step id="5">Split if needed (logical parts: part1, part2, etc)</step>
-    <step id="6">Test XPath queries (verify structure queryable)</step>
-  </validation-workflow>
+### XPath Quick Queries
 
-  <xpath-examples>
-    <query desc="Get all CLI commands">xmllint --xpath '//cmd/@name' file.xml</query>
-    <query desc="Get service dependencies">xmllint --xpath '//service/@deps' file.xml</query>
-    <query desc="Get performance metrics">xmllint --xpath '//performance/*/@target' file.xml</query>
-    <query desc="Extract CDATA code">xmllint --xpath '//usage/text()' file.xml</query>
-  </xpath-examples>
+```bash
+# Tier lookup
+xmllint --xpath "//tier[@id='T1']" docs/xml/origin/computational-capsule-philosophy.xml
 
-  <lean-design-principles>
-    <principle>Minimize redundancy (XPath cross-references, not duplication)</principle>
-    <principle>Concise element names (clear but short: cmd not command-definition)</principle>
-    <principle>Attribute-first (use attributes for simple data, elements for complex)</principle>
-    <principle>Flat when possible (avoid deep nesting beyond 4-5 levels)</principle>
-    <principle>Self-contained sections (each major section independently useful)</principle>
-  </lean-design-principles>
+# Find capsule pattern by name
+xmllint --xpath "//pattern[@id='ACB-64']" docs/xml/origin/atomic-capsule-patterns.xml
 
-  <example-template><![CDATA[
-<?xml version="1.0" encoding="UTF-8"?>
-<root-element version="1.0" date="2025-11-22">
-  <metadata>
-    <description>Clear description for LLM context</description>
-    <token-count estimate="5000" limit="20000"/>
-  </metadata>
+# Get all validated innovations with speedup
+xmllint --xpath "//validated-innovations/innovation" docs/xml/origin/key-innovations.xml
 
-  <section id="overview">
-    <item name="example" tier="T1" size="64B">
-      <description>Item description here</description>
-      <code language="rust"><![CDATA[
-fn example() {
-    // Code with <special> characters
-}
-      ]]]]><![CDATA[></code>
-    </item>
-  </section>
+# Metacapsule topology by ID
+xmllint --xpath "//topology[@id='pipeline']" docs/xml/metacapsule-patterns.xml
 
-  <commands>
-    <cmd name="deploy" desc="Deploy services">
-      <usage><![CDATA[
-capsule-cli deploy-stack --remote kindly-hub:9000 --config production.yaml
-      ]]]]><![CDATA[></usage>
-    </cmd>
-  </commands>
-</root-element>
-  ]]></example-template>
+# Connection type by latency
+xmllint --xpath "//connection-types/type[latency]" docs/xml/capsule-connections.xml
 
-  <quick-reference-table>
-    <row>
-      <aspect>File size</aspect>
-      <guideline>&lt;80KB (~20K tokens)</guideline>
-      <action>Split if larger</action>
-    </row>
-    <row>
-      <aspect>Nesting depth</aspect>
-      <guideline>&lt;5 levels</guideline>
-      <action>Flatten hierarchy</action>
-    </row>
-    <row>
-      <aspect>Code blocks</aspect>
-      <guideline>Always CDATA</guideline>
-      <action>Use &lt;![CDATA[...]]&gt;</action>
-    </row>
-    <row>
-      <aspect>Validation</aspect>
-      <guideline>xmllint --noout</guideline>
-      <action>Fix syntax errors</action>
-    </row>
-    <row>
-      <aspect>Attributes</aspect>
-      <guideline>Metadata only</guideline>
-      <action>tier, size, count, status</action>
-    </row>
-    <row>
-      <aspect>Elements</aspect>
-      <guideline>Content/structure</guideline>
-      <action>desc, code, usage, steps</action>
-    </row>
-  </quick-reference-table>
+# API methods by thread-safety
+xmllint --xpath "//methods/method[@category='atomic']" docs/xml/capsule-apis/*.xml
 
-  <anti-patterns>
-    <anti-pattern>Deep nesting (>5 levels) → Flatten structure</anti-pattern>
-    <anti-pattern>Large monolithic files (>30K tokens) → Split into parts</anti-pattern>
-    <anti-pattern>Unescaped HTML in text → Use &amp;lt; &amp;gt; or CDATA</anti-pattern>
-    <anti-pattern>Code without CDATA → Always wrap in CDATA</anti-pattern>
-    <anti-pattern>Duplicated data → Use XPath cross-references</anti-pattern>
-  </anti-patterns>
+# Lifecycle state transitions
+xmllint --xpath "//lifecycle/transitions/transition" docs/METACAPSULE_ARCHITECTURE.xml
 
-  <tools>
-    <tool name="xmllint">Validation, formatting, XPath queries (libxml2)</tool>
-    <tool name="xmlstarlet">Advanced XML manipulation (edit, transform)</tool>
-    <tool name="xsltproc">XSLT transformations (schema conversion)</tool>
-    <tool name="python-lxml">Programmatic XML processing</tool>
-  </tools>
+# Anti-patterns by severity
+xmllint --xpath "//anti-pattern[@severity='critical']" docs/METACAPSULE_ARCHITECTURE.xml
+```
 
-  <principle>Structure documentation in XML from day one. Schema validation prevents errors. XPath enables automation. Token limits ensure optimal LLM parsing. Cross-references guarantee integrity. Lean and short. No ambiguity. Standard tools. Future-proof.</principle>
-</xml-best-practices>
+### Common Discovery Patterns
+
+| Need | XPath | File |
+|------|-------|------|
+| **Find tier speedup** | `//tier[@id='T2']/speedup` | `origin/computational-capsule-philosophy.xml` |
+| **List all patterns** | `//named-patterns/pattern/@id` | `origin/atomic-capsule-patterns.xml` |
+| **Get innovation details** | `//innovation[@id='1']` | `origin/key-innovations.xml` |
+| **Metacapsule examples** | `//metacapsule-examples/example` | `METACAPSULE_ARCHITECTURE.xml` |
+| **Connection APIs** | `//type[@id='direct']/api` | `capsule-connections.xml` |
+| **Coordination protocols** | `//coordination-protocols/protocol` | `metacapsule-patterns.xml` |
+| **State machine states** | `//lifecycle/states/state` | `METACAPSULE_ARCHITECTURE.xml` |
+| **Design guidelines** | `//design-guidelines/guideline` | `METACAPSULE_ARCHITECTURE.xml` |
+
+## Container Deployment CLI
+
+**Remote**: kindly-hub:9000 (192.168.0.38) | **Daemon**: capsule-container-daemon (2.9MB) | **CLI**: capsule-cli (3.7MB) | **Protocol**: JSON-RPC 2.0/TCP | **Framework**: T6 Mixed (<20ns health, <50ms RPC)
+
+**Hardware**: AMD Ryzen 9 6900HX, 64GB DDR5, Ubuntu 24.04 LTS | **Access**: `ssh samuel@kindly-hub` | **Services**: kindly-db, kindly-verified, kindly-web, http-server, protection
+
+### CLI Commands (7)
+
+| Cmd | Desc | Usage Pattern |
+|-----|------|---------------|
+| deploy-stack | Deploy all 5 services (dependency-ordered: db → [web,verified] → http → protection) | `capsule-cli deploy-stack --remote kindly-hub:9000 --config production.yaml` |
+| start/stop | Start/stop service by ID | `capsule-cli {start\|stop} --remote kindly-hub:9000 <service-id>` |
+| list | Show all services (state/PID/uptime/health) | `capsule-cli list --remote kindly-hub:9000` |
+| logs | Get logs (10K lines/service capacity, optional follow) | `capsule-cli logs --remote kindly-hub:9000 <service> --lines N --follow` |
+| health | Health check (<20ns atomic snapshot) | `capsule-cli health --remote kindly-hub:9000` |
+| ps | Process-style service view | `capsule-cli ps --remote kindly-hub:9000` |
+
+### SystemD Commands (7)
+
+| Cmd | Desc | Pattern |
+|-----|------|---------|
+| status/start/stop/restart | Daemon control | `ssh samuel@kindly-hub "systemctl {cmd} capsule-container-daemon"` |
+| enable | Auto-start on boot | `ssh samuel@kindly-hub "systemctl enable --now capsule-container-daemon"` |
+| logs/recent | Daemon logs | `ssh samuel@kindly-hub "journalctl -u capsule-container-daemon [-f\|-n 100]"` |
+
+**Build**: `cd capsule-os && cargo build --lib --features std,container --target x86_64-unknown-linux-gnu --release && cd daemon && cargo build --release && cd ../cli && cargo build --release`
+
+**Deploy**: `ssh samuel@kindly-hub "mkdir -p ~/capsule-os/{bin,configs,systemd}" && scp target/.../capsule-{container-daemon,cli} samuel@kindly-hub:~/capsule-os/bin/ && ssh samuel@kindly-hub "sudo systemctl enable --now capsule-container-daemon"`
+
+## Clippy Capsule Verification (Mandatory)
+
+**Location**: `/home/samuel/Primitives/clippy-capsule-verify` | **Version**: 0.2.0-stable | **Impact**: 6-10× faster fixes, 40-150h saved/dev/year
+
+**Mandate**: ALL P0 Critical lints MUST pass (deny level, blocks compilation). Pre-commit hooks MANDATORY.
+
+### Lints (9 total: 4 P0 + 3 P1 + 2 P2)
+
+| ID | Name | Impact | Fix |
+|----|------|--------|-----|
+| **P0.1** | capsule_mutex_violation | 100× perf loss (1-10μs vs <10ns) | Replace with AtomicU64/DualAtomicU64 |
+| **P0.2** | capsule_unaligned_violation | 3-10× slowdown (false sharing) | Add 64B/128B/256B padding |
+| **P0.3** | capsule_missing_generation | TOCTOU races, data corruption | Add generation: AtomicU64 |
+| **P0.4** | capsule_non_atomic_field | Data races → UB (crashes) | u64→AtomicU64, bool→AtomicBool |
+| P1.0 | missing_capsule_verification | Unverified layouts (size/align bugs) | Add #[derive(ComputationalCapsule)] |
+| P1.2 | capsule_scattered_atomics | 2× perf loss (105ns vs 9.8ns) | Use DualAtomicU64 pattern |
+| P1.3 | capsule_incorrect_padding | 3-5× perf loss (false sharing) | Match exact padding calculation |
+| P2.1 | capsule_memory_ordering | 5-20% improvement available | Use Acquire/Release vs Relaxed |
+| P2.2 | capsule_missing_assum | Audit compliance (SOX/SOC2/GDPR) | Add #ASSUME/#VERIFY tags |
+
+**Commands**:
+- **P0-only** (5-8s, pre-commit): `cargo clippy --all-features -- -D clippy::capsule_{mutex,unaligned,missing_generation,non_atomic}_violation`
+- **P0+P1** (15-25s, pre-push): Add `-W clippy::{missing_capsule_verification,capsule_scattered_atomics,capsule_incorrect_padding}`
+- **Comprehensive** (20-30s, CI/CD): Add `-W clippy::{capsule_memory_ordering,capsule_missing_assum}`
+
+**CI/CD Setup**: Run `./scripts/setup-ci.sh` (auto-configures GitHub/GitLab/hooks). See `CI_CD_AUTOMATION.md` for details.
+
+**Metrics**: 51/51 tests ✅ | 90-95% detection | <5% false positives | 5-8s pre-commit | 15-25s CI/CD | 100% Chaos compliance
+
+**Troubleshooting**: Unknown lint? Use -D flags, not .clippy.toml. Slow? Use P0-only for pre-commit. False positive? Use `#[allow(clippy::lint_name)]`.
+
+**Documentation**: See `clippy-capsule-verify/{ERROR_MESSAGE_GUIDE,BEFORE_AFTER_EXAMPLES,CI_CD_AUTOMATION,TESTING_GUIDE,ATOMIC_CAPSULE_INTEGRATION}.md`
 
 ## Recent Sessions
 
@@ -197,144 +236,41 @@ capsule-cli deploy-stack --remote kindly-hub:9000 --config production.yaml
 
 ## Capsule Tiers
 
-**Canonical Reference**: See `/home/samuel/CLAUDE.md` § Capsule Tiers for complete 12-tier taxonomy (T0-T11).
+**Canonical Reference**: See `/home/samuel/CLAUDE.md` § Capsule Tiers for complete 12-tier taxonomy (T0-T11) and `xml/shared/shared-components.xml` for tier definitions, decision trees, and performance claims.
 
-**Quick Reference**: T0 (Auditable, 0ns verify) → T1 (Atomic, 3-10×) → T2 (SIMD, 2-19×) → T3 (Fixed-Point, 2-10×) → T4 (Batch, 10-100×) → T5 (Streaming, O(1)) → T6 (Mixed, 50-100×) → T7 (Heterogeneous, 100-1000×) → T8 (Network, 10-50×) → T9 (Persistent, ACID) → T10 (Probabilistic, 100-1000×) → T11 (QuantumHybrid, 10-16,667×)
+**Quick Reference**: T0 (Auditable, 0ns) → T1 (Atomic, 3-10×) → T2 (SIMD, 2-19×) → T3 (Fixed-Point, 2-10×) → T4 (Batch, 10-100×) → T5 (Streaming, O(1)) → T6 (Mixed, 50-100×) → T7 (Heterogeneous, 100-1000×) → T8 (Network, 10-50×) → T9 (Persistent, ACID) → T10 (Probabilistic, 100-1000×) → T11 (QuantumHybrid, 10-16,667×)
 
 ## Metacapsule Architecture Pattern
 
-<?xml version="1.0" encoding="UTF-8"?>
-<metacapsule-architecture version="1.0" date="2025-11-23">
+**Definition**: Orchestrating capsule with 4-18 embedded sub-capsules for multi-stage pipelines. Lockfree hierarchical state coordination via DualAtomicU64 + phase bitmasks. Prevents impossible states at compile-time.
 
-<definition>
-  <concept>Single orchestrating capsule containing multiple specialized sub-capsules</concept>
-  <purpose>Hierarchical state coordination for multi-stage pipelines (encoders, transports, etc)</purpose>
-  <key-difference>
-    <vs type="Component Capsule">Single-purpose primitive (DCT, Quantization); flat no hierarchy</vs>
-    <vs type="Container Capsule">Large collections (≥100K objects); array-based management</vs>
-    <vs type="Metacapsule">Multi-stage orchestration; single atomic snapshot</vs>
-  </key-difference>
-  <core-principle>Impossible states prevented via lockfree coordination of embedded sub-capsules</core-principle>
-</definition>
+**Use When**: Multi-stage pipeline (3+ stages) OR atomic snapshot required OR complex FSM (8+ states) OR real-time constraints (<100ms SLA).
 
-<architecture>
-  <pattern>Single 256B-1024B orchestrating capsule with 4-18 embedded sub-capsules</pattern>
-  <coordination-mechanism>DualAtomicU64 (primary + secondary) with phase bitmasks for hierarchical FSM</coordination-mechanism>
-  <memory-layout>Cache-aligned contiguous block (64B/256B/512B/1024B alignment)</memory-layout>
-  <state-model>Hierarchical (top-level FSM coordinate + per-sub-capsule state)</state-model>
-  <lockfree-guarantee>100% atomic operations; zero mutex/RwLock; O(&lt;50ns) state transitions</lockfree-guarantee>
+**Pattern Comparison**:
+- **Metacapsule** (256B-1024B): Multi-stage orchestration, <50ns snapshot, 2-20× speedup (compound tier effects)
+- **Component** (64B-256B): Single-purpose primitive, <10ns snapshot, 2-19× speedup (single tier)
+- **Container** (variable): Large collections (≥100K objects), <1μs snapshot, 10-100× speedup (T4 Batch)
 
-  <reference-example name="Av1EncoderMetacapsule" tier="T6" size="1024B">
-    <description>Video codec orchestrator with 18 sub-capsules</description>
-    <coordination>
-      <primary>State(8) | Phase(8) | FrameCount(16) | Generation(32)</primary>
-      <secondary>TileID(16) | QIndex(8) | LoopFilterLevel(8) | Gen(32)</secondary>
-    </coordination>
-    <sub-capsules count="18">
-      <capsule tier="T1" name="EncoderStateCapsule" size="64B">Tracks encode state (Idle→Transform→Quantize→Entropy→Done)</capsule>
-      <capsule tier="T2" name="DctTransformCapsule" size="256B">SIMD 8×8 DCT (AVX2, 19× baseline)</capsule>
-      <capsule tier="T3" name="QuantizationCapsule" size="128B">Fixed-point Q index + deadzone (Q8.8)</capsule>
-      <capsule tier="T5" name="EntropyCapsule" size="96B">Huffman/arithmetic bitstream (streaming)</capsule>
-      <capsule tier="T1" name="TileCapsule" size="64B">Tile state + dependency tracking</capsule>
-      <capsule tier="T5" name="FrameBufferCapsule" size="512B">Input/output frame management</capsule>
-    </sub-capsules>
-    <speedup>2-20× vs traditional encoder (compound T2+T3+T5 effects)</speedup>
-  </reference-example>
-</architecture>
+**Topologies**: Pipeline (A→B→C) | Mesh (A↔B↔C) | Fanout (A→[B,C,D]) | Hierarchical (tree)
 
-<when-to-use>
-  <use-case priority="MANDATORY">Multi-stage pipeline (3+ independent stages) with deterministic ordering</use-case>
-  <use-case priority="MANDATORY">Atomic snapshot required (monitoring, checkpointing, migration)</use-case>
-  <use-case priority="MANDATORY">State machine complexity (8+ states, transitions impossible to violate)</use-case>
-  <use-case priority="MANDATORY">Real-time constraints (&lt;100ms latency SLA, no GC pauses)</use-case>
-  <use-case priority="HIGH">Tier composition needed (T6 Mixed orchestrating T1-T5 sub-capsules)</use-case>
+**Lifecycle States**: Uninitialized → Initializing → Ready → Processing → Draining → Stopped | Error | Failed
 
-  <anti-pattern>Simple sequential processing → Use T5 Streaming Pipeline instead</anti-pattern>
-  <anti-pattern>Embedded systems &lt;512B total memory → Use Component Capsules (flat)</anti-pattern>
-  <anti-pattern>Loose coupling between stages → Use message-passing, not metacapsule</anti-pattern>
-</when-to-use>
+**Coordination Protocols**: Sequential (O(n)) | Parallel (O(1)) | Pipelined (O(1) after warmup) | Speculative
 
-<pattern-comparison>
-  <metacapsule>
-    <use>Multi-stage orchestration: codecs, transports, state machines</use>
-    <size>256B-1024B</size>
-    <alignment>64B/256B/512B/1024B cache-aligned</alignment>
-    <coordination>DualAtomicU64 with phase bitmasks</coordination>
-    <speedup>2-20× (compound tier effects)</speedup>
-    <snapshot-latency>&lt;50ns atomic read</snapshot-latency>
-    <examples>AV1/PNG/JPEG encoders (11/12 = 84.6%), QuicEndpointMetacapsule, UniversalApiMetaCapsule</examples>
-  </metacapsule>
+**Connection Types**: Direct (<10ns, 1:1) | Pipeline (<50ns/stage, N:1) | Broadcast (<100ns, 1:N) | Mesh (<200ns/hop, N:N) | Request-Response (<1μs, async)
 
-  <component-capsule>
-    <use>Single-purpose primitive: DCT, quantization, hash, filter</use>
-    <size>64B-256B</size>
-    <alignment>64B cache-aligned</alignment>
-    <coordination>AtomicU64 (single field)</coordination>
-    <speedup>2-19× (single tier)</speedup>
-    <snapshot-latency>&lt;10ns atomic read</snapshot-latency>
-    <examples>DctCapsule, QuantizationCapsule, CircuitBreaker, HistogramCapsule</examples>
-  </component-capsule>
+**Examples**: Av1EncoderMetacapsule (T6, 18 subs, 2-20×) | QuicEndpointMetacapsule (T6, 22 subs, 1.76×) | UniversalApiMetaCapsule (T6, 6 protocols, 1.2×) | PNGEncoderCapsule (T6, 3 subs, 2-5×)
 
-  <container-capsule>
-    <use>Large collection management: ≥100K objects</use>
-    <size>Variable (array + header)</size>
-    <alignment>64B header + element stride</alignment>
-    <coordination>Batch CAS loops</coordination>
-    <speedup>10-100× (T4 Batch parallelism)</speedup>
-    <snapshot-latency>&lt;1μs (O(n) iteration)</snapshot-latency>
-    <examples>LockfreeHashTable, ConcurrentMapCapsule, RingBufferBroadcast</examples>
-  </container-capsule>
-</pattern-comparison>
+**Best Practices**: ≤1024B orchestrator | Acyclic dependency graph | Atomic snapshot before transition | Phase bitmasks for FSM | T28 5-tier testing (including Q29-Q35 determinism) | Generation counters on DualAtomicU64
 
-<metacapsule-advantages>
-  <advantage id="1">Lockfree snapshot: Single atomic read captures entire orchestrator state (~50ns)</advantage>
-  <advantage id="2">COCA compliance: 100% atomic, zero mutex/RwLock, nested sub-capsules allowed</advantage>
-  <advantage id="3">Deterministic latency: &lt;100ns state transitions via Acquire/Release ordering (SWeMR)</advantage>
-  <advantage id="4">Cache efficiency: 256B-1024B aligned prevents false sharing; sub-capsules co-located</advantage>
-  <advantage id="5">Type safety: Impossible states prevented at compile time (#[derive(ComputationalCapsule)])</advantage>
-  <advantage id="6">Hierarchical testing: T28 validates full FSM; sub-capsules tested independently</advantage>
-</metacapsule-advantages>
+**Full Spec**: `docs/METACAPSULE_ARCHITECTURE.xml` (v2.0, 369 lines) | **Patterns**: `docs/xml/metacapsule-patterns.xml` (851 lines, 4 patterns, 4 topologies, 8 states, 4 protocols)
 
-<metacapsule-examples>
-  <example project="atomic_capsule" name="Av1EncoderMetacapsule" tier="T6" size="1024B">
-    <sub-capsules>18 (EncoderState, FrameBuffer, DCT, Quantization, Entropy, Tile, etc)</sub-capsules>
-    <coordination>DualAtomicU64: State(8)|Phase(8)|Count(16)|Gen(32) + Tile(16)|QIndex(8)|Loop(8)|Gen(32)</coordination>
-    <speedup>2-20× vs traditional video codec</speedup>
-    <status>Production (RFC 8130 AV1)</status>
-  </example>
-
-  <example project="atomic_capsule" name="QuicEndpointMetacapsule" tier="T6" size="512B">
-    <sub-capsules>22 (QuicConnection, Stream, Packet, Crypto, Flow, ACK, Congestion, etc)</sub-capsules>
-    <coordination>DualAtomicU64: ConnectionID(32)|State(8)|Gen(24) + StreamID(32)|Gen(32)</coordination>
-    <speedup>1.76× vs TLS 1.3 sync (RFC 9000 QUIC)</speedup>
-    <status>Production (RFC 9000/9114)</status>
-  </example>
-
-  <example project="atomic_capsule" name="UniversalApiMetaCapsule" tier="T6" size="512B">
-    <sub-capsules>6 implicit (REST, GraphQL, gRPC, WebSocket, JSON-RPC, SSE)</sub-capsules>
-    <coordination>TransportType enum (4 variants) + ALPN detection (&lt;12ns)</coordination>
-    <speedup>1.2× vs manual protocol switching</speedup>
-    <status>Production (multi-protocol router)</status>
-  </example>
-
-  <example project="kindly-verified" name="PNGEncoderCapsule" tier="T6" size="512B">
-    <sub-capsules>3 (SIMDFilterApplicator, DEFLATEEncoder, PNGChunkWriter)</sub-capsules>
-    <coordination>DualAtomicU64 simple state machine</coordination>
-    <speedup>2-5× vs libpng</speedup>
-    <status>Production (RFC 2083 PNG)</status>
-  </example>
-</metacapsule-examples>
-
-<best-practices>
-  <practice id="1">Keep orchestrator ≤1024B: Larger → split into component capsules</practice>
-  <practice id="2">Sub-capsule dependency graph acyclic: Impossible deadlock (encode→compress→output)</practice>
-  <practice id="3">Atomic snapshot before state transition: Prevents partial state exposure</practice>
-  <practice id="4">Phase bitmasks for FSM: Each sub-capsule owns bits; no field conflicts</practice>
-  <practice id="5">Test sub-capsules independently PLUS integration: T28 4-tier validation</practice>
-  <practice id="6">Generation counters on DualAtomicU64: TOCTOU detection between snapshot + write</practice>
-</best-practices>
-
-</metacapsule-architecture>
+**XPath Quick Access**:
+```bash
+xmllint --xpath "//topology[@id='pipeline']" docs/xml/metacapsule-patterns.xml
+xmllint --xpath "//lifecycle/states/state" docs/METACAPSULE_ARCHITECTURE.xml
+xmllint --xpath "//coordination-protocols/protocol[@id='pipelined']" docs/xml/metacapsule-patterns.xml
+```
 
 ## Phase Status
 
@@ -423,7 +359,14 @@ Production patterns documented in:
 
 ## Framework Compliance
 
-**All Phases**: UCE34 (Q1-Q34 systematic discovery), COCA (100% lockfree, no mutex/RwLock), ASSUM (99.5%+ safety, all assumptions verified), B32 (95% CI, 1000+ iterations, fair baselines), T28 (4-tier testing: unit/property/integration/production), I20 (integration validation, 20/20 questions), Q34 (hash-chained audit trails for SOX/SOC2/GDPR/HIPAA).
+See `/home/samuel/CLAUDE.md` § Performance & Validation Standards for complete details on:
+- **UCE34**: Q1-Q34 systematic discovery, tier selection (Q10-Q12)
+- **Chaos**: 100% lockfree, no mutex/RwLock, cache-aligned, generation counters
+- **ASSUM**: 99.5%+ safety, all assumptions verified (#ASSUME → #VERIFY)
+- **B32**: 95% CI, 1000+ iterations, fair baselines (not strawman), reproducibility
+- **T28**: 5-tier testing (unit/property/integration/production/determinism)
+- **I20**: Integration validation (20/20 questions, zero breaking changes)
+- **Q34**: Hash-chained audit trails (SOX/SOC2/GDPR/HIPAA compliance)
 
 ## Testing
 
@@ -446,9 +389,9 @@ cargo test frequency::tests
 
 ## Documentation
 
-**Core Frameworks**: See `/home/samuel/CLAUDE.md` § Mandatory Reading Framework for canonical UCE34, COCA, ASSUM, B32, T28, I20, Q34 documentation.
+**Core Frameworks**: See `/home/samuel/CLAUDE.md` § Mandatory Reading Framework for canonical UCE34, Chaos, ASSUM, B32, T28, I20, Q34 documentation.
 
-**Phase Reports**: See `atomic_capsule/CLAUDE.md` for comprehensive session summaries (Nov 14/22/23), phase status, verification reports, and COCA compliance validation.
+**Phase Reports**: See `atomic_capsule/CLAUDE.md` for comprehensive session summaries (Nov 14/22/23), phase status, verification reports, and Chaos compliance validation.
 
 **Pattern Guides**: `docs/ATOMIC_CAPSULE_PATTERNS.md`, `docs/ATOMIC_CAPSULE_COMPOSITION.md`, `docs/ATOMIC_CAPSULE_FAILURE_MODES.md`
 
@@ -460,21 +403,12 @@ Some components protected as trade secrets:
 
 **MANDATORY**: Never commit trade secret components to public repositories. All commits must use `[TRADE SECRET]` tag.
 
-## Infrastructure
-
-**Training Server (6900HX)**: AMD Ryzen 9 6900HX, 64GB DDR5, Ubuntu Server 24.04, 192.168.0.38 (WiFi: TP-Link_E1C8)
-
-**Access**: `ssh samuel@192.168.0.38`
-
-**Sync**: lsyncd auto-sync (2-second delay) from local to remote
-
 ## Performance Standards
 
-**B32 Framework**: 95% CI, 1000+ iterations, fair baselines (not strawman), reproducibility validation
-
-**Reality Check**: 10-50% typical, 2-10× exceptional, 100×+ extensive validation
-
-**ASSUM Framework**: Every `#ASSUME` needs `#VERIFY`, 99.5%+ safety target
+See `/home/samuel/CLAUDE.md` § Performance & Validation Standards for:
+- **B32 Framework**: 95% CI, 1000+ iterations, fair baselines, reproducibility
+- **Reality Check**: 10-50% typical, 2-10× exceptional, 100×+ extensive validation
+- **ASSUM Framework**: Every #ASSUME needs #VERIFY, 99.5%+ safety target
 
 ## References
 

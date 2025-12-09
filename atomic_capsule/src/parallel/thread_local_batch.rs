@@ -23,7 +23,7 @@
 //! - **Flush Callback**: User-provided Fn(&[T]) called with accumulated batch (lockfree!)
 //! - **Determinism**: Flush order matches push order within thread
 //! - **Safety**: 100% safe Rust (thread_local! provides safety guarantees)
-//! - **COCA Compliance**: 100% lockfree (Arc<dyn Fn> instead of Arc<Mutex<FnMut>>)
+//! - **Chaos Compliance**: 100% lockfree (Arc<dyn Fn> instead of Arc<Mutex<FnMut>>)
 //!
 //! ### Q33: Verification
 //! - ThreadLocalBatchBuffer verified via #[derive(ComputationalCapsule)]
@@ -66,7 +66,7 @@
 //! - **Memory**: capacity × sizeof(T) × num_threads
 //! - **Speedup vs Mutex**: 10-20× (no lock overhead)
 //! - **Speedup vs CAS queue**: 3-5× (no atomic CAS loops)
-//! - **COCA Compliance**: 100% (zero mutex, Arc<dyn Fn> callback)
+//! - **Chaos Compliance**: 100% (zero mutex, Arc<dyn Fn> callback)
 //!
 //! ## ASSUM Safety Framework
 //!
@@ -167,7 +167,7 @@ pub type Result<T> = std::result::Result<T, BatchError>;
 /// - push() appends to thread-local buffer (<50ns)
 /// - Automatic flush when buffer reaches capacity
 /// - Manual flush() for remaining items
-/// - **100% COCA Compliant**: Arc<dyn Fn> callback (zero mutex!)
+/// - **100% Chaos Compliant**: Arc<dyn Fn> callback (zero mutex!)
 ///
 /// **ASSUM FRAMEWORK**:
 /// - `#ASSUME_THREAD_LOCAL_SAFETY`: thread_local! provides lifetime safety

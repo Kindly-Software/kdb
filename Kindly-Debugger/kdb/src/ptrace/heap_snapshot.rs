@@ -181,33 +181,52 @@ impl HeapSnapshotCapsule {
     /// Create new HeapSnapshotCapsule on the heap
     ///
     /// Same as `new()`, explicitly heap-allocated to avoid stack overflow.
+    /// Uses Box::new_uninit() + write to bypass stack allocation entirely.
     fn new_boxed() -> Box<Self> {
-        // SAFETY: Use Box::new() with immediate move to heap
-        // The compiler should optimize this to avoid stack allocation
+        // SAFETY: Use Box::new_uninit() to allocate directly on heap without stack copy
+        // The capsule is ~2.5MB which would overflow the default 2MB stack
         // #ASSUME_UNSAFECELL_ARRAY_INIT: UnsafeCell wrapping is safe for zero-init
-        // #ASSUME_HEAP_ALLOCATION: Capsule is 2.5MB, Box ensures heap allocation
+        // #ASSUME_HEAP_ALLOCATION: new_uninit() guarantees heap allocation
+        // #VERIFY_INITIALIZATION: All fields are initialized before assume_init()
 
-        // Create empty snapshot template
-        let empty_snapshot = HeapSnapshot {
-            snapshot_id: 0,
-            timestamp_ns: 0,
-            total_allocations: 0,
-            heap_size_bytes: 0,
-            checksum: 0,
-            _meta_padding: [0; 4],
-            compressed_data: [0; COMPRESSED_DATA_SIZE],
-        };
+        // SAFETY: Allocate uninitialized box on heap, then initialize in-place
+        // This avoids stack allocation entirely by using MaybeUninit
+        let mut boxed: Box<std::mem::MaybeUninit<Self>> = Box::new_uninit();
 
-        // IMPORTANT: This Box::new() may still cause stack overflow in debug builds
-        // In release builds, LLVM optimizes this to direct heap allocation
-        // For tests, we need to increase stack size via RUST_MIN_STACK environment variable
-        Box::new(Self {
-            snapshots: std::array::from_fn(|_| UnsafeCell::new(empty_snapshot)),
-            head: AtomicU32::new(0),
-            mmap_fd: AtomicI32::new(-1),
-            generation: AtomicU32::new(0),
-            _padding: [0; 248 - 4],
-        })
+        // SAFETY: Initialize all fields through pointer writes
+        // The pointer is valid and properly aligned (Box guarantees this)
+        unsafe {
+            let ptr = boxed.as_mut_ptr();
+
+            // Create empty snapshot template (small, OK on stack: 16KB)
+            let empty_snapshot = HeapSnapshot {
+                snapshot_id: 0,
+                timestamp_ns: 0,
+                total_allocations: 0,
+                heap_size_bytes: 0,
+                checksum: 0,
+                _meta_padding: [0; 4],
+                compressed_data: [0; COMPRESSED_DATA_SIZE],
+            };
+
+            // Initialize each snapshot slot individually (avoids array creation on stack)
+            let snapshots_ptr = std::ptr::addr_of_mut!((*ptr).snapshots);
+            for i in 0..RING_BUFFER_CAPACITY {
+                std::ptr::write(
+                    (*snapshots_ptr).as_mut_ptr().add(i),
+                    UnsafeCell::new(empty_snapshot),
+                );
+            }
+
+            // Initialize atomic fields
+            std::ptr::write(std::ptr::addr_of_mut!((*ptr).head), AtomicU32::new(0));
+            std::ptr::write(std::ptr::addr_of_mut!((*ptr).mmap_fd), AtomicI32::new(-1));
+            std::ptr::write(std::ptr::addr_of_mut!((*ptr).generation), AtomicU32::new(0));
+            std::ptr::write(std::ptr::addr_of_mut!((*ptr)._padding), [0; 248 - 4]);
+
+            // All fields initialized, safe to assume_init
+            boxed.assume_init()
+        }
     }
 
     /// Take a heap snapshot and store in ring buffer

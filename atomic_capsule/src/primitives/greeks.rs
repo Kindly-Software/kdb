@@ -66,7 +66,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q1-Q34 systematic discovery (T3 Fixed-Point tier selection)
-//! - **COCA**: 128B cache-aligned, deterministic arithmetic, zero drift
+//! - **Chaos**: 128B cache-aligned, deterministic arithmetic, zero drift
 //! - **ASSUM**: 99.99% safe (8 assumptions verified via property tests)
 //! - **B32**: Fair baseline (f64 Black-Scholes), 2.5× speedup, ±0.0001 accuracy
 //! - **T28**: 28 comprehensive tests (unit/property/integration/production)
@@ -118,6 +118,7 @@ use atomic_capsule_derive::ComputationalCapsule;
 /// - `#VERIFY_SIZE`: Static assertion via derive macro
 #[repr(C, align(128))]
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
+#[cfg_attr(feature = "derive", capsule(alignment = 128))]
 pub struct GreeksCapsule {
     /// Delta (∂V/∂S): Rate of change of option value with respect to spot price
     /// Range: [0.0, 1.0] for calls, [-1.0, 0.0] for puts

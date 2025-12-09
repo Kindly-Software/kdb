@@ -13,7 +13,7 @@
 - **Tests**: 20 comprehensive tests (100% pass rate)
 - **Compilation**: ✅ Zero errors, zero warnings
 - **Performance**: <10ns track_malloc, <5ns queries, 10-20× faster than mutex
-- **Framework**: Full UCE34+COCA+ASSUM+B32+T28+I20 compliance
+- **Framework**: Full UCE34+Chaos+ASSUM+B32+T28+I20 compliance
 
 ## What's Included
 
@@ -32,7 +32,7 @@
 ### 3. Full Documentation
 - **Inline comments**: Every method documented with latency targets
 - **ASSUM tags**: Safety assumptions documented (#ASSUME + #VERIFY)
-- **Framework notes**: UCE34, COCA, B32, T28, I20 compliance markers
+- **Framework notes**: UCE34, Chaos, B32, T28, I20 compliance markers
 - **Summary documents**: ALLOCATION_TRACKER_IMPLEMENTATION.md, ALLOCATION_TRACKER_DELIVERY.txt
 
 ## Quick Start
@@ -109,7 +109,7 @@ Offset  Size  Field        Purpose
 - ✅ **Q33**: #[derive(ComputationalCapsule)] ready
 - ✅ **Q34**: Audit-trail compatible (hash-chain ready)
 
-### COCA Computational Capsule
+### Chaos Computational Capsule
 - ✅ **Lockfree**: grep confirms zero Mutex/RwLock
 - ✅ **Atomicity**: Release/Relaxed ordering applied correctly
 - ✅ **Alignment**: 256-byte verified by test
@@ -249,7 +249,7 @@ rustc --crate-type lib allocation_tracker.rs --edition 2021
 For questions or integration support:
 1. Review `ALLOCATION_TRACKER_IMPLEMENTATION.md` for detailed specification
 2. Check test examples in `allocation_tracker.rs` for usage patterns
-3. Read framework compliance notes for UCE34/COCA/B32 details
+3. Read framework compliance notes for UCE34/Chaos/B32 details
 
 **Status**: Ready for immediate deployment in MemoryProfilerCapsule (T6).
 

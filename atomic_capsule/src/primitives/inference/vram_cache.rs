@@ -24,7 +24,7 @@
 //! | Evict | <10μs | CLOCK hand sweep |
 //! | Pin/Unpin | <50ns | Atomic flag update |
 //!
-//! ## COCA Compliance
+//! ## Chaos Compliance
 //!
 //! - **T7 (Heterogeneous)**: GPU memory management (stubbed for portability)
 //! - **T1 (Atomic)**: 100% lockfree coordination via DualAtomicU64 patterns
@@ -510,7 +510,7 @@ impl VramCacheCapsule {
     }
 }
 
-// COCA verification
+// Chaos verification
 const _: () = {
     const fn _assert_size() {
         assert!(core::mem::size_of::<VramCacheCapsule>() == 512);

@@ -38,7 +38,6 @@
 //! - **T28**: Comprehensive testing (28 tests, all tiers)
 
 use crate::format::{Document, FormatError, FormatReaderCapsule, FormatRegistryCapsule};
-use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
@@ -205,6 +204,7 @@ pub fn load_multiple_documents<P: AsRef<Path>>(paths: &[P]) -> Result<Vec<Docume
 /// // corpus2.csv: IDs 100000+
 /// # Ok::<(), kindly_dedup::format::FormatError>(())
 /// ```
+#[allow(dead_code)]
 pub fn load_multiple_documents_with_offset<P: AsRef<Path>>(
     paths: &[P],
     id_offset: usize,

@@ -36,7 +36,7 @@ NC='\033[0m' # No Color
 # Test targets
 LOCAL_URL="http://localhost:8082"
 REMOTE_HOST="kindly-hub"
-REMOTE_URL="https://kindly.services"
+REMOTE_URL="https://kindly.software"
 
 # Counters
 TESTS_PASSED=0
@@ -558,7 +558,7 @@ main() {
             echo ""
             echo "Options:"
             echo "  --local   Test local server only (localhost:8082)"
-            echo "  --remote  Test remote server only (kindly.services)"
+            echo "  --remote  Test remote server only (kindly.software)"
             echo "  --quick   Quick smoke test (fastest)"
             echo "  --full    Full security audit (slowest, includes rate limiting)"
             echo "  --help    Show this help message"

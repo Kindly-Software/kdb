@@ -7,7 +7,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: T7 Heterogeneous tier validation
-//! - **COCA**: Verify lockfree behavior under concurrent access
+//! - **Chaos**: Verify lockfree behavior under concurrent access
 //! - **ASSUM**: Document GPU assumptions and verify
 //! - **B32**: Fair baseline comparisons documented
 //! - **T28**: 5-tier test coverage
@@ -401,6 +401,7 @@ mod tests {
     // =========================================================================
 
     #[test]
+    #[ignore] // Requires GPU hardware
     fn test_validate_gpu_vs_cpu_small() {
         let Some(ctx) = try_get_gpu() else { return };
 
@@ -436,6 +437,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Requires GPU hardware
     fn test_validate_gpu_vs_cpu_medium() {
         let Some(ctx) = try_get_gpu() else { return };
 
@@ -480,6 +482,7 @@ mod tests {
     // =========================================================================
 
     #[test]
+    #[ignore] // Requires GPU hardware
     fn test_validate_gpu_determinism_basic() {
         let Some(ctx) = try_get_gpu() else { return };
 
@@ -499,6 +502,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Requires GPU hardware
     fn test_validate_gpu_determinism_large() {
         let Some(ctx) = try_get_gpu() else { return };
 

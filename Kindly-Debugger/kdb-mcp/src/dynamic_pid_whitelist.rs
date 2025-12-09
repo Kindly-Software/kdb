@@ -17,7 +17,7 @@
 //! - Hash table: 64KB (16K slots, 32-bit PIDs)
 //! - Supports unlimited PIDs (vs 64 bitmap limit in AccessControlCapsule)
 //!
-//! **Framework**: UCE34 (Q1-Q34), COCA, T1+T10, 100% lockfree, 99.99% ASSUM safe
+//! **Framework**: UCE34 (Q1-Q34), Chaos, T1+T10, 100% lockfree, 99.99% ASSUM safe
 //!
 //! ## UCE34 Analysis
 //!

@@ -1427,7 +1427,7 @@ jobs:
 
 **Performance Validation**: P99 <100μs latency, >10K cycles/sec throughput, >90% logical error suppression
 
-**Framework Compliance**: UCE34 (Q1-Q34), COCA (100% lockfree), B32 (fair baselines), ASSUM (99.99% safe), Q34 (audit trails)
+**Framework Compliance**: UCE34 (Q1-Q34), Chaos (100% lockfree), B32 (fair baselines), ASSUM (99.99% safe), Q34 (audit trails)
 
 **Status**: Test plan complete, ready for implementation alongside QECIntegrationCapsule
 

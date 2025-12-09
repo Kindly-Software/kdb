@@ -1,6 +1,6 @@
 //! # WorkerPoolCapsule - T4 Batch Multi-Worker Orchestrator
 //!
-//! **Framework**: UCE34 Q10 (T4 Batch tier), COCA (100% lockfree), ASSUM (99.99% safe)
+//! **Framework**: UCE34 Q10 (T4 Batch tier), Chaos (100% lockfree), ASSUM (99.99% safe)
 //!
 //! **Purpose**: Orchestrates 8 worker threads for parallel MinHash signature computation
 //! and LSH bucket insertion. Implements work-stealing architecture with atomic coordination
@@ -42,7 +42,7 @@ use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::thread;
 use atomic_capsule::CpuCapabilityCapsule;
-use crate::parallel::{WorkerStateCapsule, WorkStealingQueueCapsule, OutputAggregatorCapsule, WorkItem, QueueStats};
+use crate::parallel::{WorkerStateCapsule, WorkStealingQueueCapsule, OutputAggregatorCapsule, QueueStats};
 
 /// WorkerState enum - defines lifecycle states for worker threads
 #[repr(u8)]

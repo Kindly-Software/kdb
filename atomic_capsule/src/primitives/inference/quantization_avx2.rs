@@ -771,7 +771,7 @@ impl Avx2QuantizerQ88 {
 /// - **ASSUM**: 10/10 categories satisfied, **99.5% safe**
 /// - **T28**: 6 unit tests (unit tier coverage)
 /// - **B32**: Performance targets validated (10-20× speedup, 95% CI)
-/// - **COCA**: 64B alignment, cache-friendly layout, lockfree
+/// - **Chaos**: 64B alignment, cache-friendly layout, lockfree
 /// - **I20**: All 20 integration questions answerable
 ///
 /// ### Safety Rating Breakdown

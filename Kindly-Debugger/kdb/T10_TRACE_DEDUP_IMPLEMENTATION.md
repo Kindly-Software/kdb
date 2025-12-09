@@ -363,7 +363,7 @@ fn test_compression_stats() {
 - **Q11-Q15 (Safety)**: Zero unsafe code, all assumptions verified
 - **Q16-Q20 (Validation)**: 5 unit tests, B32 validated (kindly_dedup baseline)
 
-### COCA (100% Computational Capsule Architecture)
+### Chaos (100% Computational Capsule Architecture)
 
 - **ExecutionPathSignature**: 512B capsule (cache-aligned, no mutex/RwLock)
 - **LshPathTableCapsule**: 768B capsule (atomic coordination only)
@@ -575,7 +575,7 @@ Compression ratio: 75.00×
 - **B32**: EXCEPTIONAL tier (38× validated)
 - **T28**: 5 unit tests (pending 23 additional tests)
 - **I20**: 20/20 questions (pending formal validation)
-- **COCA**: 100% computational capsule architecture
+- **Chaos**: 100% computational capsule architecture
 
 ### Status
 

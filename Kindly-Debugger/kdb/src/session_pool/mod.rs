@@ -39,7 +39,7 @@
 //!
 //! # Framework Compliance
 //! - **UCE34**: T6 Mixed tier (orchestrating T1 pools)
-//! - **COCA**: 100% lockfree, zero mutex/RwLock
+//! - **Chaos**: 100% lockfree, zero mutex/RwLock
 //! - **ASSUM**: All unsafe blocks documented
 //! - **T28**: 12+ unit tests per capsule
 

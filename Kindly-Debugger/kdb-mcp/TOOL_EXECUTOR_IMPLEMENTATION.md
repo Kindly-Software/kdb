@@ -233,7 +233,7 @@ Generation counter increments on every state transition, preventing this race:
 - Multi-tool execution sequence
 
 **Framework Compliance**:
-- ✅ COCA: 100% computational capsule (T1 Atomic)
+- ✅ Chaos: 100% computational capsule (T1 Atomic)
 - ✅ UCE34: Q10 tier selection, Q33 verification
 - ✅ ASSUM: 7 assumptions verified
 - ✅ B32: <50ns dispatch latency target
@@ -284,7 +284,7 @@ Generation counter increments on every state transition, preventing this race:
 
 ## Framework Alignment
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 
 **Tier Selection**: T1 Atomic
 - Coordination requirement: High (state machine)
@@ -363,7 +363,7 @@ atomic_mcp_server/
 - [x] Cache alignment verified
 - [x] Integration documentation
 - [x] Example integration code
-- [x] Framework compliance (COCA, UCE34, ASSUM, B32, T28, I20)
+- [x] Framework compliance (Chaos, UCE34, ASSUM, B32, T28, I20)
 
 ## Conclusion
 
@@ -373,7 +373,7 @@ ToolExecutorCapsule is **production-ready** for integration into the atomic MCP 
 - Provides 100% lockfree execution coordination
 - Includes comprehensive safety verification
 - Integrates seamlessly with McpToolRegistryCapsule
-- Follows all framework requirements (COCA, UCE34, ASSUM, B32, T28, I20)
+- Follows all framework requirements (Chaos, UCE34, ASSUM, B32, T28, I20)
 - Includes 8 unit tests and integration example
 
 Ready for code review and integration into main server pipeline.

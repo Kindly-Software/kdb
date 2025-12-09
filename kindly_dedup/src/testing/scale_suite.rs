@@ -39,7 +39,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 T4 Batch tier selection, Q33 verification, Q34 audit trails
-//! - **COCA**: 100% computational capsule (no mutex/RwLock)
+//! - **Chaos**: 100% computational capsule (no mutex/RwLock)
 //! - **ASSUM**: 99.99% safe (progression assumptions documented, validated)
 //! - **B32**: Fair baselines with memory/throughput metrics
 //! - **T28**: Comprehensive testing (unit/property/integration)
@@ -145,7 +145,7 @@ impl Default for ScaleTestConfig {
 
 /// T4 Batch tier scale test suite capsule
 ///
-/// **COCA Compliance**: 100% lockfree (AtomicU64 for memory sampling)
+/// **Chaos Compliance**: 100% lockfree (AtomicU64 for memory sampling)
 /// **Tier**: T4 (Batch orchestration of sequential tests)
 #[repr(C, align(64))]
 pub struct ScaleTestSuiteCapsule {
@@ -410,7 +410,7 @@ impl ScaleTestSuiteCapsule {
 //   VERIFY: Memory monitor stress tests validate convergence
 
 // ============================================================================
-// COCA Compliance
+// Chaos Compliance
 // ============================================================================
 //
 // 100% Lockfree:

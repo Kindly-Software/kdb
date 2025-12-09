@@ -27,7 +27,7 @@
 //!   - Cache-friendly (linked list traversal, temporal locality)
 //! ```
 //!
-//! ## COCA Compliance
+//! ## Chaos Compliance
 //!
 //! - **100% Lockfree**: No Mutex, no RwLock, only AtomicPtr + AtomicU64
 //! - **Cache-Aligned**: 64B node layout (prevents false sharing)
@@ -292,6 +292,7 @@ impl TreiberStack {
 ///
 /// let candidates = bucketer.extract_candidates();
 /// ```
+#[allow(dead_code)]
 pub struct StreamingLshBucketerTreiber {
     /// Sharded Treiber stacks (4 shards, each with independent buckets)
     /// Structure: Vec<Arc<ConcurrentMapCapsuleV2<(usize, u64), Arc<TreiberStack>>>>
@@ -380,6 +381,7 @@ impl StreamingLshBucketerTreiber {
     ///
     /// # #ASSUME_MINHASHER_VALID: signature contains 128 valid u16 values
     /// # #VERIFY_MINHASHER_VALID: Called from pipeline validation
+    #[allow(dead_code)]
     pub fn add_signature(&self, doc_id: DocId, signature: &[u16; 128]) {
         for band_idx in 0..self.num_bands {
             // Extract band slice (25 rows)
@@ -626,9 +628,15 @@ mod tests {
             bucketer.add_signature(i, sig.signature());
         }
 
+        // Extract candidates - this updates collision metrics
+        let candidates = bucketer.extract_candidates();
+        assert!(candidates.len() > 0, "Expected candidate pairs from identical docs");
+
         let (_, collisions, _) = bucketer.metrics();
         // 10 docs in same bucket: 45 pairs (10 choose 2)
+        // After dedup across bands, should still have many pairs
         assert!(collisions > 0, "Expected collision metrics");
+        assert!(collisions >= 40, "Expected at least 40 collision pairs, got {}", collisions);
     }
 
     #[test]
@@ -720,17 +728,42 @@ mod tests {
     fn test_shard_load_balance() {
         let bucketer = StreamingLshBucketerTreiber::new(5, 25);
 
-        // Insert 1000 docs with diverse hash values
-        for i in 0..1000 {
-            let doc_str = format!("doc_{}", i);
+        // Insert 1000 docs: 900 unique + 100 duplicates (10 groups of 10)
+        // This ensures we'll have candidate pairs for verification
+        for i in 0..900 {
+            let doc_str = format!("unique_doc_{}", i);
             let tokens = vec![doc_str.as_str()];
             let sig = MinHashSignatureCapsule::compute_signature(&tokens);
             bucketer.add_signature(i, sig.signature());
         }
 
-        // Verify all 4 shards have content (rough check)
+        // Add 100 duplicates in 10 groups (each group has identical docs)
+        for group in 0..10 {
+            let group_str = format!("duplicate_group_{}", group);
+            let tokens = vec![group_str.as_str()];
+            let sig = MinHashSignatureCapsule::compute_signature(&tokens);
+
+            for j in 0..10 {
+                let doc_id = 900 + group * 10 + j;
+                bucketer.add_signature(doc_id, sig.signature());
+            }
+        }
+
+        // Verify we found candidate pairs (from the duplicate groups)
         let candidates = bucketer.extract_candidates();
-        assert!(candidates.len() > 0, "Should have found some candidate pairs");
+        assert!(candidates.len() > 0, "Should have found candidate pairs from duplicate groups");
+
+        // Each group of 10 identical docs should produce 45 pairs (10 choose 2)
+        // With 10 groups, we expect at least 450 pairs (may be fewer after dedup across bands)
+        assert!(
+            candidates.len() >= 400,
+            "Expected at least 400 pairs from 10 duplicate groups, got {}",
+            candidates.len()
+        );
+
+        // Verify metrics
+        let (insertions, _, _) = bucketer.metrics();
+        assert_eq!(insertions, 1000, "Should have inserted 1000 documents");
     }
 
     #[test]

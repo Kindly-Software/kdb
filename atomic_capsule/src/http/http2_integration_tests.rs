@@ -1257,8 +1257,8 @@ fn test_summary_framework_compliance() {
     println!("Q33 (Verification): #[derive(ComputationalCapsule)] ✓");
     println!("Q34 (Auditability): Hash-chain audit trails ✓");
 
-    // COCA (Computational Capsule)
-    println!("\n=== COCA Compliance ===");
+    // Chaos (Computational Capsule)
+    println!("\n=== Chaos Compliance ===");
     println!("100% Lockfree: ✓ (atomic only, no mutex/RwLock)");
     println!("Cache-Aligned: ✓ (64-128B boundaries)");
     println!("Generation Counters: ✓ (TOCTOU prevention)");

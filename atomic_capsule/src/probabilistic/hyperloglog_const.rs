@@ -118,6 +118,7 @@ pub const fn calculate_sparse_register_threshold(precision: u32) -> usize {
 /// - P4: ±26%, P6: ±13%, P14: ±0.4%, P18: ±0.025%
 /// - Recommended for n > 1000 elements
 #[derive(ComputationalCapsule)]
+#[cfg_attr(feature = "derive", capsule(alignment = 64))]
 #[repr(C, align(64))]
 pub struct HyperLogLogConst<const PRECISION: u32, const SPARSE_THRESHOLD_PERCENT: u32>
 where
@@ -138,7 +139,7 @@ where
     /// #ASSUME_RELAXED_COUNT: Lost updates acceptable (probabilistic algorithm)
     count: AtomicU32,
 
-    /// Padding to 64-byte alignment (COCA requirement)
+    /// Padding to 64-byte alignment (Chaos requirement)
     _padding: [u8; 4],
 }
 

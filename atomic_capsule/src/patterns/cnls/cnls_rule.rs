@@ -24,7 +24,7 @@
 //! - UCE34: Q1-Q34 complete (T6 Mixed composition)
 //! - ASSUM: 99.99% safe (atomic coordination, no unsafe code)
 //! - T28: 15 unit tests (Q1-Q7 coverage)
-//! - COCA: 100% lockfree (no mutex/RwLock)
+//! - Chaos: 100% lockfree (no mutex/RwLock)
 
 use atomic_capsule_derive::ComputationalCapsule;
 use std::sync::atomic::{AtomicI64, AtomicU64, Ordering::*};

@@ -1,0 +1,17 @@
+error: Capsule alignment out of range
+       Got: 1024 bytes
+       Valid range: 32-512 bytes
+       - 32B: Sub-line structures (tight packing)
+       - 64B: Single cache line (prevents false sharing)
+       - 128B: Dual cache line (DualAtomicU64 pattern)
+       - 256B: Multi-line (large capsules)
+       - 512B: Cache slots (maximum false sharing prevention)
+       Help: Use alignment = 64 for most capsules
+  --> tests/compile_fail/alignment_too_large.rs:6:1
+   |
+ 6 | / #[capsule(alignment = 1024)]  // Too large! Must be <= 512
+ 7 | | #[repr(C, align(1024))]
+ 8 | | struct TooLarge {
+ 9 | |     data: [u8; 1024],
+10 | | }
+   | |_^

@@ -144,7 +144,7 @@ pub fn generation(&self) -> u64
 4. `#ASSUME_NO_OVERFLOW`: Counter overflow wraps gracefully ✓
 5. `#ASSUME_COPY_SAFE`: All atomic fields Copy + Send + Sync ✓
 
-### COCA Compliance
+### Chaos Compliance
 - 100% computational capsule (no mutex/RwLock)
 - 256-byte cache-aligned
 - Generation counters for TOCTOU prevention
@@ -239,5 +239,5 @@ Successfully implemented a production-ready T4 Batch tier HTTP body buffer capsu
 - Provides 100% lockfree coordination
 - Includes 34 comprehensive tests
 - Compiles without warnings
-- Follows all UCE34, COCA, and ASSUM framework requirements
+- Follows all UCE34, Chaos, and ASSUM framework requirements
 - Ready for integration into kindly_http module

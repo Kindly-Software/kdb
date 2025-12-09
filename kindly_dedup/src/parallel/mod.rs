@@ -23,7 +23,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 (T4+T10 tier selection), Q33 (deterministic), Q34 (audit)
-//! - **COCA**: 100% lockfree (no mutex/RwLock)
+//! - **Chaos**: 100% lockfree (no mutex/RwLock)
 //! - **ASSUM**: 99.99% safe (assumptions on determinism, independence, safety)
 //! - **B32**: Fair baselines, 1000+ iterations, 95% CI
 //! - **T28**: Comprehensive testing (unit/property/integration/production)

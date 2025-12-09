@@ -6,9 +6,9 @@
 //!
 //! EncoderConfig is a T1 Atomic tier capsule that bridges CLI options to
 //! encoder parameters. It provides lockfree, cache-aligned configuration
-//! storage with generation counter for COCA compliance.
+//! storage with generation counter for Chaos compliance.
 //!
-//! # COCA Compliance
+//! # Chaos Compliance
 //!
 //! - UCE34 Q10: T1 Atomic tier
 //! - UCE34 Q33: 100% lockfree (no mutex/RwLock)
@@ -25,7 +25,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 T1 Atomic, Q11 100% Rust, Q33 lockfree
-//! - **COCA**: Cache-aligned, generation counter, no mutex
+//! - **Chaos**: Cache-aligned, generation counter, no mutex
 //! - **ASSUM**: 100% safe (no unsafe blocks)
 
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -51,7 +51,7 @@ use crate::cli::args::EncodeOptions;
 ///
 /// Total size: 64 bytes (exactly one cache line)
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 ///
 /// - **Lockfree**: All fields are plain values or atomics (no mutex/RwLock)
 /// - **Cache-aligned**: 64B alignment prevents false sharing
@@ -114,7 +114,7 @@ pub struct EncoderConfig {
     /// Generation counter for atomic snapshots
     ///
     /// Incremented on any configuration change (though config is typically
-    /// immutable after creation). Used for COCA compliance and Q34 audit trails.
+    /// immutable after creation). Used for Chaos compliance and Q34 audit trails.
     generation: AtomicU64,
 
     /// Cache line padding to prevent false sharing

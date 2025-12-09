@@ -387,7 +387,7 @@ fn main() {
 
     println!("Framework Compliance:");
     println!("  ✓ UCE34: Q10 T6 Mixed tier, Q33 validation, Q34 audit");
-    println!("  ✓ COCA:  100% computational capsule, zero mutex");
+    println!("  ✓ Chaos:  100% computational capsule, zero mutex");
     println!("  ✓ ASSUM: 99.5%+ safety (deterministic RNG, reproducible)");
     println!("  ✓ B32:   Fair baselines (Union-Find vs MWPM comparison)");
     println!("  ✓ T28:   28 comprehensive tests (Q1-Q28 coverage)");

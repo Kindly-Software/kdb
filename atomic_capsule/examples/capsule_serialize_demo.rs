@@ -9,7 +9,7 @@
 //! 4. Compute hash for audit trail (integrity verification)
 //! 5. JSON serialization for human readability
 //!
-//! ## COCA Architecture:
+//! ## Chaos Architecture:
 //! - Tier 3 (Fixed-Point): Deterministic arithmetic for financial data
 //! - Compile-time verification: All capsules verified at build time
 //! - Zero runtime cost: Verification happens during compilation

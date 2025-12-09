@@ -489,7 +489,7 @@ cargo test --test chaos --all-features
 
 ## Framework Compliance
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 - **100% Lockfree**: All chaos injectors use atomics (zero mutex)
 - **Cache-Aligned**: Prevent false sharing
 - **Generation Counters**: Safe concurrent updates

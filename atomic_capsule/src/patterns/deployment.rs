@@ -79,7 +79,7 @@
 //!
 //! ## Framework Compliance
 //! - **UCE34**: Q10 (T1+T0), Q11 (100% Rust), Q33 (verification), Q34 (audit trail)
-//! - **COCA**: 100% lockfree, computational capsule architecture
+//! - **Chaos**: 100% lockfree, computational capsule architecture
 //! - **ASSUM**: Type-safe, no shell injection, validated SSH/rsync
 //! - **B32**: <100ns coordination, honest deployment time claims
 //! - **T28**: Comprehensive testing (unit/property/integration/production)

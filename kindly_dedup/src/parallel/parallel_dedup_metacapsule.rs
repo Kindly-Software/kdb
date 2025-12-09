@@ -42,7 +42,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q1-Q34 complete (T6 Mixed tier, Q34 audit trails)
-//! - **COCA**: 100% lockfree (DualAtomicU64 FSM, no mutex/RwLock)
+//! - **Chaos**: 100% lockfree (DualAtomicU64 FSM, no mutex/RwLock)
 //! - **ASSUM**: 99.99% safe (7 assumptions documented, all #VERIFY)
 //! - **B32**: 3.3× speedup validated @ 16 threads
 //! - **T28**: 65 metacapsule tests (unit/property/integration/production)
@@ -56,9 +56,11 @@
 //! **Atomic Snapshot**: <50ns (entire pipeline state)
 //! **Coordination Overhead**: <100ms (<1% of total time)
 
+#![allow(dead_code)]
+
 use crate::parallel::batch_coordinator::{BatchCoordinatorCapsule, BatchCoordinatorError, BatchId};
 use crate::parallel::work_stealing_queue::WorkStealingQueueCapsule;
-use crate::pipeline::{DocId, PipelineError};
+use crate::pipeline::PipelineError;
 use crate::streaming::{
     StreamingLshBucketerTreiber, StreamingMinHashBuilderCapsule, StreamingTokenizerCapsule, TokenBatch,
 };
@@ -352,7 +354,7 @@ pub struct PipelineSnapshot {
 /// Total: 596 bytes
 /// ```
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 ///
 /// - ✅ **100% Lockfree**: Only atomic operations (DualAtomicU64, AtomicU64)
 /// - ✅ **Cache-Aligned**: 256-byte alignment prevents false sharing
@@ -654,8 +656,8 @@ impl ParallelDedupMetacapsule {
     pub fn snapshot(&self) -> PipelineSnapshot {
         // Load state and generation
         let state_gen = self.state_generation.load(Ordering::Acquire);
-        let state = ((state_gen & 0xFF) as u8);
-        let generation = ((state_gen >> 32) as u32);
+        let state = (state_gen & 0xFF) as u8;
+        let generation = (state_gen >> 32) as u32;
 
         // Load worker states
         let worker_states = self.phase_mask.snapshot();
@@ -693,7 +695,7 @@ impl ParallelDedupMetacapsule {
     /// Get current pipeline state
     pub fn get_state(&self) -> PipelineState {
         let state_gen = self.state_generation.load(Ordering::Acquire);
-        let state = ((state_gen & 0xFF) as u8);
+        let state = (state_gen & 0xFF) as u8;
         PipelineState::from_u8(state).unwrap_or(PipelineState::Error)
     }
 
@@ -705,7 +707,7 @@ impl ParallelDedupMetacapsule {
     /// - Odd generation: In-progress state (transient)
     pub fn get_generation(&self) -> u32 {
         let state_gen = self.state_generation.load(Ordering::Acquire);
-        ((state_gen >> 32) as u32)
+        (state_gen >> 32) as u32
     }
 
     /// Get number of workers
@@ -1048,8 +1050,8 @@ impl ParallelDedupMetacapsule {
     /// Helper: Load state and generation atomically
     fn snapshot_state_generation(&self) -> (PipelineState, u32) {
         let state_gen = self.state_generation.load(Ordering::Acquire);
-        let state = ((state_gen & 0xFF) as u8);
-        let generation = ((state_gen >> 32) as u32);
+        let state = (state_gen & 0xFF) as u8;
+        let generation = (state_gen >> 32) as u32;
         (
             PipelineState::from_u8(state).unwrap_or(PipelineState::Error),
             generation,
@@ -1090,8 +1092,8 @@ impl ParallelDedupMetacapsule {
         // Perform atomic transition with CAS loop
         loop {
             let current = self.state_generation.load(Ordering::Acquire);
-            let current_state = ((current & 0xFF) as u8);
-            let current_gen = ((current >> 32) as u32);
+            let current_state = (current & 0xFF) as u8;
+            let current_gen = (current >> 32) as u32;
 
             // Verify we're still in the expected from state
             if current_state != from.as_u8() {

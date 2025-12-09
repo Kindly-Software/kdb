@@ -231,7 +231,7 @@ mod tests {
     #[test]
     fn test_should_half_open() {
         let backend = BackendHealthState::new(1);
-        let current_time_ns = 1_000_000_000;
+        let current_time_ns = 5_000_000_000; // 5 seconds - enough room for subtraction
 
         // Set last failure 2 seconds ago
         backend.set_last_failure_time_ns(current_time_ns - 2_000_000_000);

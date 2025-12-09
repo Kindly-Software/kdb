@@ -1,0 +1,1284 @@
+warning: /home/samuel/Primitives/Cargo.toml: `panic` setting is ignored for `bench` profile
+warning: /home/samuel/Primitives/atomic_capsule/Cargo.toml: `panic` setting is ignored for `test` profile
+   Compiling atomic_capsule v0.8.0 (/home/samuel/Primitives/atomic_capsule)
+warning: atomic_capsule@0.8.0: Nightly enabled but const-hashing disabled - missing 100× hash speedup
+warning: atomic_capsule@0.8.0: SIMD enabled but simd-hashing disabled - missing 2-8× hash speedup
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+  --> src/primitives/simd_f64.rs:35:5
+   |
+35 | use std::simd::num::SimdFloat;
+   |     ^^^ use of unresolved module or unlinked crate `std`
+   |
+   = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+  --> src/primitives/simd_f64.rs:36:5
+   |
+36 | use std::simd::StdFloat;
+   |     ^^^ use of unresolved module or unlinked crate `std`
+   |
+   = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+  --> src/primitives/simd_i32.rs:46:5
+   |
+46 | use std::simd::{
+   |     ^^^ use of unresolved module or unlinked crate `std`
+   |
+   = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+  --> src/hash/murmur3_simd.rs:60:5
+   |
+60 | use std::simd::u32x8;
+   |     ^^^ use of unresolved module or unlinked crate `std`
+   |
+   = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+  --> src/primitives/inference/flash_attention.rs:34:5
+   |
+34 | use std::simd::{f32x8, num::SimdFloat};
+   |     ^^^ use of unresolved module or unlinked crate `std`
+   |
+   = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/primitives/inference/quantization.rs:248:13
+    |
+248 |         use std::simd::{f32x8, num::SimdFloat, StdFloat};
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/primitives/inference/quantization.rs:308:13
+    |
+308 |         use std::simd::{f32x8, i32x8, num::SimdInt};
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+  --> src/primitives/inference/simd_matmul.rs:29:5
+   |
+29 | use std::simd::f32x8;
+   |     ^^^ use of unresolved module or unlinked crate `std`
+   |
+   = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/patterns/cache_aligned.rs:410:13
+    |
+410 |         use std::sync::Arc;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/patterns/dual_atomic.rs:612:13
+    |
+612 |         use std::sync::Arc;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0432]: unresolved import `std`
+   --> src/patterns/cache_aligned.rs:411:13
+    |
+411 |         use std::thread;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/patterns/rate_limiter.rs:561:13
+    |
+561 |         use std::sync::Arc;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0432]: unresolved import `std`
+   --> src/patterns/dual_atomic.rs:613:13
+    |
+613 |         use std::thread;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/patterns/quota_tracker.rs:894:13
+    |
+894 |         use std::sync::Arc;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0432]: unresolved import `std`
+   --> src/patterns/rate_limiter.rs:562:13
+    |
+562 |         use std::thread;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+    --> src/patterns/quota_tracker.rs:1007:13
+     |
+1007 |         use std::sync::Arc;
+     |             ^^^ use of unresolved module or unlinked crate `std`
+     |
+     = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0432]: unresolved import `std`
+   --> src/patterns/quota_tracker.rs:895:13
+    |
+895 |         use std::thread;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/primitives/inference/mod.rs:162:13
+    |
+162 |         use std::simd::f32x8;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/primitives/inference/mod.rs:183:13
+    |
+183 |         use std::simd::f32x8;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/composite/full_compound.rs:979:13
+    |
+979 |         use std::sync::Arc;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0432]: unresolved import `std`
+    --> src/patterns/quota_tracker.rs:1008:13
+     |
+1008 |         use std::thread;
+     |             ^^^ use of unresolved module or unlinked crate `std`
+     |
+     = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/hash/atomic.rs:445:13
+    |
+445 |         use std::sync::Arc;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0432]: unresolved import `std`
+   --> src/composite/full_compound.rs:980:13
+    |
+980 |         use std::thread;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/hash/atomic.rs:473:13
+    |
+473 |         use std::sync::Arc;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0432]: unresolved import `std`
+   --> src/hash/atomic.rs:446:13
+    |
+446 |         use std::thread;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/hash/murmur3_simd.rs:387:13
+    |
+387 |         use std::collections::HashSet;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/hash/murmur3_simd.rs:464:13
+    |
+464 |         use std::collections::HashSet;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/hash/atomic.rs:519:13
+    |
+519 |         use std::sync::atomic::AtomicBool;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/hash/atomic.rs:520:13
+    |
+520 |         use std::sync::Arc;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0432]: unresolved import `std`
+   --> src/hash/atomic.rs:474:13
+    |
+474 |         use std::thread;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/hash/atomic.rs:522:13
+    |
+522 |         use std::time::Duration;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error[E0432]: unresolved import `std`
+   --> src/hash/atomic.rs:521:13
+    |
+521 |         use std::thread;
+    |             ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+
+error: cannot find macro `vec` in this scope
+    --> src/patterns/quota_tracker.rs:1017:61
+     |
+1017 |         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+     |                                                             ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/flash_attention.rs:115:26
+    |
+115 |         let mut output = vec![0.0f32; seq_len * 8]; // 8 lanes per vector
+    |                          ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/flash_attention.rs:152:30
+    |
+152 |             let mut scores = vec![f32x8::splat(0.0); block_end - block_start];
+    |                              ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/flash_attention.rs:168:34
+    |
+168 |             let mut exp_scores = vec![f32x8::splat(0.0); scores.len()];
+    |                                  ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/quantization.rs:196:29
+    |
+196 |         let mut quantized = vec![0i16; weights.len()];
+    |                             ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/quantization.rs:442:23
+    |
+442 |         let weights = vec![-200.0, -128.0, 0.0, 127.0, 200.0];
+    |                       ^^^
+
+error: cannot find macro `vec` in this scope
+  --> src/primitives/inference/simd_matmul.rs:84:22
+   |
+84 |             weights: vec![f32x8::splat(0.0); total_vecs],
+   |                      ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/simd_matmul.rs:110:32
+    |
+110 |         let mut simd_weights = vec![f32x8::splat(0.0); total_vecs];
+    |                                ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/simd_matmul.rs:160:26
+    |
+160 |         let mut output = vec![0.0f32; self.rows];
+    |                          ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/simd_matmul.rs:192:26
+    |
+192 |         let mut output = vec![0.0f32; self.rows];
+    |                          ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:510:25
+    |
+510 |         let mut input = vec![0.0f32; padded_len];
+    |                         ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:513:26
+    |
+513 |         let mut output = vec![0i16; padded_len];
+    |                          ^^^
+
+error: cannot find macro `is_x86_feature_detected` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:516:12
+    |
+516 |         if is_x86_feature_detected!("avx2") {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:543:25
+    |
+543 |         let mut input = vec![0i16; padded_len];
+    |                         ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:546:26
+    |
+546 |         let mut output = vec![0.0f32; padded_len];
+    |                          ^^^
+
+error: cannot find macro `is_x86_feature_detected` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:549:12
+    |
+549 |         if is_x86_feature_detected!("avx2") {
+    |            ^^^^^^^^^^^^^^^^^^^^^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/hash/atomic.rs:477:61
+    |
+477 |         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+    |                                                             ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/hash/atomic.rs:449:61
+    |
+449 |         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+    |                                                             ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/mod.rs:189:25
+    |
+189 |         let v_weights = vec![2.0f32; 64];
+    |                         ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/mod.rs:188:25
+    |
+188 |         let k_weights = vec![1.0f32; 64];
+    |                         ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/mod.rs:187:25
+    |
+187 |         let q_weights = vec![1.0f32; 64];
+    |                         ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/mod.rs:174:21
+    |
+174 |         let input = vec![1.0f32; 8];
+    |                     ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/mod.rs:166:28
+    |
+166 |         let fp32_weights = vec![0.5f32; 64];
+    |                            ^^^
+
+error: cannot find macro `is_x86_feature_detected` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:894:13
+    |
+894 |         if !is_x86_feature_detected!("avx2") {
+    |             ^^^^^^^^^^^^^^^^^^^^^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:879:23
+    |
+879 |         let weights = vec![
+    |                       ^^^
+
+error: cannot find macro `is_x86_feature_detected` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:873:13
+    |
+873 |         if !is_x86_feature_detected!("avx2") {
+    |             ^^^^^^^^^^^^^^^^^^^^^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:856:23
+    |
+856 |         let weights = vec![
+    |                       ^^^
+
+error: cannot find macro `is_x86_feature_detected` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:850:13
+    |
+850 |         if !is_x86_feature_detected!("avx2") {
+    |             ^^^^^^^^^^^^^^^^^^^^^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:834:23
+    |
+834 |         let weights = vec![
+    |                       ^^^
+
+error: cannot find macro `is_x86_feature_detected` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:828:13
+    |
+828 |         if !is_x86_feature_detected!("avx2") {
+    |             ^^^^^^^^^^^^^^^^^^^^^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:801:23
+    |
+801 |         let weights = vec![
+    |                       ^^^
+
+error: cannot find macro `is_x86_feature_detected` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:795:13
+    |
+795 |         if !is_x86_feature_detected!("avx2") {
+    |             ^^^^^^^^^^^^^^^^^^^^^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/simd_matmul.rs:298:21
+    |
+298 |         let input = vec![1.0; 8];
+    |                     ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/simd_matmul.rs:290:27
+    |
+290 |         let mut weights = vec![0.0f32; 64];
+    |                           ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/simd_matmul.rs:279:21
+    |
+279 |         let input = vec![1.0; 8];
+    |                     ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/simd_matmul.rs:276:23
+    |
+276 |         let weights = vec![2.0f32; 64];
+    |                       ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/simd_matmul.rs:267:21
+    |
+267 |         let input = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
+    |                     ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/simd_matmul.rs:261:27
+    |
+261 |         let mut weights = vec![0.0f32; 64];
+    |                           ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/quantization.rs:420:23
+    |
+420 |         let weights = vec![-10.0, -5.0, 0.0, 5.0, 10.0, -2.0, 3.0, 7.0];
+    |                       ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/quantization.rs:401:23
+    |
+401 |         let weights = vec![
+    |                       ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/quantization.rs:388:23
+    |
+388 |         let weights = vec![0.0, 1.0, 2.0, 3.0, 4.0];
+    |                       ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/quantization.rs:372:23
+    |
+372 |         let weights = vec![-10.0, -5.0, 0.0, 5.0, 10.0];
+    |                       ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/flash_attention.rs:308:17
+    |
+308 |         let v = vec![2.0f32; 64];
+    |                 ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/flash_attention.rs:307:17
+    |
+307 |         let k = vec![1.0f32; 64];
+    |                 ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/flash_attention.rs:306:17
+    |
+306 |         let q = vec![1.0f32; 64];
+    |                 ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/flash_attention.rs:285:17
+    |
+285 |         let v = vec![f32x8::splat(2.0); 8];
+    |                 ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/flash_attention.rs:284:17
+    |
+284 |         let k = vec![f32x8::splat(1.0); 8];
+    |                 ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/primitives/inference/flash_attention.rs:283:17
+    |
+283 |         let q = vec![f32x8::splat(1.0); 8];
+    |                 ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/patterns/quota_tracker.rs:900:61
+    |
+900 |         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+    |                                                             ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/patterns/rate_limiter.rs:566:62
+    |
+566 |         let mut handles: Vec<std::thread::JoinHandle<u32>> = vec![];
+    |                                                              ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/patterns/dual_atomic.rs:616:61
+    |
+616 |         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+    |                                                             ^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/patterns/cache_aligned.rs:424:27
+    |
+424 |         let mut handles = vec![];
+    |                           ^^^
+
+error: cannot find macro `format` in this scope
+   --> src/patterns/cache_aligned.rs:364:25
+    |
+364 |         let debug_str = format!("{:?}", aligned);
+    |                         ^^^^^^
+
+error: cannot find macro `println` in this scope
+   --> src/hash/murmur3_simd.rs:458:21
+    |
+458 |                     println!("LSH collision at tables {}, {} (acceptable)", i, j);
+    |                     ^^^^^^^
+
+error: cannot find macro `println` in this scope
+   --> src/hash/atomic.rs:587:9
+    |
+587 |         println!("  Torn reads detected: {}", torn_count);
+    |         ^^^^^^^
+
+error: cannot find macro `println` in this scope
+   --> src/hash/atomic.rs:586:9
+    |
+586 |         println!("SeqLock Test Results:");
+    |         ^^^^^^^
+
+error: cannot find macro `vec` in this scope
+   --> src/hash/atomic.rs:528:61
+    |
+528 |         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+    |                                                             ^^^
+
+error: cannot find macro `eprintln` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:895:13
+    |
+895 |             eprintln!("Skipping AVX2 test: CPU does not support AVX2");
+    |             ^^^^^^^^
+
+error: cannot find macro `eprintln` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:874:13
+    |
+874 |             eprintln!("Skipping AVX2 test: CPU does not support AVX2");
+    |             ^^^^^^^^
+
+error: cannot find macro `eprintln` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:851:13
+    |
+851 |             eprintln!("Skipping AVX2 test: CPU does not support AVX2");
+    |             ^^^^^^^^
+
+error: cannot find macro `eprintln` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:829:13
+    |
+829 |             eprintln!("Skipping AVX2 test: CPU does not support AVX2");
+    |             ^^^^^^^^
+
+error: cannot find macro `eprintln` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:796:13
+    |
+796 |             eprintln!("Skipping AVX2 test: CPU does not support AVX2");
+    |             ^^^^^^^^
+
+error: cannot find macro `println` in this scope
+   --> src/patterns/rate_limiter.rs:645:9
+    |
+645 |         println!("consume_tokens: {:.0}ns/op (target: <120ns)", nanos_per_op);
+    |         ^^^^^^^
+
+error: cannot find macro `println` in this scope
+   --> src/patterns/rate_limiter.rs:624:9
+    |
+624 |         println!("check_rate_limit: {:.0}ns/op (target: <80ns)", nanos_per_op);
+    |         ^^^^^^^
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/patterns/dual_atomic.rs:616:26
+    |
+616 |         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+    |                          ^^^ not found in this scope
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/patterns/dual_atomic.rs:616:30
+    |
+616 |         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+    |                              ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+488 +     use loom::thread;
+    |
+help: if you import `thread`, refer to it directly
+    |
+616 -         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+616 +         let mut handles: Vec<thread::JoinHandle<()>> = vec![];
+    |
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/patterns/rate_limiter.rs:566:26
+    |
+566 |         let mut handles: Vec<std::thread::JoinHandle<u32>> = vec![];
+    |                          ^^^ not found in this scope
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/patterns/rate_limiter.rs:566:30
+    |
+566 |         let mut handles: Vec<std::thread::JoinHandle<u32>> = vec![];
+    |                              ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+468 +     use loom::thread;
+    |
+help: if you import `thread`, refer to it directly
+    |
+566 -         let mut handles: Vec<std::thread::JoinHandle<u32>> = vec![];
+566 +         let mut handles: Vec<thread::JoinHandle<u32>> = vec![];
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/patterns/rate_limiter.rs:617:21
+    |
+617 |         let start = std::time::Instant::now();
+    |                     ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+help: consider importing this struct
+    |
+468 +     use tokio::time::Instant;
+    |
+help: if you import `Instant`, refer to it directly
+    |
+617 -         let start = std::time::Instant::now();
+617 +         let start = Instant::now();
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/patterns/rate_limiter.rs:638:21
+    |
+638 |         let start = std::time::Instant::now();
+    |                     ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+help: consider importing this struct
+    |
+468 +     use tokio::time::Instant;
+    |
+help: if you import `Instant`, refer to it directly
+    |
+638 -         let start = std::time::Instant::now();
+638 +         let start = Instant::now();
+    |
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/patterns/quota_tracker.rs:900:26
+    |
+900 |         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+    |                          ^^^ not found in this scope
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/patterns/quota_tracker.rs:900:30
+    |
+900 |         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+    |                              ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+792 +     use loom::thread;
+    |
+help: if you import `thread`, refer to it directly
+    |
+900 -         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+900 +         let mut handles: Vec<thread::JoinHandle<()>> = vec![];
+    |
+
+error[E0412]: cannot find type `Vec` in this scope
+    --> src/patterns/quota_tracker.rs:1017:26
+     |
+1017 |         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+     |                          ^^^ not found in this scope
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+    --> src/patterns/quota_tracker.rs:1017:30
+     |
+1017 |         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+     |                              ^^^ use of unresolved module or unlinked crate `std`
+     |
+     = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+help: consider importing this module
+     |
+ 792 +     use loom::thread;
+     |
+help: if you import `thread`, refer to it directly
+     |
+1017 -         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+1017 +         let mut handles: Vec<thread::JoinHandle<()>> = vec![];
+     |
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/primitives/inference/flash_attention.rs:110:69
+    |
+110 |     pub fn forward(&self, q: &[f32x8], k: &[f32x8], v: &[f32x8]) -> Vec<f32> {
+    |                                                                     ^^^ not found in this scope
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/primitives/inference/flash_attention.rs:235:73
+    |
+235 |     pub fn forward_streaming(&self, q: &[f32], k: &[f32], v: &[f32]) -> Vec<f32> {
+    |                                                                         ^^^ not found in this scope
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/primitives/inference/flash_attention.rs:243:21
+    |
+243 |         let q_simd: Vec<f32x8> = (0..num_vecs)
+    |                     ^^^ not found in this scope
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/primitives/inference/flash_attention.rs:250:21
+    |
+250 |         let k_simd: Vec<f32x8> = (0..num_vecs)
+    |                     ^^^ not found in this scope
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/primitives/inference/flash_attention.rs:257:21
+    |
+257 |         let v_simd: Vec<f32x8> = (0..num_vecs)
+    |                     ^^^ not found in this scope
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/primitives/inference/quantization.rs:136:48
+    |
+136 |     pub fn quantize(&self, weights: &[f32]) -> Vec<i16> {
+    |                                                ^^^ not found in this scope
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/primitives/inference/quantization.rs:162:52
+    |
+162 |     pub fn dequantize(&self, weights_q: &[i16]) -> Vec<f32> {
+    |                                                    ^^^ not found in this scope
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/primitives/inference/quantization.rs:188:77
+    |
+188 |     pub fn quantize_per_channel(&self, weights: &[f32], channels: usize) -> Vec<i16> {
+    |                                                                             ^^^ not found in this scope
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/primitives/inference/quantization.rs:247:53
+    |
+247 |     pub fn quantize_simd(&self, weights: &[f32]) -> Vec<i16> {
+    |                                                     ^^^ not found in this scope
+
+error[E0433]: failed to resolve: use of undeclared type `Vec`
+   --> src/primitives/inference/quantization.rs:262:29
+    |
+262 |         let mut quantized = Vec::with_capacity(weights.len());
+    |                             ^^^ use of undeclared type `Vec`
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/primitives/inference/quantization.rs:307:57
+    |
+307 |     pub fn dequantize_simd(&self, weights_q: &[i16]) -> Vec<f32> {
+    |                                                         ^^^ not found in this scope
+
+error[E0433]: failed to resolve: use of undeclared type `Vec`
+   --> src/primitives/inference/quantization.rs:319:31
+    |
+319 |         let mut dequantized = Vec::with_capacity(weights_q.len());
+    |                               ^^^ use of undeclared type `Vec`
+
+error[E0412]: cannot find type `Vec` in this scope
+  --> src/primitives/inference/simd_matmul.rs:48:14
+   |
+48 |     weights: Vec<f32x8>,
+   |              ^^^ not found in this scope
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/primitives/inference/simd_matmul.rs:104:34
+    |
+104 |     pub fn from_weights(weights: Vec<f32>, rows: usize, cols: usize) -> Self {
+    |                                  ^^^ not found in this scope
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/primitives/inference/simd_matmul.rs:157:45
+    |
+157 |     pub fn forward(&self, input: &[f32]) -> Vec<f32> {
+    |                                             ^^^ not found in this scope
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/primitives/inference/simd_matmul.rs:189:50
+    |
+189 |     pub fn forward_relu(&self, input: &[f32]) -> Vec<f32> {
+    |                                                  ^^^ not found in this scope
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:507:53
+    |
+507 |     pub fn quantize_auto(&self, weights: &[f32]) -> Vec<i16> {
+    |                                                     ^^^ not found in this scope
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:540:57
+    |
+540 |     pub fn dequantize_auto(&self, weights_q: &[i16]) -> Vec<f32> {
+    |                                                         ^^^ not found in this scope
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/primitives/inference/quantization_avx2.rs:900:22
+    |
+900 |         let weights: Vec<f32> = (0..1024).map(|i| (i as f32 - 512.0) / 5.0).collect();
+    |                      ^^^ not found in this scope
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/composite/simd_fixed_point.rs:635:17
+    |
+635 |     ) -> Result<Vec<SimdFixedQ16x8>, OverflowError> {
+    |                 ^^^ not found in this scope
+
+error[E0433]: failed to resolve: use of undeclared type `Vec`
+   --> src/composite/simd_fixed_point.rs:636:27
+    |
+636 |         let mut outputs = Vec::with_capacity(batch.len());
+    |                           ^^^ use of undeclared type `Vec`
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/composite/simd_fixed_point.rs:933:20
+    |
+933 |         let batch: Vec<SimdFixedQ16x8> = (0..16)
+    |                    ^^^ not found in this scope
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/composite/full_compound.rs:984:22
+    |
+984 |         let handles: Vec<_> = (0..4)
+    |                      ^^^ not found in this scope
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/hash/atomic.rs:449:26
+    |
+449 |         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+    |                          ^^^ not found in this scope
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/hash/atomic.rs:449:30
+    |
+449 |         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+    |                              ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+353 +     use loom::thread;
+    |
+help: if you import `thread`, refer to it directly
+    |
+449 -         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+449 +         let mut handles: Vec<thread::JoinHandle<()>> = vec![];
+    |
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/hash/atomic.rs:477:26
+    |
+477 |         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+    |                          ^^^ not found in this scope
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/hash/atomic.rs:477:30
+    |
+477 |         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+    |                              ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+353 +     use loom::thread;
+    |
+help: if you import `thread`, refer to it directly
+    |
+477 -         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+477 +         let mut handles: Vec<thread::JoinHandle<()>> = vec![];
+    |
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/hash/atomic.rs:528:26
+    |
+528 |         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+    |                          ^^^ not found in this scope
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `std`
+   --> src/hash/atomic.rs:528:30
+    |
+528 |         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+    |                              ^^^ use of unresolved module or unlinked crate `std`
+    |
+    = help: if you wanted to use a crate named `std`, use `cargo add std` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+353 +     use loom::thread;
+    |
+help: if you import `thread`, refer to it directly
+    |
+528 -         let mut handles: Vec<std::thread::JoinHandle<()>> = vec![];
+528 +         let mut handles: Vec<thread::JoinHandle<()>> = vec![];
+    |
+
+error[E0412]: cannot find type `Vec` in this scope
+   --> src/hash/murmur3_simd.rs:450:25
+    |
+450 |         let bucket_ids: Vec<u64> = hashes.iter().take(5).map(|&h| h % 1024).collect();
+    |                         ^^^ not found in this scope
+
+warning: unused import: `super::*`
+   --> src/primitives/mod.rs:204:9
+    |
+204 |     use super::*;
+    |         ^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unexpected `cfg` condition value: `proptest-disabled`
+   --> src/hash/const_hash.rs:281:21
+    |
+281 |     #[cfg(all(test, feature = "proptest-disabled"))]
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `DISABLED_PENDING_TRAIT_UPDATE`, `adaptive-parallel`, `alloc`, `anomaly-detection`, `async-broadcast`, `async-channels`, `async-log`, `async-mpsc`, `async-oneshot`, `async-watch`, `atomic-core`, `audit-compression`, `audit-q34`, `audit-trail`, `auto_tune`, `avro`, `avx2-simd`, `batch-crypto`, `batch-native`, `batch-streaming`, `batch-wasm`, `bloom-filter`, `bloom-filter-all`, `bloom-filter-persistent`, `bloom-filter-simd`, `btree-batch`, `btree-cow`, `btree-cow-simd`, `btree-simd`, `bulk-collector`, `cache`, `cache-encryption`, `cache-hmac`, `cache-multi-tenant`, and `cache-security-full` and 226 more
+    = help: consider adding `proptest-disabled` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: requested on the command line with `-W unexpected-cfgs`
+
+warning: unexpected `cfg` condition value: `proptest-disabled`
+   --> src/hash/simd_hash.rs:319:21
+    |
+319 |     #[cfg(all(test, feature = "proptest-disabled"))]
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `DISABLED_PENDING_TRAIT_UPDATE`, `adaptive-parallel`, `alloc`, `anomaly-detection`, `async-broadcast`, `async-channels`, `async-log`, `async-mpsc`, `async-oneshot`, `async-watch`, `atomic-core`, `audit-compression`, `audit-q34`, `audit-trail`, `auto_tune`, `avro`, `avx2-simd`, `batch-crypto`, `batch-native`, `batch-streaming`, `batch-wasm`, `bloom-filter`, `bloom-filter-all`, `bloom-filter-persistent`, `bloom-filter-simd`, `btree-batch`, `btree-cow`, `btree-cow-simd`, `btree-simd`, `bulk-collector`, `cache`, `cache-encryption`, `cache-hmac`, `cache-multi-tenant`, and `cache-security-full` and 226 more
+    = help: consider adding `proptest-disabled` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: the `#![no_std]` attribute can only be used at the crate root
+  --> src/composite/mod.rs:63:35
+   |
+63 | #![cfg_attr(not(feature = "std"), no_std)]
+   |                                   ^^^^^^
+   |
+   = note: `#[warn(unused_attributes)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `to_string` found for enum `gpu::GpuError` in the current scope
+    --> src/traits/gpu.rs:403:21
+     |
+  67 | pub enum GpuError {
+     | ----------------- method `to_string` not found for this enum
+...
+ 403 |         assert!(err.to_string().contains("No GPU"));
+     |                     ^^^^^^^^^ method not found in `gpu::GpuError`
+     |
+    ::: /home/samuel/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `gpu::GpuError` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+ 398 +     use smallvec::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for enum `gpu::GpuError` in the current scope
+    --> src/traits/gpu.rs:409:21
+     |
+  67 | pub enum GpuError {
+     | ----------------- method `to_string` not found for this enum
+...
+ 409 |         assert!(err.to_string().contains("1024"));
+     |                     ^^^^^^^^^ method not found in `gpu::GpuError`
+     |
+    ::: /home/samuel/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `gpu::GpuError` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+ 398 +     use smallvec::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for enum `gpu::GpuError` in the current scope
+    --> src/traits/gpu.rs:410:21
+     |
+  67 | pub enum GpuError {
+     | ----------------- method `to_string` not found for this enum
+...
+ 410 |         assert!(err.to_string().contains("512"));
+     |                     ^^^^^^^^^ method not found in `gpu::GpuError`
+     |
+    ::: /home/samuel/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `gpu::GpuError` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+ 398 +     use smallvec::alloc::string::ToString;
+     |
+
+error[E0599]: no method named `to_string` found for enum `gpu::GpuError` in the current scope
+    --> src/traits/gpu.rs:413:21
+     |
+  67 | pub enum GpuError {
+     | ----------------- method `to_string` not found for this enum
+...
+ 413 |         assert!(err.to_string().contains("timeout"));
+     |                     ^^^^^^^^^ method not found in `gpu::GpuError`
+     |
+    ::: /home/samuel/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:2840:8
+     |
+2840 |     fn to_string(&self) -> String;
+     |        --------- the method is available for `gpu::GpuError` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+     |
+ 398 +     use smallvec::alloc::string::ToString;
+     |
+
+error[E0282]: type annotations needed
+   --> src/patterns/cache_aligned.rs:448:13
+    |
+448 |             handle.join().unwrap();
+    |             ^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> src/patterns/dual_atomic.rs:640:13
+    |
+640 |             handle.join().unwrap();
+    |             ^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> src/patterns/rate_limiter.rs:585:22
+    |
+585 |             total += handle.join().unwrap();
+    |                      ^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> src/patterns/quota_tracker.rs:915:13
+    |
+915 |             handle.join().unwrap();
+    |             ^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+    --> src/patterns/quota_tracker.rs:1032:13
+     |
+1032 |             handle.join().unwrap();
+     |             ^^^^^^ cannot infer type
+
+error[E0599]: no method named `reduce_sum` found for struct `Simd<T, N>` in the current scope
+   --> src/primitives/simd_f64.rs:274:17
+    |
+274 |         product.reduce_sum()
+    |                 ^^^^^^^^^^
+    |
+   ::: /home/samuel/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/../../portable-simd/crates/core_simd/src/simd/num/float.rs:169:8
+    |
+169 |     fn reduce_sum(self) -> Self::Scalar;
+    |        ---------- the method is available for `Simd<f64, 8>` here
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `SimdFloat` which provides `reduce_sum` is implemented but not in scope; perhaps you want to import it
+    |
+ 31 + use core::simd::num::SimdFloat;
+    |
+help: there is a method `reduce_max` with a similar name
+    |
+274 -         product.reduce_sum()
+274 +         product.reduce_max()
+    |
+
+error[E0599]: no method named `sqrt` found for struct `Simd<T, N>` in the current scope
+   --> src/primitives/simd_f64.rs:322:37
+    |
+322 |         let result_data = self.data.sqrt();
+    |                                     ^^^^ method not found in `Simd<f64, 8>`
+    |
+   ::: /home/samuel/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/../../portable-simd/crates/std_float/src/lib.rs:63:8
+    |
+ 63 |     fn sqrt(self) -> Self {
+    |        ---- the method is available for `Simd<f64, 8>` here
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `StdFloat` which provides `sqrt` is implemented but not in scope; perhaps you want to import it
+    |
+ 31 + use std::std_float::StdFloat;
+    |
+
+error[E0282]: type annotations needed
+   --> src/primitives/inference/quantization.rs:381:21
+    |
+381 |             assert!((orig - deq).abs() < 0.1, "orig: {}, deq: {}", orig, deq);
+    |                     ^^^^^^^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> src/primitives/inference/quantization.rs:394:21
+    |
+394 |             assert!((orig - deq).abs() < 0.15);
+    |                     ^^^^^^^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> src/primitives/inference/quantization.rs:427:24
+    |
+427 |             let diff = (simd - scalar).abs();
+    |                        ^^^^^^^^^^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> src/primitives/inference/simd_matmul.rs:284:21
+    |
+284 |             assert!((val - 16.0).abs() < 1e-5);
+    |                     ^^^^^^^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> src/primitives/inference/quantization_avx2.rs:813:24
+    |
+813 |             let diff = (avx2 - scalar).abs();
+    |                        ^^^^^^^^^^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> src/primitives/inference/quantization_avx2.rs:843:21
+    |
+843 |             assert!((orig - deq).abs() < 0.2, "orig: {}, deq: {}", orig, deq);
+    |                     ^^^^^^^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> src/primitives/inference/quantization_avx2.rs:887:21
+    |
+887 |             assert!((orig - deq).abs() < 0.2, "orig: {}, deq: {}", orig, deq);
+    |                     ^^^^^^^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> src/primitives/inference/quantization_avx2.rs:910:21
+    |
+910 |             assert!((orig - deq).abs() < 0.5, "orig: {}, deq: {}", orig, deq);
+    |                     ^^^^^^^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed for `&_`
+   --> src/primitives/inference/mod.rs:178:36
+    |
+178 |         assert!(output.iter().all(|&x| x.is_finite()));
+    |                                    ^^  - type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type, where the placeholders `_` are specified
+    |
+178 |         assert!(output.iter().all(|&x: &_| x.is_finite()));
+    |                                      ++++
+
+error[E0282]: type annotations needed for `&_`
+   --> src/primitives/inference/mod.rs:205:36
+    |
+205 |         assert!(output.iter().all(|&x| x.is_finite()));
+    |                                    ^^  - type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type, where the placeholders `_` are specified
+    |
+205 |         assert!(output.iter().all(|&x: &_| x.is_finite()));
+    |                                      ++++
+
+error[E0282]: type annotations needed
+   --> src/composite/full_compound.rs:998:13
+    |
+998 |             handle.join().unwrap();
+    |             ^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> src/hash/atomic.rs:464:13
+    |
+464 |             handle.join().unwrap();
+    |             ^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> src/hash/atomic.rs:494:13
+    |
+494 |             handle.join().unwrap();
+    |             ^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> src/hash/atomic.rs:581:21
+    |
+581 |             let _ = handle.join();
+    |                     ^^^^^^ cannot infer type
+
+warning: unnecessary `unsafe` block
+   --> src/retry.rs:329:29
+    |
+329 | ...                   unsafe { core::arch::x86_64::_mm_pause(); }
+    |                       ^^^^^^ unnecessary `unsafe` block
+    |
+    = note: `#[warn(unused_unsafe)]` (part of `#[warn(unused)]`) on by default
+
+warning: unnecessary `unsafe` block
+   --> src/retry.rs:350:29
+    |
+350 | ...                   unsafe { core::arch::x86_64::_mm_pause(); }
+    |                       ^^^^^^ unnecessary `unsafe` block
+
+Some errors have detailed explanations: E0282, E0412, E0432, E0433, E0599.
+For more information about an error, try `rustc --explain E0282`.
+warning: `atomic_capsule` (lib test) generated 6 warnings
+warning: atomic_capsule@0.8.0: Nightly enabled but const-hashing disabled - missing 100× hash speedup
+warning: atomic_capsule@0.8.0: SIMD enabled but simd-hashing disabled - missing 2-8× hash speedup
+error: could not compile `atomic_capsule` (lib test) due to 161 previous errors; 6 warnings emitted

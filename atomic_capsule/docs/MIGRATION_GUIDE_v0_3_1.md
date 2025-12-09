@@ -225,7 +225,7 @@ let decimal = q.serialize_decimal(); // "0.999985" ✅ (correct)
 | **B32 Benchmarking** | ✅ Honest | ✅ Honest | Maintained |
 | **ASSUM Safety** | ✅ 99.99% | ✅ 99.99% | Maintained |
 | **I20 Integration** | ✅ 20/20 | ✅ 20/20 | Maintained |
-| **COCA Architecture** | ✅ 100% lockfree | ✅ 100% lockfree | Maintained |
+| **Chaos Architecture** | ✅ 100% lockfree | ✅ 100% lockfree | Maintained |
 
 ---
 

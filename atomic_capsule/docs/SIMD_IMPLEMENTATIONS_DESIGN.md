@@ -614,6 +614,6 @@ if sanitize_xss_simd(user_input.as_bytes()) {
 
 **End of Design Document**
 
-*Framework Compliance*: UCE34 ✅ | COCA ✅ | ASSUM ✅ | B32 ✅ | T28 ✅ | I20 ✅
+*Framework Compliance*: UCE34 ✅ | Chaos ✅ | ASSUM ✅ | B32 ✅ | T28 ✅ | I20 ✅
 *Status*: 3/5 production-ready, 2/5 fully designed
 *Next Milestone*: Complete remaining 2 implementations (1-2 weeks)

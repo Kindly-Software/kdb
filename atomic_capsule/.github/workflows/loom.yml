@@ -1,0 +1,102 @@
+name: Loom Memory Model Verification
+
+on:
+  push:
+    branches: [ main, development ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  loom:
+    name: Loom Tests (3 Preemptions)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache target directory
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-target-loom-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run Loom tests (fast mode)
+        run: |
+          LOOM_MAX_PREEMPTIONS=3 \
+          LOOM_LOG=info \
+          RUSTFLAGS="--cfg loom" \
+          cargo test --test loom_tests
+        env:
+          RUST_BACKTRACE: 1
+
+      - name: Report test results
+        if: always()
+        run: |
+          echo "Loom memory model verification completed"
+          echo "Preemptions: 3 (fast mode)"
+          echo "Coverage: 11 tests across all collections"
+
+  loom-thorough:
+    name: Loom Tests (10 Preemptions - Nightly)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Only run on push to main (not PRs, to save CI time)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache target directory
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-target-loom-thorough-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run Loom tests (thorough mode)
+        run: |
+          LOOM_MAX_PREEMPTIONS=10 \
+          LOOM_LOG=info \
+          RUSTFLAGS="--cfg loom" \
+          cargo test --test loom_tests
+        env:
+          RUST_BACKTRACE: 1
+
+      - name: Report test results
+        if: always()
+        run: |
+          echo "Loom memory model verification completed (thorough)"
+          echo "Preemptions: 10 (nightly mode)"
+          echo "Coverage: 11 tests across all collections"

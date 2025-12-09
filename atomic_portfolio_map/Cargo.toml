@@ -1,0 +1,26 @@
+[package]
+name = "atomic_portfolio_map"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+atomic_position_capsule = { path = "../atomic_position_capsule" }
+atomic_cost_tracker = { path = "../atomic_cost_tracker" }
+atomic_venue_snapshot = { path = "../atomic_venue_snapshot" }
+atomic_breaker = { path = "../atomic_breaker" }
+portable-atomic = "1"
+atomic_event_lockout_map = { path = "../atomic_event_lockout_map" }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[features]
+default = []
+# Q32 Nightly Enhancement Features
+portable_simd = []
+const_fn_floating_point_arithmetic = []
+atomic_from_mut = []
+
+[[bench]]
+name = "risk_correlation_bench"
+harness = false

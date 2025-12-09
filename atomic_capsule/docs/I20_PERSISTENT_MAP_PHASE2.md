@@ -864,7 +864,7 @@ self.manager_generation.fetch_add(1, Ordering::Release);
 - ✅ Rollback plan: <5 minutes
 - ✅ Risk level: LOW (2/10)
 
-**6. COCA Compliance**:
+**6. Chaos Compliance**:
 - ✅ 100% lockfree (no mutex, no RwLock)
 - ✅ Cache alignment (256B headers)
 - ✅ Generation counters (TOCTOU prevention)
@@ -1087,7 +1087,7 @@ for (offset, header, data) in log.iter() {
 2. ✅ **Low Risk** (Score: 2/10)
 3. ✅ **Zero Breaking Changes** (100% backward compatible)
 4. ✅ **Comprehensive Testing** (48 tests, 100% pass)
-5. ✅ **Production Ready** (All frameworks satisfied: UCE34, T28, B32, ASSUM, COCA)
+5. ✅ **Production Ready** (All frameworks satisfied: UCE34, T28, B32, ASSUM, Chaos)
 6. ✅ **Fast Rollback** (<5 minutes, <1% likelihood)
 7. ✅ **Zero New Dependencies** (memmap2 already integrated)
 
@@ -1168,7 +1168,7 @@ cargo test --lib --features mmap-persistence -- persistence_tests
 
 ---
 
-## COCA Compliance
+## Chaos Compliance
 
 **Computational Capsule Patterns**:
 - ✅ **100% Lockfree**: No mutex, no RwLock (atomic coordination only)

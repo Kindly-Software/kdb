@@ -7,7 +7,7 @@
 //!
 //! **T1 Atomic** (lockfree hash table coordination)
 //! - Lockfree: Uses ConcurrentMapCapsule from atomic_capsule for 100% lockfree storage
-//! - Zero mutex/RwLock (COCA mandate)
+//! - Zero mutex/RwLock (Chaos mandate)
 //! - Coordination: AtomicU64 entries counter + generation counter for validation
 //!
 //! # Design Overview
@@ -113,11 +113,11 @@ pub type DiskBackedBucketIndexResult<T> = Result<T, DiskBackedBucketIndexError>;
 
 /// Disk-backed LSH bucket index capsule (T1 Atomic coordination)
 ///
-/// # COCA Architecture
+/// # Chaos Architecture
 ///
 /// **Cache alignment**: 64 bytes (HotTier) to prevent false sharing
 /// **Coordination**: ConcurrentMapCapsuleV2 (lockfree hash table) + AtomicU64 counters
-/// **No mutex/RwLock**: 100% atomic operations (COCA mandate)
+/// **No mutex/RwLock**: 100% atomic operations (Chaos mandate)
 ///
 /// # Verification (Q33)
 ///

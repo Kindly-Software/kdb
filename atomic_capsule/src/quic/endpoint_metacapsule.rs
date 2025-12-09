@@ -148,7 +148,7 @@
 //! - **Q12**: Ultrathink profiling-first (B32 flame graph → identify bottleneck tier)
 //! - **Q33**: 100% lockfree (NO mutex/RwLock, all Acquire/Release + CAS)
 //! - **Q34**: Hash-chain audit trails (Q34 compliance for SOX/SOC2/GDPR/HIPAA)
-//! - **COCA**: 512-byte cache-aligned, generation counters, atomic-only coordination
+//! - **Chaos**: 512-byte cache-aligned, generation counters, atomic-only coordination
 //! - **ASSUM**: All atomic operations tagged with #ASSUME/#VERIFY
 //! - **B32**: Fair baseline (sequential QUIC endpoint), validated compound speedup
 //! - **T28**: Comprehensive testing (unit/property/integration/production tiers)

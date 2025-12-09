@@ -1,0 +1,117 @@
+[package]
+name = "atomic_hedge_capsule"
+version = "0.1.0"
+edition = "2021"
+authors = ["Samuel & Claude"]
+description = "High-performance 2×128-bit atomic coordination primitive with 31% latency reduction and nightly feature optimizations"
+license = "PROPRIETARY"
+# repository = "TRADE SECRET - No public repository"
+keywords = ["atomic", "lockfree", "hedge", "trading", "coordination", "nanosecond", "optimization"]
+categories = ["concurrency", "data-structures", "finance"]
+readme = "README.md"
+homepage = "TRADE_SECRET_NOTICE.md"
+documentation = "README.md"
+
+[dependencies]
+# Atomic primitives
+portable-atomic = { version = "1.6", features = ["float", "std"] }
+crossbeam-utils = "0.8"
+# REMOVED: parking_lot = "0.12"  # LOCKFREE VIOLATION - replaced with std::sync::RwLock
+
+# Serialization
+serde = { workspace = true }
+serde_json = "1.0"
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = "1.0"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Async runtime (optional)
+tokio = { version = "1.42", features = ["full"], optional = true }
+
+[dev-dependencies]
+criterion = { workspace = true }
+pretty_assertions = "1.4"
+proptest = "1.4"
+quickcheck = "1.0"
+fastrand = "2.0"
+env_logger = "0.11"
+
+[features]
+default = ["std", "builder", "presets", "logging"]
+std = []
+
+# Core features
+builder = []
+presets = []
+logging = []  # Structured logging support
+diagnostics = []  # Production diagnostics and health monitoring
+metrics = []  # Performance metrics collection
+serde = []  # Serialization support for diagnostics
+
+# Async support (optional)
+async = ["tokio"]
+
+# Nightly Rust features for maximum performance (UCE32 Q32 Analysis)
+nightly = [
+    "portable_simd",
+    "const_fn_floating_point_arithmetic",
+    "atomic_from_mut",
+    "const_trait_impl",
+    "branch_prediction"
+]
+
+# Individual nightly features (for selective enabling)
+simd = ["portable_simd"]
+portable_simd = []  # Cross-platform SIMD acceleration
+const_fn_floating_point_arithmetic = []  # Compile-time math constants
+atomic_from_mut = []  # Zero-cost atomic creation
+const_trait_impl = []  # Const trait implementations
+
+# Performance optimization features
+cache_optimized = []  # 64-byte alignment and hot/cold separation
+memory_ordering_optimized = []  # SeqCst -> Acquire/Release optimization
+branch_prediction = []  # Likely/unlikely hints for hot paths
+
+
+[[bench]]
+name = "hedge_capsule"
+harness = false
+
+[[bench]]
+name = "cas_optimization_bench"
+harness = false
+
+[[bench]]
+name = "branch_prediction_bench"
+harness = false
+
+[[bench]]
+name = "nightly_features_bench"
+harness = false
+
+[[bench]]
+name = "memory_ordering_bench"
+harness = false
+
+[[bench]]
+name = "logging_performance"
+harness = false
+
+[[example]]
+name = "basic_usage"
+
+[[example]]
+name = "benchmark"
+
+[[example]]
+name = "structured_logging"
+
+[[example]]
+name = "simple_logging"
+
+[[example]]
+name = "observability_demo"

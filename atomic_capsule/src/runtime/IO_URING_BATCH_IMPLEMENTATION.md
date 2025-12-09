@@ -92,7 +92,7 @@ IoUringBatchCapsule: 256 bytes (cache-aligned, prevents false sharing)
 - **Q33**: Verification (#[derive(ComputationalCapsule)])
 - **Q34**: Auditability (metric tracking, performance assertions)
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 
 - **100% Lockfree**: Only atomic primitives, zero mutexes/RwLocks
 - **Cache-Aligned**: 256-byte alignment prevents false sharing
@@ -473,7 +473,7 @@ The `IoUringBatchCapsule` delivers production-ready batched I/O with:
 - 100% lockfree coordination
 - Adaptive performance tuning
 - Comprehensive test coverage (28+ tests, T28 framework)
-- Full framework compliance (UCE34, COCA, ASSUM, B32, I20)
+- Full framework compliance (UCE34, Chaos, ASSUM, B32, I20)
 
 Perfect for high-performance systems requiring:
 - Storage servers (e.g., object storage, databases)

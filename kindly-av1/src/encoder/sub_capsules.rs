@@ -1,7 +1,7 @@
 //! EncoderSubCapsules - T4 Batch tier handle for AV1 encoder sub-capsules
 //!
 //! UCE34 Compliance: Q10 T4 Batch tier (holds batch of capsules), Q33 lockfree
-//! COCA Compliance: Generation counter, cache-aligned, no mutex
+//! Chaos Compliance: Generation counter, cache-aligned, no mutex
 //!
 //! # Phase 2 Capsules
 //! Includes SIMD-accelerated capsules for advanced AV1 features:
@@ -36,9 +36,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 /// EncoderSubCapsules - Opaque handle holding references to all encoder sub-capsules
 ///
 /// # Architecture
-/// - 512B cache-aligned container (Phase 3: Rate Control integration)
+/// - 1024B cache-aligned container (Phase 3.1: Persistent Reference Pool)
 /// - Holds Box references to 21 atomic_capsule encoder capsules (20 from Phase 2 + rate_control)
-/// - Generation counter for COCA compliance (ABA prevention)
+/// - Persistent reference pool (8 slots) for P-frame stability
+/// - Generation counter for Chaos compliance (ABA prevention)
 /// - Zero mutex, 100% lockfree access patterns
 ///
 /// # Tier: T4 Batch
@@ -46,10 +47,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 /// - Enables atomic snapshot of full encoder state
 /// - Provides coordinated access to sub-capsules
 ///
-/// # Layout (Phase 3 - 512 bytes, includes Rate Control)
+/// # Layout (Phase 3.1 - 1024 bytes, includes Persistent Reference Pool)
 /// ```text
-/// EncoderSubCapsules (512 bytes, cache-aligned)
-/// ├─ generation: AtomicU64 (8B)             // COCA generation counter
+/// EncoderSubCapsules (1024 bytes, cache-aligned)
+/// ├─ generation: AtomicU64 (8B)             // Chaos generation counter
 /// ├─ Phase 1 Core (10 capsules × 8B = 80B)
 /// │  ├─ state: Box<EncoderStateCapsule>     // Encoder configuration + state
 /// │  ├─ frame_buffer: Box<FrameBufferCapsule> // Frame storage + YUV
@@ -77,12 +78,23 @@ use std::sync::atomic::{AtomicU64, Ordering};
 /// │  └─ rate_control: Box<RateControlCapsule> // Rate control (CRF/CBR/VBR, T3+T1)
 /// ├─ Reconstruction Buffer (24B: Vec ptr+cap+len)
 /// │  └─ reconstructed_buffer: Vec<u8>       // Decoded reconstruction for RDO/refs
-/// └─ _padding: [u8; 320]                    // Align to 512B
+/// ├─ Persistent Reference Pool (8 × 24B = 192B)  // NEW: P-frame fix
+/// │  ├─ reference_pool_0: Vec<u8>           // LAST slot
+/// │  ├─ reference_pool_1: Vec<u8>           // LAST2 slot
+/// │  ├─ reference_pool_2: Vec<u8>           // LAST3 slot
+/// │  ├─ reference_pool_3: Vec<u8>           // GOLDEN slot
+/// │  ├─ reference_pool_4: Vec<u8>           // BWDREF slot
+/// │  ├─ reference_pool_5: Vec<u8>           // ALTREF2 slot
+/// │  ├─ reference_pool_6: Vec<u8>           // ALTREF slot
+/// │  └─ reference_pool_7: Vec<u8>           // Reserved slot
+/// ├─ Previous Input Frame (24B)
+/// │  └─ previous_input_frame: Vec<u8>       // Scene change detection
+/// └─ _padding: [u8; 616]                    // Align to 1024B
 /// ```
 ///
 /// # Safety
 /// - Generation counter prevents ABA races
-/// - All sub-capsules are COCA-compliant (100% lockfree)
+/// - All sub-capsules are Chaos-compliant (100% lockfree)
 /// - Cache-aligned to prevent false sharing
 /// - Option<Box<T>> maintains constant size via niche optimization
 ///
@@ -103,10 +115,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 ///     // Use loop restoration filter
 /// }
 /// ```
-#[repr(C, align(512))]
+#[repr(C, align(1024))]
 pub struct EncoderSubCapsules {
-    // ============ COCA Coordination ============
-    /// Generation counter for COCA compliance (ABA prevention)
+    // ============ Chaos Coordination ============
+    /// Generation counter for Chaos compliance (ABA prevention)
     generation: AtomicU64,
 
     // ============ Phase 1 Core Capsules (10) ============
@@ -209,6 +221,38 @@ pub struct EncoderSubCapsules {
     /// Initialized to empty vector, allocated on first frame encode
     reconstructed_buffer: Vec<u8>,
 
+    // ============ Persistent Reference Pool (P-Frame Fix) ============
+    /// Persistent reference frame pool - 8 slots for AV1 reference frames
+    ///
+    /// **Problem Solved**: The `reconstructed_buffer` is a temporary Vec<u8> that gets
+    /// overwritten each frame. When we store a pointer to it in ReferenceFrameCapsuleV2,
+    /// that pointer becomes dangling when the next frame is encoded.
+    ///
+    /// **Solution**: Maintain 8 persistent buffers (one per AV1 reference slot).
+    /// After encoding, copy the reconstructed frame to the appropriate pool slot.
+    /// Reference frame pointers then point to persistent allocations.
+    ///
+    /// **AV1 Reference Slots**:
+    /// - 0: LAST (most recent P-frame)
+    /// - 1: LAST2 (2nd most recent)
+    /// - 2: LAST3 (3rd most recent)
+    /// - 3: GOLDEN (scene anchor, refreshed on keyframe/scene change)
+    /// - 4: BWDREF (bidirectional, future reference)
+    /// - 5: ALTREF2 (alternate reference 2)
+    /// - 6: ALTREF (temporal filtered, long-term)
+    /// - 7: Reserved/INTRA_FRAME
+    ///
+    /// **Memory**: ~25MB for 1080p (8 × 1920×1088×1.5 bytes), ~100MB for 4K
+    /// **Performance**: Single memcpy per frame (~1-2ms for 1080p)
+    reference_pool_0: Vec<u8>,
+    reference_pool_1: Vec<u8>,
+    reference_pool_2: Vec<u8>,
+    reference_pool_3: Vec<u8>,
+    reference_pool_4: Vec<u8>,
+    reference_pool_5: Vec<u8>,
+    reference_pool_6: Vec<u8>,
+    reference_pool_7: Vec<u8>,
+
     // ============ Previous Input Frame (for Scene Change Detection) ============
     /// Previous input frame buffer for scene change detection
     ///
@@ -224,12 +268,136 @@ pub struct EncoderSubCapsules {
     previous_input_frame: Vec<u8>,
 
     // ============ Padding ============
-    /// Padding to 512 bytes (cache line alignment)
-    /// 512 - 8 (generation) - 20*8 (Box/Option pointers) - 24*2 (2× Vec: ptr+cap+len) = 512 - 8 - 160 - 48 = 296 bytes
-    _padding: [u8; 296],
+    /// Padding to 1024 bytes (cache line alignment, expanded for reference pool)
+    /// 1024 - 8 (generation) - 20*8 (Box/Option pointers) - 24*10 (10× Vec: reconstructed + 8 pool + prev_input)
+    /// = 1024 - 8 - 160 - 240 = 616 bytes
+    _padding: [u8; 616],
 }
 
 impl EncoderSubCapsules {
+    /// Create new EncoderSubCapsules with specific encoding parameters (CRF, dimensions, speed)
+    ///
+    /// This is the PRODUCTION constructor that wires CLI CRF to rate control.
+    ///
+    /// # Arguments
+    /// - `width`: Frame width in pixels
+    /// - `height`: Frame height in pixels
+    /// - `crf`: Constant Rate Factor (0-63, lower = better quality)
+    /// - `speed`: Speed preset (0-9, lower = slower/higher quality)
+    ///
+    /// # Returns
+    /// Initialized EncoderSubCapsules with rate control configured for specified CRF
+    ///
+    /// # Examples
+    /// ```rust,no_run
+    /// use kindly_av1::encoder::EncoderSubCapsules;
+    /// let subs = EncoderSubCapsules::new_with_crf(1920, 1080, 28, 5);
+    /// ```
+    pub fn new_with_crf(width: u32, height: u32, crf: u8, speed: u8) -> Self {
+        use atomic_capsule::encoder::SpeedPreset;
+        use atomic_capsule::encoder::QualityMode;
+        use atomic_capsule::encoder::frame_buffer::FrameType;
+
+        // Map speed (0-9) to SpeedPreset enum
+        let speed_preset = match speed {
+            0..=2 => SpeedPreset::Slowest,
+            3..=4 => SpeedPreset::Slow,
+            5..=6 => SpeedPreset::Medium,
+            7..=8 => SpeedPreset::Fast,
+            _ => SpeedPreset::Fastest,
+        };
+
+        Self {
+            generation: AtomicU64::new(0),
+
+            // ============ Phase 1 Core Capsules ============
+            state: Box::new(EncoderStateCapsule::new(
+                width as u16,
+                height as u16,
+                speed_preset,
+                QualityMode::ConstantQuality,
+            )),
+            frame_buffer: Box::new(FrameBufferCapsule::new(width as u16, height as u16, FrameType::Key)),
+            // ❌ OLD: Hardcoded QP 28 → ✅ NEW: Use CRF from CLI
+            quantizer: Box::new(QuantizationCapsule::new(crf)),
+            dct: Box::new(DctTransformCapsule::new()),
+            entropy: Box::new(EntropyCoderCapsule::new()),
+            tile_coord: Box::new(TileCoordinatorCapsule::new(1, 1)),
+            bitstream: Box::new(ObuBitstreamCapsuleV2::new()),
+            ref_frames: Box::new(ReferenceFrameCapsuleV2::new()),
+            gop_coord: Box::new(GopCoordinatorCapsuleV2::new(64, 3)),
+            lookahead: Box::new(LookaheadCapsule::new(32)),
+
+            // ============ Phase 2 Non-SIMD Capsules ============
+            temporal_rdo: Box::new(TemporalRDOCapsule::new(crf)),
+
+            // ============ Phase 2 SIMD Capsules ============
+            #[cfg(feature = "portable_simd")]
+            lrf: Some(Box::new(LoopRestorationCapsuleV2::new(RestorationTypeV2::Wiener, 64))),
+            #[cfg(not(feature = "portable_simd"))]
+            lrf: 0,
+
+            #[cfg(feature = "portable_simd")]
+            film_grain: Some(Box::new(FilmGrainCapsule::new())),
+            #[cfg(not(feature = "portable_simd"))]
+            film_grain: 0,
+
+            #[cfg(feature = "portable_simd")]
+            superres: Some(Box::new(SuperresolutionCapsuleV2::new(8))),
+            #[cfg(not(feature = "portable_simd"))]
+            superres: 0,
+
+            #[cfg(feature = "portable_simd")]
+            intra_pred: Some(Box::new(IntraPredictionCapsuleV2::new())),
+            #[cfg(not(feature = "portable_simd"))]
+            intra_pred: 0,
+
+            #[cfg(feature = "portable_simd")]
+            inter_pred: Some(Box::new(InterPredictionCapsuleV2::new())),
+            #[cfg(not(feature = "portable_simd"))]
+            inter_pred: 0,
+
+            #[cfg(feature = "portable_simd")]
+            loop_filter: Some(Box::new(LoopFilterCapsule::new(16, 4))),
+            #[cfg(not(feature = "portable_simd"))]
+            loop_filter: 0,
+
+            #[cfg(feature = "portable_simd")]
+            cdef: Some(Box::new(CdefFilterCapsuleV2::new(8, 6, 4))),
+            #[cfg(not(feature = "portable_simd"))]
+            cdef: 0,
+
+            // ============ Wave 3A: GPU Motion Estimation ============
+            motion: Box::new(GpuMotionEstimationCapsule::new()),
+
+            // ============ Phase 3: Rate Control ============
+            // ❌ OLD: Hardcoded CRF 28 → ✅ NEW: Use CRF from CLI
+            rate_control: Box::new(RateControlCapsule::new(
+                RateControlMode::CappedCRF,
+                crf,  // Use provided CRF instead of hardcoded 28
+                10_000,  // Max bitrate: 10 Mbps (Capped CRF)
+            )),
+
+            // ============ Reconstruction Buffer ============
+            reconstructed_buffer: Vec::new(),
+
+            // ============ Persistent Reference Pool (P-Frame Fix) ============
+            reference_pool_0: Vec::new(),
+            reference_pool_1: Vec::new(),
+            reference_pool_2: Vec::new(),
+            reference_pool_3: Vec::new(),
+            reference_pool_4: Vec::new(),
+            reference_pool_5: Vec::new(),
+            reference_pool_6: Vec::new(),
+            reference_pool_7: Vec::new(),
+
+            // ============ Previous Input Frame ============
+            previous_input_frame: Vec::new(),
+
+            _padding: [0u8; 616],
+        }
+    }
+
     /// Create new EncoderSubCapsules with default initialized sub-capsules
     ///
     /// # Returns
@@ -331,14 +499,24 @@ impl EncoderSubCapsules {
             // ============ Reconstruction Buffer ============
             reconstructed_buffer: Vec::new(), // Allocated on first frame encode
 
+            // ============ Persistent Reference Pool (P-Frame Fix) ============
+            reference_pool_0: Vec::new(),
+            reference_pool_1: Vec::new(),
+            reference_pool_2: Vec::new(),
+            reference_pool_3: Vec::new(),
+            reference_pool_4: Vec::new(),
+            reference_pool_5: Vec::new(),
+            reference_pool_6: Vec::new(),
+            reference_pool_7: Vec::new(),
+
             // ============ Previous Input Frame ============
             previous_input_frame: Vec::new(), // Allocated on first frame encode
 
-            _padding: [0u8; 296],  // 512 - 8 - 160 - 48 = 296
+            _padding: [0u8; 616],  // 1024 - 8 - 160 - 240 = 616
         }
     }
 
-    /// Get current generation (for COCA compliance)
+    /// Get current generation (for Chaos compliance)
     #[inline]
     pub fn generation(&self) -> u64 {
         self.generation.load(Ordering::Acquire)
@@ -648,6 +826,143 @@ impl EncoderSubCapsules {
         self.reconstructed_buffer.as_ptr()
     }
 
+    // ============ Persistent Reference Pool Accessors (P-Frame Fix) ============
+
+    /// Copy reconstructed frame data to a persistent reference pool slot
+    ///
+    /// This method solves the P-frame dangling pointer problem by copying
+    /// the reconstructed frame to a persistent buffer before storing the
+    /// reference frame pointer.
+    ///
+    /// ## Arguments
+    /// - `slot`: Reference slot index (0-7, corresponding to AV1 reference types)
+    /// - `data`: Frame data to copy (typically from reconstructed_buffer)
+    ///
+    /// ## Performance
+    /// - ~1-2ms for 1080p (memcpy of ~3MB)
+    /// - ~4-8ms for 4K (memcpy of ~12MB)
+    ///
+    /// ## Panics
+    /// Panics if slot >= 8
+    #[inline]
+    pub fn copy_to_reference_pool(&mut self, slot: u8, data: &[u8]) {
+        let pool = match slot {
+            0 => &mut self.reference_pool_0,
+            1 => &mut self.reference_pool_1,
+            2 => &mut self.reference_pool_2,
+            3 => &mut self.reference_pool_3,
+            4 => &mut self.reference_pool_4,
+            5 => &mut self.reference_pool_5,
+            6 => &mut self.reference_pool_6,
+            7 => &mut self.reference_pool_7,
+            _ => panic!("Invalid reference pool slot: {}", slot),
+        };
+        pool.clear();
+        pool.extend_from_slice(data);
+    }
+
+    /// Get raw pointer to a reference pool slot
+    ///
+    /// Returns a pointer to the persistent buffer for the given slot.
+    /// This pointer remains valid until the next call to `copy_to_reference_pool`
+    /// for the same slot.
+    ///
+    /// ## Arguments
+    /// - `slot`: Reference slot index (0-7)
+    ///
+    /// ## Returns
+    /// Raw pointer to the pool slot data, or null if slot is empty or invalid
+    ///
+    /// ## Performance
+    /// <10ns (pointer load)
+    #[inline]
+    pub fn get_reference_pool_ptr(&self, slot: u8) -> *const u8 {
+        let pool = match slot {
+            0 => &self.reference_pool_0,
+            1 => &self.reference_pool_1,
+            2 => &self.reference_pool_2,
+            3 => &self.reference_pool_3,
+            4 => &self.reference_pool_4,
+            5 => &self.reference_pool_5,
+            6 => &self.reference_pool_6,
+            7 => &self.reference_pool_7,
+            _ => return core::ptr::null(),
+        };
+        if pool.is_empty() {
+            core::ptr::null()
+        } else {
+            pool.as_ptr()
+        }
+    }
+
+    /// Check if a reference pool slot has data
+    ///
+    /// ## Arguments
+    /// - `slot`: Reference slot index (0-7)
+    ///
+    /// ## Returns
+    /// true if the slot contains data, false otherwise
+    #[inline]
+    pub fn is_reference_pool_slot_valid(&self, slot: u8) -> bool {
+        match slot {
+            0 => !self.reference_pool_0.is_empty(),
+            1 => !self.reference_pool_1.is_empty(),
+            2 => !self.reference_pool_2.is_empty(),
+            3 => !self.reference_pool_3.is_empty(),
+            4 => !self.reference_pool_4.is_empty(),
+            5 => !self.reference_pool_5.is_empty(),
+            6 => !self.reference_pool_6.is_empty(),
+            7 => !self.reference_pool_7.is_empty(),
+            _ => false,
+        }
+    }
+
+    /// Clear a reference pool slot (invalidate reference)
+    ///
+    /// ## Arguments
+    /// - `slot`: Reference slot index (0-7)
+    #[inline]
+    pub fn clear_reference_pool_slot(&mut self, slot: u8) {
+        match slot {
+            0 => self.reference_pool_0.clear(),
+            1 => self.reference_pool_1.clear(),
+            2 => self.reference_pool_2.clear(),
+            3 => self.reference_pool_3.clear(),
+            4 => self.reference_pool_4.clear(),
+            5 => self.reference_pool_5.clear(),
+            6 => self.reference_pool_6.clear(),
+            7 => self.reference_pool_7.clear(),
+            _ => {}
+        }
+    }
+
+    /// Get a clone of the reference pool slot data
+    ///
+    /// Used for cascade shift operations where we need to copy data between slots.
+    ///
+    /// ## Arguments
+    /// - `slot`: Reference slot index (0-7)
+    ///
+    /// ## Returns
+    /// Clone of the pool data, or empty vec if slot is invalid/empty
+    ///
+    /// ## Performance
+    /// ~1-2ms for 1080p (Vec clone of ~3MB)
+    #[inline]
+    pub fn get_reference_pool_data(&self, slot: u8) -> Vec<u8> {
+        match slot {
+            0 => self.reference_pool_0.clone(),
+            1 => self.reference_pool_1.clone(),
+            2 => self.reference_pool_2.clone(),
+            3 => self.reference_pool_3.clone(),
+            4 => self.reference_pool_4.clone(),
+            5 => self.reference_pool_5.clone(),
+            6 => self.reference_pool_6.clone(),
+            7 => self.reference_pool_7.clone(),
+            _ => Vec::new(),
+        }
+    }
+
     // ============ Previous Input Frame Accessors (for Scene Change Detection) ============
 
     /// Get immutable reference to previous input frame buffer
@@ -667,15 +982,15 @@ impl EncoderSubCapsules {
     }
 }
 
-// Verify size at compile-time (Phase 2: expanded to 512B for SIMD capsules)
+// Verify size at compile-time (Phase 3.1: expanded to 1024B for Persistent Reference Pool)
 const _: () = {
     assert!(
-        core::mem::size_of::<EncoderSubCapsules>() == 512,
-        "EncoderSubCapsules must be exactly 512 bytes"
+        core::mem::size_of::<EncoderSubCapsules>() == 1024,
+        "EncoderSubCapsules must be exactly 1024 bytes"
     );
     assert!(
-        core::mem::align_of::<EncoderSubCapsules>() == 512,
-        "EncoderSubCapsules must be 512-byte aligned"
+        core::mem::align_of::<EncoderSubCapsules>() == 1024,
+        "EncoderSubCapsules must be 1024-byte aligned"
     );
 };
 
@@ -687,13 +1002,13 @@ mod tests {
     fn test_size_and_alignment() {
         assert_eq!(
             core::mem::size_of::<EncoderSubCapsules>(),
-            512,
-            "EncoderSubCapsules must be 512 bytes (Phase 2 expanded)"
+            1024,
+            "EncoderSubCapsules must be 1024 bytes (Phase 3.1 - Persistent Reference Pool)"
         );
         assert_eq!(
             core::mem::align_of::<EncoderSubCapsules>(),
-            512,
-            "EncoderSubCapsules must be 512-byte aligned"
+            1024,
+            "EncoderSubCapsules must be 1024-byte aligned"
         );
     }
 

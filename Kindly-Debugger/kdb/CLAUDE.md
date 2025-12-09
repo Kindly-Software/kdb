@@ -332,7 +332,7 @@
 </innovation>
 
 <innovation id="4" name="100% Lockfree Coordination">
-  <description>Zero mutex/RwLock, atomic operations only (COCA architecture)</description>
+  <description>Zero mutex/RwLock, atomic operations only (Chaos architecture)</description>
   <benefit>625× faster breakpoint coordination (80ns vs GDB 50ms)</benefit>
   <implementation>DualAtomicU64, SeqLock pattern, cache-line alignment</implementation>
 </innovation>
@@ -593,10 +593,15 @@ Claude Code → User:
      TRADE SECRET PROTECTION
      ============================================================================ -->
 <trade-secret>
-  <status>PROTECTED</status>
+  <status>PROTECTED - COMMERCIAL PRODUCT - NOT OPEN SOURCE</status>
   <commit-tag>[TRADE SECRET] kdb</commit-tag>
-  <allowed>MCP server deployment, licensed customers, AI workflow integration</allowed>
-  <forbidden>Public GitHub, crates.io, open-source release</forbidden>
+  <allowed>MCP server deployment, licensed customers (Hobby/Pro/Enterprise), AI workflow integration</allowed>
+  <forbidden>Public GitHub, crates.io, open-source release, unauthorized distribution</forbidden>
+  <licensing>
+    <signup>https://api.kindly.software/api/v1/signup</signup>
+    <tiers>Hobby (Free, 5 sessions/month), Pro (Coming Soon), Enterprise (Unlimited)</tiers>
+    <promo>7-day launch period: unlimited sessions for Hobby tier</promo>
+  </licensing>
 </trade-secret>
 
 <!-- ============================================================================
@@ -604,17 +609,19 @@ Claude Code → User:
      ============================================================================ -->
 <signature>
   <project>KDB - The Kindly Debugger</project>
-  <version>0.2.0</version>
-  <status>Production Ready (95/100)</status>
+  <version>0.2.1</version>
+  <status>Production Ready (95/100) - COMMERCIAL PRODUCT</status>
   <size>57,587 LOC | 73 files | 37 capsules</size>
   <architecture>T6 Mixed (7 tiers, 1.09 MB)</architecture>
-  <deployment>MCP server-side (Linux x86_64 only)</deployment>
+  <delivery>MCP (Model Context Protocol) - Platform agnostic user access</delivery>
+  <backend>Linux x86_64 server-side ptrace operations</backend>
   <breakthrough>FIRST DEBUGGER with T0 Auditable compliance (Q34 hash-chain audit trail)</breakthrough>
   <innovation>First debugger in AI workflows via MCP protocol</innovation>
   <performance>10-30× faster than GDB (B32 validated)</performance>
   <testing>184 tests, 100% pass</testing>
   <safety>99.99% ASSUM verified</safety>
   <compliance>SOX/SOC2/GDPR/HIPAA ready (tamper-evident audit trail)</compliance>
-  <date>2025-12-06</date>
+  <commercial>NOT OPEN SOURCE - Tiered licensing (Hobby/Pro/Enterprise)</commercial>
+  <date>2025-12-07</date>
 </signature>
 </kdb-config>

@@ -12,6 +12,8 @@ pub mod docs;
 pub mod privacy;
 pub mod terms;
 pub mod license;
+pub mod verified;
+pub mod signup;
 
 pub use hero::Hero;
 pub use navbar::Navbar;
@@ -23,3 +25,5 @@ pub use docs::Docs;
 pub use privacy::PrivacyPage;
 pub use terms::TermsPage;
 pub use license::LicensePage;
+pub use verified::Verified;
+pub use signup::Signup;

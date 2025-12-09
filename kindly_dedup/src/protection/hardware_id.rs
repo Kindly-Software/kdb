@@ -20,6 +20,8 @@
 //! - #ASSUME: /proc/meminfo exists on Linux
 //! - #VERIFY: Fallback to zero bytes if file read fails
 
+#![allow(dead_code)]
+
 use sha2::{Digest, Sha256};
 use std::fs;
 

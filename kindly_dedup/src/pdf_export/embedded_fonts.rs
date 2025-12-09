@@ -16,7 +16,7 @@
 //! - Font loading: <1ms (no file I/O, just enum construction)
 //! - Binary size: +0 bytes (no embedded font data)
 //!
-//! # COCA Compliance
+//! # Chaos Compliance
 //! - No coordination needed (static data)
 //! - No atomics (pure functions)
 //! - No unsafe code

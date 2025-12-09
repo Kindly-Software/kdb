@@ -1,0 +1,26 @@
+# Prometheus configuration for clapi_core (P3-E6)
+# Scrapes metrics from clapi HTTP server
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'clapi-local'
+    replica: '1'
+
+# Scrape configurations
+scrape_configs:
+  # clapi_core HTTP server
+  - job_name: 'clapi'
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['clapi:8080']
+        labels:
+          service: 'clapi_core'
+          environment: 'dev'
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

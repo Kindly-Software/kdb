@@ -8,7 +8,7 @@
 //! ## Framework Compliance
 //! - **UCE34**: Q10 T1 Atomic tier selection
 //! - **ASSUM**: 99.99% safe (zero unsafe code)
-//! - **COCA**: 100% lockfree (atomic coordination)
+//! - **Chaos**: 100% lockfree (atomic coordination)
 
 #[cfg(feature = "meta-capsule")]
 pub mod licensed_api;

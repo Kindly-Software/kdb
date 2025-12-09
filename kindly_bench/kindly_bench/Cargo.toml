@@ -1,0 +1,54 @@
+[package]
+name = "kindly_bench"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+kindly_bench_macros = { path = "../kindly_bench_macros" }
+chrono = "0.4"
+uuid = { version = "1.0", features = ["v4"] }
+
+[dev-dependencies]
+# For testing and examples
+# NOTE: simd-hashing is required for full SIMD optimization (murmur3_hash_simd_x8)
+# Without it, SIMD is only used for min operations, which can regress performance
+atomic_capsule = { path = "../../atomic_capsule", features = ["capsule-serialize", "std", "probabilistic", "portable_simd", "simd-hashing"] }
+
+[features]
+default = ["std"]
+std = []
+nightly = ["tsc-timing"]
+tsc-timing = []  # TSC timing (requires nightly for asm!)
+portable_simd = []  # SIMD acceleration (requires nightly + atomic_capsule/portable_simd)
+
+[lib]
+name = "kindly_bench"
+path = "src/lib.rs"
+
+[[example]]
+name = "t1_circuit_breaker"
+path = "examples/t1_circuit_breaker.rs"
+required-features = ["std"]
+
+[[example]]
+name = "t2_hebbian_learning"
+path = "examples/t2_hebbian_learning.rs"
+required-features = ["std", "nightly"]
+
+[[example]]
+name = "t3_pnl_calculation"
+path = "examples/t3_pnl_calculation.rs"
+required-features = ["std"]
+
+[[example]]
+name = "t3_q16_16_validation"
+path = "examples/t3_q16_16_validation.rs"
+required-features = ["std"]
+
+[[example]]
+name = "t2_simd_validation"
+path = "examples/t2_simd_validation.rs"
+required-features = ["std"]

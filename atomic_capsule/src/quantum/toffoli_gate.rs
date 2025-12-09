@@ -67,7 +67,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 T2 SIMD tier (AVX2 vectorization for 8 basis states)
-//! - **COCA**: 100% computational capsule (lockfree atomic coordination)
+//! - **Chaos**: 100% computational capsule (lockfree atomic coordination)
 //! - **T28**: 28 comprehensive tests (unit/property/integration/production)
 //! - **B32**: Fair benchmarking vs scalar baseline (2× target)
 //! - **ASSUM**: 99.99%+ safety (all assumptions verified)
@@ -138,6 +138,7 @@ use local_error::{QuantumError, QuantumResult};
 /// - AVX2 SIMD for vectorized conditional operations
 #[repr(C, align(256))]
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
+#[cfg_attr(feature = "derive", capsule(alignment = 256))]
 pub struct ToffoliGateCapsule {
     /// Control qubit 1 index (must be distinct from control2 and target)
     control1: AtomicU64,

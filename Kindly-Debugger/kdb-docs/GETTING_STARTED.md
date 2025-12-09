@@ -1,22 +1,41 @@
-# Getting Started with kindly-debugger
+# Getting Started with Kindly Debugger
 
-This guide will walk you through setting up kindly-debugger and running your first debugging session.
+This guide will walk you through setting up Kindly Debugger and running your first debugging session.
 
 ## Prerequisites
 
-- An MCP-compatible client (Claude Code recommended)
-- A process to debug (Linux x86_64)
-- An API key from [kindly.services](https://kindly.services)
+- An MCP-compatible client (Claude Code, Cursor, or any MCP client)
+- Your operating system: macOS, Windows, or Linux (any platform works!)
+- A process to debug on a Linux server (the debugger handles this server-side)
 
-## Step 1: Get Your API Key
+## Step 1: Sign Up and Get Your License Key
 
-1. Visit [kindly.services](https://kindly.services)
-2. Create an account or sign in
-3. Navigate to **Dashboard** > **API Keys**
-4. Click **Generate New Key**
-5. Copy your API key (it will only be shown once)
+### Option A: Quick Signup via API
 
-Keep your API key secure and never commit it to version control.
+```bash
+curl -X POST https://api.kindly.software/api/v1/signup \
+  -H "Content-Type: application/json" \
+  -d '{"email": "you@example.com"}'
+```
+
+You'll receive an Ed25519-signed license key for the **Hobby tier** (free, 5 sessions/month).
+
+**Launch Promo**: During the first 7 days after signup, you get **unlimited sessions**!
+
+### Option B: Website Signup
+
+1. Visit [kindly.software](https://kindly.software)
+2. Click **Get Started** or **Sign Up**
+3. Enter your email to receive your license key
+
+### License Key Format
+
+Your license key will look like:
+```
+HOB-2025-12-14-a1b2c3d4...
+```
+
+Keep your license key secure and never commit it to version control.
 
 ## Step 2: Configure Claude Code
 
@@ -35,7 +54,7 @@ Edit the configuration file and add the kindly-debugger entry:
 {
   "kindly-debugger": {
     "type": "remote",
-    "url": "https://api.kindly.services/mcp",
+    "url": "https://api.kindly.software/mcp",
     "headers": {
       "Authorization": "Bearer YOUR_API_KEY_HERE"
     }
@@ -171,14 +190,14 @@ For different environments (dev/staging/prod), use separate API keys:
 {
   "kindly-debugger-dev": {
     "type": "remote",
-    "url": "https://api.kindly.services/mcp",
+    "url": "https://api.kindly.software/mcp",
     "headers": {
       "Authorization": "Bearer DEV_API_KEY"
     }
   },
   "kindly-debugger-prod": {
     "type": "remote",
-    "url": "https://api.kindly.services/mcp",
+    "url": "https://api.kindly.software/mcp",
     "headers": {
       "Authorization": "Bearer PROD_API_KEY"
     }
@@ -190,26 +209,29 @@ For different environments (dev/staging/prod), use separate API keys:
 
 ### "Connection refused" Error
 
-- Verify your API key is correct
+- Verify your license key is correct
 - Check your internet connection
-- Ensure the service URL is correct
+- Ensure the service URL is `https://api.kindly.software/mcp`
 
 ### "Permission denied" when attaching
 
-- On Linux, you may need `CAP_SYS_PTRACE` capability
-- Or run with elevated privileges for system processes
+This happens server-side (you don't need to do anything locally):
+- The debugger server needs `CAP_SYS_PTRACE` for the target process
+- This is handled by our hosted infrastructure
 
 ### "Quota exceeded" Error
 
-- Check your current usage with `quota_status`
-- Upgrade your plan at [kindly.services](https://kindly.services)
-- Wait for quota reset (monthly)
+- Check your current usage with `quota_status` tool
+- **Hobby tier**: 5 sessions/month (unlimited during 7-day promo)
+- Upgrade to Pro or Enterprise at [kindly.software](https://kindly.software)
+- Wait for monthly reset
 
 ### Tools not appearing in Claude Code
 
 - Restart Claude Code after configuration changes
-- Verify JSON syntax in configuration file
-- Check that the API key has correct permissions
+- Verify JSON syntax in configuration file (use a JSON validator)
+- Check that your license key is valid and not expired
+- Try `curl https://api.kindly.software/health` to verify connectivity
 
 ## Next Steps
 

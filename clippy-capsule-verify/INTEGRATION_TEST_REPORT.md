@@ -108,7 +108,7 @@ done
 ## Framework Compliance
 
 - **UCE34**: Q10-Q12 capsule verification via integration tests
-- **COCA**: 100% lockfree, atomic-based test examples
+- **Chaos**: 100% lockfree, atomic-based test examples
 - **T28**: 4-tier testing (unit/property in test files, integration via runner, production validation via build)
 - **ASSUM**: All test assumptions documented in comments
 

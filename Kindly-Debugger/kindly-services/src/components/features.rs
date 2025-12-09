@@ -101,7 +101,7 @@ pub fn Features() -> impl IntoView {
         Feature {
             icon: "🤖",
             title: "MCP-Native",
-            description: "Built for Claude Code and AI assistants from day one. Your AI pair programmer can debug alongside you, no shell parsing needed.",
+            description: "Platform-agnostic via MCP protocol. Works on macOS, Windows, and Linux through Claude Code, Cursor, or any MCP-compatible AI assistant.",
         },
         Feature {
             icon: "⚡",

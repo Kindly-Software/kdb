@@ -1,19 +1,29 @@
 # Authentication
 
-Guide to API key authentication and security for kindly-debugger.
+Guide to license key authentication and security for Kindly Debugger.
 
-## API Key Authentication
+## License Key Authentication
 
-kindly-debugger uses API key authentication. All requests must include a valid API key.
+Kindly Debugger uses Ed25519-signed license keys for authentication. All requests must include a valid license key.
 
-### Obtaining an API Key
+### Obtaining a License Key
 
-1. Visit [kindly.services](https://kindly.services)
-2. Create an account or sign in
-3. Navigate to **Dashboard** > **API Keys**
-4. Click **Generate New Key**
-5. Optionally, add a description and set permissions
-6. Copy the key immediately (it will only be shown once)
+#### Quick Signup (Recommended)
+
+```bash
+curl -X POST https://api.kindly.software/api/v1/signup \
+  -H "Content-Type: application/json" \
+  -d '{"email": "you@example.com"}'
+```
+
+This returns a Hobby tier license key (free, 5 sessions/month, unlimited during 7-day promo).
+
+#### Website Signup
+
+1. Visit [kindly.software](https://kindly.software)
+2. Click **Get Started** or **Sign Up**
+3. Enter your email
+4. Receive your license key via email
 
 ### Using Your API Key
 
@@ -31,7 +41,7 @@ In Claude Code's `mcp_servers.json`:
 {
   "kindly-debugger": {
     "type": "remote",
-    "url": "https://api.kindly.services/mcp",
+    "url": "https://api.kindly.software/mcp",
     "headers": {
       "Authorization": "Bearer kdb_live_a1b2c3d4e5f6g7h8i9j0"
     }
@@ -46,18 +56,22 @@ In Claude Code's `mcp_servers.json`:
 | `kdb_live_` | Production | Live debugging sessions |
 | `kdb_test_` | Testing | Testing and development |
 
-## Rate Limits
+## Session Limits
 
-Rate limits vary by plan tier:
+Session limits vary by tier:
 
-| Tier | Requests/Month | Burst Rate |
-|------|---------------|------------|
-| Free | 100 | 10/minute |
-| Developer | 10,000 | 60/minute |
-| Team | 100,000 | 300/minute |
-| Enterprise | Custom | Custom |
+| Tier | Sessions/Month | Burst Rate | Price |
+|------|----------------|------------|-------|
+| **Hobby** | 5* | 60 RPM | Free |
+| **Pro** | Extended | 1000 RPM | Coming Soon |
+| **Enterprise** | Unlimited | Custom | Contact Sales |
 
-For current pricing and limits, visit [kindly.services](https://kindly.services).
+*During the 7-day launch promotional period, Hobby tier gets **unlimited sessions**.
+
+For current pricing and signup, visit [kindly.software](https://kindly.software) or use:
+```bash
+curl -X POST https://api.kindly.software/api/v1/signup -H "Content-Type: application/json" -d '{"email": "you@example.com"}'
+```
 
 ### Rate Limit Headers
 

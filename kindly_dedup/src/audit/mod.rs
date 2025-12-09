@@ -25,7 +25,7 @@
 //! - **B32**: Fair baselines, <50ns per operation, 1000+ iterations
 //! - **T28**: Comprehensive testing (unit/property/integration/production)
 //! - **I20**: 20/20 integration validated
-//! - **COCA**: 100% lockfree (no mutex/RwLock, atomic-only coordination)
+//! - **Chaos**: 100% lockfree (no mutex/RwLock, atomic-only coordination)
 //!
 //! ## Performance Targets
 //!

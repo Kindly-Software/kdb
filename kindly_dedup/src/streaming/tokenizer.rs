@@ -29,7 +29,7 @@
 //! **Q1-Q9**: Problem analysis
 //! - Bottleneck: 70% tokenization duplication across 16 threads
 //! - Success criteria: Tokenize once, share via Arc<str>, measure P improvement
-//! - Constraints: COCA 100% lockfree, T5 O(1) memory streaming, zero-copy
+//! - Constraints: Chaos 100% lockfree, T5 O(1) memory streaming, zero-copy
 //!
 //! **Q10-Q12**: Tier selection
 //! - Q10: **T5 Streaming** (zero-copy incremental processing, O(1) memory)
@@ -44,7 +44,7 @@
 //! **Q29-Q34**: Validation
 //! - B32: Measure tokenization duplication ratio (16× → 1×)
 //! - T28: 45 tests (unit/property/integration/production)
-//! - COCA: 100% lockfree RingBufferCapsule
+//! - Chaos: 100% lockfree RingBufferCapsule
 //! - ASSUM: 99.5%+ safe (zero unsafe in hot paths)
 //!
 //! # Performance
@@ -99,7 +99,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q1-Q34 complete (T5 Streaming tier selection, zero-copy Arc<str>)
-//! - **COCA**: 100% lockfree (RingBufferCapsule SPSC queue, no mutex)
+//! - **Chaos**: 100% lockfree (RingBufferCapsule SPSC queue, no mutex)
 //! - **ASSUM**: 99.5%+ safe (Arc<str> safe, zero unsafe in hot paths)
 //! - **B32**: Fair benchmarking (tokenization duplication ratio: 16× → 1×)
 //! - **T28**: 45 tests (unit/property/integration/production tiers)

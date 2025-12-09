@@ -237,7 +237,7 @@ sudo ./target/debug/examples/ptrace_wrapper_demo <pid>
 - ✅ **Q33**: Verification via #[derive(ComputationalCapsule)]
 - ✅ **Q34**: Auditability (generation counter, operation count, timestamps)
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 
 - ✅ **100% Lockfree**: Zero mutex/RwLock (all coordination via atomics)
 - ✅ **Cache-Aligned**: 256-byte alignment (warm-tier, prevents false sharing)

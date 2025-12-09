@@ -1,0 +1,153 @@
+warning: user-defined alias `bench` is ignored, because it is shadowed by a built-in command
+warning: `panic` setting is ignored for `bench` profile
+warning: `panic` setting is ignored for `test` profile
+warning: `panic` setting is ignored for `bench` profile
+   Compiling atomic_capsule v0.6.1 (/home/samuel/Primitives/atomic_capsule)
+warning: unexpected `cfg` condition value: `std`
+  --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:34:7
+   |
+34 | #[cfg(feature = "std")]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+   = help: consider adding `std` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unexpected `cfg` condition value: `std`
+  --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:84:7
+   |
+84 | #[cfg(feature = "std")]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+   = help: consider adding `std` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:418:7
+    |
+418 | #[cfg(feature = "std")]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:424:7
+    |
+424 | #[cfg(feature = "std")]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:639:7
+    |
+639 | #[cfg(feature = "std")]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:386:11
+    |
+386 |     #[cfg(feature = "std")]
+    |           ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:394:15
+    |
+394 |     #[cfg(not(feature = "std"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: enum `AuditError` is never used
+  --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:39:10
+   |
+39 | pub enum AuditError {
+   |          ^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: enum `MigrationStatus` is never used
+  --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:96:10
+   |
+96 | pub enum MigrationStatus {
+   |          ^^^^^^^^^^^^^^^
+
+warning: associated function `from_u8` is never used
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:109:12
+    |
+107 | impl MigrationStatus {
+    | -------------------- associated function in this implementation
+108 |     /// Parse u8 into MigrationStatus
+109 |     pub fn from_u8(value: u8) -> Option<Self> {
+    |            ^^^^^^^
+
+warning: multiple associated items are never used
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:202:12
+    |
+178 | impl MigrationLogEntry {
+    | ---------------------- associated items in this implementation
+...
+202 |     pub fn record(
+    |            ^^^^^^
+...
+261 |     pub fn fast_hash(&self) -> u64 {
+    |            ^^^^^^^^^
+...
+266 |     pub fn prev_fast_hash(&self) -> u64 {
+    |            ^^^^^^^^^^^^^^
+...
+271 |     pub fn generation(&self) -> u64 {
+    |            ^^^^^^^^^^
+...
+276 |     pub fn timestamp_ns(&self) -> u64 {
+    |            ^^^^^^^^^^^^
+...
+281 |     pub fn status(&self) -> MigrationStatus {
+    |            ^^^^^^
+...
+291 |     pub fn capsule_name(&self) -> Result<&str, AuditError> {
+    |            ^^^^^^^^^^^^
+...
+311 |     pub fn verify_integrity(&self) -> Result<(), AuditError> {
+    |            ^^^^^^^^^^^^^^^^
+...
+348 |     fn compute_entry_hash(prev: u64, ts: u64, name: &[u8; 64], status: u8) -> u64 {
+    |        ^^^^^^^^^^^^^^^^^^
+...
+395 |     fn current_timestamp_ns() -> u64 {
+    |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `MigrationStats` is never constructed
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:648:12
+    |
+648 | pub struct MigrationStats {
+    |            ^^^^^^^^^^^^^^
+
+warning: methods `success_rate` and `failure_rate` are never used
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:664:12
+    |
+662 | impl MigrationStats {
+    | ------------------- methods in this implementation
+663 |     /// Calculate success rate (0.0 - 100.0)
+664 |     pub fn success_rate(&self) -> f64 {
+    |            ^^^^^^^^^^^^
+...
+672 |     pub fn failure_rate(&self) -> f64 {
+    |            ^^^^^^^^^^^^
+

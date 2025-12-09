@@ -86,9 +86,9 @@ pub fn App() -> impl IntoView {
             <footer style=footer_style>
                 <div style="font-size: 0.875rem;">
                     "KDB Debug API v0.1.0 | "
-                    <a href="https://kindly.services" style="color: #FFD700; text-decoration: none;">"kindly.services"</a>
+                    <a href="https://kindly.software" style="color: #FFD700; text-decoration: none;">"kindly.software"</a>
                     " | "
-                    <a href="mailto:support@kindly.services" style="color: #FFD700; text-decoration: none;">"support@kindly.services"</a>
+                    <a href="mailto:support@kindly.software" style="color: #FFD700; text-decoration: none;">"support@kindly.software"</a>
                 </div>
                 <div style="margin-top: 0.5rem; font-size: 0.75rem; opacity: 0.6;">
                     "Powered by Rust + Leptos"

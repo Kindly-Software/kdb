@@ -22,8 +22,8 @@
 //! - **B32**: Fair baselines (Union-Find, MWPM Sequential), 95% CI, 1000+ iterations, K1-K70 hardware reality
 //! - **ASSUM**: 99.99% safe (all benchmarks lockfree, no unsafe in hot path)
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
 use atomic_capsule::quantum::MWPMDecoderCapsule;
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::time::Duration;
 
 // ============================================================================
@@ -41,7 +41,11 @@ fn union_find_decode_baseline(syndrome: &[(i16, i16)]) -> Vec<(usize, usize)> {
     let mut matching = Vec::new();
 
     // Greedy pairing (nearest neighbor)
-    let mut unmatched: Vec<_> = syndrome.iter().enumerate().map(|(i, &coord)| (i, coord)).collect();
+    let mut unmatched: Vec<_> = syndrome
+        .iter()
+        .enumerate()
+        .map(|(i, &coord)| (i, coord))
+        .collect();
 
     while unmatched.len() >= 2 {
         let (i, coord_i) = unmatched[0];
@@ -68,15 +72,13 @@ fn union_find_decode_baseline(syndrome: &[(i16, i16)]) -> Vec<(usize, usize)> {
 
 fn bench_union_find_distance5(c: &mut Criterion) {
     let mut group = c.benchmark_group("union_find_distance5");
-    group.throughput(Throughput::Elements(1));  // 1 decode per iteration
+    group.throughput(Throughput::Elements(1)); // 1 decode per iteration
 
     // Distance-5 surface code (6 defects)
     let syndrome = vec![(1, 1), (2, 2), (3, 3), (1, 2), (2, 3), (3, 4)];
 
     group.bench_function("union_find_greedy", |b| {
-        b.iter(|| {
-            black_box(union_find_decode_baseline(black_box(&syndrome)))
-        })
+        b.iter(|| black_box(union_find_decode_baseline(black_box(&syndrome))))
     });
 
     group.finish();
@@ -97,7 +99,11 @@ fn mwpm_sequential_baseline(syndrome: &[(i16, i16)]) -> Vec<(usize, usize)> {
     let mut matching = Vec::new();
 
     // Placeholder: greedy pairing (not optimal, but deterministic)
-    let mut unmatched: Vec<_> = syndrome.iter().enumerate().map(|(i, &coord)| (i, coord)).collect();
+    let mut unmatched: Vec<_> = syndrome
+        .iter()
+        .enumerate()
+        .map(|(i, &coord)| (i, coord))
+        .collect();
 
     while unmatched.len() >= 2 {
         let (i, coord_i) = unmatched[0];
@@ -107,7 +113,7 @@ fn mwpm_sequential_baseline(syndrome: &[(i16, i16)]) -> Vec<(usize, usize)> {
         // Find minimum weight edge
         for (j, &(idx_j, coord_j)) in unmatched.iter().enumerate().skip(1) {
             let dist = (coord_i.0 - coord_j.0).abs() + (coord_i.1 - coord_j.1).abs();
-            let weight = (dist as f64) * 2.3;  // -log(0.1) ≈ 2.3 for p=0.1
+            let weight = (dist as f64) * 2.3; // -log(0.1) ≈ 2.3 for p=0.1
 
             if weight < min_weight {
                 min_weight = weight;
@@ -126,16 +132,14 @@ fn mwpm_sequential_baseline(syndrome: &[(i16, i16)]) -> Vec<(usize, usize)> {
 
 fn bench_mwpm_sequential_distance5(c: &mut Criterion) {
     let mut group = c.benchmark_group("mwpm_sequential_distance5");
-    group.throughput(Throughput::Elements(1));  // 1 decode per iteration
-    group.measurement_time(Duration::from_secs(10));  // Longer measurement for accuracy
+    group.throughput(Throughput::Elements(1)); // 1 decode per iteration
+    group.measurement_time(Duration::from_secs(10)); // Longer measurement for accuracy
 
     // Distance-5 surface code (6 defects)
     let syndrome = vec![(1, 1), (2, 2), (3, 3), (1, 2), (2, 3), (3, 4)];
 
     group.bench_function("mwpm_sequential", |b| {
-        b.iter(|| {
-            black_box(mwpm_sequential_baseline(black_box(&syndrome)))
-        })
+        b.iter(|| black_box(mwpm_sequential_baseline(black_box(&syndrome))))
     });
 
     group.finish();
@@ -147,8 +151,8 @@ fn bench_mwpm_sequential_distance5(c: &mut Criterion) {
 
 fn bench_mwpm_parallel_distance5(c: &mut Criterion) {
     let mut group = c.benchmark_group("mwpm_parallel_distance5");
-    group.throughput(Throughput::Elements(1));  // 1 decode per iteration
-    group.measurement_time(Duration::from_secs(10));  // Longer measurement for accuracy
+    group.throughput(Throughput::Elements(1)); // 1 decode per iteration
+    group.measurement_time(Duration::from_secs(10)); // Longer measurement for accuracy
 
     // Distance-5 surface code (6 defects)
     let syndrome = vec![(1, 1), (2, 2), (3, 3), (1, 2), (2, 3), (3, 4)];
@@ -156,17 +160,13 @@ fn bench_mwpm_parallel_distance5(c: &mut Criterion) {
     // Parallel MWPM (4 threads)
     let decoder_4t = MWPMDecoderCapsule::new(5, 4);
     group.bench_function("mwpm_parallel_4threads", |b| {
-        b.iter(|| {
-            black_box(decoder_4t.decode(black_box(&syndrome)))
-        })
+        b.iter(|| black_box(decoder_4t.decode(black_box(&syndrome))))
     });
 
     // Parallel MWPM (8 threads)
     let decoder_8t = MWPMDecoderCapsule::new(5, 8);
     group.bench_function("mwpm_parallel_8threads", |b| {
-        b.iter(|| {
-            black_box(decoder_8t.decode(black_box(&syndrome)))
-        })
+        b.iter(|| black_box(decoder_8t.decode(black_box(&syndrome))))
     });
 
     group.finish();
@@ -237,32 +237,40 @@ fn bench_scaling_by_distance(c: &mut Criterion) {
     // Distance-3 (4 defects)
     let syndrome_d3 = vec![(0, 1), (1, 0), (1, 1), (2, 1)];
     let decoder_d3 = MWPMDecoderCapsule::new(3, 4);
-    group.bench_with_input(BenchmarkId::new("mwpm_parallel", "distance_3"), &syndrome_d3, |b, syndrome| {
-        b.iter(|| {
-            black_box(decoder_d3.decode(black_box(syndrome)))
-        })
-    });
+    group.bench_with_input(
+        BenchmarkId::new("mwpm_parallel", "distance_3"),
+        &syndrome_d3,
+        |b, syndrome| b.iter(|| black_box(decoder_d3.decode(black_box(syndrome)))),
+    );
 
     // Distance-5 (6 defects)
     let syndrome_d5 = vec![(1, 1), (2, 2), (3, 3), (1, 2), (2, 3), (3, 4)];
     let decoder_d5 = MWPMDecoderCapsule::new(5, 4);
-    group.bench_with_input(BenchmarkId::new("mwpm_parallel", "distance_5"), &syndrome_d5, |b, syndrome| {
-        b.iter(|| {
-            black_box(decoder_d5.decode(black_box(syndrome)))
-        })
-    });
+    group.bench_with_input(
+        BenchmarkId::new("mwpm_parallel", "distance_5"),
+        &syndrome_d5,
+        |b, syndrome| b.iter(|| black_box(decoder_d5.decode(black_box(syndrome)))),
+    );
 
     // Distance-7 (10 defects)
     let syndrome_d7 = vec![
-        (1, 1), (2, 2), (3, 3), (4, 4), (5, 5),
-        (1, 2), (2, 3), (3, 4), (4, 5), (5, 6),
+        (1, 1),
+        (2, 2),
+        (3, 3),
+        (4, 4),
+        (5, 5),
+        (1, 2),
+        (2, 3),
+        (3, 4),
+        (4, 5),
+        (5, 6),
     ];
     let decoder_d7 = MWPMDecoderCapsule::new(7, 8);
-    group.bench_with_input(BenchmarkId::new("mwpm_parallel", "distance_7"), &syndrome_d7, |b, syndrome| {
-        b.iter(|| {
-            black_box(decoder_d7.decode(black_box(syndrome)))
-        })
-    });
+    group.bench_with_input(
+        BenchmarkId::new("mwpm_parallel", "distance_7"),
+        &syndrome_d7,
+        |b, syndrome| b.iter(|| black_box(decoder_d7.decode(black_box(syndrome)))),
+    );
 
     group.finish();
 }
@@ -283,11 +291,7 @@ fn bench_parallel_scaling(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new("mwpm_parallel", format!("{}threads", thread_count)),
             &thread_count,
-            |b, _| {
-                b.iter(|| {
-                    black_box(decoder.decode(black_box(&syndrome)))
-                })
-            }
+            |b, _| b.iter(|| black_box(decoder.decode(black_box(&syndrome)))),
         );
     }
 
@@ -324,8 +328,12 @@ fn report_b32_reality_check() {
     println!("|---------|---------|----------|---------------|---------------|----------|");
     println!("| Union-Find | 10μs | 90% | 1× (baseline) | 20× faster | Baseline |");
     println!("| MWPM Sequential | 200μs | 97% | 20× slower | 1× (fair baseline) | Fair Baseline |");
-    println!("| MWPM T4 Batch (4t) | 100μs | 97% | 10× slower | **2× faster** | **EXCEPTIONAL** ✅ |");
-    println!("| MWPM T4 Batch (8t) | 65μs | 97% | 6.5× slower | **3× faster** | **EXCEPTIONAL** ✅ |");
+    println!(
+        "| MWPM T4 Batch (4t) | 100μs | 97% | 10× slower | **2× faster** | **EXCEPTIONAL** ✅ |"
+    );
+    println!(
+        "| MWPM T4 Batch (8t) | 65μs | 97% | 6.5× slower | **3× faster** | **EXCEPTIONAL** ✅ |"
+    );
     println!("\n**Key Insight**: MWPM trades latency for accuracy. T4 Batch makes it 2-3× faster.");
     println!("**Use Case**: Offline QEC analysis, gold-standard decoder validation.");
     println!("**Framework Compliance**: UCE34 (Q10 T4 Batch), B32 (EXCEPTIONAL tier), ASSUM (99.99% safe).");

@@ -114,7 +114,7 @@
 //! | Framework | Status | Details |
 //! |-----------|--------|---------|
 //! | **UCE34** | ✅ | Q10 T6 Mixed, Q33 compile-time validation via const fn |
-//! | **COCA** | ✅ | 100% lockfree (no atomic needed, pure computation) |
+//! | **Chaos** | ✅ | 100% lockfree (no atomic needed, pure computation) |
 //! | **ASSUM** | ✅ | 99.99% safe (4 assumptions, all verified) |
 //! | **B32** | ✅ | Fair baseline = scalar, target = 20-40× (EXCEPTIONAL) |
 //! | **T28** | ✅ | 10 tests (3 unit, 3 property, 2 integration, 2 production) |

@@ -25,10 +25,10 @@
 //! - Flow control: 5-20× faster than RwLock
 //! - Typical tier: 10-50× speedup (EXCEPTIONAL per IMPL-2)
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use atomic_capsule::http::{
-    Http2StreamManagerCapsule, Http2Settings, Http2StreamEntry, StreamState,
+    Http2Settings, Http2StreamEntry, Http2StreamManagerCapsule, StreamState,
 };
+use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Barrier};
 use std::thread;
@@ -75,7 +75,9 @@ fn bench_flow_control_consume(c: &mut Criterion) {
 
     group.bench_function("consume_window_100bytes", |b| {
         let manager = Http2StreamManagerCapsule::new();
-        manager.connection_window.store(10_000_000, Ordering::Release);
+        manager
+            .connection_window
+            .store(10_000_000, Ordering::Release);
 
         b.iter(|| {
             for _ in 0..1000 {
@@ -86,7 +88,9 @@ fn bench_flow_control_consume(c: &mut Criterion) {
 
     group.bench_function("consume_window_1000bytes", |b| {
         let manager = Http2StreamManagerCapsule::new();
-        manager.connection_window.store(10_000_000, Ordering::Release);
+        manager
+            .connection_window
+            .store(10_000_000, Ordering::Release);
 
         b.iter(|| {
             for _ in 0..1000 {
@@ -195,7 +199,8 @@ fn bench_concurrent_stream_creation(c: &mut Criterion) {
             |b, &thread_count| {
                 b.iter(|| {
                     let manager = Arc::new(Http2StreamManagerCapsule::new());
-                    manager.max_concurrent_streams
+                    manager
+                        .max_concurrent_streams
                         .store(thread_count as u32 * 1000, Ordering::Release);
 
                     let barrier = Arc::new(Barrier::new(thread_count));
@@ -234,7 +239,8 @@ fn bench_concurrent_flow_control(c: &mut Criterion) {
             |b, &thread_count| {
                 b.iter(|| {
                     let manager = Arc::new(Http2StreamManagerCapsule::new());
-                    manager.connection_window
+                    manager
+                        .connection_window
                         .store(100_000_000, Ordering::Release);
 
                     let barrier = Arc::new(Barrier::new(thread_count));

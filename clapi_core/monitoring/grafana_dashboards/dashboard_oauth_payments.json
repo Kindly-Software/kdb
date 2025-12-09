@@ -1,0 +1,240 @@
+{
+  "dashboard": {
+    "title": "clapi_core - OAuth & Payments",
+    "tags": ["clapi_core", "oauth", "payments", "stripe"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "OAuth Session Operations/sec",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(clapi_oauth_sessions_created_total[1m])",
+            "legendFormat": "Create"
+          },
+          {
+            "expr": "rate(clapi_oauth_sessions_verified_total[1m])",
+            "legendFormat": "Verify"
+          },
+          {
+            "expr": "rate(clapi_oauth_sessions_refreshed_total[1m])",
+            "legendFormat": "Refresh"
+          },
+          {
+            "expr": "rate(clapi_oauth_sessions_revoked_total[1m])",
+            "legendFormat": "Revoke"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Operations/sec"},
+          {"format": "short", "show": false}
+        ]
+      },
+      {
+        "id": 2,
+        "title": "OAuth Session Creation Latency",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(clapi_oauth_session_create_latency_ns_bucket[1m]))",
+            "legendFormat": "P50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(clapi_oauth_session_create_latency_ns_bucket[1m]))",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(clapi_oauth_session_create_latency_ns_bucket[1m]))",
+            "legendFormat": "P99"
+          }
+        ],
+        "yaxes": [
+          {"format": "ns", "label": "Latency (ns)"},
+          {"format": "short", "show": false}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [50], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "1m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "OAuth Session Creation P50 > 50ns",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 3,
+        "title": "OAuth Failure Rate",
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "(rate(clapi_oauth_verification_failures_total[1m]) / rate(clapi_oauth_sessions_total[1m])) * 100",
+            "legendFormat": "Failure %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 5, "color": "yellow"},
+                {"value": 10, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Active OAuth Sessions",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "clapi_oauth_sessions_active",
+            "legendFormat": "Active Sessions"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 5,
+        "title": "Payment Recording Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "rate(clapi_payments_recorded_total[1m])",
+            "legendFormat": "Recorded/sec"
+          },
+          {
+            "expr": "rate(clapi_payments_confirmed_total[1m])",
+            "legendFormat": "Confirmed/sec"
+          },
+          {
+            "expr": "rate(clapi_payments_refunded_total[1m])",
+            "legendFormat": "Refunded/sec"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Payments/sec"},
+          {"format": "short", "show": false}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Payment Confirmation Latency",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(clapi_payment_confirmation_latency_ns_bucket[1m]))",
+            "legendFormat": "P50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(clapi_payment_confirmation_latency_ns_bucket[1m]))",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(clapi_payment_confirmation_latency_ns_bucket[1m]))",
+            "legendFormat": "P99"
+          }
+        ],
+        "yaxes": [
+          {"format": "ns", "label": "Latency (ns)"},
+          {"format": "short", "show": false}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [150], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "1m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "Payment Confirmation P50 > 150ns",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 7,
+        "title": "Payment Failure Rate",
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "(rate(clapi_payments_failed_total[1m]) / rate(clapi_payments_recorded_total[1m])) * 100",
+            "legendFormat": "Failure %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 2, "color": "yellow"},
+                {"value": 5, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Payment Amount Distribution (Q16.16)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(clapi_payment_amount_q16_bucket[1m])) / 65536",
+            "legendFormat": "P50 Amount"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(clapi_payment_amount_q16_bucket[1m])) / 65536",
+            "legendFormat": "P95 Amount"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(clapi_payment_amount_q16_bucket[1m])) / 65536",
+            "legendFormat": "P99 Amount"
+          }
+        ],
+        "yaxes": [
+          {"format": "currencyUSD", "label": "Payment Amount"},
+          {"format": "short", "show": false}
+        ]
+      }
+    ]
+  }
+}

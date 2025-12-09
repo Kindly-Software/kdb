@@ -6,13 +6,13 @@
 //!
 //! # Subscription Tiers
 //!
-//! | Tier | RPM | Burst | Snapshots | Retention | Features |
-//! |------|-----|-------|-----------|-----------|----------|
-//! | Hobby | 60 | 10 | 100 | 7 days | 0x0F |
-//! | Starter | 300 | 30 | 1,000 | 7 days | 0x1F |
-//! | Developer | 1,000 | 100 | 10,000 | 30 days | 0x3F |
-//! | Professional | 5,000 | 500 | 100,000 | 90 days | 0xFF |
-//! | Enterprise | MAX | MAX | MAX | MAX | 0x3FF |
+//! | Tier | RPM | Burst | Snapshots | Retention | Sessions/Mo | Concurrent | Features |
+//! |------|-----|-------|-----------|-----------|-------------|------------|----------|
+//! | Hobby | 60 | 10 | 100 | 7 days | 5 | 2 | 0x0F |
+//! | Starter | 300 | 30 | 1,000 | 7 days | 50 | 5 | 0x1F |
+//! | Developer | 1,000 | 100 | 10,000 | 30 days | 200 | 10 | 0x3F |
+//! | Professional | 5,000 | 500 | 100,000 | 90 days | 1,000 | 50 | 0xFF |
+//! | Enterprise | MAX | MAX | MAX | MAX | MAX | MAX | 0x3FF |
 //!
 //! # Example
 //!
@@ -22,6 +22,8 @@
 //! let tier = SubscriptionTier::Developer;
 //! assert_eq!(tier.requests_per_minute(), 1000);
 //! assert_eq!(tier.retention_days(), 30);
+//! assert_eq!(tier.max_concurrent_sessions(), 10);
+//! assert_eq!(tier.sessions_per_month(), 200);
 //! assert_eq!(tier.name(), "Developer");
 //! ```
 
@@ -173,6 +175,58 @@ impl SubscriptionTier {
     }
 
     // ========================================================================
+    // Session Limits (Const Methods)
+    // ========================================================================
+
+    /// Maximum concurrent debugging sessions
+    ///
+    /// Hobby: 2 concurrent sessions (free tier limitation)
+    /// Starter: 5 concurrent sessions
+    /// Developer: 10 concurrent sessions
+    /// Professional: 50 concurrent sessions
+    /// Enterprise: Unlimited
+    #[inline]
+    pub const fn max_concurrent_sessions(self) -> u64 {
+        match self {
+            Self::Hobby => 2,
+            Self::Starter => 5,
+            Self::Developer => 10,
+            Self::Professional => 50,
+            Self::Enterprise => u64::MAX,
+        }
+    }
+
+    /// Sessions per month limit (after promotional period)
+    ///
+    /// Hobby: 5 sessions/month (free tier - as shown on website)
+    /// Starter: 50 sessions/month
+    /// Developer: 200 sessions/month
+    /// Professional: 1000 sessions/month
+    /// Enterprise: Unlimited
+    #[inline]
+    pub const fn sessions_per_month(self) -> u64 {
+        match self {
+            Self::Hobby => 5,          // Free tier limit after promo
+            Self::Starter => 50,
+            Self::Developer => 200,
+            Self::Professional => 1_000,
+            Self::Enterprise => u64::MAX,
+        }
+    }
+
+    /// Sessions per month during promotional period (first week)
+    ///
+    /// Hobby: Unlimited during promo week
+    /// Other tiers: Same as regular limits
+    #[inline]
+    pub const fn promo_sessions_per_month(self) -> u64 {
+        match self {
+            Self::Hobby => u64::MAX,   // Unlimited during 1-week promo
+            _ => self.sessions_per_month(),
+        }
+    }
+
+    // ========================================================================
     // Display
     // ========================================================================
 
@@ -288,5 +342,89 @@ mod tests {
     #[test]
     fn test_default_tier() {
         assert_eq!(SubscriptionTier::default(), SubscriptionTier::Hobby);
+    }
+
+    // ========================================================================
+    // Session Limit Tests
+    // ========================================================================
+
+    #[test]
+    fn test_max_concurrent_sessions() {
+        assert_eq!(SubscriptionTier::Hobby.max_concurrent_sessions(), 2);
+        assert_eq!(SubscriptionTier::Starter.max_concurrent_sessions(), 5);
+        assert_eq!(SubscriptionTier::Developer.max_concurrent_sessions(), 10);
+        assert_eq!(SubscriptionTier::Professional.max_concurrent_sessions(), 50);
+        assert_eq!(SubscriptionTier::Enterprise.max_concurrent_sessions(), u64::MAX);
+    }
+
+    #[test]
+    fn test_sessions_per_month() {
+        assert_eq!(SubscriptionTier::Hobby.sessions_per_month(), 5);
+        assert_eq!(SubscriptionTier::Starter.sessions_per_month(), 50);
+        assert_eq!(SubscriptionTier::Developer.sessions_per_month(), 200);
+        assert_eq!(SubscriptionTier::Professional.sessions_per_month(), 1_000);
+        assert_eq!(SubscriptionTier::Enterprise.sessions_per_month(), u64::MAX);
+    }
+
+    #[test]
+    fn test_promo_sessions_per_month() {
+        // Hobby gets unlimited during promo
+        assert_eq!(SubscriptionTier::Hobby.promo_sessions_per_month(), u64::MAX);
+        // Other tiers get same as regular limits
+        assert_eq!(SubscriptionTier::Starter.promo_sessions_per_month(), 50);
+        assert_eq!(SubscriptionTier::Developer.promo_sessions_per_month(), 200);
+        assert_eq!(SubscriptionTier::Professional.promo_sessions_per_month(), 1_000);
+        assert_eq!(SubscriptionTier::Enterprise.promo_sessions_per_month(), u64::MAX);
+    }
+
+    #[test]
+    fn test_hobby_promo_is_unlimited() {
+        // During promo week, Hobby tier should be unlimited
+        let hobby = SubscriptionTier::Hobby;
+        assert_eq!(hobby.promo_sessions_per_month(), u64::MAX);
+        // After promo, Hobby tier is limited to 5 sessions/month
+        assert_eq!(hobby.sessions_per_month(), 5);
+    }
+
+    #[test]
+    fn test_concurrent_sessions_scale_with_tier() {
+        // Verify concurrent sessions scale appropriately with tier
+        let tiers = [
+            SubscriptionTier::Hobby,
+            SubscriptionTier::Starter,
+            SubscriptionTier::Developer,
+            SubscriptionTier::Professional,
+            SubscriptionTier::Enterprise,
+        ];
+
+        for i in 0..tiers.len() - 1 {
+            assert!(
+                tiers[i].max_concurrent_sessions() < tiers[i + 1].max_concurrent_sessions(),
+                "Tier {:?} should have fewer concurrent sessions than {:?}",
+                tiers[i],
+                tiers[i + 1]
+            );
+        }
+    }
+
+    #[test]
+    fn test_sessions_per_month_scale_with_tier() {
+        // Verify monthly sessions scale appropriately with tier
+        let tiers = [
+            SubscriptionTier::Hobby,
+            SubscriptionTier::Starter,
+            SubscriptionTier::Developer,
+            SubscriptionTier::Professional,
+            SubscriptionTier::Enterprise,
+        ];
+
+        for i in 0..tiers.len() - 1 {
+            assert!(
+                tiers[i].sessions_per_month() < tiers[i + 1].sessions_per_month(),
+                "Tier {:?} should have fewer monthly sessions than {:?}",
+                tiers[i],
+                tiers[i + 1]
+            );
+        }
     }
 }

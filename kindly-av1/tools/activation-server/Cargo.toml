@@ -1,0 +1,42 @@
+[package]
+name = "kindly-av1-activation-server"
+version = "1.0.0"
+edition = "2021"
+authors = ["Kindly <support@kindly.dev>"]
+description = "License activation server for kindly-av1 (Gumroad webhook handler)"
+license = "Proprietary"
+publish = false
+
+# [TRADE SECRET] - This server holds the private signing key
+# NEVER expose the private key or deploy to untrusted environments
+
+[dependencies]
+# Ed25519 signing (SOTA implementation)
+ed25519-dalek = { version = "2.1", features = ["std", "rand_core"] }
+rand = "0.8"
+
+# Hashing (for hardware fingerprints and license keys)
+blake3 = "1.5"
+sha2 = "0.10"
+
+# Encoding
+base64 = "0.22"
+hex = "0.4"
+
+# TLS for HTTPS (rustls for pure-Rust, no OpenSSL)
+# Note: TLS disabled for initial development; use reverse proxy in production
+# rustls = { version = "0.23", default-features = false, features = ["std", "tls12", "ring"] }
+# rustls-pemfile = "2.1"
+
+# Note: Using std::sync::atomic for lockfree counters (no external deps needed)
+
+[[bin]]
+name = "activation-server"
+path = "src/main.rs"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+opt-level = 3

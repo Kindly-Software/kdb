@@ -2,7 +2,7 @@ use crate::ballistics::ApertureMask;
 use crate::battle_ai::MAX_AI_DECISIONS_PER_TICK;
 use crate::courier::CourierCapsule;
 use crate::diplomacy::DiplomaticSnapshot;
-use crate::fire_doctrine::FireDoctrineCapsule;
+use crate::fire_doctrine::{FireDoctrineCapsule, FireDoctrineMode};
 use crate::formation::{FormationCapsule, FormationSnapshot, RetreatMode};
 use crate::general::GeneralSnapshot;
 use crate::command::{CommandHierarchyCapsule, CommanderSnapshot};
@@ -22,10 +22,14 @@ use crate::telemetry::{FormationBreakTelemetryCapsule, TelemetryCapsule};
 use crate::{DeterministicRngCapsule, WorldClockCapsule};
 use atomic_capsule::mmap::MmapError;
 use atomic_capsule::verify_alignment_only;
+use std::collections::{BTreeMap, VecDeque};
 use core::sync::atomic::{AtomicU64, Ordering};
 
 const COMMAND_HIST_BUCKETS: usize = 8;
 const COMMAND_HIST_THRESHOLDS: [u32; COMMAND_HIST_BUCKETS] = [4, 8, 16, 24, 32, 48, 64, u32::MAX];
+const OPS_BACKPRESSURE_SOFT: u32 = 96;
+const OPS_BACKPRESSURE_HARD: u32 = 160;
+const OPS_CONGEST_THRESHOLDS: [u32; 8] = [10, 25, 50, 75, 90, 100, 125, u32::MAX];
 
 #[inline(always)]
 fn command_hist_bucket(val: u32) -> usize {
@@ -35,6 +39,37 @@ fn command_hist_bucket(val: u32) -> usize {
         }
     }
     COMMAND_HIST_BUCKETS - 1
+}
+
+#[inline(always)]
+fn p95_bucket(hist: &[u32; COMMAND_HIST_BUCKETS]) -> u8 {
+    let total: u64 = hist.iter().map(|&v| v as u64).sum();
+    if total == 0 {
+        return 0;
+    }
+    let target = (total * 95 + 99) / 100;
+    let mut acc = 0u64;
+    for (idx, &v) in hist.iter().enumerate() {
+        acc = acc.saturating_add(v as u64);
+        if acc >= target {
+            return idx as u8;
+        }
+    }
+    (COMMAND_HIST_BUCKETS - 1) as u8
+}
+
+#[inline(always)]
+fn congestion_bucket(depth: u64, capacity: u64) -> u8 {
+    if capacity == 0 {
+        return 0;
+    }
+    let pct = ((depth.saturating_mul(100)) / capacity.max(1)).min(u32::MAX as u64) as u32;
+    for (idx, &threshold) in OPS_CONGEST_THRESHOLDS.iter().enumerate() {
+        if pct <= threshold {
+            return idx as u8;
+        }
+    }
+    (OPS_CONGEST_THRESHOLDS.len() - 1) as u8
 }
 
 // ---------------- Render Paged Slab ----------------
@@ -340,12 +375,24 @@ impl RenderSoaSlabCapsule {
                 avg_gap_fatigue_penalty_q16,
                 supply_pressure_avg_q16: 0,
                 supply_fatigue_penalty_avg_q16: 0,
+                supply_throughput_avg_q16: 0,
+                supply_disruptions: 0,
+                supply_attrition_events: 0,
+                supply_route_cuts: 0,
+                supply_command_delay_penalty_avg_ticks: 0,
                 province_infra_avg_q16: 0,
                 province_resistance_avg_q16: 0,
                 command_stress_q16: 0,
                 courier_eta_ticks: 0,
                 courier_losses: 0,
                 courier_spoofed: 0,
+                courier_reliability_q16: 0,
+                ops_backpressure_q16: 0,
+                ops_backpressure_drops: 0,
+                ops_congestion_bucket: 0,
+                command_delay_p95_bucket: 0,
+                courier_eta_p95_bucket: 0,
+                threat_pressure_q16: 0,
                 command_delay_applied: 0,
                 command_delay_total_ticks: 0,
                 strategic_hash_chain: 0,
@@ -362,6 +409,11 @@ impl RenderSoaSlabCapsule {
                 last_doctrine_mode: 0,
                 last_doctrine_cadence_ticks: 0,
                 doctrine_sets: 0,
+                ai_threat_x_tile: 0,
+                ai_threat_z_tile: 0,
+                ai_dominant_stance: 0,
+                ai_doctrine_mode: 0,
+                ai_generation_lsb: 0,
             });
         }
         overlays
@@ -434,11 +486,13 @@ impl WorldRuntimeCapsule {
         snapshot_mmap: &mut SnapshotMmapCapsule,
         formations: &[FormationCapsule],
         structures: &[StructureCapsule],
+        siege: Option<&crate::siege::SiegeCapsule>,
         orders: &OrderQueueCapsule,
         telemetry: &TelemetryCapsule,
         strategic: Option<&StrategicSnapshot>,
         diplomatic: Option<&crate::diplomacy::DiplomaticSnapshot>,
         economy: Option<&crate::province_economy::EconomySnapshot>,
+        campaign: Option<&crate::campaign::CampaignFrame>,
         command_delays: Option<&crate::order::CommandDelayBufferCapsule>,
     ) -> Result<(WorldFrame<'a>, crate::replay::ReplayPersistSnapshot, u64), WorldPersistError>
     {
@@ -454,11 +508,13 @@ impl WorldRuntimeCapsule {
             snapshot_mmap,
             formations,
             structures,
+            siege,
             orders,
             telemetry,
             strategic,
             diplomatic,
             economy,
+            campaign,
             command_delays,
         )
     }
@@ -500,11 +556,13 @@ impl WorldPersistenceCapsule {
         snapshot_mmap: &mut SnapshotMmapCapsule,
         formations: &[FormationCapsule],
         structures: &[StructureCapsule],
+        siege: Option<&crate::siege::SiegeCapsule>,
         orders: &OrderQueueCapsule,
         telemetry: &TelemetryCapsule,
         strategic: Option<&StrategicSnapshot>,
         diplomatic: Option<&DiplomaticSnapshot>,
         economy: Option<&crate::province_economy::EconomySnapshot>,
+        campaign: Option<&crate::campaign::CampaignFrame>,
         command_delays: Option<&crate::order::CommandDelayBufferCapsule>,
     ) -> Result<(WorldFrame<'a>, crate::replay::ReplayPersistSnapshot, u64), WorldPersistError>
     {
@@ -521,6 +579,7 @@ impl WorldPersistenceCapsule {
             .map_err(WorldPersistError::from)?;
 
         let prev_hash = self.snapshot_prev_hash.load(Ordering::Relaxed);
+        let siege_snapshot = siege.map(|s| s.snapshot());
         let snapshot_bytes = snapshot_capsule.serialize(
             formations,
             orders,
@@ -529,7 +588,9 @@ impl WorldPersistenceCapsule {
             strategic,
             diplomatic,
             economy,
+            campaign,
             command_delays,
+            siege_snapshot.as_ref(),
             prev_hash,
         );
         let (chain, _offset, _len) = snapshot_mmap
@@ -587,12 +648,24 @@ pub struct ShardOverlay {
     pub avg_gap_fatigue_penalty_q16: u32,
     pub supply_pressure_avg_q16: u32,
     pub supply_fatigue_penalty_avg_q16: u32,
+    pub supply_throughput_avg_q16: u32,
+    pub supply_disruptions: u32,
+    pub supply_attrition_events: u32,
+    pub supply_route_cuts: u32,
+    pub supply_command_delay_penalty_avg_ticks: u32,
     pub province_infra_avg_q16: u32,
     pub province_resistance_avg_q16: u32,
     pub command_stress_q16: u32,
     pub courier_eta_ticks: u32,
     pub courier_losses: u32,
     pub courier_spoofed: u32,
+    pub courier_reliability_q16: u32,
+    pub ops_backpressure_q16: u32,
+    pub ops_backpressure_drops: u32,
+    pub ops_congestion_bucket: u8,
+    pub command_delay_p95_bucket: u8,
+    pub courier_eta_p95_bucket: u8,
+    pub threat_pressure_q16: u32,
     pub command_delay_applied: u32,
     pub command_delay_total_ticks: u32,
     pub strategic_hash_chain: u64,
@@ -609,6 +682,11 @@ pub struct ShardOverlay {
     pub last_doctrine_mode: u8,
     pub last_doctrine_cadence_ticks: u16,
     pub doctrine_sets: u32,
+    pub ai_threat_x_tile: u16,
+    pub ai_threat_z_tile: u16,
+    pub ai_dominant_stance: u8,
+    pub ai_doctrine_mode: u8,
+    pub ai_generation_lsb: u8,
 }
 
 #[derive(Debug, Clone)]
@@ -768,6 +846,7 @@ pub struct ShardTickStats {
     pub ai_decisions: u32,
     pub ai_replay_len: u8,
     pub ai_replay_payloads: [u64; MAX_AI_DECISIONS_PER_TICK],
+    pub ai_intent_payload: u64,
     pub visible_contacts: u32,
     pub visible_samples: u32,
     pub visible_ratio_q16: u32,
@@ -778,11 +857,22 @@ pub struct ShardTickStats {
     pub avg_garrison_aperture_width_q16: u32,
     pub min_garrison_aperture_width_q16: u32,
     pub max_garrison_aperture_width_q16: u32,
+    pub siege_integrity_avg_q16: u32,
+    pub siege_breach_progress_avg_q16: u32,
+    pub siege_breach_events: u32,
+    pub siege_repair_events: u32,
+    pub siege_sections_sampled: u32,
+    pub siege_event_payload: u64,
     pub grenade_casualties: u64,
     pub grenade_cover_q16: u32,
     pub grenade_detonation_ms: u32,
     pub supply_pressure_avg_q16: u32,
     pub supply_fatigue_penalty_avg_q16: u32,
+    pub supply_throughput_avg_q16: u32,
+    pub supply_disruptions: u32,
+    pub supply_attrition_events: u32,
+    pub supply_route_cuts: u32,
+    pub supply_command_delay_penalty_avg_ticks: u32,
     pub province_infra_avg_q16: u32,
     pub province_resistance_avg_q16: u32,
     pub command_stress_q16: u32,
@@ -793,6 +883,13 @@ pub struct ShardTickStats {
     pub command_delay_total_ticks: u32,
     pub courier_losses: u32,
     pub courier_spoofed: u32,
+    pub courier_reliability_q16: u32,
+    pub ops_backpressure_q16: u32,
+    pub ops_backpressure_drops: u32,
+    pub ops_congestion_bucket: u8,
+    pub command_delay_p95_bucket: u8,
+    pub courier_eta_p95_bucket: u8,
+    pub threat_pressure_q16: u32,
     pub strategic_hash_chain: u64,
     pub strategic_prev_hash_chain: u64,
     pub artillery_ricochet_bounces: u32,
@@ -810,6 +907,11 @@ pub struct ShardTickStats {
     pub last_doctrine_mode: u8,
     pub last_doctrine_cadence_ticks: u16,
     pub doctrine_sets: u32,
+    pub ai_threat_x_tile: u16,
+    pub ai_threat_z_tile: u16,
+    pub ai_dominant_stance: u8,
+    pub ai_doctrine_mode: u8,
+    pub ai_generation_lsb: u8,
 }
 
 /// Tick a shard: drain orders, apply to formations, step pathing (retreat-aware).
@@ -826,6 +928,7 @@ pub fn tick_shard<const FB: usize>(
     terrain: Option<&crate::terrain::TerrainGridCapsule>,
     grenades: Option<&crate::grenade::GrenadeCapsule>,
     structures_opt: Option<&[StructureCapsule]>,
+    siege: Option<&crate::siege::SiegeCapsule>,
     garrisons: Option<&crate::garrison::GarrisonSlabCapsule>,
     supply: Option<&SupplySnapshot>,
     courier: Option<&CourierCapsule>,
@@ -847,6 +950,17 @@ pub fn tick_shard<const FB: usize>(
         let capped = depth.min(qstats.capacity);
         stats.command_stress_q16 =
             ((capped.saturating_mul(65_536) / qstats.capacity).min(u32::MAX as u64)) as u32;
+        stats.ops_congestion_bucket = congestion_bucket(depth, qstats.capacity);
+        if stats.ops_congestion_bucket > 0 {
+            let penalty_q16 = (stats.ops_congestion_bucket as u32).saturating_mul(2_048);
+            stats.command_stress_q16 = stats.command_stress_q16.max(penalty_q16.min(65_536));
+            if stats.courier_eta_ticks > 0 {
+                let scale = 65_536u64.saturating_add((penalty_q16 as u64) / 2);
+                stats.courier_eta_ticks =
+                    ((stats.courier_eta_ticks as u64 * scale) / 65_536)
+                        .min(u32::MAX as u64) as u32;
+            }
+        }
     }
     // Courier debug signal: expected latency baseline + loss/spoof counters.
     if let Some(c) = courier {
@@ -857,6 +971,27 @@ pub fn tick_shard<const FB: usize>(
         stats.courier_eta_ticks = eta;
         stats.courier_losses = snap.losses.min(u32::MAX as u64) as u32;
         stats.courier_spoofed = snap.spoofed.min(u32::MAX as u64) as u32;
+        let total = snap.deliveries.saturating_add(snap.losses);
+        let reliability_q16 = if total == 0 {
+            65_536
+        } else {
+            ((snap.deliveries.saturating_mul(65_536)) / total).min(u32::MAX as u64) as u32
+        };
+        stats.courier_reliability_q16 = reliability_q16;
+        if reliability_q16 < 52_000 {
+            // Feed reliability into command stress to surface on overlays and replay.
+            let stress_penalty = (52_000u32.saturating_sub(reliability_q16)) / 2;
+            stats.command_stress_q16 =
+                stats.command_stress_q16.max(stress_penalty.min(65_536));
+        }
+        if reliability_q16 < 60_000 && stats.courier_eta_ticks > 0 {
+            // Reliability shaping: slower couriers when losses/spoofing accumulate.
+            let penalty_scale = 65_536u64
+                .saturating_add((60_000u32.saturating_sub(reliability_q16)) as u64);
+            stats.courier_eta_ticks =
+                ((stats.courier_eta_ticks as u64 * penalty_scale) / 65_536)
+                    .min(u32::MAX as u64) as u32;
+        }
     }
 
     let base_eta_ticks = stats.courier_eta_ticks;
@@ -870,15 +1005,19 @@ pub fn tick_shard<const FB: usize>(
                 if let Some(cmd) = cmds.get(cid as usize) {
                     let snap = formation.snapshot();
                     let in_range = cmd.in_command_range(snap.position_x_q16, snap.position_z_q16);
+                    let supply_penalty = supply
+                        .and_then(|s| s.command_delay_penalty_ticks.get(idx))
+                        .map(|v| *v as u32)
+                        .unwrap_or(0);
                     let penalty_ticks = if in_range {
-                        0
+                        supply_penalty
                     } else {
-                        cmd.command_delay_ticks
+                        cmd.command_delay_ticks.saturating_add(supply_penalty)
                     };
                     if penalty_ticks > 0 {
                         penalty_sum = penalty_sum.saturating_add(penalty_ticks as u64);
                     }
-                    if base_eta_ticks > 0 || penalty_ticks > 0 {
+                    if base_eta_ticks > 0 || penalty_ticks > 0 || supply_penalty > 0 {
                         let delay_bucket = command_hist_bucket(penalty_ticks);
                         stats.command_delay_hist[delay_bucket] = stats.command_delay_hist[delay_bucket]
                             .saturating_add(1);
@@ -907,12 +1046,16 @@ pub fn tick_shard<const FB: usize>(
         }
     }
     // If we have courier latency but no command hierarchy, still bucket per-formation ETA baseline.
-    else if base_eta_ticks > 0 {
-        for _ in formations.iter() {
-            let eta_bucket = command_hist_bucket(base_eta_ticks);
+    else if base_eta_ticks > 0 || supply.is_some() {
+        for (idx, _) in formations.iter().enumerate() {
+            let supply_penalty = supply
+                .and_then(|s| s.command_delay_penalty_ticks.get(idx))
+                .map(|v| *v as u32)
+                .unwrap_or(0);
+            let eta_bucket = command_hist_bucket(base_eta_ticks.saturating_add(supply_penalty));
             stats.courier_eta_hist[eta_bucket] =
                 stats.courier_eta_hist[eta_bucket].saturating_add(1);
-            let delay_bucket = command_hist_bucket(0);
+            let delay_bucket = command_hist_bucket(supply_penalty);
             stats.command_delay_hist[delay_bucket] =
                 stats.command_delay_hist[delay_bucket].saturating_add(1);
         }
@@ -961,10 +1104,26 @@ pub fn tick_shard<const FB: usize>(
                 view
             }
         });
+        let dominant_doctrine = fire_doctrine.map(|doc| {
+            let mut counts = [0u16; 8];
+            for snap in snaps.iter() {
+                let mode = doc.mode_for(snap.formation_id) as usize;
+                if mode < counts.len() {
+                    counts[mode] = counts[mode].saturating_add(1);
+                }
+            }
+            let idx = counts
+                .iter()
+                .enumerate()
+                .max_by_key(|(_, &c)| c)
+                .map(|(i, _)| i as u8)
+                .unwrap_or(0);
+            FireDoctrineMode::from_u8(idx)
+        });
         let plan = ai.plan_for_shard(crate::battle_ai::BattleAiInputs {
             tick,
             formations: snaps,
-            doctrine: None,
+            doctrine: dominant_doctrine,
             courier_latency_ticks: courier_latency_ticks.min(u16::MAX as u32) as u16,
             fog: fog_view,
         });
@@ -980,6 +1139,16 @@ pub fn tick_shard<const FB: usize>(
                 replay_len = replay_len.saturating_add(1);
             }
             stats.ai_replay_len = replay_len;
+        }
+        if let Some(intent_payload) = plan.intent_payload() {
+            stats.ai_intent_payload = intent_payload;
+        }
+        if let Some(intent) = plan.intent() {
+            stats.ai_threat_x_tile = intent.threat_centroid_x_tile;
+            stats.ai_threat_z_tile = intent.threat_centroid_z_tile;
+            stats.ai_dominant_stance = intent.dominant_stance;
+            stats.ai_doctrine_mode = intent.doctrine_mode;
+            stats.ai_generation_lsb = intent.generation_lsb;
         }
         for decision in plan.iter() {
             let payload_a = pack_ai_order_payload(
@@ -1022,6 +1191,11 @@ pub fn tick_shard<const FB: usize>(
         if samples > 0 {
             stats.visible_ratio_q16 =
                 ((visible.saturating_mul(65_536) / samples).min(u32::MAX as u64)) as u32;
+            let contact_bonus = (stats.visible_contacts.min(512) as u64) << 6;
+            let base = stats.visible_ratio_q16 as u64;
+            stats.threat_pressure_q16 = base
+                .saturating_add(contact_bonus)
+                .min(u32::MAX as u64) as u32;
         }
     }
     if let Some(structs) = structures_opt {
@@ -1043,13 +1217,34 @@ pub fn tick_shard<const FB: usize>(
             stats.province_infra_avg_q16 = (infra_sum / count).min(u32::MAX as u64) as u32;
             stats.province_resistance_avg_q16 =
                 (resistance_sum / count).min(u32::MAX as u64) as u32;
+            let infra_penalty = (50_000u32.saturating_sub(stats.province_infra_avg_q16)) / 64;
+            let resistance_penalty = stats.province_resistance_avg_q16.saturating_sub(20_000) / 64;
+            let provincial_penalty =
+                infra_penalty.saturating_add(resistance_penalty).min(65_536);
+            if provincial_penalty > 0 {
+                stats.command_stress_q16 =
+                    stats.command_stress_q16.max(provincial_penalty.min(65_536));
+                if stats.courier_eta_ticks > 0 {
+                    let scale =
+                        65_536u64.saturating_add(provincial_penalty.min(20_000) as u64);
+                    stats.courier_eta_ticks =
+                        ((stats.courier_eta_ticks as u64 * scale) / 65_536)
+                            .min(u32::MAX as u64) as u32;
+                }
+            }
         }
     }
 
     let mut supply_pressure_sum = 0u64;
     let mut supply_fatigue_sum = 0u64;
     let mut supply_count = 0u32;
+    let mut supply_throughput_sum = 0u64;
+    let mut supply_command_penalty_sum = 0u64;
+    let mut supply_disruption_events = 0u32;
+    let mut supply_attrition_events = 0u32;
     if let Some(snap) = supply {
+        supply_disruption_events = snap.disruption_events;
+        supply_attrition_events = snap.attrition_events;
         for (idx, formation) in formations.iter().enumerate() {
             if let Some(&fatigue_q16) = snap.fatigue_penalty_q16.get(idx) {
                 if fatigue_q16 > 0 {
@@ -1071,6 +1266,13 @@ pub fn tick_shard<const FB: usize>(
             }
             if let Some(&f) = snap.fatigue_penalty_q16.get(idx) {
                 supply_fatigue_sum = supply_fatigue_sum.saturating_add(f as u64);
+            }
+            if let Some(&t) = snap.throughput_q16.get(idx) {
+                supply_throughput_sum = supply_throughput_sum.saturating_add(t as u64);
+            }
+            if let Some(&penalty) = snap.command_delay_penalty_ticks.get(idx) {
+                supply_command_penalty_sum =
+                    supply_command_penalty_sum.saturating_add(penalty as u64);
             }
             supply_count = supply_count.saturating_add(1);
         }
@@ -1139,6 +1341,14 @@ pub fn tick_shard<const FB: usize>(
                 }
             }
         }
+        if let Some(snap) = supply {
+            if let Some(pen) = snap
+                .command_delay_penalty_ticks
+                .get(order.formation_id as usize)
+            {
+                delay_ticks = delay_ticks.saturating_add(*pen as u32);
+            }
+        }
         if delay_ticks > 0 {
             if let Some(buffer) = command_delays {
                 let ready_tick = tick.saturating_add(delay_ticks as u64);
@@ -1153,6 +1363,49 @@ pub fn tick_shard<const FB: usize>(
             }
         }
         ready_orders.push(order);
+    }
+
+    // Fairness: round-robin across formation buckets, rotated by tick+shard for determinism.
+    if !ready_orders.is_empty() {
+        let mut buckets: BTreeMap<u32, VecDeque<OrderData>> = BTreeMap::new();
+        for order in ready_orders.drain(..) {
+            buckets.entry(order.formation_id).or_default().push_back(order);
+        }
+        let mut formation_ids: Vec<u32> = buckets.keys().copied().collect();
+        if !formation_ids.is_empty() {
+            let offset = ((tick as usize).wrapping_add(shard_id)) % formation_ids.len();
+            formation_ids.rotate_left(offset);
+        }
+        let mut fair = Vec::with_capacity(
+            buckets.values().map(|v| v.len()).sum(),
+        );
+        loop {
+            let mut progressed = false;
+            for fid in formation_ids.iter() {
+                if let Some(queue) = buckets.get_mut(fid) {
+                    if let Some(order) = queue.pop_front() {
+                        fair.push(order);
+                        progressed = true;
+                    }
+                }
+            }
+            if !progressed {
+                break;
+            }
+        }
+        ready_orders = fair;
+    }
+
+    // Ops guardrail: hard-cap processed orders to avoid runaway backpressure.
+    if ready_orders.len() > OPS_BACKPRESSURE_HARD as usize {
+        let drops = ready_orders
+            .len()
+            .saturating_sub(OPS_BACKPRESSURE_HARD as usize);
+        stats.ops_backpressure_q16 = stats.ops_backpressure_q16.max(65_536);
+        stats.command_stress_q16 = stats.command_stress_q16.max(65_536);
+        stats.ops_backpressure_drops = drops.min(u32::MAX as usize) as u32;
+        stats.ops_congestion_bucket = OPS_CONGEST_THRESHOLDS.len().saturating_sub(1) as u8;
+        ready_orders.truncate(OPS_BACKPRESSURE_HARD as usize);
     }
 
     for order in ready_orders {
@@ -1175,6 +1428,7 @@ pub fn tick_shard<const FB: usize>(
                 terrain,
                 grenades,
                 structures_opt,
+                siege,
                 garrisons,
                 fire_doctrine,
                 stats.processed_orders as u32,
@@ -1197,16 +1451,55 @@ pub fn tick_shard<const FB: usize>(
         }
     }
 
+    // Ops guardrail: backpressure when order rate exceeds soft cap; surfaces on overlays.
+    if stats.processed_orders > 0 {
+        let capped = stats
+            .processed_orders
+            .min(OPS_BACKPRESSURE_HARD as u64) as u32;
+        let rate_q16 = ((capped as u64 * 65_536) / OPS_BACKPRESSURE_SOFT.max(1) as u64)
+            .min(u32::MAX as u64) as u32;
+        stats.ops_backpressure_q16 = rate_q16.saturating_sub(65_536);
+        stats.command_stress_q16 = stats.command_stress_q16.max(rate_q16.min(65_536));
+    }
+
     if supply_count > 0 {
         stats.supply_pressure_avg_q16 =
             (supply_pressure_sum / supply_count as u64).min(u32::MAX as u64) as u32;
         stats.supply_fatigue_penalty_avg_q16 =
             (supply_fatigue_sum / supply_count as u64).min(u32::MAX as u64) as u32;
+        stats.supply_throughput_avg_q16 =
+            (supply_throughput_sum / supply_count as u64).min(u32::MAX as u64) as u32;
+        stats.supply_command_delay_penalty_avg_ticks =
+            (supply_command_penalty_sum / supply_count as u64).min(u32::MAX as u64) as u32;
+        stats.supply_disruptions = supply_disruption_events;
+        stats.supply_attrition_events = supply_attrition_events;
+        if supply_disruption_events >= 3 {
+            stats.supply_route_cuts = 1;
+            stats.command_stress_q16 = stats.command_stress_q16.max(55_000);
+            if stats.courier_eta_ticks > 0 {
+                let scale = 72_000u64;
+                stats.courier_eta_ticks =
+                    ((stats.courier_eta_ticks as u64 * scale) / 65_536)
+                        .min(u32::MAX as u64) as u32;
+            }
+        }
         telemetry.log_supply_stats(
             stats.supply_pressure_avg_q16,
             stats.supply_fatigue_penalty_avg_q16,
             supply_count,
         );
+        if supply_disruption_events > 0 {
+            let disruption_penalty_q16 =
+                ((supply_disruption_events.min(32) as u64 * 2_048).min(u32::MAX as u64)) as u32;
+            stats.command_stress_q16 =
+                stats.command_stress_q16.max(disruption_penalty_q16.min(65_536));
+            if stats.courier_eta_ticks > 0 {
+                let scale = 65_536u64.saturating_add(disruption_penalty_q16.min(20_000) as u64);
+                stats.courier_eta_ticks =
+                    ((stats.courier_eta_ticks as u64 * scale) / 65_536)
+                        .min(u32::MAX as u64) as u32;
+            }
+        }
     }
 
     if let Some(snap) = supply {
@@ -1226,6 +1519,23 @@ pub fn tick_shard<const FB: usize>(
                 (25_000u32.saturating_sub(snap.avg_pressure_q16) / 128).saturating_add(4);
         }
     }
+
+    if let Some(siege_capsule) = siege {
+        if let Some(siege_snap) = siege_capsule.capture_tick_snapshot(tick) {
+            stats.siege_integrity_avg_q16 = siege_snap.integrity_avg_q16;
+            stats.siege_breach_progress_avg_q16 = siege_snap.breach_progress_avg_q16;
+            stats.siege_breach_events = siege_snap.breach_events;
+            stats.siege_repair_events = siege_snap.repair_events;
+            stats.siege_sections_sampled = siege_snap.sections_sampled;
+        }
+        if let Some(payload) = siege_capsule.take_event_payload() {
+            stats.siege_event_payload = payload;
+        }
+    }
+
+    // Derive latency buckets for overlays/debugging.
+    stats.command_delay_p95_bucket = p95_bucket(&stats.command_delay_hist);
+    stats.courier_eta_p95_bucket = p95_bucket(&stats.courier_eta_hist);
 
     let _ = shard_id;
     stats
@@ -1269,6 +1579,7 @@ fn apply_order_with_breaks<const FB: usize>(
     terrain: Option<&crate::terrain::TerrainGridCapsule>,
     grenades: Option<&crate::grenade::GrenadeCapsule>,
     structures: Option<&[StructureCapsule]>,
+    siege: Option<&crate::siege::SiegeCapsule>,
     garrisons: Option<&crate::garrison::GarrisonSlabCapsule>,
     fire_doctrine: Option<&FireDoctrineCapsule>,
     sim_tick: u32,
@@ -1495,6 +1806,7 @@ fn apply_order_with_breaks<const FB: usize>(
                     t,
                     b,
                     structures,
+                    siege,
                     telemetry,
                     p,
                     target_snap.as_ref(),
@@ -1559,6 +1871,7 @@ pub struct ShardContext<'a, const FB: usize> {
     pub terrain: Option<&'a crate::terrain::TerrainGridCapsule>,
     pub grenades: Option<&'a crate::grenade::GrenadeCapsule>,
     pub structures: Option<&'a [StructureCapsule]>,
+    pub siege: Option<&'a crate::siege::SiegeCapsule>,
     pub garrisons: Option<&'a crate::garrison::GarrisonSlabCapsule>,
     pub supply: Option<&'a SupplySnapshot>,
     pub courier: Option<&'a CourierCapsule>,
@@ -1585,6 +1898,7 @@ pub fn make_shard_context<'a, const FB: usize>(
     terrain: Option<&'a crate::terrain::TerrainGridCapsule>,
     grenades: Option<&'a crate::grenade::GrenadeCapsule>,
     structures: Option<&'a [StructureCapsule]>,
+    siege: Option<&'a crate::siege::SiegeCapsule>,
     garrisons: Option<&'a crate::garrison::GarrisonSlabCapsule>,
     supply: Option<&'a SupplySnapshot>,
     courier: Option<&'a CourierCapsule>,
@@ -1609,6 +1923,7 @@ pub fn make_shard_context<'a, const FB: usize>(
         terrain,
         grenades,
         structures,
+        siege,
         garrisons,
         supply,
         courier,
@@ -1643,6 +1958,7 @@ pub fn tick_world<const FB: usize>(
             shard.terrain,
             shard.grenades,
             shard.structures,
+            shard.siege,
             shard.garrisons,
             shard.supply,
             shard.courier,
@@ -1698,12 +2014,25 @@ impl SchedulerCapsule {
         for (ov, st) in render.overlays.iter_mut().zip(stats.iter()) {
             ov.supply_pressure_avg_q16 = st.supply_pressure_avg_q16;
             ov.supply_fatigue_penalty_avg_q16 = st.supply_fatigue_penalty_avg_q16;
+            ov.supply_throughput_avg_q16 = st.supply_throughput_avg_q16;
+            ov.supply_disruptions = st.supply_disruptions;
+            ov.supply_attrition_events = st.supply_attrition_events;
+            ov.supply_route_cuts = st.supply_route_cuts;
+            ov.supply_command_delay_penalty_avg_ticks =
+                st.supply_command_delay_penalty_avg_ticks;
             ov.province_infra_avg_q16 = st.province_infra_avg_q16;
             ov.province_resistance_avg_q16 = st.province_resistance_avg_q16;
             ov.command_stress_q16 = st.command_stress_q16;
             ov.courier_eta_ticks = st.courier_eta_ticks;
             ov.courier_losses = st.courier_losses;
             ov.courier_spoofed = st.courier_spoofed;
+                ov.courier_reliability_q16 = st.courier_reliability_q16;
+                ov.ops_backpressure_q16 = st.ops_backpressure_q16;
+                ov.ops_backpressure_drops = st.ops_backpressure_drops;
+                ov.ops_congestion_bucket = st.ops_congestion_bucket;
+                ov.command_delay_p95_bucket = st.command_delay_p95_bucket;
+                ov.courier_eta_p95_bucket = st.courier_eta_p95_bucket;
+                ov.threat_pressure_q16 = st.threat_pressure_q16;
             ov.command_delay_applied = st.command_delay_applied;
             ov.command_delay_total_ticks = st.command_delay_total_ticks;
             ov.avg_garrison_aperture_width_q16 = st.avg_garrison_aperture_width_q16;
@@ -1728,6 +2057,11 @@ impl SchedulerCapsule {
             ov.doctrine_sets = st.doctrine_sets;
             ov.strategic_hash_chain = st.strategic_hash_chain;
             ov.strategic_prev_hash_chain = st.strategic_prev_hash_chain;
+            ov.ai_threat_x_tile = st.ai_threat_x_tile;
+            ov.ai_threat_z_tile = st.ai_threat_z_tile;
+            ov.ai_dominant_stance = st.ai_dominant_stance;
+            ov.ai_doctrine_mode = st.ai_doctrine_mode;
+            ov.ai_generation_lsb = st.ai_generation_lsb;
         }
         self.last_tick.store(tick, Ordering::Release);
         Ok((tick, stats, render, rng_head))
@@ -1810,6 +2144,12 @@ impl WorldLoopCapsule {
         let mut supply_pressure_sum = 0u64;
         let mut supply_fatigue_sum = 0u64;
         let mut supply_samples = 0u64;
+        let mut supply_throughput_sum = 0u64;
+        let mut supply_command_penalty_sum = 0u64;
+        let mut supply_weight = 0u64;
+        let mut supply_disruptions = 0u64;
+        let mut supply_attrition_events = 0u64;
+        let mut supply_route_cuts = 0u64;
         let mut command_stress_sum_q16 = 0u64;
         let mut command_samples = 0u64;
         let mut courier_eta_sum = 0u64;
@@ -1818,10 +2158,16 @@ impl WorldLoopCapsule {
         let mut courier_eta_hist = [0u64; COMMAND_HIST_BUCKETS];
         let mut command_delay_applied = 0u64;
         let mut command_delay_total_ticks = 0u64;
+        let mut ops_congestion_bucket_max = 0u8;
         let mut fog_visible_contacts = 0u64;
         let mut fog_visible_samples = 0u64;
         let mut courier_losses = 0u64;
         let mut courier_spoofed = 0u64;
+        let mut courier_reliability_sum_q16 = 0u64;
+        let mut courier_reliability_samples = 0u64;
+        let mut ops_backpressure_sum_q16 = 0u64;
+        let mut ops_backpressure_samples = 0u64;
+        let mut ops_backpressure_drops = 0u64;
         let mut artillery_ricochet_bounces = 0u64;
         let mut artillery_crater_radius_tiles = 0u64;
         let mut artillery_fuse_ms = 0u64;
@@ -1832,6 +2178,11 @@ impl WorldLoopCapsule {
         let mut aperture_samples = 0u64;
         let mut aperture_min_q16 = u32::MAX;
         let mut aperture_max_q16 = 0u32;
+        let mut siege_integrity_sum_q16 = 0u64;
+        let mut siege_progress_sum_q16 = 0u64;
+        let mut siege_samples = 0u64;
+        let mut siege_breach_events = 0u64;
+        let mut siege_repair_events = 0u64;
         let mut grenade_casualties = 0u64;
         let mut grenade_cover_q16 = 0u32;
         let mut grenade_detonation_ms = 0u32;
@@ -1863,6 +2214,22 @@ impl WorldLoopCapsule {
                 supply_pressure_sum.saturating_add(snap.supply_pressure_accum_q16);
             supply_fatigue_sum = supply_fatigue_sum.saturating_add(snap.supply_fatigue_accum_q16);
             supply_samples = supply_samples.saturating_add(snap.supply_samples);
+            let shard_weight = shard.formations.len().max(1) as u64;
+            supply_throughput_sum = supply_throughput_sum
+                .saturating_add(
+                    shard_stats.supply_throughput_avg_q16 as u64 * shard_weight,
+                );
+            supply_command_penalty_sum = supply_command_penalty_sum
+                .saturating_add(
+                    shard_stats.supply_command_delay_penalty_avg_ticks as u64 * shard_weight,
+                );
+            supply_weight = supply_weight.saturating_add(shard_weight);
+            supply_disruptions =
+                supply_disruptions.saturating_add(shard_stats.supply_disruptions as u64);
+            supply_attrition_events = supply_attrition_events
+                .saturating_add(shard_stats.supply_attrition_events as u64);
+            supply_route_cuts =
+                supply_route_cuts.saturating_add(shard_stats.supply_route_cuts as u64);
             if shard_stats.command_stress_q16 > 0 {
                 command_stress_sum_q16 =
                     command_stress_sum_q16.saturating_add(shard_stats.command_stress_q16 as u64);
@@ -1890,6 +2257,21 @@ impl WorldLoopCapsule {
                 fog_visible_samples.saturating_add(shard_stats.visible_samples as u64);
             courier_losses = courier_losses.saturating_add(shard_stats.courier_losses as u64);
             courier_spoofed = courier_spoofed.saturating_add(shard_stats.courier_spoofed as u64);
+            if shard_stats.courier_reliability_q16 > 0 {
+                courier_reliability_sum_q16 = courier_reliability_sum_q16
+                    .saturating_add(shard_stats.courier_reliability_q16 as u64);
+                courier_reliability_samples =
+                    courier_reliability_samples.saturating_add(1);
+            }
+            if shard_stats.ops_backpressure_q16 > 0 {
+                ops_backpressure_sum_q16 = ops_backpressure_sum_q16
+                    .saturating_add(shard_stats.ops_backpressure_q16 as u64);
+                ops_backpressure_samples = ops_backpressure_samples.saturating_add(1);
+            }
+            ops_backpressure_drops =
+                ops_backpressure_drops.saturating_add(shard_stats.ops_backpressure_drops as u64);
+            ops_congestion_bucket_max =
+                ops_congestion_bucket_max.max(shard_stats.ops_congestion_bucket);
             artillery_ricochet_bounces = artillery_ricochet_bounces
                 .saturating_add(shard_stats.artillery_ricochet_bounces as u64);
             artillery_crater_radius_tiles =
@@ -1909,6 +2291,18 @@ impl WorldLoopCapsule {
                     aperture_min_q16.min(shard_stats.min_garrison_aperture_width_q16);
             }
             aperture_max_q16 = aperture_max_q16.max(shard_stats.max_garrison_aperture_width_q16);
+            if shard_stats.siege_integrity_avg_q16 > 0 || shard_stats.siege_sections_sampled > 0 {
+                siege_integrity_sum_q16 = siege_integrity_sum_q16
+                    .saturating_add(shard_stats.siege_integrity_avg_q16 as u64);
+                siege_progress_sum_q16 = siege_progress_sum_q16
+                    .saturating_add(shard_stats.siege_breach_progress_avg_q16 as u64);
+                siege_samples =
+                    siege_samples.saturating_add(shard_stats.siege_sections_sampled as u64);
+                siege_breach_events =
+                    siege_breach_events.saturating_add(shard_stats.siege_breach_events as u64);
+                siege_repair_events =
+                    siege_repair_events.saturating_add(shard_stats.siege_repair_events as u64);
+            }
             grenade_casualties =
                 grenade_casualties.saturating_add(shard_stats.grenade_casualties as u64);
             if shard_stats.grenade_casualties > 0 {
@@ -2004,6 +2398,31 @@ impl WorldLoopCapsule {
         } else {
             0
         };
+        let avg_supply_throughput_q16 = if supply_weight > 0 {
+            (supply_throughput_sum / supply_weight)
+                .min(u32::MAX as u64) as u32
+        } else {
+            0
+        };
+        let avg_supply_command_delay_penalty_ticks = if supply_weight > 0 {
+            (supply_command_penalty_sum / supply_weight)
+                .min(u32::MAX as u64) as u32
+        } else {
+            0
+        };
+        let avg_ops_backpressure_q16 = if ops_backpressure_samples > 0 {
+            (ops_backpressure_sum_q16 / ops_backpressure_samples)
+                .min(u32::MAX as u64) as u32
+        } else {
+            0
+        };
+        let ops_backpressure_drops = ops_backpressure_drops.min(u32::MAX as u64) as u32;
+        let avg_courier_reliability_q16 = if courier_reliability_samples > 0 {
+            (courier_reliability_sum_q16 / courier_reliability_samples)
+                .min(u32::MAX as u64) as u32
+        } else {
+            0
+        };
         let avg_province_infra_q16 = if province_samples > 0 {
             (province_infra_sum_q16 / province_samples)
                 .min(u32::MAX as u64) as u32
@@ -2081,6 +2500,15 @@ impl WorldLoopCapsule {
             command_delay_hist.map(|v| v.min(u32::MAX as u64) as u32);
         let courier_eta_hist_u32 =
             courier_eta_hist.map(|v| v.min(u32::MAX as u64) as u32);
+        let command_delay_p95_bucket = p95_bucket(&command_delay_hist_u32);
+        let courier_eta_p95_bucket = p95_bucket(&courier_eta_hist_u32);
+        let threat_pressure_q16 = if fog_visible_samples > 0 {
+            let base = fog_visible_ratio_q16 as u64;
+            let contact_bonus = (fog_visible_contacts.min(512) as u64) << 6;
+            base.saturating_add(contact_bonus).min(u32::MAX as u64) as u32
+        } else {
+            0
+        };
         Ok(WorldFrame {
             tick,
             stats,
@@ -2092,12 +2520,23 @@ impl WorldLoopCapsule {
             shock_weight_delta_q16,
             supply_pressure_avg_q16: avg_supply_pressure_q16,
             supply_fatigue_penalty_avg_q16: avg_supply_fatigue_q16,
+            supply_throughput_avg_q16: avg_supply_throughput_q16,
+            supply_disruptions: supply_disruptions.min(u32::MAX as u64) as u32,
+            supply_attrition_events: supply_attrition_events.min(u32::MAX as u64) as u32,
+            supply_route_cuts: supply_route_cuts.min(u32::MAX as u64) as u32,
+            supply_command_delay_penalty_avg_ticks: avg_supply_command_delay_penalty_ticks,
             province_infra_avg_q16: avg_province_infra_q16,
             province_resistance_avg_q16: avg_province_resistance_q16,
             command_stress_avg_q16: avg_command_stress_q16,
             courier_eta_avg_ticks: avg_courier_eta_ticks,
+            ops_backpressure_avg_q16: avg_ops_backpressure_q16,
+            ops_backpressure_drops,
+            ops_congestion_bucket_max,
+            courier_reliability_avg_q16: avg_courier_reliability_q16,
             command_delay_hist: command_delay_hist_u32,
             courier_eta_hist: courier_eta_hist_u32,
+            command_delay_p95_bucket,
+            courier_eta_p95_bucket,
             command_delay_applied: command_delay_applied.min(u32::MAX as u64) as u32,
             command_delay_avg_ticks: avg_command_delay_ticks,
             courier_losses,
@@ -2119,6 +2558,21 @@ impl WorldLoopCapsule {
                 aperture_min_q16
             },
             max_garrison_aperture_width_q16: aperture_max_q16,
+            siege_integrity_avg_q16: if siege_samples > 0 {
+                (siege_integrity_sum_q16 / siege_samples)
+                    .min(u32::MAX as u64) as u32
+            } else {
+                0
+            },
+            siege_breach_progress_avg_q16: if siege_samples > 0 {
+                (siege_progress_sum_q16 / siege_samples)
+                    .min(u32::MAX as u64) as u32
+            } else {
+                0
+            },
+            siege_breach_events: siege_breach_events.min(u32::MAX as u64) as u32,
+            siege_repair_events: siege_repair_events.min(u32::MAX as u64) as u32,
+            siege_sections_sampled: siege_samples.min(u32::MAX as u64) as u32,
             grenade_casualties,
             grenade_cover_q16,
             grenade_detonation_ms,
@@ -2138,6 +2592,7 @@ impl WorldLoopCapsule {
             last_doctrine_cadence_ticks,
             fog_visible_contacts: fog_visible_contacts.min(u32::MAX as u64) as u32,
             fog_visible_ratio_q16,
+            threat_pressure_q16,
             strategic_hash_chain,
             strategic_prev_hash_chain,
         })
@@ -2174,6 +2629,38 @@ impl WorldLoopCapsule {
             );
             let _ = replay_log.record(frame.tick, supply_payload);
         }
+        if frame.supply_throughput_avg_q16 > 0
+            || frame.supply_disruptions > 0
+            || frame.supply_command_delay_penalty_avg_ticks > 0
+        {
+            let payload = crate::replay::encode_logistics_replay_payload(
+                frame.supply_throughput_avg_q16,
+                frame.supply_command_delay_penalty_avg_ticks,
+                frame.supply_disruptions as u32,
+                frame.supply_attrition_events as u32,
+            );
+            let _ = replay_log.record(frame.tick, payload);
+        }
+        if frame.supply_route_cuts > 0 {
+            let payload = crate::replay::encode_supply_route_cut(frame.supply_route_cuts);
+            let _ = replay_log.record(frame.tick, payload);
+        }
+        if frame.ops_backpressure_avg_q16 > 0 || frame.courier_reliability_avg_q16 > 0 {
+            let payload = crate::replay::encode_ops_guard_payload(
+                frame.ops_backpressure_avg_q16,
+                frame.courier_reliability_avg_q16,
+            );
+            let _ = replay_log.record(frame.tick, payload);
+        }
+        if frame.ops_backpressure_drops > 0 {
+            let payload =
+                crate::replay::encode_ops_backpressure_drops(frame.ops_backpressure_drops);
+            let _ = replay_log.record(frame.tick, payload);
+        }
+        if frame.ops_congestion_bucket_max > 0 {
+            let payload = crate::replay::encode_ops_congestion(frame.ops_congestion_bucket_max);
+            let _ = replay_log.record(frame.tick, payload);
+        }
         if frame.command_stress_avg_q16 > 0
             || frame.courier_eta_avg_ticks > 0
             || frame.courier_losses > 0
@@ -2194,6 +2681,11 @@ impl WorldLoopCapsule {
             );
             let _ = replay_log.record(frame.tick, payload);
         }
+        if frame.command_delay_p95_bucket > 0 {
+            let payload =
+                crate::replay::encode_command_delay_p95(frame.command_delay_p95_bucket);
+            let _ = replay_log.record(frame.tick, payload);
+        }
         if frame.command_delay_hist.iter().any(|&v| v > 0) {
             let chunk0 =
                 crate::replay::encode_command_delay_hist_payload(0, &frame.command_delay_hist[0..4]);
@@ -2201,6 +2693,10 @@ impl WorldLoopCapsule {
                 crate::replay::encode_command_delay_hist_payload(1, &frame.command_delay_hist[4..8]);
             let _ = replay_log.record(frame.tick, chunk0);
             let _ = replay_log.record(frame.tick, chunk1);
+        }
+        if frame.courier_eta_p95_bucket > 0 {
+            let payload = crate::replay::encode_courier_eta_p95(frame.courier_eta_p95_bucket);
+            let _ = replay_log.record(frame.tick, payload);
         }
         if frame.courier_eta_hist.iter().any(|&v| v > 0) {
             let chunk0 =
@@ -2235,6 +2731,18 @@ impl WorldLoopCapsule {
             let payload = crate::replay::encode_garrison_aperture_detail_payload(
                 frame.min_garrison_aperture_width_q16,
                 frame.max_garrison_aperture_width_q16,
+            );
+            let _ = replay_log.record(frame.tick, payload);
+        }
+        if frame.siege_integrity_avg_q16 > 0
+            || frame.siege_breach_events > 0
+            || frame.siege_repair_events > 0
+        {
+            let payload = crate::replay::encode_siege_replay_payload(
+                frame.siege_integrity_avg_q16,
+                frame.siege_breach_events as u32,
+                frame.siege_repair_events as u32,
+                frame.siege_breach_progress_avg_q16,
             );
             let _ = replay_log.record(frame.tick, payload);
         }
@@ -2277,6 +2785,12 @@ impl WorldLoopCapsule {
             let _ = replay_log.record(frame.tick, payload);
         }
         for shard_stats in &frame.stats {
+            if shard_stats.siege_event_payload != 0 {
+                let _ = replay_log.record(frame.tick, shard_stats.siege_event_payload);
+            }
+            if shard_stats.ai_intent_payload != 0 {
+                let _ = replay_log.record(frame.tick, shard_stats.ai_intent_payload);
+            }
             if shard_stats.ai_replay_len == 0 {
                 continue;
             }
@@ -2292,6 +2806,8 @@ impl WorldLoopCapsule {
             for ev in &strat.events {
                 let payload = crate::replay::encode_strategic_event_payload(ev);
                 let _ = replay_log.record(frame.tick, payload);
+                let meta = crate::replay::encode_strategic_event_meta(ev);
+                let _ = replay_log.record(frame.tick, meta);
             }
         }
         Ok(frame)
@@ -2342,12 +2858,23 @@ pub struct WorldFrame<'a> {
     pub shock_weight_delta_q16: u64,
     pub supply_pressure_avg_q16: u32,
     pub supply_fatigue_penalty_avg_q16: u32,
+    pub supply_throughput_avg_q16: u32,
+    pub supply_disruptions: u32,
+    pub supply_attrition_events: u32,
+    pub supply_route_cuts: u32,
+    pub supply_command_delay_penalty_avg_ticks: u32,
     pub province_infra_avg_q16: u32,
     pub province_resistance_avg_q16: u32,
     pub command_stress_avg_q16: u32,
     pub courier_eta_avg_ticks: u32,
+    pub ops_backpressure_avg_q16: u32,
+    pub ops_backpressure_drops: u32,
+    pub ops_congestion_bucket_max: u8,
+    pub courier_reliability_avg_q16: u32,
     pub command_delay_hist: [u32; COMMAND_HIST_BUCKETS],
     pub courier_eta_hist: [u32; COMMAND_HIST_BUCKETS],
+    pub command_delay_p95_bucket: u8,
+    pub courier_eta_p95_bucket: u8,
     pub command_delay_applied: u32,
     pub command_delay_avg_ticks: u32,
     pub courier_losses: u64,
@@ -2361,6 +2888,11 @@ pub struct WorldFrame<'a> {
     pub avg_garrison_aperture_width_q16: u32,
     pub min_garrison_aperture_width_q16: u32,
     pub max_garrison_aperture_width_q16: u32,
+    pub siege_integrity_avg_q16: u32,
+    pub siege_breach_progress_avg_q16: u32,
+    pub siege_breach_events: u32,
+    pub siege_repair_events: u32,
+    pub siege_sections_sampled: u32,
     pub grenade_casualties: u64,
     pub grenade_cover_q16: u32,
     pub grenade_detonation_ms: u32,
@@ -2380,6 +2912,7 @@ pub struct WorldFrame<'a> {
     pub last_doctrine_cadence_ticks: u16,
     pub fog_visible_contacts: u32,
     pub fog_visible_ratio_q16: u32,
+    pub threat_pressure_q16: u32,
     pub strategic_hash_chain: u64,
     pub strategic_prev_hash_chain: u64,
 }
@@ -2435,6 +2968,7 @@ mod tests {
             None, // terrain
             None, // grenades
             None, // structures
+            None, // siege
             None, // garrisons
             None, // supply
             None, // courier
@@ -2477,6 +3011,7 @@ mod tests {
             None, // terrain
             None, // grenades
             None, // structures
+            None, // siege
             None, // garrisons
             Some(&supply_snap), // supply
             None, // courier
@@ -2517,6 +3052,7 @@ mod tests {
                 &formations,
                 &pathings,
                 &telemetry,
+                None,
                 None,
                 None,
                 None,
@@ -2583,6 +3119,7 @@ mod tests {
             None, // terrain
             None, // grenades
             None, // structures
+            None, // siege
             None, // garrisons
             Some(&strat_snap.supply), // supply
             None, // courier
@@ -2635,6 +3172,7 @@ mod tests {
             None, // terrain
             None, // grenades
             None, // structures
+            None, // siege
             None, // garrisons
             None, // supply
             None, // courier
@@ -2688,6 +3226,7 @@ mod tests {
             terrain: None,
             grenades: None,
             structures: None,
+            siege: None,
             garrisons: None,
             supply: None,
             courier: None,
@@ -2761,6 +3300,7 @@ mod tests {
             terrain: None,
             grenades: None,
             structures: None,
+            siege: None,
             garrisons: None,
             supply: None,
             courier: None,
@@ -2785,6 +3325,7 @@ mod tests {
             terrain: None,
             grenades: None,
             structures: None,
+            siege: None,
             garrisons: None,
             supply: None,
             courier: None,
@@ -2879,6 +3420,7 @@ mod tests {
             terrain: None,
             grenades: None,
             structures: None,
+            siege: None,
             garrisons: None,
             supply: None,
             courier: None,
@@ -2930,6 +3472,7 @@ mod tests {
             terrain: None,
             grenades: None,
             structures: None,
+            siege: None,
             garrisons: None,
             supply: None,
             courier: None,
@@ -2985,6 +3528,7 @@ mod tests {
             terrain: None,
             grenades: None,
             structures: None,
+            siege: None,
             garrisons: None,
             supply: None,
             courier: None,
@@ -3045,6 +3589,7 @@ mod tests {
             terrain: None,
             grenades: None,
             structures: None,
+            siege: None,
             garrisons: None,
             supply: None,
             courier: None,
@@ -3086,8 +3631,10 @@ mod tests {
                 &mut snapshot_mmap,
                 &formations,
                 &[],
+                None,
                 &orders,
                 &telemetry,
+                None,
                 None,
                 None,
                 None,

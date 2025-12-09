@@ -74,6 +74,14 @@ pub use memory::{
     MemoryReaderCapsule, MemoryReaderStats, MemoryReadError,
 };
 
+// ✅ PHASE 9 IMPLEMENTED: IsolationCapsule (Multi-tenant security)
+pub mod isolation;
+pub use isolation::{validate_attach_permission, IsolationError};
+
+// ✅ PHASE 10 IMPLEMENTED: HeapSnapshotCapsule (T9 Persistent mmap-backed)
+pub mod heap_snapshot;
+pub use heap_snapshot::{HeapSnapshotCapsule, HeapMetadata, SnapshotError};
+
 // Future capsules (Phases 2-3)
 // pub mod wrapper;
 // pub mod breakpoint;

@@ -36,7 +36,7 @@ This skill **automatically activates** when you ask about:
 - "ASSUM safety" → `//framework[@id='ASSUM']`
 - "I20 integration" → `//framework[@id='I20']`
 - "Q12 optimization" → `//framework[@id='Q12']`
-- "COCA definition" → `//mandatory-capsule-architecture`
+- "Chaos definition" → `//mandatory-capsule-architecture`
 
 ### Tier Selection
 - "Which tier should I use?" → `//tier` + `//tier-applicability`
@@ -165,14 +165,14 @@ xpath_query '//tier[@id="tier-t2"]/@speedup'
 
 Instant answer: "T2 SIMD achieves 2-19× speedup on vectorizable workloads."
 
-### Scenario 3: User asks "Explain COCA"
+### Scenario 3: User asks "Explain Chaos"
 
 ```bash
 xpath_query '//shorthand-reference/coca'
-# Returns COCA definition + references in <100ns
+# Returns Chaos definition + references in <100ns
 ```
 
-Answers with: COCA definition + key innovation links
+Answers with: Chaos definition + key innovation links
 
 ## Performance Guarantees
 
@@ -258,7 +258,7 @@ xpath_query --document claude-v6 --cache-policy force-reload
 
 See `/home/samuel/CLAUDE.md` for:
 - **UCE34** (Q1-Q34): Systematic discovery framework
-- **COCA**: Computational Capsule architecture
+- **Chaos**: Computational Capsule architecture
 - **T28**: Testing framework (4 tiers: unit/property/integration/production)
 - **B32**: Benchmarking methodology (95% CI, fair baselines)
 - **ASSUM**: Safety assumptions (99.5%+ target)

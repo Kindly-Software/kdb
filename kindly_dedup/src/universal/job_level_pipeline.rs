@@ -1,6 +1,15 @@
 //! # Job-Level Deduplication Pipeline Meta-Capsule (T6 Mixed)
 //!
 //! High-performance parallel deduplication orchestrator using job-level parallelism.
+//!
+//! # Clippy Suppressions
+//! - `missing_docs`: Internal types have self-documenting names
+//! - `dead_code`: Experimental code for future development
+//! - `unused_results`: Result tracking for debugging
+
+#![allow(missing_docs)]
+#![allow(dead_code)]
+#![allow(unused_must_use)]
 //! This achieves 10-14× speedup @ 16 cores by splitting corpus into independent chunks,
 //! processing them in parallel, and merging results with cross-chunk dedup.
 //!
@@ -47,7 +56,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q1-Q34 complete (T6 Mixed tier selection, Q34 audit trails)
-//! - **COCA**: 100% lockfree (atomic state machine, no mutex)
+//! - **Chaos**: 100% lockfree (atomic state machine, no mutex)
 //! - **ASSUM**: 99.99% safe (job independence, O(1) memory per job)
 //! - **B32**: Fair baselines (10-14× speedup @ 16 cores, Amdahl-validated)
 //! - **T28**: Comprehensive testing (unit/property/integration/production tiers)

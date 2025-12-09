@@ -31,7 +31,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10(T1 Atomic), Q11(Rust zero-copy), Q23(100% lockfree), Q33(verification)
-//! - **COCA**: 100% computational capsule, no mutex/RwLock
+//! - **Chaos**: 100% computational capsule, no mutex/RwLock
 //! - **ASSUM**: 99.99% safe (8 explicit assumptions, all verified)
 //! - **B32**: Fair baseline (tokio::http), <500ns total chain validated
 //! - **T28**: 20+ comprehensive tests (unit/property/integration/production)

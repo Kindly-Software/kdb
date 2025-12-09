@@ -673,4 +673,4 @@ For issues and questions:
 
 **Guide Version**: v1.0
 **Last Updated**: 2025-11-10
-**Framework**: UCE34 + COCA + ASSUM + B32 + T28 + I20
+**Framework**: UCE34 + Chaos + ASSUM + B32 + T28 + I20

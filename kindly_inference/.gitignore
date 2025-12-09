@@ -1,0 +1,55 @@
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# Trade Secret Protection - NEVER commit these
+/src/compression/proprietary/
+/src/multi_model/coordination/
+/src/compliance/q34/
+/proprietary/
+*.proprietary
+*.trade-secret
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+/dist/
+/build/
+/release/
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Model weights (too large for git)
+/models/
+*.safetensors
+*.gguf
+*.bin
+
+# Benchmarks
+/benches/results/
+criterion/
+
+# Testing
+/test-outputs/
+/tmp/
+
+# Documentation build
+/docs/_build/

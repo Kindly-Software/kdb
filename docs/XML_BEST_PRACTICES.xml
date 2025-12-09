@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xml-best-practices version="1.0">
+  <mandate priority="ABSOLUTE">All structured documentation MUST use XML format for optimal LLM parsing</mandate>
+
+  <benefits>
+    <benefit>10-30× faster queries (XPath 5s vs Markdown parsing 30-60s)</benefit>
+    <benefit>100% accuracy via schema validation</benefit>
+    <benefit>Unambiguous structure (no format ambiguity)</benefit>
+    <benefit>Machine-readable (standard parsers: xmllint, XPath, lxml)</benefit>
+    <benefit>Cross-reference integrity (xs:ID/xs:IDREF validation)</benefit>
+  </benefits>
+
+  <token-budgeting>
+    <limit type="safety" tokens="20000" desc="Optimal LLM comprehension"/>
+    <limit type="absolute" tokens="30000" desc="Parser limit"/>
+    <estimation>bytes ÷ 4 ≈ tokens</estimation>
+    <action>Split files exceeding 20K tokens into logical parts</action>
+  </token-budgeting>
+
+  <when-to-use>
+    <use-xml priority="MANDATORY">
+      <case>Architecture specifications (system design, capsule layouts)</case>
+      <case>Deployment procedures (multi-step processes, configurations)</case>
+      <case>API references (commands, parameters, responses)</case>
+      <case>Test reports (framework compliance, metrics)</case>
+      <case>Session summaries (achievements, implementations, frameworks)</case>
+    </use-xml>
+    <use-markdown priority="ACCEPTABLE">
+      <case>README files (project overview, quick start)</case>
+      <case>Philosophy documents (high-level concepts)</case>
+      <case>Changelog/release notes (chronological updates)</case>
+    </use-markdown>
+  </when-to-use>
+
+  <structure-guidelines>
+    <rule>Use attributes for metadata (tier, size, count, status)</rule>
+    <rule>Use elements for content (descriptions, code, data)</rule>
+    <rule>Use CDATA for code blocks (preserves formatting, no escaping)</rule>
+    <rule>Entity-escape HTML symbols (&amp;lt; &amp;gt; &amp;amp;)</rule>
+    <rule>Hierarchical structure (clear parent-child relationships)</rule>
+    <rule>Self-documenting element names (descriptive, no abbreviations)</rule>
+  </structure-guidelines>
+
+  <cdata-usage>
+    <when>Code blocks (Rust, Bash, any programming language)</when>
+    <when>XML-like content (examples, snippets)</when>
+    <when>Preserve exact formatting (whitespace, newlines)</when>
+    <syntax><![CDATA[<code><![CDATA[
+fn main() {
+    println!("Hello, world!");  // No escaping needed
+}
+]]]]><![CDATA[></code>]]></syntax>
+    <note>Double CDATA closing (]]]]+&lt;![CDATA[&gt;) for nested CDATA in examples</note>
+  </cdata-usage>
+
+  <validation-workflow>
+    <step id="1">Create XML with proper namespaces</step>
+    <step id="2">Create XSD schema (optional but recommended)</step>
+    <step id="3">Validate: xmllint --noout --schema schema.xsd file.xml</step>
+    <step id="4">Check tokens: wc -c file.xml, divide by 4, ensure &lt;20K</step>
+    <step id="5">Split if needed (logical parts: part1, part2, etc)</step>
+    <step id="6">Test XPath queries (verify structure queryable)</step>
+  </validation-workflow>
+
+  <xpath-examples>
+    <query desc="Get all CLI commands">xmllint --xpath '//cmd/@name' file.xml</query>
+    <query desc="Get service dependencies">xmllint --xpath '//service/@deps' file.xml</query>
+    <query desc="Get performance metrics">xmllint --xpath '//performance/*/@target' file.xml</query>
+    <query desc="Extract CDATA code">xmllint --xpath '//usage/text()' file.xml</query>
+  </xpath-examples>
+
+  <lean-design-principles>
+    <principle>Minimize redundancy (XPath cross-references, not duplication)</principle>
+    <principle>Concise element names (clear but short: cmd not command-definition)</principle>
+    <principle>Attribute-first (use attributes for simple data, elements for complex)</principle>
+    <principle>Flat when possible (avoid deep nesting beyond 4-5 levels)</principle>
+    <principle>Self-contained sections (each major section independently useful)</principle>
+  </lean-design-principles>
+
+  <example-template><![CDATA[
+<?xml version="1.0" encoding="UTF-8"?>
+<root-element version="1.0" date="2025-11-22">
+  <metadata>
+    <description>Clear description for LLM context</description>
+    <token-count estimate="5000" limit="20000"/>
+  </metadata>
+
+  <section id="overview">
+    <item name="example" tier="T1" size="64B">
+      <description>Item description here</description>
+      <code language="rust"><![CDATA[
+fn example() {
+    // Code with <special> characters
+}
+      ]]]]><![CDATA[></code>
+    </item>
+  </section>
+
+  <commands>
+    <cmd name="deploy" desc="Deploy services">
+      <usage><![CDATA[
+capsule-cli deploy-stack --remote kindly-hub:9000 --config production.yaml
+      ]]]]><![CDATA[></usage>
+    </cmd>
+  </commands>
+</root-element>
+  ]]></example-template>
+
+  <quick-reference-table>
+    <row>
+      <aspect>File size</aspect>
+      <guideline>&lt;80KB (~20K tokens)</guideline>
+      <action>Split if larger</action>
+    </row>
+    <row>
+      <aspect>Nesting depth</aspect>
+      <guideline>&lt;5 levels</guideline>
+      <action>Flatten hierarchy</action>
+    </row>
+    <row>
+      <aspect>Code blocks</aspect>
+      <guideline>Always CDATA</guideline>
+      <action>Use &lt;![CDATA[...]]&gt;</action>
+    </row>
+    <row>
+      <aspect>Validation</aspect>
+      <guideline>xmllint --noout</guideline>
+      <action>Fix syntax errors</action>
+    </row>
+    <row>
+      <aspect>Attributes</aspect>
+      <guideline>Metadata only</guideline>
+      <action>tier, size, count, status</action>
+    </row>
+    <row>
+      <aspect>Elements</aspect>
+      <guideline>Content/structure</guideline>
+      <action>desc, code, usage, steps</action>
+    </row>
+  </quick-reference-table>
+
+  <anti-patterns>
+    <anti-pattern>Deep nesting (>5 levels) → Flatten structure</anti-pattern>
+    <anti-pattern>Large monolithic files (>30K tokens) → Split into parts</anti-pattern>
+    <anti-pattern>Unescaped HTML in text → Use &amp;lt; &amp;gt; or CDATA</anti-pattern>
+    <anti-pattern>Code without CDATA → Always wrap in CDATA</anti-pattern>
+    <anti-pattern>Duplicated data → Use XPath cross-references</anti-pattern>
+  </anti-patterns>
+
+  <tools>
+    <tool name="xmllint">Validation, formatting, XPath queries (libxml2)</tool>
+    <tool name="xmlstarlet">Advanced XML manipulation (edit, transform)</tool>
+    <tool name="xsltproc">XSLT transformations (schema conversion)</tool>
+    <tool name="python-lxml">Programmatic XML processing</tool>
+  </tools>
+
+  <principle>Structure documentation in XML from day one. Schema validation prevents errors. XPath enables automation. Token limits ensure optimal LLM parsing. Cross-references guarantee integrity. Lean and short. No ambiguity. Standard tools. Future-proof.</principle>
+</xml-best-practices>

@@ -1,0 +1,14 @@
+error: Padding fields have incorrect total size
+       Expected: 56 bytes (to reach total size = 64)
+       Got: 48 bytes
+       Current total: 56 bytes
+       Non-padding fields: 8 bytes
+
+       Fix: Adjust padding field(s) to total 56 bytes
+
+       For 1 padding field(s), one common pattern is:
+       _padding: [u8; 56]
+  --> tests/compile_fail/rwlock_field.rs:17:15
+   |
+17 |     _padding: [u8; 48],
+   |               ^^^^^^^^

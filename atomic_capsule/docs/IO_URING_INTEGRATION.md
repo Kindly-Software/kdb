@@ -2,7 +2,7 @@
 
 **Version**: 1.0
 **Status**: Production Ready
-**Framework**: UCE34 + COCA + ASSUM + B32 + T28 + I20
+**Framework**: UCE34 + Chaos + ASSUM + B32 + T28 + I20
 **Date**: November 21, 2025
 
 ## Overview
@@ -280,7 +280,7 @@ Total:                    18 KB
 - **Q33**: Atomic capsule → #[derive(ComputationalCapsule)]
 - **Q34**: Auditability → kernel assumptions documented
 
-### COCA (100% Lockfree)
+### Chaos (100% Lockfree)
 
 - **Zero mutexes**: All coordination via atomics
 - **Cache-aligned**: 256-byte prevent false sharing
@@ -486,4 +486,4 @@ batch.submit_batch(1)?;
 
 **Document Status**: Production Ready
 **Last Updated**: November 21, 2025
-**Framework Compliance**: 100% (UCE34/COCA/ASSUM/B32/T28/I20)
+**Framework Compliance**: 100% (UCE34/Chaos/ASSUM/B32/T28/I20)

@@ -22,7 +22,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 T6 Mixed tier, Q33 lockfree coordination
-//! - **COCA**: 1024B cache-aligned, generation counters, DualAtomicU64
+//! - **Chaos**: 1024B cache-aligned, generation counters, DualAtomicU64
 //! - **ASSUM**: 99.9% safe, all assumptions documented
 //! - **T28**: Integration tests (Q15-Q21)
 //!
@@ -43,8 +43,8 @@
 //! ```
 
 use crate::license::{LicenseError, LicenseVerificationCapsule};
-use super::{EncoderConfig, EncoderWiringCapsule, EncoderSubCapsules, EncoderState};
-use atomic_capsule::encoder::EncoderError;
+use super::{EncoderConfig, EncoderWiringCapsule, EncoderSubCapsules};
+use atomic_capsule::encoder::{EncoderError, EncoderState};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// kindly-av1 CLI metacapsule (T6 Mixed tier).
@@ -116,7 +116,7 @@ pub struct KindlyAv1CliMetacapsule {
     /// All encoder sub-capsules (DCT, quantization, entropy, etc.)
     sub_capsules: EncoderSubCapsules,
 
-    /// Generation counter for COCA compliance
+    /// Generation counter for Chaos compliance
     ///
     /// Incremented on every state change (license activation, initialization).
     /// Used for atomic snapshots and Q34 audit trails.
@@ -400,6 +400,27 @@ impl KindlyAv1CliMetacapsule {
     #[inline]
     pub fn is_initialized(&self) -> bool {
         self.initialized.load(Ordering::Acquire) == 1 && self.license.is_valid()
+    }
+
+    /// Encode a single frame through the complete AV1 pipeline.
+    ///
+    /// This is the primary encoding interface that orchestrates
+    /// wiring capsule and sub-capsules to process a frame.
+    ///
+    /// # Arguments
+    /// - `yuv_data`: Raw YUV 4:2:0 frame data
+    ///
+    /// # Returns
+    /// - Complete OBU-formatted AV1 bitstream for this frame
+    ///
+    /// # Performance
+    /// - 64×64: <200μs
+    /// - 1920×1080: ~20ms
+    ///
+    /// # Wave 5 FIX: Unified encoding interface (avoids borrow conflicts)
+    #[inline]
+    pub fn encode_frame(&mut self, yuv_data: &[u8]) -> Result<Vec<u8>, String> {
+        self.wiring.encode_frame(yuv_data, &mut self.sub_capsules)
     }
 }
 

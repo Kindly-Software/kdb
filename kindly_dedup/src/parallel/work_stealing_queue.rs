@@ -60,7 +60,7 @@
 //! - **Is Empty**: <10ns (Acquire load)
 //! - **Throughput**: 50M+ operations/sec per thread (lockfree)
 //!
-//! ## COCA Compliance
+//! ## Chaos Compliance
 //!
 //! - **100% Lockfree**: No mutex/RwLock, only atomic operations and CAS
 //! - **Cache-aligned**: 128-byte alignment (two cache lines) prevents false sharing
@@ -92,7 +92,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 (T1 Atomic tier selection), Q33 (deterministic queue semantics), Q34 (audit)
-//! - **COCA**: 100% lockfree computational capsule (no mutex/RwLock)
+//! - **Chaos**: 100% lockfree computational capsule (no mutex/RwLock)
 //! - **ASSUM**: 99.99% safe (7 assumptions, all verified)
 //! - **B32**: Fair baselines (push/pop/steal <100ns, verified lockfree)
 //! - **T28**: 4-tier testing (unit/property/integration/production)

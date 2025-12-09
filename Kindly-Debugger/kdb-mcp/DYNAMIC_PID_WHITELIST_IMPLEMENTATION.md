@@ -48,7 +48,7 @@ Implemented a production-ready unlimited PID whitelisting system for atomic_mcp_
 - Q15-Q21: Integration tests (realistic scenarios)
 - Q22-Q28: Production tests (stress, scalability, SLA)
 - All tests follow T28 (4-tier testing framework)
-- Framework compliance: UCE34, COCA, ASSUM, B32, T28, I20
+- Framework compliance: UCE34, Chaos, ASSUM, B32, T28, I20
 
 ### Benchmarks
 **`/home/samuel/Primitives/atomic_mcp_server/benches/b32_dynamic_pid_whitelist.rs`** (250 lines)
@@ -95,7 +95,7 @@ Implemented a production-ready unlimited PID whitelisting system for atomic_mcp_
 
 ## Implementation Highlights
 
-### Lockfree Design (COCA)
+### Lockfree Design (Chaos)
 ```rust
 // Bloom filter: Atomic ORs only (no CAS loops)
 self.bits[idx1].fetch_or(1u64 << bit1, Ordering::Release);
@@ -220,7 +220,7 @@ pub struct PidWhitelistStats {
 
 ## Production Readiness Checklist
 
-- ✅ Full COCA compliance (100% lockfree)
+- ✅ Full Chaos compliance (100% lockfree)
 - ✅ ASSUM safety (10+ tags, 99.99% safe)
 - ✅ UCE34 framework (Q1-Q34 systematic)
 - ✅ T28 testing (28 tests, 4 tiers)

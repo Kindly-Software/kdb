@@ -1,0 +1,67 @@
+app-id: software.kindly.av1
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+command: kindly-av1
+
+finish-args:
+  # Filesystem access
+  - --filesystem=home
+  - --filesystem=/media
+  - --filesystem=/run/media
+  - --filesystem=/mnt
+
+  # GPU access (CRITICAL for AV1 encoding)
+  - --device=dri              # Direct Rendering Infrastructure (Mesa/Vulkan/ROCm)
+  - --device=kvm              # KVM for GPU virtualization (if needed)
+
+  # Display (for potential GUI/progress feedback)
+  - --socket=x11
+  - --socket=wayland
+  - --share=ipc
+
+  # Performance
+  - --share=network           # License validation, telemetry
+  - --socket=pulseaudio       # Audio encoding (future)
+
+  # System integration
+  - --talk-name=org.freedesktop.Flatpak  # Flatpak integration
+
+modules:
+  - name: kindly-av1
+    buildsystem: simple
+    build-commands:
+      # Install main binary
+      - install -Dm755 kindly-av1 /app/bin/kindly-av1
+
+      # Install AppStream metadata
+      - install -Dm644 software.kindly.av1.metainfo.xml /app/share/metainfo/software.kindly.av1.metainfo.xml
+
+      # Install icons
+      - install -Dm644 icons/software.kindly.av1.svg /app/share/icons/hicolor/scalable/apps/software.kindly.av1.svg
+      - install -Dm644 icons/software.kindly.av1-256.png /app/share/icons/hicolor/256x256/apps/software.kindly.av1.png
+
+    sources:
+      # Binary from release build
+      - type: file
+        path: ../../target/x86_64-unknown-linux-gnu/release/kindly-av1
+
+      # Metadata
+      - type: file
+        path: software.kindly.av1.metainfo.xml
+
+      # Icons
+      - type: file
+        path: icons/software.kindly.av1.svg
+      - type: file
+        path: icons/software.kindly.av1-256.png
+
+# Cleanup rules (minimize flatpak size)
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/pkgconfig
+  - /share/aclocal
+  - /share/man
+  - '*.la'
+  - '*.a'

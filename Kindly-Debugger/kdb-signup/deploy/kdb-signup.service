@@ -1,0 +1,43 @@
+[Unit]
+Description=KDB Signup Service - Ed25519 License Generation for Kindly Debugger
+Documentation=https://github.com/kindly/kdb-signup
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=kdb
+Group=kdb
+WorkingDirectory=/opt/kdb-signup
+
+# Environment configuration
+EnvironmentFile=/etc/kdb/kdb-signup.env
+
+# Binary execution
+ExecStart=/opt/kdb-signup/kdb-signup
+
+# Restart policy
+Restart=on-failure
+RestartSec=5s
+StartLimitInterval=60s
+StartLimitBurst=3
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/kdb-signup
+ReadOnlyPaths=/etc/kdb
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=kdb-signup
+
+[Install]
+WantedBy=multi-user.target

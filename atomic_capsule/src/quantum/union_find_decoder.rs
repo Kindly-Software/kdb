@@ -96,7 +96,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 T5 Streaming tier, Q33 lockfree atomics, Q34 audit trails
-//! - **COCA**: 100% computational capsule, zero mutex/RwLock
+//! - **Chaos**: 100% computational capsule, zero mutex/RwLock
 //! - **ASSUM**: 99.99% safe, all assumptions documented (#ASSUME_* tags)
 //! - **B32**: Fair baseline (ideal decoder 0ns, 100% accuracy)
 //! - **T28**: 28 comprehensive tests (unit/property/integration/production)
@@ -300,7 +300,7 @@ impl PauliCorrection {
 /// # Framework Compliance
 ///
 /// - **UCE34**: T5 Streaming (O(1) incremental edge processing)
-/// - **COCA**: 100% lockfree (AtomicUsize/AtomicU8 only, no mutex/RwLock)
+/// - **Chaos**: 100% lockfree (AtomicUsize/AtomicU8 only, no mutex/RwLock)
 /// - **ASSUM**: 99.99% safe (6 #ASSUME tags, all verified)
 /// - **B32**: Fair baseline (ideal decoder 0ns, 100% accuracy)
 /// - **T28**: 28 tests (unit/property/integration/production)
@@ -799,7 +799,7 @@ impl UnionFindDecoderCapsule {
     /// # Framework Compliance
     ///
     /// - **UCE34 Q33**: Automatic verification via #[derive(ComputationalCapsule)]
-    /// - **COCA**: 100% lockfree (verified by grep 0 mutex)
+    /// - **Chaos**: 100% lockfree (verified by grep 0 mutex)
     pub fn verify() {
         assert_eq!(
             std::mem::size_of::<Self>(),

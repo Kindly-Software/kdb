@@ -1,4 +1,4 @@
-//! Logging module - Zero-dependency COCA-compliant logging
+//! Logging module - Zero-dependency Chaos-compliant logging
 //!
 //! # UCE34 Tier: T0 (Auditable) + T1 (Atomic) + T5 (Streaming)
 //! # Performance: <50ns logging overhead, 1M logs/sec throughput

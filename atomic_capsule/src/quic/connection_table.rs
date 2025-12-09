@@ -95,7 +95,7 @@
 //! ## UCE34 Framework Compliance
 //! - **Q10**: T4 Batch tier (10-50× speedup via batch locality)
 //! - **Q33**: 100% lockfree (NO mutex/RwLock, all atomic operations)
-//! - **COCA**: 8KB cache-aligned buckets, generation counters, lockfree coordination
+//! - **Chaos**: 8KB cache-aligned buckets, generation counters, lockfree coordination
 //! - **ASSUM**: All atomic operations with #ASSUME/#VERIFY tags
 //! - **B32**: Fair baseline (std HashMap), batch speedup validation
 //! - **T28**: Comprehensive testing (unit/property/integration/production)

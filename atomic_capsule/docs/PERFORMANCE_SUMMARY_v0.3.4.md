@@ -458,4 +458,4 @@ if bloom.is_saturated() {
 **UCE34 Analysis**: `docs/T10_2_BLOOM_FILTER_UCE34.md` (Q1-Q34 systematic discovery)
 **ASSUM Safety**: `docs/BLOOM_FILTER_ASSUM_SAFETY.md` (12 assumptions verified)
 
-**Framework Compliance**: UCE34, ASSUM, B32, T28, I20, COCA (all ✅ complete)
+**Framework Compliance**: UCE34, ASSUM, B32, T28, I20, Chaos (all ✅ complete)

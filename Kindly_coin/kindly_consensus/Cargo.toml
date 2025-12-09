@@ -1,0 +1,42 @@
+[package]
+name = "kindly_consensus"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+description = "Atomic Byzantine Fault Tolerance (A-BFT) consensus for Kindly Coin"
+
+[dependencies]
+# Internal dependencies
+kindly_core.workspace = true
+
+# Atomic capsule foundation
+atomic_capsule.workspace = true
+atomic_capsule_map.workspace = true
+
+# Cryptography
+ed25519-dalek.workspace = true
+sha3.workspace = true
+blake3.workspace = true
+
+# Serialization
+serde.workspace = true
+bincode.workspace = true
+
+# Utilities
+thiserror = "1.0"
+
+[features]
+default = []
+# Q32: Portable SIMD for parallel vote counting and aggregation
+portable_simd = []
+# Q32: Const fn for compile-time consensus parameter calculations
+const_float = []
+
+[dev-dependencies]
+proptest.workspace = true
+criterion.workspace = true

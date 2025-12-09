@@ -121,4 +121,4 @@ See `/home/samuel/Primitives/kdb/BREAKPOINT_IMPLEMENTATION_REPORT.md` for:
 - ASSUM safety analysis
 - B32 performance benchmarks
 - T28 testing strategy
-- Framework compliance (UCE34, COCA, ASSUM, B32, T28)
+- Framework compliance (UCE34, Chaos, ASSUM, B32, T28)

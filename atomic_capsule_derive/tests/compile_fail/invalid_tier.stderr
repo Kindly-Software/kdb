@@ -1,0 +1,53 @@
+error: Invalid capsule tier: "InvalidTier"
+
+       Computational capsule tiers define optimization strategies.
+
+       Valid tiers (UCE34 Framework):
+
+       Foundation Tiers (1-6):
+       - Atomic:      Lockfree coordination (3-10× speedup)
+       Example: DualAtomicU64, CircuitBreaker (<5ns)
+
+       - SIMD:        Vectorized computation (2-19× speedup)
+       Example: SimdF32x8 (8-lane parallel, 19× Hebbian learning)
+
+       - FixedPoint:  Deterministic precision (2-10× speedup)
+       Example: Q16.16 (83.4ns P&L calculations)
+
+       - Batch:       Throughput processing (10-100× speedup)
+       Example: ParallelBatchProcessor (9.6× compound)
+
+       - Streaming:   Continuous computation (O(1) incremental)
+       Example: AsyncLogCapsule (<50ns append)
+
+       - Mixed:       Hybrid multi-tier (50-100× compound speedup)
+       Example: T1+T2+T3 full composite (24× compound)
+
+       Extended Tiers (7-10):
+       - GPU:          Accelerator computing (100-1000× speedup)
+       - Network:      Zero-copy networking (10-50× speedup)
+       - Persistent:   Crash-safe storage (mmap-backed)
+       - Probabilistic: Approximate algorithms (100-1000× memory reduction)
+
+       Phase 3 P2: Tier inference available!
+       If tier not specified, the macro will infer from field types:
+       - AtomicU64 → Atomic
+       - Simd types → SIMD
+       - Q8_8/Q16_16 → FixedPoint
+       - Multiple → Mixed
+
+       Fix:
+       #[capsule(alignment = 64, tier = "Atomic")]
+
+       Help: Use tier = "Atomic" for most capsules or omit for auto-inference
+       See: /home/samuel/Docs/The Computational Capsule.md (Section: Tier Selection)
+       See: UCE34_FRAMEWORK.md Q10-Q12 (Tier Selection Guide)
+       See: $WORKSPACE/atomic_capsule/CLAUDE.md (100+ tier examples)
+  --> tests/compile_fail/invalid_tier.rs:6:1
+   |
+ 6 | / #[capsule(alignment = 64, tier = "InvalidTier")]  // Not a valid UCE33 tier!
+ 7 | | #[repr(C, align(64))]
+ 8 | | struct BadTier {
+ 9 | |     data: [u8; 64],
+10 | | }
+   | |_^

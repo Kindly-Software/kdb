@@ -117,6 +117,8 @@
 //! }
 //! ```
 
+#![allow(dead_code)]
+
 use super::tamper_detection::ProtectionError;
 
 // Re-export ProtectionOrchestratorCapsule from atomic_capsule

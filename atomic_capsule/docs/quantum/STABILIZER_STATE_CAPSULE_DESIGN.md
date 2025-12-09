@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Date**: 2025-11-21
 **Status**: Design Complete - Ready for Implementation
-**Framework**: UCE34 Q1-Q34, COCA, B32, T28, ASSUM, I20
+**Framework**: UCE34 Q1-Q34, Chaos, B32, T28, ASSUM, I20
 
 ---
 
@@ -573,7 +573,7 @@ Total capsule: 6,726 bytes → rounds to 128B-aligned structure
 - ✅ Q33: Verification (#[derive(ComputationalCapsule)])
 - ✅ Q34: Auditability (AtomicU64 counters, SHA256 hash)
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 - ✅ 100% lockfree (bit operations, atomic counters)
 - ✅ 128B cache-aligned (metadata + pointers in L1 cache)
 - ✅ Zero dependencies (std only, bit manipulation)
@@ -653,7 +653,7 @@ Total capsule: 6,726 bytes → rounds to 128B-aligned structure
 
 **Document Version**: 1.0
 **Author**: Claude Code (AI Agent)
-**Framework**: UCE34 Q1-Q34, COCA, B32, T28, ASSUM, I20
+**Framework**: UCE34 Q1-Q34, Chaos, B32, T28, ASSUM, I20
 **Status**: Design Complete - Ready for Implementation
 **Estimated LOC**: 1,000 lines (700 core + 300 Gaussian elimination)
 **Estimated Tests**: 28 comprehensive tests (T28 4-tier pyramid)

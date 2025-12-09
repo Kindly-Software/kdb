@@ -1,0 +1,61 @@
+[workspace]
+# Independent project, not part of parent workspace
+
+[package]
+name = "sysrespond"
+version = "0.1.0"
+edition = "2021"
+authors = ["Samuel <samuel@kindly.ai>"]
+description = "Computational capsule-based system responsiveness daemon"
+license = "MIT"
+
+[dependencies]
+# Atomic capsule foundation
+atomic_capsule = { path = "../atomic_capsule", features = ["nightly-all"] }
+atomic_capsule_derive = { path = "../atomic_capsule_derive" }
+
+# Async runtime for streaming monitoring
+tokio = { version = "1.40", features = ["full"] }
+
+# Process information
+sysinfo = "0.31"
+
+# Signal handling (SIGTERM/SIGKILL)
+nix = { version = "0.29", features = ["signal"] }
+
+# Configuration
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+
+# Logging and audit trail
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+[dev-dependencies]
+criterion = "0.5"
+proptest = "1.5"
+
+[[bench]]
+name = "capsule_microbench"
+harness = false
+
+[[bench]]
+name = "integration_bench"
+harness = false
+
+[[bench]]
+name = "production_bench"
+harness = false
+
+[profile.release]
+opt-level = 3
+
+[profile.dev]
+opt-level = 1  # Faster debug builds
+
+[profile.bench]
+inherits = "release"

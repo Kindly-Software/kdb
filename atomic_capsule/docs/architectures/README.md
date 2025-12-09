@@ -112,7 +112,7 @@ All documentation follows **UNIVERSAL-6.0** framework standards:
 - ✅ Safety: Memory ordering, invariant preservation
 - ✅ Correctness: No data races, deadlock-free
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 - ✅ 100% lockfree (atomics only, no mutex)
 - ✅ Cache-aligned (64B/128B/256B)
 - ✅ Zero allocation during operation
@@ -263,7 +263,7 @@ Future architects adding documentation should follow:
 3. B32 benchmarking (fair baselines, 1000+ iterations)
 4. T28 testing (4-tier pyramid: unit/property/integration/production)
 5. I20 integration validation
-6. COCA computational capsule standards
+6. Chaos computational capsule standards
 
 ---
 
@@ -277,7 +277,7 @@ For questions about this documentation:
 ---
 
 **Created**: November 13, 2025
-**Framework**: UNIVERSAL-6.0 (XML-canonical, UCE34+ASSUM+B32+T28+I20+COCA)
+**Framework**: UNIVERSAL-6.0 (XML-canonical, UCE34+ASSUM+B32+T28+I20+Chaos)
 **Status**: ✅ Production-Ready Reference Documentation
 **Quality**: 100% completeness, reference-grade clarity
 

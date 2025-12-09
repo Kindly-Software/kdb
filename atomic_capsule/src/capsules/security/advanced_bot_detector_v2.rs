@@ -20,7 +20,7 @@
 // - Detection rate: 87%+ (vs 60% V1)
 // - False positive reduction: 30%+ via online learning
 //
-// Framework Compliance: UCE34 (Q1-Q34), COCA (100% lockfree), ASSUM (99.5%+), B32, T28, I20, Q34
+// Framework Compliance: UCE34 (Q1-Q34), Chaos (100% lockfree), ASSUM (99.5%+), B32, T28, I20, Q34
 
 use core::sync::atomic::{AtomicU64, AtomicI64, AtomicU32, AtomicU16, Ordering};
 

@@ -71,7 +71,7 @@
 //! - **B32**: Fair baseline comparison (RwLock<Self>)
 //! - **T28**: 25 comprehensive tests
 //! - **I20**: Integration ready (20/20)
-//! - **COCA**: 100% lockfree (atomic-safe reads)
+//! - **Chaos**: 100% lockfree (atomic-safe reads)
 
 #![allow(
     clippy::cast_possible_truncation,

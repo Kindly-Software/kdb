@@ -558,7 +558,7 @@ fn test_uce34_tier_selection_t3_fixed_point() {
 }
 
 #[test]
-fn test_coca_100_percent_lockfree() {
+fn test_chaos_100_percent_lockfree() {
     // Verify capsule uses only atomic operations (no mutex/RwLock)
     let capsule = MemoryBandwidthCapsuleAligned::new();
 
@@ -579,7 +579,7 @@ fn test_coca_100_percent_lockfree() {
         let _ = handle.join();
     }
 
-    println!("[COCA] 100% lockfree compliance: PASS");
+    println!("[Chaos] 100% lockfree compliance: PASS");
 }
 
 #[test]

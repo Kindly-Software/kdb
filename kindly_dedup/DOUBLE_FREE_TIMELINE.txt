@@ -1,0 +1,164 @@
+================================================================================
+DOUBLE-FREE BUG TIMELINE VISUALIZATION
+================================================================================
+
+Time: 0s                    Main Thread                    Worker Threads (16)
+---------|-------------------------------------------------------------|-------
+         |
+         | let mut pairs_iter = self.pairs_iter()
+         |    └─> PairsIterator {
+         |           lsh_buckets: &self.lsh_buckets,
+         |           current_snapshot: Vec<Arc<LockfreeList>> ← CRITICAL
+         |        }
+         |
+         | spawn 16 worker threads
+         |    └─> Worker 1..16: Arc<signatures> cloned        [WAITING]
+         |                                                      [WAITING]
+         |                                                      [WAITING]
+         |
+Time: 1s | Main thread loop:                                  [WAITING]
+         |   for _ in 0..1000:                                 [WAITING]
+         |     pair = pairs_iter.next()  ← ACCESS current_snapshot
+         |     chunk.push(pair)                                [WAITING]
+         |   tx.send(chunk)  → [Channel] ─────────────────┐   [WAITING]
+         |                                                  │
+         |                                                  │
+         | Speed: 1.15M chunks/sec                          │
+         |                                                  ↓
+Time: 2s | (1.27M chunks produced)                           [RECV chunk 1]
+         |                                                    [RECV chunk 2]
+         |                                                    [RECV chunk 3]
+         | drop(tx)  ← Signal completion                     [PROCESSING...]
+         |                                                    [PROCESSING...]
+         |                                                    [PROCESSING...]
+         | for handle in workers:                            [PROCESSING...]
+         |   handle.join()  ← WAIT (BLOCKING)                [PROCESSING...]
+         |                                                    [PROCESSING...]
+         |                                                    [PROCESSING...]
+         |                   ⏱ Workers speed: 680 chunks/sec  [PROCESSING...]
+         |                   ⏱ 1.27M chunks / 680 = 31 min   [PROCESSING...]
+Time: 30s|                   ⏱ Still waiting...                [PROCESSING...]
+         |                                                    [PROCESSING...]
+         |                   ⏱ Still waiting...                [PROCESSING...]
+         |                                                    [PROCESSING...]
+Time: 60s|                   ⏱ Still waiting...                [PROCESSING...]
+         |                                                    [PROCESSING...]
+         |                   ⏱ Still waiting...                [PROCESSING...]
+         |                                                    [PROCESSING...]
+Time: 90s|                   ⏱ Still waiting...                [PROCESSING chunk 1.26M]
+         |                                                    [PROCESSING chunk 1.27M]
+         |                                                    [PROCESSING chunk 1.27M]
+         |                   ⏱ Workers finishing...           [DONE]
+         |                   ⏱ Workers finishing...           [DONE]
+         |                   ⏱ Workers finishing...           [DONE]
+         |
+         | All workers joined ✓                              [JOINED]
+         |                                                    [JOINED]
+         |                                                    [JOINED]
+         |
+         | return Ok(uf.build_clusters())
+         |    │
+         |    └──> pairs_iter DROPS HERE  ← CRITICAL MOMENT
+         |           │
+         |           └─> current_snapshot drops
+         |                  │
+         |                  └─> Vec::drop() starts
+         |                         │
+Time: 91s|                         └─> 1.27M Arc<LockfreeList>::drop()
+         |                                │
+         |                                │  ┌─────────────────────────────┐
+         |                                │  │ CONCURRENT ARC DROPS        │
+         |                                ├─>│ Main thread: Drop 1.27M     │
+         |                                │  │ Worker 1: Accessing chunk X │← USE-AFTER-DROP
+         |                                │  │ Worker 2: Accessing chunk Y │← USE-AFTER-DROP
+         |                                │  │ Worker 3: Accessing chunk Z │← USE-AFTER-DROP
+Time: 92s|                                │  │                             │
+         |                                │  │ malloc(): double free!      │
+         |                                │  │ SIGABRT (exit 134)          │← CRASH
+         |                                │  └─────────────────────────────┘
+         |
+         ✗ CRASH
+
+================================================================================
+THE BUG IN 3 SENTENCES
+================================================================================
+
+1. Main thread creates PairsIterator (line 397), which owns Vec<Arc<LockfreeList>>
+   containing 1.27M entries (current_snapshot field).
+
+2. Main thread waits for 16 workers to finish (line 466-469), but iterator is
+   still alive (local variable on stack), so Arc references are valid.
+
+3. Function returns (line 486), dropping iterator and its 1.27M Arc references
+   concurrently while workers are STILL ACCESSING data via chunks, causing
+   double-free when Arc destructors run simultaneously.
+
+================================================================================
+THE FIX VISUALIZATION
+================================================================================
+
+BEFORE (BUG):
+   Main Thread Stack                    Worker Threads
+   ─────────────────                    ──────────────
+   pairs_iter (local)  ← DROPS at line 486
+      └─> current_snapshot: Vec<Arc<LockfreeList>>  ← 1.27M entries
+             └─> Arc::drop()  ← RACE CONDITION
+                                                     Workers STILL accessing
+                                                     Arc references via chunks
+                                                        ↓
+                                                     DOUBLE-FREE
+
+AFTER (FIXED - Option 3):
+   Producer Thread                      Worker Threads
+   ───────────────                      ──────────────
+   lsh_buckets_clone: Arc<Vec<Arc<Map>>>  ← OWNED by thread
+      └─> Snapshot per shard (6 MB)
+      └─> Generate pairs
+      └─> Send chunks
+      
+   producer_handle.join()  ← WAIT for producer
+   drop(tx)
+   workers.join()  ← WAIT for workers
+   
+   Producer drops AFTER workers finished  ← SAFE
+
+================================================================================
+MEMORY ACCUMULATION PATTERN (All 3 Failed Attempts)
+================================================================================
+
+   Memory (GB)
+   30 ┤
+      │                                                    ╭─ CRASH (26.9 GB)
+      │                                                 ╭──╯
+   25 ┤                                              ╭──╯
+      │                                           ╭──╯
+   20 ┤                                        ╭──╯
+      │                                     ╭──╯    18.92 GB
+   15 ┤                                  ╭──╯       (1.27M chunks
+      │                               ╭──╯           in worker queues)
+   10 ┤                            ╭──╯
+      │                         ╭──╯
+    5 ┤                      ╭──╯
+      │        Ingestion  ╭──╯
+    0 ┼──────────────────╯─────────────────────────────────────> Time (s)
+      0       10        20        30        60        90        92
+
+   Phase 1 (0-10s):  Ingestion + Tokenization (2.5 GB)
+   Phase 2 (10-20s): MinHash signatures (5.0 GB)
+   Phase 3 (20-30s): LSH buckets (8.0 GB)
+   Phase 4 (30-90s): Worker queue accumulation (18.92 GB)
+   Phase 5 (90-92s): Iterator drop + RACE → CRASH (26.9 GB)
+
+================================================================================
+KEY INSIGHT
+================================================================================
+
+The bug is NOT about memory growth (that's a symptom).
+The bug IS about iterator lifetime vs worker thread lifetime (root cause).
+
+All 3 failed attempts tried to reduce memory (symptoms) but didn't address
+the lifetime mismatch (root cause).
+
+Fix: Ensure producer thread owns data and joins BEFORE dropping Arc references.
+
+================================================================================

@@ -18,7 +18,6 @@
 use super::audit::{log_security_event, SecurityEventType};
 use atomic_capsule::primitives::fixed_point::Q16_16;
 use atomic_capsule_derive::ComputationalCapsule;
-use std::sync::atomic::Ordering;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 // ============================================================================

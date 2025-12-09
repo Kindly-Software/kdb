@@ -1,6 +1,6 @@
 //! SymbolResolverCapsule - T5 Streaming + T9 Persistent DWARF Symbol Resolution
 //!
-//! **Architecture**: Computational Capsule (COCA), 100% lockfree
+//! **Architecture**: Computational Capsule (Chaos), 100% lockfree
 //! **Tier**: T5 Streaming (incremental DWARF parsing) + T9 Persistent (mmap-backed cache)
 //! **Size**: 744 KB (2 KB coordinator + 640 KB symbols + 100 KB string table)
 //! **Performance**: <100ms DWARF parse (one-time), <50μs symbol lookup (cold), <500ns (cached)
@@ -10,7 +10,7 @@
 //! - ASSUM: 99.5%+ safety (10 assumptions verified)
 //! - B32: Fair baselines, 95% CI, 1000+ iterations
 //! - T28: Comprehensive testing (unit/property/integration/production)
-//! - COCA: 100% lockfree, #[derive(ComputationalCapsule)]
+//! - Chaos: 100% lockfree, #[derive(ComputationalCapsule)]
 //!
 //! **Use Case**: Resolve program counter addresses to symbol information (name, file, line, column)
 //! for debugging, profiling, and error reporting.

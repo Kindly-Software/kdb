@@ -8,11 +8,11 @@
 //! # Framework Compliance
 //!
 //! - UCE34: Q10 T0 Auditable tier (capability detection)
-//! - COCA: Cache-aligned capsule with AtomicU64 state, lockfree
+//! - Chaos: Cache-aligned capsule with AtomicU64 state, lockfree
 //! - ASSUM: GPU availability is runtime-checked, not assumed
 //! - B32: Performance recommendations based on measured hardware
 //!
-//! # COCA Compliance Notes
+//! # Chaos Compliance Notes
 //!
 //! GpuCapabilities is a read-only configuration capsule after initialization.
 //! The generation counter provides Q34 audit trail for capability snapshots.
@@ -99,7 +99,7 @@ impl From<wgpu::DeviceType> for GpuClass {
 /// Contains all information needed to optimize kernel dispatch
 /// and batch sizing for optimal GPU utilization.
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 ///
 /// - Cache-aligned (64 bytes) for optimal memory access
 /// - AtomicU64 state for thread-safe generation tracking

@@ -2,7 +2,7 @@
 
 Core primitives for lockfree, high-performance systems using computational capsule architecture.
 
-## COCA (Computational Capsule) - Quick Reference
+## Chaos (Computational Capsule) - Quick Reference
 
 See `/home/samuel/CLAUDE.md` § Mandatory Capsule Architecture for:
 - Mandatory reading list (4 docs + XML frameworks)
@@ -72,7 +72,7 @@ See `/home/samuel/CLAUDE.md` § Mandatory Capsule Architecture for:
 
 **CI/CD Setup**: Run `./scripts/setup-ci.sh` (auto-configures GitHub/GitLab/hooks). See `CI_CD_AUTOMATION.md` for details.
 
-**Metrics**: 51/51 tests ✅ | 90-95% detection | <5% false positives | 5-8s pre-commit | 15-25s CI/CD | 100% COCA compliance
+**Metrics**: 51/51 tests ✅ | 90-95% detection | <5% false positives | 5-8s pre-commit | 15-25s CI/CD | 100% Chaos compliance
 
 **Troubleshooting**: Unknown lint? Use -D flags, not .clippy.toml. Slow? Use P0-only for pre-commit. False positive? Use `#[allow(clippy::lint_name)]`.
 
@@ -199,6 +199,13 @@ Production patterns documented in:
 - UX: timeline UI snapshot refreshes duration/tempo, returns `grid_lines_ms` derived from snap grid/BPM + zoom for HUD grid; drag/stretch hint stays aligned. Calibration now returns `CalibrationReport` (measured buzz rate/interval, tuned thresholds) for UI.
 - Export: renderer writes `export_report.json` alongside `.funscript` with duration/impact/buzz counts and validation flags; `RenderOutput` carries report path/bytes; app exposes `ui_export_summary`/`export_panel_data` (report JSON, paths, funscript size + validation) and `calibrate_and_export_summary` (calibration + export bundle) for UI panels; internal mux unchanged (atomic_capsule mux only). Smoke prints report summary.
 
+## Current Work: Capsule Cache (Redis-style)
+- Location: `capsule_cache/` (workspace member, Proprietary/Trade Secret). Rust nightly pinned via `rust-toolchain.toml`.
+- Goal: Redis-like cache using computational capsules; lockfree, cache-line aligned, generation-tagged; **dependencies: internal `atomic_capsule` only**.
+- Capsules: `LockfreeCacheCapsule` + `StatsCapsule64` + `HistogramCapsule`; optional integrity/multi-tenant/encryption/distributed features forwarded to `atomic_capsule`.
+- Features shipped: AOF append/replay (`AOF_PATH`), modulo sharding (`SHARDS`, `SHARD_CAPACITY`), RESP inline/array parsing, AUTH token, rate limit (2000 ops/s), commands: PING/SET/GET/DEL/TTL/EXPIRE/INCR/MSET/MGET/STATS/SLOWLOG/FLUSHDB. Aggregated latency percentiles and bounded slowlog (RingBufferCapsule, `SLOWLOG_US` threshold) with optional export (`SLOWLOG_PATH`) included.
+- Roadmap: distributed/quorum profile (no new deps), benchmarks (<120ns hit / <220ns insert), admin ops (SCAN-lite/KEYS-lite), systemd/capsule runtime smoke.
+
 ## Tools and Automation
 
 ### fix_padding_fields (Phase 2 Migration)
@@ -217,45 +224,53 @@ Production patterns documented in:
 
 **Gaps vs TW/Paradox**: campaign layer (economy/diplomacy, war exhaustion), siege/fortification play, fog-of-war/intel loops, operational AI pacing, logistics over time (attrition/supply lines), replay/telemetry for AI intent, and doctrine-aware scripting.
 
-**Capsule/Tier Roadmap (UCE34/COCA)**:
+**Capsule/Tier Roadmap (UCE34/Chaos)**:
 - `BattleAiCapsule` (T4/T6 metacapsule): foundation shipped (bounded decisions, generation counters). Next: log AI decisions to replay (0xC900), inject doctrine/stance/threat maps, and expose order rate telemetry.
 - `FogOfWarCapsule` (T2/T5): SIMD LOS sampling + streaming intel deltas; feeds AI threat maps and campaign visibility. Align 64B/128B per-shard, generation-tagged snapshots.
-- `OpsC2Metacapsule` (T1/T4/T6): command latency, courier reliability, priority queues; bridges player/AI orders with shard OrderQueueCapsules. Enforce cadence gates (no mutex/RwLock) and dual-generation ids.
-- `SiegeCapsule` (T3/T4): fortification integrity, breach progress, sapper engineering, morale shocks; batch updates per wall section, fixed-point damage to stay deterministic.
-- `LogisticsCapsule` (T4/T5): supply depots, baggage trains, ammo/water/food decay, attrition ticks; streaming counters for campaign stats; generation counters for audit.
+- `OpsC2Metacapsule` (T1/T4/T6): command latency, courier reliability, priority queues; bridges player/AI orders with shard OrderQueueCapsules. Enforce cadence gates (no mutex/RwLock) and dual-generation ids. **Status: guardrails pass 1** (order-rate backpressure surfaced to overlays/replay, courier reliability feedback into command stress).
+- `SiegeCapsule` (T3/T4): fortification integrity, breach progress, sapper engineering, morale shocks; batch updates per wall section, fixed-point damage to stay deterministic. **Status: pass 1 shipped** (integrity/attrition capsules, snapshot v11, replay payload 0xC820, engineering sap/repair hooks, breach/seal on structures).
+- `LogisticsCapsule` (T4/T5): supply depots, baggage trains, ammo/water/food decay, attrition ticks; streaming counters for campaign stats; generation counters for audit. **Status: pass 1 shipped** (per-road integrity/disruption tracking, throughput snapshots, logistics-driven command-delay penalties, replay tag 0xC230).
 - `CampaignMetacapsule` (T6/T9/T10): provinces/economy/diplomacy/war exhaustion; orchestrates fog-of-war + logistics + ops AI; uses Replay/Index capsules for persistent saves and probabilistic events (T10 guarded by audit trails).
 
 **Implementation Order (one-by-one)**:
 1) Close loop on `BattleAiCapsule`: replay logging + telemetry counters.  
 2) Add `FogOfWarCapsule` + threat/stance maps feeding battle AI.  
 3) Harden `OpsC2Metacapsule`: order-rate guardrails, courier reliability, shard-level backpressure.  
-4) Introduce `SiegeCapsule` + engineering hooks (bridges to `engineering.rs`/structures).  
-5) Stand up `LogisticsCapsule` (supply lines, attrition, resupply ticks).  
-6) Layer `CampaignMetacapsule` for diplomacy/economy/war exhaustion and Paradox-style pacing.  
+4) Introduce `SiegeCapsule` + engineering hooks (bridges to `engineering.rs`/structures). **(DONE pass 1: integrity/breach progress, replay tag, sap/repair hooks)**
+5) Stand up `LogisticsCapsule` (supply lines, attrition, resupply ticks). **(DONE pass 1: throughput + disruption/attrition events, command-delay penalties, replay payload)**  
+6) Layer `CampaignMetacapsule` for diplomacy/economy/war exhaustion and Paradox-style pacing. **(STARTED pass 1: campaign metacapsule orchestrates strategic+diplomacy+economy, war exhaustion → province resistance, hash-chained bundle snapshots)**  
 7) Expand replay/telemetry (T5/T9) to capture AI intent, doctrine switches, and C2 delays for B32 honesty.
 
-**Validation**: Each capsule follows UCE34 discovery (Q1-Q34), COCA mandates (atomic + generation + alignment), T28 determinism (replay equivalence), B32 honesty (p50/p99/p999 tick latency), and metacapsule checks (acyclic orchestration, <1024B coordinator, snapshot-before-transition).
+**Validation**: Each capsule follows UCE34 discovery (Q1-Q34), Chaos mandates (atomic + generation + alignment), T28 determinism (replay equivalence), B32 honesty (p50/p99/p999 tick latency), and metacapsule checks (acyclic orchestration, <1024B coordinator, snapshot-before-transition).
 
 ### Recent Kindly-Engine Progress
 - Added `FogOfWarCapsule` + `FogOfWarView`: LOS/visibility filters AI targets; shard stats/logs now include contacts/visibility ratios and AI replay payloads.
+- Battle AI intent overlays: threat centroid tiles + stance histogram + doctrine mode/generation flow into shard stats/overlays and replay tag 0xC901 (helpers for analytics series). Doctrine recommendation now derived from intent/visibility/courier latency; NDJSON helper provided for dashboards.
+- Logistics pass 1: per-road integrity/disruption with attrition/repair, throughput + command-delay penalties surfaced to ticks/overlays/replay (tag 0xC230), supply snapshots now carry penalties and throughput for command delay/morale hooks.
 - Added `GeneralCapsule` (aura morale/fatigue) + `snapshot_generals` helper and test; shard tick applies auras from snapshots (no driver-held generals).
 - Added `CommanderCapsule` + `CommandHierarchyCapsule` with `commanders_to_generals` conversion; driver spawns commander, snapshots each tick, and feeds shard contexts.
 - Added `StrategicMapCapsule` + `ProvinceCapsule`: supply graph, weather scripts (optional wind), hash-chained `StrategicSnapshot`; driver seeds ammo/depot pressure, steps map each tick, and passes `SupplySnapshot` into shards/io_uring demo.
 - Strategic map depth: provinces now track supply output + resistance + generation; supply injection scales with infrastructure/resistance, decay penalizes low infra/high resistance, and hash-chains include prev hash + tick/generation. Shard contexts/overlays carry strategic hash + province averages; new tests cover capture/resistance + strategic propagation.
+- Ops backpressure guardrail: ready-order cap tracks `ops_backpressure_drops` on overlays/KGPU and replay (tag 0xC342); congestion buckets added to overlays/KGPU and replay (0xC343) with fair scheduling of ready orders. Siege face events tagged (0xC821) for breach/repair overlays.
+- C2/fog telemetry overlays: threat_pressure_q16 derived from fog visible ratio/contacts plus command_delay/courier ETA p95 buckets now flow into Shard/KGPU overlays and WorldFrame; courier reliability defaults to healthy when no samples to avoid cold-start penalties. P95 buckets logged to replay (0xC324/0xC325).
+- Threat overlays: threat_pressure/fog visibility exposed via `make_threat_overlay_from_render` for KGPU/NDJSON dashboards.
+- Logistics route cuts: clustered supply disruptions raise command stress/courier ETA, surface on overlays, and emit replay events (0xC231).
+- Congestion penalty: ops_congestion_bucket feeds command stress + courier ETA scaling; replay tag 0xC343 added. NDJSON hooks in driver (`INTENT_NDJSON=1`, `DASHBOARD_NDJSON=1`) stream AI intent and combined threat/ops snapshots for dashboards.
 - Command chain integration (pass 1): driver builds `CommandHierarchyCapsule`, assigns commanders to formations, and feeds commander snapshots into shards. `tick_shard` now applies command-delay penalties when out of range (raises command stress/courier ETA) while reusing general auras for morale/fatigue; tests cover in-range vs out-of-range effects.
 - Strategic events + replay: `StrategicSnapshot` now emits ownership/infra-repair events, persists them in snapshots (v7), and logs replay payloads for audit trails (hash-chained).
 - Command delay telemetry: `CommandDelayBufferCapsule` gates delayed orders, per-shard/world stats track delay histograms, applied counts, and averages, and replay logs expose histogram chunks + applied payloads.
 - Diplomacy core: `DiplomaticStateCapsule` (war/peace/truce/alliance, casus belli timers, war exhaustion) with hash-chained snapshots; campaign snapshot v8 persists diplomatic graph alongside tactical/strategic data.
 - Economy core: `ProvinceEconomyCapsule` (infra build queues, hash-chained snapshot) updates provinces and emits infra-repair strategic events; campaign snapshot v9 includes economy orders. Command delay buffer now snapshots pending delayed orders (snapshot v10).
 - `BattleAi` path still bounded with generation counters; aura test covers morale propagation.
+- Siege pass 1: `SiegeCapsule` + per-face sections track integrity/breach progress, sapper attrition, breach/seal against `StructureCapsule`; engineering sap/repair hooks; snapshot v11 persists siege sections; replay tag 0xC820 publishes integrity/breach/repair overlays; artillery calls now feed siege capsule.
 - `atomic_capsule` encoder now gated behind `std`+`encoder` features to avoid duplicate symbol errors; terrain/LOS adapters derive Debug for diagnostics.
 - Tests: `cargo test -p kindly-engine --lib` passing after strategic-event + command-delay telemetry changes.
 
-### Next Grand Strategy Steps (COCA/UCE34 aligned)
+### Next Grand Strategy Steps (Chaos/UCE34 aligned)
 - SiegeCapsule + Engineering hooks: fort integrity, breach progress, sapper attrition; strategic events (breach opened/closed), artillery overlays, fixed-point breach damage.
 - LogisticsCapsule & supply lines: explicit routes, attrition/throughput over distance/weather; feed command delay penalties when cut; emit supply disruption events into StratOps.
-- OpsC2 guardrails: order-rate throttles, courier reliability shaping, command-net congestion; C2 latency overlays and replay histograms.
-- Fog/AI integration: threat/stance maps from FogOfWar into BattleAi; log AI intent (doctrine switches/stance/threat centroid) into replay.
+- OpsC2 guardrails: order-rate throttles, courier reliability shaping, command-net congestion; congestion buckets/fair scheduling/p95 latency logging landed—next add congestion penalties and fairness scheduling.
+- Fog/AI integration: threat/stance maps from FogOfWar into BattleAi; AI intent replay/overlay (0xC901) landed—doctrine scoring + NDJSON dashboards landed; next drive doctrine scoring + UI dashboards from intent/threat maps.
 - Economy/Espionage expansion: raiding/scorched earth/sabotage events tied to `ProvinceEconomyCapsule`; resistance growth and misinformation ticks that perturb command delays/threat maps.
 - Doctrine profiles: commander doctrine presets persisted in snapshots and summarized in StratOps lane.
 - Streaming StratOps summaries: periodic JSON/NDJSON during long runs (not just end-of-run) for C2/strategic monitoring.
@@ -264,7 +279,7 @@ Production patterns documented in:
 
 See `/home/samuel/CLAUDE.md` § Performance & Validation Standards for complete details on:
 - **UCE34**: Q1-Q34 systematic discovery, tier selection (Q10-Q12)
-- **COCA**: 100% lockfree, no mutex/RwLock, cache-aligned, generation counters
+- **Chaos**: 100% lockfree, no mutex/RwLock, cache-aligned, generation counters
 - **ASSUM**: 99.5%+ safety, all assumptions verified (#ASSUME → #VERIFY)
 - **B32**: 95% CI, 1000+ iterations, fair baselines (not strawman), reproducibility
 - **T28**: 5-tier testing (unit/property/integration/production/determinism)
@@ -292,9 +307,9 @@ cargo test frequency::tests
 
 ## Documentation
 
-**Core Frameworks**: See `/home/samuel/CLAUDE.md` § Mandatory Reading Framework for canonical UCE34, COCA, ASSUM, B32, T28, I20, Q34 documentation.
+**Core Frameworks**: See `/home/samuel/CLAUDE.md` § Mandatory Reading Framework for canonical UCE34, Chaos, ASSUM, B32, T28, I20, Q34 documentation.
 
-**Phase Reports**: See `atomic_capsule/CLAUDE.md` for comprehensive session summaries (Nov 14/22/23), phase status, verification reports, and COCA compliance validation.
+**Phase Reports**: See `atomic_capsule/CLAUDE.md` for comprehensive session summaries (Nov 14/22/23), phase status, verification reports, and Chaos compliance validation.
 
 **Pattern Guides**: `docs/ATOMIC_CAPSULE_PATTERNS.md`, `docs/ATOMIC_CAPSULE_COMPOSITION.md`, `docs/ATOMIC_CAPSULE_FAILURE_MODES.md`
 

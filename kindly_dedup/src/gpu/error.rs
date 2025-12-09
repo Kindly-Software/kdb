@@ -5,7 +5,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: T7 Heterogeneous tier (CPU-GPU coordination)
-//! - **COCA**: 100% lockfree (error types are immutable)
+//! - **Chaos**: 100% lockfree (error types are immutable)
 //! - **ASSUM**: Zero unsafe code
 //! - **B32**: N/A (error types don't have performance targets)
 //! - **T28**: Comprehensive error coverage
@@ -46,6 +46,13 @@ pub enum GpuError {
         /// Maximum allowed size in bytes
         max_size: u64,
     },
+    /// GPU initialization timed out
+    Timeout {
+        /// Timeout duration in seconds
+        timeout_secs: u64,
+    },
+    /// GPU initialization thread panicked
+    ThreadPanicked,
 }
 
 impl fmt::Display for GpuError {
@@ -73,6 +80,12 @@ impl fmt::Display for GpuError {
             }
             GpuError::BufferTooLarge { requested, max_size } => {
                 write!(f, "Buffer too large: requested {} bytes, max {} bytes", requested, max_size)
+            }
+            GpuError::Timeout { timeout_secs } => {
+                write!(f, "GPU initialization timed out after {} seconds (set KINDLY_GPU_TIMEOUT_SECS to adjust)", timeout_secs)
+            }
+            GpuError::ThreadPanicked => {
+                write!(f, "GPU initialization thread panicked")
             }
         }
     }

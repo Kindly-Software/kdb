@@ -30,7 +30,7 @@
 //!
 //! **Compliance**:
 //! - **UCE34**: Q10=T8(Network), Q33=Verification, Q34=Audit trail (cert load/renewal timestamps)
-//! - **COCA**: 100% computational capsule (4 atomic fields, 512B cache-aligned)
+//! - **Chaos**: 100% computational capsule (4 atomic fields, 512B cache-aligned)
 //! - **ASSUM**: 99.99% safe (zero unsafe, all atomics with verified memory ordering)
 //! - **B32**: Fair baseline (filesystem calls ~1-10μs, not critical path for app)
 //! - **T28**: Comprehensive testing (unit/property/integration)

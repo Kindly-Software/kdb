@@ -1281,7 +1281,7 @@ Worst case: 1M snapshots/sec on single core = 100% CPU
 - **Atomic Debugger README**: `/home/samuel/Primitives/kdb/README.md`
 - **CLAUDE.md (Project Config)**: `/home/samuel/Primitives/kdb/CLAUDE.md`
 - **Key Innovations**: `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md`
-- **COCA Philosophy**: `/home/samuel/Docs/The Computational Capsule.md`
+- **Chaos Philosophy**: `/home/samuel/Docs/The Computational Capsule.md`
 - **UCE34 Framework**: See system context
 
 ### Related Projects

@@ -147,7 +147,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 (T4 Batch + T1 Atomic), Q33 (lockfree verify), Q34 (generation counter audit)
-//! - **COCA**: 100% computational capsule (no mutex/RwLock, atomic-only coordination)
+//! - **Chaos**: 100% computational capsule (no mutex/RwLock, atomic-only coordination)
 //! - **ASSUM**: 99.99% safe (9+ assumptions documented and verified)
 //! - **B32**: Fair baselines (DashMap + tokio broadcasting), 95% CI, 1000+ iterations
 //! - **T28**: 18 tests across 4 tiers (unit/property/integration/production)

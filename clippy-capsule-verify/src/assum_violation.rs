@@ -119,7 +119,7 @@ declare_lint! {
     ///
     /// - **ASSUM Framework** (`/home/samuel/xml/frameworks/assum.xml`): Safety docs
     /// - **UCE34 Q34** (`/home/samuel/CLAUDE.md`): Auditability requirement
-    /// - **COCA** (`/home/samuel/Docs/The Computational Capsule.md`): Lockfree design
+    /// - **Chaos** (`/home/samuel/Docs/The Computational Capsule.md`): Lockfree design
     /// - **T28** (`/home/samuel/xml/frameworks/t28.xml`): 4-tier safety testing
     /// - **B32** (`/home/samuel/xml/frameworks/b32.xml`): Performance validation
     /// - **I20** (`/home/samuel/xml/frameworks/i20.xml`): Integration safety
@@ -133,14 +133,14 @@ declare_lint! {
     /// - [ ] Memory ordering explicit (Acquire/Release, not Relaxed)?
     /// - [ ] Alignment documented (64B/128B/256B padding)?
     /// - [ ] Generation counter used (if TOCTOU risk)?
-    /// - [ ] COCA compliance: no mutex/RwLock in this module?
+    /// - [ ] Chaos compliance: no mutex/RwLock in this module?
     /// - [ ] Audit ready: hash-chain integrity for SOX/SOC2?
     ///
     /// ## References
     ///
     /// - ASSUM Framework: `/home/samuel/xml/frameworks/assum.xml`
     /// - UCE34 Auditability: `/home/samuel/CLAUDE.md` (Q34 section)
-    /// - COCA Philosophy: `/home/samuel/Docs/The Computational Capsule.md`
+    /// - Chaos Philosophy: `/home/samuel/Docs/The Computational Capsule.md`
     /// - Atomic Patterns: `/home/samuel/Docs/The Atomic Capsule.md`
     /// - T28 Testing: `/home/samuel/xml/frameworks/t28.xml`
     pub CAPSULE_MISSING_ASSUM,

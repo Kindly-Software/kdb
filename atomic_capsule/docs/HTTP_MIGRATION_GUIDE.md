@@ -4,7 +4,7 @@
 
 - Author: Agent 23 (HTTP Documentation Specialist)
 - Date: 2025-11-21
-- Framework: UCE34, COCA, ASSUM, B32, T28, I20
+- Framework: UCE34, Chaos, ASSUM, B32, T28, I20
 - Target: Developers moving from Axum to kindly_http
 
 ---

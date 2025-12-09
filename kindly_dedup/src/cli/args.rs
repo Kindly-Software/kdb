@@ -489,7 +489,7 @@ COMPLIANCE:
   B32:    Fair baselines, statistical rigor (1000+ iterations, 95% CI)
   T28:    33 comprehensive tests (accuracy/performance/integration)
   I20:    20/20 integration questions (deploy at 100%)
-  COCA:   100% lockfree (no mutex/RwLock)
+  Chaos:   100% lockfree (no mutex/RwLock)
 ";
 
 // ============================================================================

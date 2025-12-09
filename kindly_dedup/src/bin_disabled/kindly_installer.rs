@@ -9,7 +9,7 @@
 //! - T9 Persistent: InstallAuditTrailCapsule (Q34 hash-chained audit)
 //!
 //! **Framework Compliance**: UCE34 (Q1-Q34), ASSUM (99.99% safe), B32 (fair baselines),
-//! T28 (15+ integration tests), I20 (20/20), COCA (100% lockfree)
+//! T28 (15+ integration tests), I20 (20/20), Chaos (100% lockfree)
 //!
 //! # Installation Phases (10-Phase State Machine)
 //!

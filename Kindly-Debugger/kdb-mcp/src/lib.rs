@@ -87,6 +87,8 @@ pub mod subscription_tier;  // Subscription tier enum (T0, #[repr(u8)] for atomi
 pub mod tier_enforcement;  // T1 Atomic tier-based feature/quota enforcement (64B)
 pub mod snapshot_quota;  // T1 Atomic snapshot quota enforcement (256B)
 pub mod session_tier_map;  // T1 Atomic session to tier mapping (64KB)
+pub mod idempotency_cache;  // T1 Atomic request deduplication cache (16KB)
+pub mod sse_session;  // T1 Atomic SSE session state management (256B)
 
 // ============================================================================
 // T28 Deterministic Testing Framework (Q8-Q14 Property Tests)
@@ -190,6 +192,12 @@ pub mod stdio_transport;
 #[cfg(feature = "connection-pool")]
 pub mod connection_pool;
 
+#[cfg(feature = "sse-transport")]
+pub mod sse_connection_pool;
+
+#[cfg(feature = "sse-transport")]
+pub mod sse_transport;
+
 #[cfg(feature = "shared-state")]
 pub mod shared_state;
 
@@ -201,6 +209,8 @@ pub mod feature_flags;
 
 #[cfg(feature = "ab-testing")]
 pub mod ab_testing;
+
+pub mod response_sanitizer;  // T1 Atomic response filtering (removes Chaos implementation details)
 
 // ============================================================================
 // Public Re-exports (Core)
@@ -253,6 +263,23 @@ pub use snapshot_quota::{
 pub use session_tier_map::{
     SessionTierMapCapsule,
     SESSION_TABLE_SLOTS,
+};
+
+// Idempotency cache types (idempotency_cache)
+pub use idempotency_cache::{
+    IdempotencyCacheCapsule,
+    IdempotencyCacheStats,
+    fnv1a_hash,
+};
+
+// SSE session types (sse_session)
+pub use sse_session::{
+    SseSessionCapsule,
+    SessionState as SseSessionState,
+    SessionError as SseSessionError,
+    SessionSnapshot as SseSessionSnapshot,
+    SOCKET_NOT_CONNECTED,
+    DEFAULT_RATE_LIMIT_TOKENS,
 };
 
 // Re-export Command from access_control if available
@@ -410,6 +437,46 @@ pub use feature_flags::FeatureFlagsCapsule;
 
 #[cfg(feature = "connection-pool")]
 pub use connection_pool::ConnectionPoolCapsule;
+
+#[cfg(feature = "sse-transport")]
+pub use sse_connection_pool::{
+    SseConnectionPoolCapsule,
+    SseConnectionPoolHeader,
+    SseConnectionSlot,
+    SlotState,
+    SsePoolError,
+    MAX_CONNECTIONS as SSE_MAX_CONNECTIONS,
+};
+
+#[cfg(feature = "sse-transport")]
+pub use sse_transport::{
+    SseTransportCapsule,
+    SseTransportConfig,
+    TransportState,
+    TransportError,
+    TransportSnapshot,
+    HttpResponse as SseHttpResponse,
+    // SSE event formatting (MCP 2024-11-05 spec)
+    format_sse_event,
+    format_endpoint_event,
+    format_message_event,
+    format_ping_event,
+    // HTTP response helpers
+    build_sse_response_headers,
+    build_204_response,
+    build_error_response as build_sse_error_response,
+    build_json_response,
+    build_cors_preflight_response,
+    // Header extraction helpers
+    extract_api_key,
+    extract_session_id,
+    // Constants
+    DEFAULT_MAX_CONNECTIONS as SSE_DEFAULT_MAX_CONNECTIONS,
+    DEFAULT_HEARTBEAT_INTERVAL_MS,
+    DEFAULT_CONNECTION_TIMEOUT_MS,
+    DEFAULT_MESSAGE_QUEUE_SIZE,
+    DEFAULT_PORT as SSE_DEFAULT_PORT,
+};
 
 // Note: ab_testing module doesn't define AbTestingCapsule yet
 // #[cfg(feature = "ab-testing")]

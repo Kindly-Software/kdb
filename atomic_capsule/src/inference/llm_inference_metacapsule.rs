@@ -47,7 +47,7 @@
 //! - **Q10**: T6 Mixed tier (orchestrates T1+T2+T5+T7+T10 compound)
 //! - **Q33**: 100% lockfree (DualAtomicU64 coordination, no mutex)
 //! - **Q34**: Auditability via statistics tracking (tokens/sec, memory usage)
-//! - **COCA**: Cache-aligned 512B, generation counters, atomic-only coordination
+//! - **Chaos**: Cache-aligned 512B, generation counters, atomic-only coordination
 //! - **ASSUM**: Document sub-capsule lifetime, phase ordering, Q16.16 overflow safety
 //! - **B32**: Fair baseline (sequential inference), validated compound speedup
 //! - **T28**: 12 unit tests (creation, attachment, configuration, phase transitions)

@@ -167,25 +167,29 @@ fn bench_verification_time(c: &mut Criterion) {
     for size in [100, 1000, 5000].iter() {
         group.throughput(Throughput::Elements(*size as u64));
 
-        group.bench_with_input(BenchmarkId::new("verify_merkle_range", size), size, |b, &size| {
-            let capsule = AuditCompressionCapsule::new();
+        group.bench_with_input(
+            BenchmarkId::new("verify_merkle_range", size),
+            size,
+            |b, &size| {
+                let capsule = AuditCompressionCapsule::new();
 
-            // Pre-populate with events
-            for i in 0..size {
-                let event = AuditEvent::new(
-                    AuditEventType::FileAdd,
-                    1,
-                    &format!("/data/file{}.txt", i),
-                    "add",
-                );
-                capsule.append(event).unwrap();
-            }
+                // Pre-populate with events
+                for i in 0..size {
+                    let event = AuditEvent::new(
+                        AuditEventType::FileAdd,
+                        1,
+                        &format!("/data/file{}.txt", i),
+                        "add",
+                    );
+                    capsule.append(event).unwrap();
+                }
 
-            b.iter(|| {
-                let result = capsule.verify_merkle_range(0, (size - 1) as u64);
-                black_box(result.unwrap());
-            });
-        });
+                b.iter(|| {
+                    let result = capsule.verify_merkle_range(0, (size - 1) as u64);
+                    black_box(result.unwrap());
+                });
+            },
+        );
     }
 
     group.finish();

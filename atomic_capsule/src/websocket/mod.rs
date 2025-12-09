@@ -1,6 +1,6 @@
 //! WebSocket (RFC 6455) Implementation
 //!
-//! **Framework**: UCE34 (T8 Network + T1 Atomic), COCA, ASSUM, B32, T28, I20
+//! **Framework**: UCE34 (T8 Network + T1 Atomic), Chaos, ASSUM, B32, T28, I20
 //! **Tier**: T8 (Network) + T1 (Atomic Coordination)
 //! **Performance**: <100μs latency, 10K+ concurrent connections
 //! **Safety**: 100% ASSUM safe (99.99% confidence)
@@ -12,7 +12,7 @@
 //!
 //! - **Sub-100μs latency** for typical operations
 //! - **10K+ concurrent connections** per core
-//! - **Zero mutex/RwLock** usage (100% COCA compliant)
+//! - **Zero mutex/RwLock** usage (100% Chaos compliant)
 //! - **Q34 audit trail** support for compliance-sensitive applications
 //!
 //! ## Phase 1: Upgrade Handshake (Current)
@@ -86,7 +86,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 T8 Network + T1 Atomic, Q33 compile-time verification
-//! - **COCA**: 100% lockfree atomics (no mutex/RwLock)
+//! - **Chaos**: 100% lockfree atomics (no mutex/RwLock)
 //! - **ASSUM**: #ASSUME_HTTP_REQUEST_VALID, #ASSUME_KEY_FORMAT_VALID (all documented)
 //! - **B32**: <50μs baseline, 95% CI, fair comparison with Axum/tungstenite
 //! - **T28**: 28 tests (unit/property/integration/production)

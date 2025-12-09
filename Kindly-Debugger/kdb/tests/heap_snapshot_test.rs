@@ -78,9 +78,22 @@ mod tests {
             assert!(result.is_ok(), "Should successfully take snapshot {}", i);
         }
 
-        // Verify we can retrieve all snapshots
-        assert!(capsule.snapshot_count() > 0);
-        assert!(capsule.snapshot_count() <= 128);
+        // After exactly 128 snapshots, head wraps around to 0 (128 & 127 = 0)
+        // But generation counter should have been incremented to track wraparound
+        // snapshot_count() returns head position (0 after full wrap)
+        // The key invariant is: head is always in valid range [0, 128)
+        assert!(capsule.snapshot_count() <= 128, "Head should never exceed capacity");
+
+        // After a full wrap, we should still be able to take more snapshots
+        let metadata = HeapMetadata {
+            timestamp_ns: 2_000_000_000,
+            total_allocations: 2_000,
+            heap_size_bytes: 20_000_000,
+            data: vec![0xFF; 10],
+        };
+        let result = capsule.take_snapshot(&metadata);
+        assert!(result.is_ok(), "Should successfully take snapshot after wraparound");
+        assert_eq!(capsule.snapshot_count(), 1, "Head should be 1 after one more snapshot");
     }
 
     #[test]

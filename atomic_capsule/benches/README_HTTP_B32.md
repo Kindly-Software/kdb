@@ -378,7 +378,7 @@ grep "change:" bench_run2.txt
 | Framework | Status | Details |
 |---|---|---|
 | **UCE34** | ✅ Q33 validation | Empirical performance validation (B32 framework) |
-| **COCA** | ✅ 100% lockfree | No mutex/RwLock, atomic coordination only |
+| **Chaos** | ✅ 100% lockfree | No mutex/RwLock, atomic coordination only |
 | **ASSUM** | ✅ 99.99% safe | All assumptions documented, black_box prevents elision |
 | **B32** | ✅ Fair benchmarks | 1000+ iterations, 95% CI, realistic workloads |
 | **T28** | ✅ Testing | Comprehensive suite (4 tiers: micro/property/integration/production) |

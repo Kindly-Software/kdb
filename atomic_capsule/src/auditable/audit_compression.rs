@@ -22,7 +22,7 @@
 //! - **UCE34 Q10**: T0+T5 (Auditable + Streaming)
 //! - **UCE34 Q33**: 100% lockfree (zero mutex/RwLock)
 //! - **UCE34 Q34**: SHA3-256 Merkle tree for Q34 compliance
-//! - **COCA**: Cache-aligned (256B), generation counters, atomic coordination
+//! - **Chaos**: Cache-aligned (256B), generation counters, atomic coordination
 //! - **ASSUM**: 99.99% safe (all assumptions documented)
 //! - **B32**: Fair baseline (uncompressed sequential log)
 //! - **T28**: 28 comprehensive tests (unit/property/integration/production)
@@ -259,6 +259,7 @@ impl AuditEvent {
 /// #VERIFY_WRAPAROUND: Property tests validate generation counter increments
 #[repr(C, align(256))]
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
+#[cfg_attr(feature = "derive", capsule(alignment = 256))]
 pub struct AuditCompressionCapsule {
     /// Head index (next write position, 0-16383)
     head_index: AtomicU64,

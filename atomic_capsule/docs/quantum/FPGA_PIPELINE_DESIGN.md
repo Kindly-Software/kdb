@@ -872,6 +872,6 @@ xsim tb_syndrome_kernel -runall
 
 **Validation**: Vivado simulator (pre-silicon) + hardware-in-loop (100% accuracy vs CPU)
 
-**Framework Compliance**: UCE34 (T7 Heterogeneous), COCA (100% lockfree host coordination), B32 (fair baselines), T28 (comprehensive testing in FPGA_SYNDROME_T28.md)
+**Framework Compliance**: UCE34 (T7 Heterogeneous), Chaos (100% lockfree host coordination), B32 (fair baselines), T28 (comprehensive testing in FPGA_SYNDROME_T28.md)
 
 **Next Steps**: Proceed to T28 test plan (FPGA_SYNDROME_T28.md) for comprehensive validation strategy.

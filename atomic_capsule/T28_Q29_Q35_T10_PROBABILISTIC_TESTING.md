@@ -130,7 +130,7 @@ Tests execution path determinism, generation counter monotonicity, cache coheren
 ✅ **Q34 (Audit)**: Hash-chain replay capability, deterministic input→output mapping
 ✅ **Q35 (Composition)**: Cross-tier composition (T9+T10, T6+T10, T10+T10) with breakthrough validation
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 
 ✅ **100% Lockfree**: All test mocks use AtomicU64/AtomicU8 (no mutex/RwLock)
 ✅ **Cache-Aligned**: 64B-256B capsule layouts proven in Q32 tests
@@ -211,7 +211,7 @@ Proves cache-line alignment prevents false sharing.
 | Total Tests | 40+ | 39 | ✅ |
 | Total Lines | <2000 | ~1,100 | ✅ |
 | 100+ Run Determinism | Yes | 12 tests | ✅ |
-| Framework Compliance | 100% | UCE34/COCA/ASSUM/B32/T28/I20 | ✅ |
+| Framework Compliance | 100% | UCE34/Chaos/ASSUM/B32/T28/I20 | ✅ |
 | Breakthrough Validation | 93%/204×/38× | T9+T10/T6+T10/kindly_dedup | ✅ |
 | Hash Function Determinism | Proven | 1000 hashes verified | ✅ |
 | Error Bounds Reproducible | <2% HLL | Consistent across 100 runs | ✅ |
@@ -314,7 +314,7 @@ Optional: `probabilistic` feature for access to T10 capsules (mock implementatio
 ## References
 
 - **UCE34 Framework**: `/home/samuel/CLAUDE.md` (Q10-Q35 tier selection, profiling-first)
-- **COCA Architecture**: `/home/samuel/Docs/The Computational Capsule.md` (100% lockfree design)
+- **Chaos Architecture**: `/home/samuel/Docs/The Computational Capsule.md` (100% lockfree design)
 - **KEY_INNOVATIONS**: `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md` (9 breakthrough patterns)
 - **kindly_dedup**: `/home/samuel/Primitives/kindly_dedup/` (38× MinHash reference implementation)
 - **T28 Framework**: `/home/samuel/CLAUDE.md` § Performance & Validation Standards (4-tier testing)

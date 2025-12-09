@@ -53,6 +53,8 @@ toml = "0.8"
 criterion = { version = "0.5", features = ["html_reports"] }
 proptest = "1.4"
 libc = "0.2"  # For memory/FD limit tests in production stress
+tempfile = "3.10"  # For chaos testing temporary directories
+thiserror = "1.0"  # For E2E test harness error types
 
 # Ptrace support (Linux only)
 [target.'cfg(target_os = "linux")'.dependencies]
@@ -91,11 +93,22 @@ operator-challenge = ["rand"]
 # Test helpers for setting internal state (for integration tests)
 test-helpers = []
 
+# CLI binary (interactive debugger command line interface)
+cli = ["std"]
+
+# CLI dispatcher tests (requires dispatcher module, currently disabled)
+# TODO: Re-enable after PtraceWrapperCapsule imports are fixed
+cli-dispatcher = []
+
 # Platform-specific features (automatically enabled per target OS)
 # See https://github.com/yourorg/kdb/docs/PLATFORM_SUPPORT.md
 linux-ptrace = []      # Linux ptrace debugging (default on Linux)
 macos-mach = []        # macOS Mach API debugging (planned, not yet implemented)
 windows-debug = []     # Windows Debug API debugging (planned, not yet implemented)
+
+# Chaos testing with real failure injection (requires Linux, CAP_SYS_PTRACE)
+# WARNING: These tests modify system resource limits - run in isolated environment
+chaos-testing = []
 
 # All features
 all = ["std", "simd", "derive", "property-tests"]
@@ -197,6 +210,24 @@ harness = true
 name = "memory_corruption_tests"
 path = "tests/memory_corruption_tests.rs"
 harness = true
+
+[[test]]
+name = "chaos_tests"
+path = "tests/chaos/mod.rs"
+harness = true
+required-features = ["chaos-testing"]
+
+[[test]]
+name = "license_tests"
+path = "tests/license_tests.rs"
+harness = true
+required-features = ["test-helpers"]
+
+[[test]]
+name = "cli_integration"
+path = "tests/cli_integration.rs"
+harness = true
+required-features = ["cli-dispatcher"]
 
 [profile.test]
 opt-level = 2  # Optimize tests for realistic performance measurement

@@ -1,0 +1,41 @@
+#!/bin/sh
+# Snap configure hook for kindly-av1
+# Handles GPU detection and configuration validation
+
+set -e
+
+# Get GPU preference (if set by user)
+GPU_BACKEND=$(snapctl get gpu-backend)
+
+if [ -z "$GPU_BACKEND" ]; then
+    # Auto-detect GPU backend
+    if command -v vulkaninfo >/dev/null 2>&1; then
+        echo "Detected Vulkan support, using vulkan backend"
+        snapctl set gpu-backend=vulkan
+    elif [ -d "/opt/rocm" ]; then
+        echo "Detected ROCm installation, using rocm backend"
+        snapctl set gpu-backend=rocm
+    else
+        echo "No GPU backend detected, falling back to CPU"
+        snapctl set gpu-backend=cpu
+    fi
+fi
+
+# Verify Vulkan ICD is accessible (if using Vulkan)
+if [ "$GPU_BACKEND" = "vulkan" ]; then
+    if [ ! -f "/var/lib/snapd/lib/vulkan/icd.d/radeon_icd.x86_64.json" ] && \
+       [ ! -f "/var/lib/snapd/lib/vulkan/icd.d/nvidia_icd.json" ]; then
+        echo "WARNING: Vulkan ICD not found. GPU acceleration may not work."
+        echo "Install mesa-vulkan-drivers (AMD) or nvidia-driver (NVIDIA) on host."
+    fi
+fi
+
+# Set default dashboard port (for OBS overlay HTTP server)
+DASHBOARD_PORT=$(snapctl get dashboard-port)
+if [ -z "$DASHBOARD_PORT" ]; then
+    snapctl set dashboard-port=8765
+fi
+
+echo "kindly-av1 configuration complete"
+echo "GPU backend: $(snapctl get gpu-backend)"
+echo "Dashboard port: $(snapctl get dashboard-port)"

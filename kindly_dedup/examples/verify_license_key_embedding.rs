@@ -93,7 +93,7 @@ fn main() {
     println!("✓ Deterministic derivation from CUSTOMER_ID");
     println!("✓ Zero runtime cost (constant loaded from binary)");
     println!("✓ Q34 audit trail with full build metadata");
-    println!("✓ Framework compliant: UCE34, ASSUM, B32, COCA");
+    println!("✓ Framework compliant: UCE34, ASSUM, B32, Chaos");
 
     // Step 6: Show how to use in production
     println!("\n=== Production Usage ===");

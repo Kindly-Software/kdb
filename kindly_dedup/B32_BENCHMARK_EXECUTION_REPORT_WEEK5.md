@@ -272,7 +272,7 @@ All variants of ParallelDedupMetacapsule will face the same 9.75× size violatio
 
 ## Framework References
 
-- **COCA** (Computational Capsule Architecture): `/home/samuel/Docs/The Computational Capsule.md`
+- **Chaos** (Computational Capsule Architecture): `/home/samuel/Docs/The Computational Capsule.md`
 - **UCE34**: Systematic discovery Q1-Q34 (Q33 verification, Q34 audit)
 - **B32**: Fair benchmarking (K1-K30 framework)
 - **T28**: Testing strategy (4 tiers: unit/property/integration/production)

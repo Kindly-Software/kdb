@@ -20,7 +20,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: T7 Heterogeneous tier (CPU-GPU coordination)
-//! - **COCA**: Lockfree kernel capsule (AtomicU64 state)
+//! - **Chaos**: Lockfree kernel capsule (AtomicU64 state)
 //! - **ASSUM**: Document GPU assumptions (determinism, precision)
 //! - **B32**: Throughput benchmark with fair comparison
 //! - **T28**: Unit tests, property tests (GPU == CPU), throughput tests
@@ -68,7 +68,7 @@ pub const SIGNATURE_SIZE: usize = 128;
 /// ```
 #[repr(C, align(64))]
 pub struct LshBandGpuCapsule {
-    /// Atomic state for COCA compliance (0 = uninit, 1 = ready, 2 = error)
+    /// Atomic state for Chaos compliance (0 = uninit, 1 = ready, 2 = error)
     state: AtomicU64,
     /// Compute pipeline (per-band parallelism)
     pipeline: Option<wgpu::ComputePipeline>,
@@ -120,7 +120,7 @@ impl<'a> LshBandGpuInput<'a> {
 
 /// Output from GPU LSH band computation - T7 Heterogeneous Capsule
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 ///
 /// - Cache-aligned (64 bytes) for optimal memory access
 /// - AtomicU64 for generation counter (Q34 audit trail)
@@ -754,6 +754,7 @@ mod tests {
     // =========================================================================
 
     #[test]
+    #[ignore] // Requires GPU hardware
     fn test_lsh_band_gpu_basic() {
         let Some(ctx) = try_get_gpu() else { return };
 
@@ -782,6 +783,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Requires GPU hardware
     fn test_lsh_band_gpu_deterministic() {
         let Some(ctx) = try_get_gpu() else { return };
 
@@ -805,6 +807,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Requires GPU hardware
     fn test_lsh_band_gpu_vs_cpu() {
         let Some(ctx) = try_get_gpu() else { return };
 
@@ -843,6 +846,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Requires GPU hardware
     fn test_lsh_band_per_doc_kernel() {
         let Some(ctx) = try_get_gpu() else { return };
 
@@ -871,6 +875,7 @@ mod tests {
     // =========================================================================
 
     #[test]
+    #[ignore] // Requires GPU hardware
     fn test_lsh_band_gpu_throughput() {
         let Some(ctx) = try_get_gpu() else { return };
 
@@ -922,6 +927,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Requires GPU hardware
     fn test_lsh_band_gpu_large_batch() {
         let Some(ctx) = try_get_gpu() else { return };
 

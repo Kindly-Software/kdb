@@ -2,7 +2,7 @@
 //!
 //! **P1.2 HIGH PRIORITY**: Detects multiple scattered AtomicU64/U32 fields in T1 capsules.
 //!
-//! ## UCE34 Q10 & COCA Mandate
+//! ## UCE34 Q10 & Chaos Mandate
 //!
 //! T1 (Atomic) capsules with ≥2 separate atomic fields should use DualAtomicU64 pattern:
 //! - **Problem**: Scattered atomics create false sharing (separate cache lines)
@@ -200,7 +200,7 @@ fn is_atomic_type<'tcx>(cx: &LateContext<'tcx>, ty: rustc_middle::ty::Ty<'tcx>) 
 ///
 /// # UCE34 Q10 (Tier Selection)
 ///
-/// DualAtomicU64 pattern is COCA-compliant refactoring for scattered atomics:
+/// DualAtomicU64 pattern is Chaos-compliant refactoring for scattered atomics:
 /// - **Cache-separated**: primary(64B) + secondary(64B) = 128B alignment
 /// - **Bit-packing**: data(32) | generation(32) per AtomicU64
 /// - **Performance**: 10.7× speedup vs scattered atomics (105ns → 9.8ns latency)
@@ -346,7 +346,7 @@ fn emit_scattered_atomics_diagnostic<'tcx>(
             // === FRAMEWORK REFERENCES ===
             lint.note("");
             lint.note("━━━ FRAMEWORK REFERENCES ━━━");
-            lint.note("COCA (Computational Capsule Architecture):");
+            lint.note("Chaos (Computational Capsule Architecture):");
             lint.note("  - Lock-free coordination via DualAtomicU64");
             lint.note("  - Cache-aligned (64B/128B/256B) prevents false sharing");
             lint.note("  - Generation counters prevent TOCTOU races");

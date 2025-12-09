@@ -352,5 +352,5 @@ fn main() {
     println!("- FPR: <0.1% (requirement satisfied)");
     println!("- Latency: <50ns per check (target satisfied)");
     println!("- Concurrent: 100% lockfree (atomic operations only)");
-    println!("- COCA Compliance: ✓ UCE34 Q1-Q34 + ASSUM + B32 + T28");
+    println!("- Chaos Compliance: ✓ UCE34 Q1-Q34 + ASSUM + B32 + T28");
 }

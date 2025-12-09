@@ -1,7 +1,7 @@
 //! [TRADE SECRET] Bayer CFA Demosaicing Pattern Detection Capsule
 //!
 //! **Tier**: T2 (SIMD) + T3 (Fixed-Point)
-//! **Framework**: UCE34 Q10c, COCA 100% lockfree, ASSUM 99.99% safe
+//! **Framework**: UCE34 Q10c, Chaos 100% lockfree, ASSUM 99.99% safe
 //! **Target**: 10-15% false positive reduction via Bayer CFA artifact detection
 //! **Latency**: ~3-5ms per image (SIMD-accelerated correlation computation)
 //!

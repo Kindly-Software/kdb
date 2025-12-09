@@ -1,0 +1,671 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  CapsuleSerializerMetacapsule Architecture Design
+
+  UCE34 Framework: T0+T1 Metacapsule for Zero-Copy Serialization
+  Replaces Serde with compile-time verification and lockfree buffer management
+
+  Version: 1.0
+  Date: 2025-11-24
+  Status: Design Complete
+-->
+<capsule-serializer-metacapsule-architecture version="1.0">
+
+  <!-- ============================================================================
+       EXECUTIVE SUMMARY
+       ============================================================================ -->
+  <executive-summary>
+    <purpose>T0+T1 metacapsule orchestrating zero-copy serialization to replace Serde runtime reflection with compile-time verification</purpose>
+    <tiers>
+      <tier id="T0" name="Auditable">Compile-time layout verification, Q34 hash-chain integrity for audit trails</tier>
+      <tier id="T1" name="Atomic">Lockfree buffer management, zero-copy views, atomic coordination</tier>
+    </tiers>
+    <target-speedup>5-20x vs Serde runtime reflection (compile-time verification eliminates runtime type inspection)</target-speedup>
+    <deliverables>
+      <deliverable>CapsuleSerializerMetacapsule (T0+T1 orchestrator, 256B)</deliverable>
+      <deliverable>SerializationBufferCapsule (T1 lockfree buffer pool, 128B)</deliverable>
+      <deliverable>FormatRegistryCapsule (T0 format routing, 64B)</deliverable>
+      <deliverable>HashChainCapsule (T0 Q34 audit trail, 64B)</deliverable>
+    </deliverables>
+  </executive-summary>
+
+  <!-- ============================================================================
+       ARCHITECTURAL OVERVIEW
+       ============================================================================ -->
+  <architectural-overview>
+    <diagram>
+      <!--
+        CapsuleSerializerMetacapsule (256B, T0+T1)
+        ├── SerializationBufferCapsule (128B, T1) - Lockfree buffer pool
+        ├── FormatRegistryCapsule (64B, T0) - Binary/CBOR/JSON format routing
+        ├── HashChainCapsule (64B, T0) - Q34 audit trail integrity
+        └── Coordinates derive macro code generation
+      -->
+    </diagram>
+
+    <design-principles>
+      <principle id="1">Zero-copy by default: Borrow from buffer, no allocation during deserialization</principle>
+      <principle id="2">Compile-time verification: #[derive(CapsuleSerialize)] validates layout at build time</principle>
+      <principle id="3">100% lockfree: No mutex/RwLock, atomic coordination only (Chaos mandate)</principle>
+      <principle id="4">Format-agnostic: Native binary (fastest), CBOR (interoperable), JSON (human-readable)</principle>
+      <principle id="5">Q34 audit compliance: Hash-chain integrity for SOX/SOC2/GDPR/HIPAA</principle>
+    </design-principles>
+  </architectural-overview>
+
+  <!-- ============================================================================
+       CAPSULE DEFINITIONS
+       ============================================================================ -->
+  <capsules>
+
+    <!-- CapsuleSerializerMetacapsule: T0+T1 Orchestrator -->
+    <capsule id="CapsuleSerializerMetacapsule" tier="T0+T1" size="256B" align="256">
+      <purpose>Orchestrates serialization pipeline: buffer acquisition, format selection, hash computation, audit logging</purpose>
+
+      <layout>
+        <field name="buffer_pool" type="AtomicU64" offset="0" size="8">Pointer to SerializationBufferCapsule pool</field>
+        <field name="format_registry" type="AtomicU64" offset="8" size="8">Pointer to FormatRegistryCapsule</field>
+        <field name="hash_chain" type="AtomicU64" offset="16" size="8">Pointer to HashChainCapsule</field>
+        <field name="generation" type="AtomicU64" offset="24" size="8">Generation counter for ABA prevention</field>
+        <field name="state" type="AtomicU64" offset="32" size="8">Packed state: format(8) + flags(24) + active_ops(32)</field>
+        <field name="stats" type="DualAtomicU64" offset="40" size="16">Serialize count + deserialize count</field>
+        <field name="_padding" type="[u8; 184]" offset="56" size="184">Cache alignment padding to 256B</field>
+      </layout>
+
+      <methods>
+        <method name="new" signature="fn new() -> Self">Initialize metacapsule with default buffer pool and format registry</method>
+        <method name="serialize" signature="fn serialize&lt;T: CapsuleSerialize&gt;(&amp;self, value: &amp;T, format: Format) -> Result&lt;SerializedData, SerializeError&gt;">Serialize value to specified format with zero-copy buffer</method>
+        <method name="deserialize" signature="fn deserialize&lt;'de, T: CapsuleDeserialize&lt;'de&gt;&gt;(&amp;self, data: &amp;'de [u8]) -> Result&lt;T, DeserializeError&gt;">Zero-copy deserialize from buffer</method>
+        <method name="deserialize_borrowed" signature="fn deserialize_borrowed&lt;'de, T: ZeroCopyDeserialize&lt;'de&gt;&gt;(&amp;self, data: &amp;'de [u8]) -> Result&lt;&amp;'de T, DeserializeError&gt;">Borrow directly from buffer (true zero-copy)</method>
+        <method name="verify_chain" signature="fn verify_chain(&amp;self, current: &amp;impl CapsuleSerialize, prev_hash: u64) -> bool">Verify hash chain integrity for Q34 audit</method>
+        <method name="snapshot" signature="fn snapshot(&amp;self) -> SerializerSnapshot">Atomic snapshot of stats and state</method>
+      </methods>
+
+      <performance>
+        <metric name="serialize">Target &lt;100ns for 128B capsule (excluding format encoding)</metric>
+        <metric name="deserialize">Target &lt;50ns for zero-copy borrow</metric>
+        <metric name="hash_verify">Target &lt;20ns (FNV-1a)</metric>
+        <metric name="snapshot">Target &lt;10ns (single DualAtomicU64 load)</metric>
+      </performance>
+
+      <assum>
+        <tag>#ASSUME_BUFFER_POOL_VALID: Buffer pool pointer always points to valid SerializationBufferCapsule</tag>
+        <tag>#VERIFY_BUFFER_POOL_VALID: Generation counter prevents use-after-free</tag>
+        <tag>#ASSUME_FORMAT_REGISTRY_VALID: Format registry pointer always points to valid FormatRegistryCapsule</tag>
+        <tag>#VERIFY_FORMAT_REGISTRY_VALID: Atomic load with Acquire ordering ensures visibility</tag>
+      </assum>
+    </capsule>
+
+    <!-- SerializationBufferCapsule: T1 Lockfree Buffer Pool -->
+    <capsule id="SerializationBufferCapsule" tier="T1" size="128B" align="128">
+      <purpose>Lockfree buffer pool for zero-allocation serialization</purpose>
+
+      <layout>
+        <field name="head" type="AtomicU64" offset="0" size="8">Free list head (packed: index(32) + generation(32))</field>
+        <field name="capacity" type="u64" offset="8" size="8">Total buffer count (power of 2, max 1024)</field>
+        <field name="buffer_size" type="u64" offset="16" size="8">Size per buffer (power of 2, default 4096)</field>
+        <field name="allocated" type="AtomicU64" offset="24" size="8">Currently allocated buffer count</field>
+        <field name="buffers_ptr" type="AtomicU64" offset="32" size="8">Pointer to buffer array</field>
+        <field name="generation" type="AtomicU64" offset="40" size="8">Pool generation counter</field>
+        <field name="_padding" type="[u8; 80]" offset="48" size="80">Cache alignment padding to 128B</field>
+      </layout>
+
+      <methods>
+        <method name="acquire" signature="fn acquire(&amp;self) -> Option&lt;BufferHandle&gt;">Acquire buffer from pool (lockfree CAS)</method>
+        <method name="release" signature="fn release(&amp;self, handle: BufferHandle)">Release buffer back to pool (lockfree push)</method>
+        <method name="buffer_ref" signature="fn buffer_ref&lt;'a&gt;(&amp;'a self, handle: &amp;BufferHandle) -> &amp;'a [u8]">Get immutable reference to buffer</method>
+        <method name="buffer_mut" signature="fn buffer_mut&lt;'a&gt;(&amp;'a self, handle: &amp;mut BufferHandle) -> &amp;'a mut [u8]">Get mutable reference to buffer</method>
+      </methods>
+
+      <performance>
+        <metric name="acquire">Target &lt;20ns (single CAS)</metric>
+        <metric name="release">Target &lt;15ns (single CAS)</metric>
+        <metric name="contention">Linear backoff under high contention</metric>
+      </performance>
+
+      <assum>
+        <tag>#ASSUME_POWER_OF_TWO: capacity and buffer_size are powers of 2</tag>
+        <tag>#VERIFY_POWER_OF_TWO: Constructor validates via (x &amp; (x-1)) == 0</tag>
+        <tag>#ASSUME_ABA_SAFE: Generation counter prevents ABA problem</tag>
+        <tag>#VERIFY_ABA_SAFE: 32-bit generation wraps at 4 billion operations</tag>
+      </assum>
+    </capsule>
+
+    <!-- FormatRegistryCapsule: T0 Format Routing -->
+    <capsule id="FormatRegistryCapsule" tier="T0" size="64B" align="64">
+      <purpose>Compile-time format routing for Binary/CBOR/JSON serialization</purpose>
+
+      <layout>
+        <field name="default_format" type="AtomicU8" offset="0" size="1">Default format: 0=Binary, 1=CBOR, 2=JSON</field>
+        <field name="flags" type="AtomicU8" offset="1" size="1">Flags: bit0=include_hash, bit1=compress, bit2=pretty_print</field>
+        <field name="_reserved" type="[u8; 6]" offset="2" size="6">Reserved for future use</field>
+        <field name="binary_magic" type="u32" offset="8" size="4">Binary format magic: 0x43415053 ("CAPS")</field>
+        <field name="binary_version" type="u16" offset="12" size="2">Binary format version: 0x0100 (v1.0)</field>
+        <field name="cbor_tag" type="u16" offset="14" size="2">CBOR semantic tag (optional)</field>
+        <field name="_padding" type="[u8; 48]" offset="16" size="48">Cache alignment padding to 64B</field>
+      </layout>
+
+      <formats>
+        <format id="Binary" value="0">
+          <description>Native capsule binary format (fastest, deterministic)</description>
+          <header>Magic(4B) + Version(2B) + Flags(2B) + PayloadLen(8B) = 16B</header>
+          <footer>CRC32(4B) = 4B</footer>
+          <total-overhead>20 bytes</total-overhead>
+          <performance>&lt;100ns for 128B payload</performance>
+        </format>
+        <format id="CBOR" value="1">
+          <description>RFC 8949 CBOR (Concise Binary Object Representation)</description>
+          <features>Self-describing, schema-optional, interoperable</features>
+          <performance>&lt;200ns for 128B payload (1.5-2x vs binary)</performance>
+        </format>
+        <format id="JSON" value="2">
+          <description>Human-readable JSON (debugging, logging)</description>
+          <features>Pretty-print option, decimal string conversion</features>
+          <performance>&lt;1μs for 128B payload (10-20x vs binary)</performance>
+        </format>
+      </formats>
+
+      <methods>
+        <method name="get_format" signature="fn get_format(&amp;self) -> Format">Get current default format</method>
+        <method name="set_format" signature="fn set_format(&amp;self, format: Format)">Set default format (atomic store)</method>
+        <method name="encode_header" signature="fn encode_header(&amp;self, format: Format, payload_len: u64) -> [u8; 16]">Encode format-specific header</method>
+        <method name="decode_header" signature="fn decode_header(&amp;self, data: &amp;[u8]) -> Result&lt;FormatHeader, DecodeError&gt;">Decode and validate header</method>
+      </methods>
+    </capsule>
+
+    <!-- HashChainCapsule: T0 Q34 Audit Trail -->
+    <capsule id="HashChainCapsule" tier="T0" size="64B" align="64">
+      <purpose>Q34 hash-chain integrity for compliance audit trails (SOX/SOC2/GDPR/HIPAA)</purpose>
+
+      <layout>
+        <field name="chain_head" type="AtomicU64" offset="0" size="8">Current chain head hash (FNV-1a)</field>
+        <field name="chain_length" type="AtomicU64" offset="8" size="8">Number of entries in chain</field>
+        <field name="last_timestamp" type="AtomicU64" offset="16" size="8">Unix timestamp of last entry (microseconds)</field>
+        <field name="crc64" type="AtomicU64" offset="24" size="8">CRC64 of chain state (tamper detection)</field>
+        <field name="_padding" type="[u8; 32]" offset="32" size="32">Cache alignment padding to 64B</field>
+      </layout>
+
+      <methods>
+        <method name="append" signature="fn append(&amp;self, data_hash: u64) -> ChainEntry">Append new entry to chain (atomic CAS)</method>
+        <method name="verify" signature="fn verify(&amp;self, entry: &amp;ChainEntry, prev_hash: u64) -> bool">Verify entry links to previous hash</method>
+        <method name="verify_chain" signature="fn verify_chain(&amp;self, entries: &amp;[ChainEntry]) -> bool">Verify entire chain integrity</method>
+        <method name="compute_hash" signature="fn compute_hash(data: &amp;[u8]) -> u64">FNV-1a hash computation</method>
+        <method name="snapshot" signature="fn snapshot(&amp;self) -> ChainSnapshot">Atomic snapshot for audit export</method>
+      </methods>
+
+      <compliance>
+        <standard id="SOX">Hash chain provides tamper-evident audit trail</standard>
+        <standard id="SOC2">Cryptographic integrity verification</standard>
+        <standard id="GDPR">Immutable audit log for data processing</standard>
+        <standard id="HIPAA">Protected health information audit trail</standard>
+      </compliance>
+
+      <assum>
+        <tag>#ASSUME_HASH_CHAIN_IMMUTABLE: Once appended, chain entries cannot be modified</tag>
+        <tag>#VERIFY_HASH_CHAIN_IMMUTABLE: CRC64 detects any tampering</tag>
+        <tag>#ASSUME_TIMESTAMP_MONOTONIC: Timestamps increase monotonically</tag>
+        <tag>#VERIFY_TIMESTAMP_MONOTONIC: Append validates timestamp > last_timestamp</tag>
+      </assum>
+    </capsule>
+
+  </capsules>
+
+  <!-- ============================================================================
+       BINARY FORMAT SPECIFICATION
+       ============================================================================ -->
+  <binary-format version="1.0">
+    <header size="16">
+      <field name="magic" offset="0" size="4" encoding="little-endian">
+        <value>0x43415053</value>
+        <description>ASCII "CAPS" - identifies capsule binary format</description>
+      </field>
+      <field name="version_major" offset="4" size="1">
+        <value>1</value>
+        <description>Major version (breaking changes)</description>
+      </field>
+      <field name="version_minor" offset="5" size="1">
+        <value>0</value>
+        <description>Minor version (compatible additions)</description>
+      </field>
+      <field name="flags" offset="6" size="2" encoding="little-endian">
+        <bit id="0">HAS_HASH - Includes FNV-1a hash in footer</bit>
+        <bit id="1">COMPRESSED - Payload is compressed (reserved)</bit>
+        <bit id="2">HAS_CHAIN - Includes prev_hash for chain integrity</bit>
+        <bit id="3-15">Reserved (must be 0)</bit>
+      </field>
+      <field name="payload_len" offset="8" size="8" encoding="little-endian">
+        <description>Payload length in bytes (excludes header and footer)</description>
+      </field>
+    </header>
+
+    <payload>
+      <description>Field-by-field serialization in declaration order</description>
+      <encoding>Little-endian for all integer types</encoding>
+      <alignment>Natural alignment (no padding between fields)</alignment>
+      <fixed-point>
+        <type name="Q8_8">8 bytes (i64 raw value, 8 fractional bits)</type>
+        <type name="Q16_16">8 bytes (i64 raw value, 16 fractional bits)</type>
+        <type name="Q32_32">8 bytes (i64 raw value, 32 fractional bits)</type>
+      </fixed-point>
+    </payload>
+
+    <footer size="4-12">
+      <field name="crc32" offset="payload_end" size="4" encoding="little-endian">
+        <description>CRC32 of header + payload (always present)</description>
+        <polynomial>0xEDB88320 (IEEE 802.3)</polynomial>
+      </field>
+      <field name="hash" offset="payload_end+4" size="8" encoding="little-endian" condition="flags.HAS_HASH">
+        <description>FNV-1a hash of payload (optional, for audit)</description>
+      </field>
+    </footer>
+  </binary-format>
+
+  <!-- ============================================================================
+       DERIVE MACRO ENHANCEMENTS
+       ============================================================================ -->
+  <derive-macros>
+
+    <macro name="CapsuleSerialize">
+      <purpose>Generate compile-time serialization with binary format support</purpose>
+
+      <attributes>
+        <attribute name="skip" scope="field">Exclude field from serialization</attribute>
+        <attribute name="hash_key" scope="field">Include in hash but not payload</attribute>
+        <attribute name="prev_hash" scope="field">Previous hash for chain integrity</attribute>
+        <attribute name="auto_crc" scope="struct" default="false">Generate CRC32 methods</attribute>
+        <attribute name="format" scope="struct" default="Binary">Default serialization format</attribute>
+      </attributes>
+
+      <generated-trait>
+        <![CDATA[
+pub trait CapsuleSerialize: Sized {
+    /// Format-specific magic number
+    const MAGIC: u32;
+
+    /// Format version
+    const VERSION: u16;
+
+    /// Number of serializable fields
+    const FIELD_COUNT: usize;
+
+    /// Serialize to binary format with zero-copy buffer
+    fn serialize_to(&self, buffer: &mut [u8]) -> Result<usize, SerializeError>;
+
+    /// Serialize to owned Vec (convenience)
+    fn serialize(&self) -> Vec<u8>;
+
+    /// Serialize with format selection
+    fn serialize_format(&self, format: Format) -> Vec<u8>;
+
+    /// Compute FNV-1a hash for audit trails
+    fn compute_hash(&self) -> u64;
+
+    /// Human-readable decimal string representation
+    fn to_decimal_string(&self) -> String;
+
+    /// Serialized size in bytes (compile-time when possible)
+    fn serialized_size(&self) -> usize;
+}
+        ]]>
+      </generated-trait>
+
+      <example>
+        <![CDATA[
+use atomic_capsule_derive_serialize::CapsuleSerialize;
+use atomic_capsule::fixed_point::Q16_16;
+
+#[derive(CapsuleSerialize)]
+#[capsule_serialize(auto_crc = true)]
+#[repr(C, align(128))]
+struct PaymentCapsule {
+    amount: Q16_16,
+    fee: Q16_16,
+
+    #[capsule_serialize(skip)]
+    internal_id: u64,
+
+    #[capsule_serialize(prev_hash)]
+    prev_hash: u64,
+}
+        ]]>
+      </example>
+    </macro>
+
+    <macro name="CapsuleDeserialize">
+      <purpose>Generate zero-copy deserialization with borrowed references</purpose>
+
+      <attributes>
+        <attribute name="skip" scope="field">Use Default::default() for field</attribute>
+        <attribute name="default" scope="field">Custom default value or function</attribute>
+        <attribute name="validate" scope="field">Post-deserialization validation</attribute>
+      </attributes>
+
+      <generated-trait>
+        <![CDATA[
+pub trait CapsuleDeserialize<'de>: Sized {
+    /// Deserialize from bytes (may allocate)
+    fn deserialize(bytes: &'de [u8]) -> Result<Self, DeserializeError>;
+
+    /// Zero-copy deserialize (borrow from buffer)
+    fn deserialize_borrowed(bytes: &'de [u8]) -> Result<&'de Self, DeserializeError>
+    where
+        Self: ZeroCopyDeserialize;
+
+    /// Validate deserialized data
+    fn validate(&self) -> Result<(), ValidationError>;
+}
+        ]]>
+      </generated-trait>
+    </macro>
+
+    <macro name="ZeroCopyDeserialize">
+      <purpose>Enable true zero-copy deserialization (borrow directly from buffer)</purpose>
+
+      <requirements>
+        <requirement>Struct must be #[repr(C)]</requirement>
+        <requirement>All fields must be Copy types</requirement>
+        <requirement>No padding between fields</requirement>
+        <requirement>Little-endian compatible layout</requirement>
+      </requirements>
+
+      <generated-trait>
+        <![CDATA[
+pub unsafe trait ZeroCopyDeserialize: Sized {
+    /// Validate buffer contains valid data
+    fn validate_buffer(bytes: &[u8]) -> Result<(), ValidationError>;
+
+    /// Borrow directly from buffer (unsafe, caller must ensure alignment)
+    unsafe fn from_bytes_unchecked(bytes: &[u8]) -> &Self;
+
+    /// Safe zero-copy borrow (validates buffer first)
+    fn from_bytes(bytes: &[u8]) -> Result<&Self, DeserializeError> {
+        Self::validate_buffer(bytes)?;
+        // Safety: validate_buffer ensures data is valid
+        Ok(unsafe { Self::from_bytes_unchecked(bytes) })
+    }
+}
+        ]]>
+      </generated-trait>
+    </macro>
+
+  </derive-macros>
+
+  <!-- ============================================================================
+       CBOR FORMAT SUPPORT
+       ============================================================================ -->
+  <cbor-format version="RFC8949">
+    <purpose>Interoperable serialization format for cross-system communication</purpose>
+
+    <schema>
+      <description>Capsules serialize to CBOR map with field names as keys</description>
+      <encoding>
+        <![CDATA[
+{
+  "_type": "PaymentCapsule",       // Optional: Type discriminator (text string)
+  "_version": 1,                    // Optional: Schema version (unsigned int)
+  "amount": 12345678,               // Q16_16 as raw i64 (integer)
+  "fee": 98765,                     // Q16_16 as raw i64 (integer)
+  "_hash": 0x1234567890abcdef       // Optional: FNV-1a hash (unsigned int)
+}
+        ]]>
+      </encoding>
+    </schema>
+
+    <semantic-tags>
+      <tag id="27">Fixed-point Q8_8 (fractional bits = 8)</tag>
+      <tag id="28">Fixed-point Q16_16 (fractional bits = 16)</tag>
+      <tag id="29">Fixed-point Q32_32 (fractional bits = 32)</tag>
+    </semantic-tags>
+
+    <performance>
+      <metric name="encode">~150-200ns for 128B capsule (1.5-2x vs binary)</metric>
+      <metric name="decode">~100-150ns for 128B capsule (2x vs binary)</metric>
+      <metric name="size">~10-20% overhead vs binary (self-describing)</metric>
+    </performance>
+
+    <implementation>
+      <dependency>minicbor (zero-alloc CBOR, 50KB binary impact)</dependency>
+      <feature-flag>cbor (optional, not included by default)</feature-flag>
+    </implementation>
+  </cbor-format>
+
+  <!-- ============================================================================
+       PERFORMANCE TARGETS AND VALIDATION
+       ============================================================================ -->
+  <performance-targets>
+    <baseline>serde_json (runtime reflection, dynamic dispatch)</baseline>
+
+    <targets>
+      <target operation="serialize_binary_128B" baseline="500ns" target="&lt;100ns" speedup="5x">
+        <justification>Compile-time codegen eliminates runtime type inspection</justification>
+      </target>
+      <target operation="deserialize_binary_128B" baseline="400ns" target="&lt;80ns" speedup="5x">
+        <justification>Zero-copy borrow eliminates allocation</justification>
+      </target>
+      <target operation="deserialize_zero_copy" baseline="400ns" target="&lt;20ns" speedup="20x">
+        <justification>Direct pointer cast with validation</justification>
+      </target>
+      <target operation="hash_compute_128B" baseline="100ns" target="&lt;20ns" speedup="5x">
+        <justification>FNV-1a inlined, no trait dispatch</justification>
+      </target>
+      <target operation="buffer_acquire" baseline="N/A" target="&lt;20ns">
+        <justification>Lockfree CAS on free list</justification>
+      </target>
+      <target operation="buffer_release" baseline="N/A" target="&lt;15ns">
+        <justification>Lockfree push to free list</justification>
+      </target>
+    </targets>
+
+    <validation-criteria framework="B32">
+      <criterion>1000+ iterations per benchmark</criterion>
+      <criterion>95% confidence interval</criterion>
+      <criterion>Fair baseline (optimized serde, not strawman)</criterion>
+      <criterion>Same hardware, same compiler flags</criterion>
+      <criterion>Warm cache (exclude first 100 iterations)</criterion>
+    </validation-criteria>
+  </performance-targets>
+
+  <!-- ============================================================================
+       FRAMEWORK COMPLIANCE
+       ============================================================================ -->
+  <framework-compliance>
+    <uce34>
+      <q10>T0+T1 metacapsule tier selection (Auditable + Atomic)</q10>
+      <q11>Rust transform via syn/quote proc-macros</q11>
+      <q12>Stable Rust (no nightly required for core functionality)</q12>
+      <q28>Simple interface (#[derive] single attribute)</q28>
+      <q31>Type system ensures only valid fixed-point types serialized</q31>
+      <q33>Compile-time verification via derive macros</q33>
+      <q34>Hash-chain audit trails for compliance</q34>
+    </uce34>
+
+    <coca>
+      <lockfree>100% (no mutex/RwLock, atomic coordination only)</lockfree>
+      <cache-aligned>64B/128B/256B capsule sizes</cache-aligned>
+      <generation-counters>ABA prevention on buffer pool</generation-counters>
+    </coca>
+
+    <assum>
+      <safety-target>99.99%</safety-target>
+      <tags-documented>All assumptions documented with #ASSUME_/#VERIFY tags</tags-documented>
+    </assum>
+
+    <b32>
+      <fair-baselines>Optimized serde_json/bincode, not strawman</fair-baselines>
+      <statistical-rigor>95% CI, 1000+ iterations</statistical-rigor>
+      <reproducibility>Same hardware, same flags</reproducibility>
+    </b32>
+
+    <t28>
+      <unit-tests>Q1-Q7: Header encoding, field serialization, hash computation</unit-tests>
+      <property-tests>Q8-Q14: Round-trip, determinism, endianness</property-tests>
+      <integration-tests>Q15-Q21: Metacapsule orchestration, format switching</integration-tests>
+      <production-tests>Q22-Q28: Stress testing, concurrent access</production-tests>
+      <determinism-tests>Q29-Q35: Bit-exact reproducibility across platforms</determinism-tests>
+    </t28>
+
+    <i20>
+      <breaking-changes>Zero (additive API only)</breaking-changes>
+      <migration-path>Drop-in replacement for existing CapsuleSerialize</migration-path>
+    </i20>
+  </framework-compliance>
+
+  <!-- ============================================================================
+       MIGRATION GUIDE
+       ============================================================================ -->
+  <migration-guide>
+    <from>serde + serde_json/bincode</from>
+    <to>CapsuleSerialize + CapsuleDeserialize</to>
+
+    <steps>
+      <step id="1">
+        <title>Add derive macro crate</title>
+        <before>
+          <![CDATA[
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+          ]]>
+        </before>
+        <after>
+          <![CDATA[
+[dependencies]
+atomic_capsule = { version = "0.8", features = ["capsule-serialize"] }
+atomic_capsule_derive_serialize = "0.1"
+          ]]>
+        </after>
+      </step>
+
+      <step id="2">
+        <title>Replace derive attributes</title>
+        <before>
+          <![CDATA[
+#[derive(Serialize, Deserialize)]
+struct Payment {
+    amount: f64,
+    fee: f64,
+}
+          ]]>
+        </before>
+        <after>
+          <![CDATA[
+#[derive(CapsuleSerialize, CapsuleDeserialize)]
+#[repr(C, align(128))]
+struct Payment {
+    amount: Q16_16,
+    fee: Q16_16,
+}
+          ]]>
+        </after>
+      </step>
+
+      <step id="3">
+        <title>Update serialization calls</title>
+        <before>
+          <![CDATA[
+let json = serde_json::to_string(&payment)?;
+let restored: Payment = serde_json::from_str(&json)?;
+          ]]>
+        </before>
+        <after>
+          <![CDATA[
+let binary = payment.serialize();
+let restored = Payment::deserialize(&binary)?;
+          ]]>
+        </after>
+      </step>
+
+      <step id="4">
+        <title>Add Q34 audit trail (optional)</title>
+        <code>
+          <![CDATA[
+#[derive(CapsuleSerialize, CapsuleDeserialize)]
+#[capsule_serialize(auto_crc = true)]
+#[repr(C, align(128))]
+struct Payment {
+    amount: Q16_16,
+    fee: Q16_16,
+
+    #[capsule_serialize(prev_hash)]
+    prev_hash: u64,
+}
+
+// Verify chain integrity
+let is_valid = current.verify_chain(&previous);
+          ]]>
+        </code>
+      </step>
+    </steps>
+
+    <benefits>
+      <benefit>5-20x faster serialization (compile-time vs runtime)</benefit>
+      <benefit>Zero-copy deserialization (borrow from buffer)</benefit>
+      <benefit>Deterministic binary format (no floating-point drift)</benefit>
+      <benefit>Q34 audit compliance (hash-chain integrity)</benefit>
+      <benefit>100% lockfree (no mutex contention)</benefit>
+    </benefits>
+
+    <limitations>
+      <limitation>Requires #[repr(C, align(N))] on structs</limitation>
+      <limitation>Fixed-point types only (Q8_8, Q16_16, Q32_32)</limitation>
+      <limitation>No nested struct support (flatten manually)</limitation>
+      <limitation>CBOR/JSON formats require optional feature flags</limitation>
+    </limitations>
+  </migration-guide>
+
+  <!-- ============================================================================
+       IMPLEMENTATION ROADMAP
+       ============================================================================ -->
+  <implementation-roadmap>
+    <phase id="1" name="Core Enhancement" effort="4h">
+      <task>Enhance existing binary_format.rs with metacapsule coordination</task>
+      <task>Add SerializationBufferCapsule to serialize/ module</task>
+      <task>Add HashChainCapsule to serialize/ module</task>
+      <deliverable>Working metacapsule with buffer pool</deliverable>
+    </phase>
+
+    <phase id="2" name="Derive Macro Enhancement" effort="4h">
+      <task>Add serialize_to() method to existing codegen.rs</task>
+      <task>Add ZeroCopyDeserialize trait support</task>
+      <task>Add format selection attribute</task>
+      <deliverable>Enhanced derive macros with zero-copy support</deliverable>
+    </phase>
+
+    <phase id="3" name="CBOR Format" effort="2h">
+      <task>Add minicbor dependency (feature-gated)</task>
+      <task>Implement CborSerializer/CborDeserializer</task>
+      <task>Add semantic tags for fixed-point types</task>
+      <deliverable>CBOR format support</deliverable>
+    </phase>
+
+    <phase id="4" name="T28 Testing" effort="4h">
+      <task>Round-trip property tests (proptest)</task>
+      <task>Determinism tests (cross-platform)</task>
+      <task>Fuzz tests (cargo-fuzz)</task>
+      <task>Performance regression tests</task>
+      <deliverable>Comprehensive test suite</deliverable>
+    </phase>
+
+    <phase id="5" name="B32 Benchmarking" effort="2h">
+      <task>Benchmark vs serde_json</task>
+      <task>Benchmark vs bincode</task>
+      <task>Validate 5-20x speedup claims</task>
+      <deliverable>Performance validation report</deliverable>
+    </phase>
+
+    <total-effort>16 hours</total-effort>
+    <status>Design Complete - Ready for Implementation</status>
+  </implementation-roadmap>
+
+  <!-- ============================================================================
+       SIGNATURE
+       ============================================================================ -->
+  <signature>
+    <version>1.0</version>
+    <framework>UCE34 T0+T1 Metacapsule</framework>
+    <tiers>T0 Auditable + T1 Atomic</tiers>
+    <compliance>UCE34 + Chaos + ASSUM + B32 + T28 + I20 + Q34</compliance>
+    <date>2025-11-24</date>
+    <status>Design Complete</status>
+  </signature>
+
+</capsule-serializer-metacapsule-architecture>

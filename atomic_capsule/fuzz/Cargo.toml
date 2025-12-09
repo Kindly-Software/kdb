@@ -1,0 +1,67 @@
+[package]
+name = "atomic_capsule-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.atomic_capsule]
+path = ".."
+features = ["std", "nightly", "http", "http-simd", "cache", "histogram", "queue-all"]
+
+# Prevent this from interfering with workspace
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "fuzz_result_aggregator"
+path = "fuzz_targets/fuzz_result_aggregator.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_lockfree_list"
+path = "fuzz_targets/fuzz_lockfree_list.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "http_parser"
+path = "fuzz_targets/http_parser.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_http_request_parser"
+path = "fuzz_targets/fuzz_http_request_parser.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_http_router"
+path = "fuzz_targets/fuzz_http_router.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_chunked_encoding"
+path = "fuzz_targets/fuzz_chunked_encoding.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_http_headers"
+path = "fuzz_targets/fuzz_http_headers.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_http_compression"
+path = "fuzz_targets/fuzz_http_compression.rs"
+test = false
+doc = false

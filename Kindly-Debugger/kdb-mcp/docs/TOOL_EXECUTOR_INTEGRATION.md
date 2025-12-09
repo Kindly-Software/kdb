@@ -299,7 +299,7 @@ if elapsed > executor.execution_timeout_ns.load(Ordering::Relaxed) {
 
 | Framework | Status | Evidence |
 |-----------|--------|----------|
-| **COCA** | ✅ | 100% computational capsule (T1 Atomic) |
+| **Chaos** | ✅ | 100% computational capsule (T1 Atomic) |
 | **UCE34** | ✅ | Q10: T1 Atomic tier selection |
 | **ASSUM** | ✅ | 7 assumptions verified in tests |
 | **B32** | ✅ | <50ns dispatch latency validated |
@@ -361,7 +361,7 @@ Check concurrent count and max concurrent metrics. If max_concurrent is high, co
 
 ## References
 
-- [COCA Framework](../../docs/The%20Computational%20Capsule.md)
+- [Chaos Framework](../../docs/The%20Computational%20Capsule.md)
 - [UCE34 Framework](../../docs/frameworks/UCE34_FRAMEWORK.md)
 - [ASSUM Safety](../../docs/frameworks/ASSUM_SAFETY.md)
 - [B32 Benchmarking](../../docs/frameworks/B32_BENCHMARK_FRAMEWORK.md)

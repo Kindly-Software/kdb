@@ -51,7 +51,7 @@
 //!
 //! # Framework Compliance
 //! - **UCE34**: Q10 T4 Batch tier (parallel work distribution)
-//! - **COCA**: 100% lockfree, cache-aligned 64B
+//! - **Chaos**: 100% lockfree, cache-aligned 64B
 //! - **ASSUM**: 99.99% safe (lockfree coordination, work queue overflow protection)
 //! - **B32**: Fair baselines (single-threaded), 8-16× speedup validated
 //! - **T28**: 28 comprehensive tests (unit/property/integration/production)

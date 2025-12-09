@@ -47,9 +47,10 @@ use std::time::SystemTime;
 ///
 /// # Memory Layout
 /// - 8 bytes: state_packed (selected_index:32 + scroll_offset:32)
+/// - 8 bytes: generation counter (T1 Atomic requirement)
 /// - 1 byte: filter_active
 /// - 1 byte: multi_select_mode
-/// - 118 bytes: padding (complete 128B cache line)
+/// - 110 bytes: padding (complete 128B cache line)
 #[derive(Debug, ComputationalCapsule)]
 #[capsule(alignment = 64, size = 128, tier = "Atomic")]
 #[repr(C, align(64))]
@@ -59,6 +60,11 @@ pub struct FileBrowserCapsule {
     /// #VERIFY: Atomic operations maintain consistency
     state_packed: AtomicU64,
 
+    /// Generation counter for T1 Atomic tier Chaos compliance
+    /// #ASSUME_GENERATION_COUNTER: Required for lockfree coordination
+    /// #VERIFY: Incremented on every state mutation
+    generation: AtomicU64,
+
     /// Glob filter active flag
     filter_active: AtomicBool,
 
@@ -66,7 +72,7 @@ pub struct FileBrowserCapsule {
     multi_select_mode: AtomicBool,
 
     /// Padding to 128B
-    _padding: [u8; 118],
+    _padding: [u8; 110],
 }
 
 impl FileBrowserCapsule {
@@ -74,9 +80,10 @@ impl FileBrowserCapsule {
     pub fn new() -> Self {
         Self {
             state_packed: AtomicU64::new(0),
+            generation: AtomicU64::new(0),
             filter_active: AtomicBool::new(false),
             multi_select_mode: AtomicBool::new(false),
-            _padding: [0u8; 118],
+            _padding: [0u8; 110],
         }
     }
 

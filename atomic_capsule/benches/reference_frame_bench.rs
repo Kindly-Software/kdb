@@ -12,7 +12,7 @@ use std::thread;
 use std::sync::Mutex;
 
 struct NaiveReferenceFrameManager {
-    slots: Mutex<[Option<(*const u8, u16, u8)>; 8]>, // (ptr, frame_id, order_hint)
+    slots: Mutex<[Option<(usize, u16, u8)>; 8]>, // (dummy_addr, frame_id, order_hint)
     refresh_flags: Mutex<u8>,
     occupancy: Mutex<u8>,
 }
@@ -32,26 +32,26 @@ impl NaiveReferenceFrameManager {
 
         for (i, slot) in slots.iter_mut().enumerate() {
             if slot.is_none() {
-                *slot = Some((std::ptr::null(), frame_id, 0));
+                *slot = Some((0, frame_id, 0));
                 *occupancy += 1;
                 return Some(i as u8);
             }
         }
 
         // Evict oldest
-        *slots[0] = Some((std::ptr::null(), frame_id, 0));
+        slots[0] = Some((0, frame_id, 0));
         Some(0)
     }
 
-    fn get_reference(&self, ref_type: ReferenceType) -> Option<*const u8> {
+    fn get_reference(&self, ref_type: ReferenceType) -> Option<usize> {
         let slots = self.slots.lock().unwrap();
-        slots[ref_type.to_slot() as usize].map(|(ptr, _, _)| ptr)
+        slots[ref_type.to_slot() as usize].map(|(addr, _, _)| addr)
     }
 
-    fn update_slot(&self, slot: u8, frame_ptr: *const u8, frame_id: u16) {
+    fn update_slot(&self, slot: u8, frame_addr: usize, frame_id: u16) {
         let mut slots = self.slots.lock().unwrap();
         if let Some(s) = slots.get_mut(slot as usize) {
-            *s = Some((frame_ptr, frame_id, 0));
+            *s = Some((frame_addr, frame_id, 0));
         }
     }
 
@@ -60,7 +60,7 @@ impl NaiveReferenceFrameManager {
         *flags = refresh_mask;
     }
 
-    fn apply_refresh(&self, new_frame: *const u8, frame_id: u16, order_hint: u8) {
+    fn apply_refresh(&self, new_frame: usize, frame_id: u16, order_hint: u8) {
         let flags = *self.refresh_flags.lock().unwrap();
         let mut slots = self.slots.lock().unwrap();
 
@@ -111,12 +111,13 @@ fn bench_get_reference(c: &mut Criterion) {
     // Setup
     let capsule = ReferenceFrameCapsule::new();
     let frame_ptr = 0x1000_0000 as *const u8;
+    let frame_addr = 0x1000_0000usize;
     capsule.allocate_slot(100);
     capsule.update_slot(ReferenceType::Last.to_slot(), frame_ptr, 100);
 
     let manager = NaiveReferenceFrameManager::new();
     manager.allocate_slot(100);
-    manager.update_slot(ReferenceType::Last.to_slot(), frame_ptr, 100);
+    manager.update_slot(ReferenceType::Last.to_slot(), frame_addr, 100);
 
     group.bench_function("capsule", |b| {
         b.iter(|| black_box(capsule.get_reference(ReferenceType::Last)))
@@ -135,6 +136,7 @@ fn bench_update_slot(c: &mut Criterion) {
     let capsule = ReferenceFrameCapsule::new();
     capsule.allocate_slot(100);
     let frame_ptr = 0x1000_0000 as *const u8;
+    let frame_addr = 0x1000_0000usize;
 
     let manager = NaiveReferenceFrameManager::new();
     manager.allocate_slot(100);
@@ -151,7 +153,7 @@ fn bench_update_slot(c: &mut Criterion) {
         let mut frame_id = 100u16;
         b.iter(|| {
             frame_id = frame_id.wrapping_add(1);
-            manager.update_slot(0, frame_ptr, frame_id)
+            manager.update_slot(0, frame_addr, frame_id)
         });
     });
 
@@ -166,6 +168,7 @@ fn bench_apply_refresh(c: &mut Criterion) {
         capsule.allocate_slot(100 + i as u16);
     }
     let frame_ptr = 0x1000_0000 as *const u8;
+    let frame_addr = 0x1000_0000usize;
 
     let manager = NaiveReferenceFrameManager::new();
     for i in 0..8 {
@@ -186,7 +189,7 @@ fn bench_apply_refresh(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::new("naive_mutex", num_slots), &num_slots, |b, _| {
             b.iter(|| {
                 manager.mark_for_refresh(mask);
-                manager.apply_refresh(frame_ptr, 200, 50);
+                manager.apply_refresh(frame_addr, 200, 50);
             })
         });
     }
@@ -233,7 +236,7 @@ fn bench_concurrent_access(c: &mut Criterion) {
             for tid in 0..4 {
                 let c = Arc::clone(&capsule);
                 let h = thread::spawn(move || {
-                    let frame_ptr = (0x1000_0000 + tid * 0x1000) as *const u8;
+                    let frame_ptr = (0x1000_0000usize + tid * 0x1000) as *const u8;
                     for i in 0..1000 {
                         c.update_slot((tid % 8) as u8, frame_ptr, (tid * 1000 + i) as u16);
                         let _ = c.get_reference(ReferenceType::Last);
@@ -260,9 +263,9 @@ fn bench_concurrent_access(c: &mut Criterion) {
             for tid in 0..4 {
                 let m = Arc::clone(&manager);
                 let h = thread::spawn(move || {
-                    let frame_ptr = (0x1000_0000 + tid * 0x1000) as *const u8;
+                    let frame_addr = 0x1000_0000usize + tid * 0x1000;
                     for i in 0..1000 {
-                        m.update_slot((tid % 8) as u8, frame_ptr, (tid * 1000 + i) as u16);
+                        m.update_slot((tid % 8) as u8, frame_addr, (tid * 1000 + i) as u16);
                         let _ = m.get_reference(ReferenceType::Last);
                     }
                 });
@@ -288,7 +291,7 @@ fn bench_typical_encode_flow(c: &mut Criterion) {
             let gop_size = 16;
 
             for frame_id in 0..60u16 {
-                let frame_ptr = (0x1000_0000 + (frame_id % 8) as u64 * 0x1000_0000) as *const u8;
+                let frame_ptr = (0x1000_0000usize + (frame_id % 8) as usize * 0x1000_0000) as *const u8;
 
                 if frame_id % gop_size == 0 {
                     // I-frame
@@ -319,24 +322,24 @@ fn bench_typical_encode_flow(c: &mut Criterion) {
             let gop_size = 16;
 
             for frame_id in 0..60u16 {
-                let frame_ptr = (0x1000_0000 + (frame_id % 8) as u64 * 0x1000_0000) as *const u8;
+                let frame_addr = 0x1000_0000usize + (frame_id % 8) as usize * 0x1000_0000;
 
                 if frame_id % gop_size == 0 {
                     let slot = manager.allocate_slot(frame_id).unwrap_or(0);
-                    manager.update_slot(slot, frame_ptr, frame_id);
-                    manager.update_slot(ReferenceType::Last.to_slot(), frame_ptr, frame_id);
-                    manager.update_slot(ReferenceType::Golden.to_slot(), frame_ptr, frame_id);
+                    manager.update_slot(slot, frame_addr, frame_id);
+                    manager.update_slot(ReferenceType::Last.to_slot(), frame_addr, frame_id);
+                    manager.update_slot(ReferenceType::Golden.to_slot(), frame_addr, frame_id);
                 } else {
                     let _ = manager.get_reference(ReferenceType::Last);
                     let _ = manager.get_reference(ReferenceType::Last2);
                     let _ = manager.get_reference(ReferenceType::Golden);
 
                     let slot = manager.allocate_slot(frame_id).unwrap_or((frame_id % 8) as u8);
-                    manager.update_slot(ReferenceType::Last.to_slot(), frame_ptr, frame_id);
+                    manager.update_slot(ReferenceType::Last.to_slot(), frame_addr, frame_id);
                 }
 
                 if frame_id % 8 == 0 && frame_id > 0 {
-                    manager.update_slot(ReferenceType::Golden.to_slot(), frame_ptr, frame_id);
+                    manager.update_slot(ReferenceType::Golden.to_slot(), frame_addr, frame_id);
                 }
             }
         });

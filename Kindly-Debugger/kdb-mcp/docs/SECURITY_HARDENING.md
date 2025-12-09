@@ -592,7 +592,7 @@ cargo bench --bench security_performance -- audit_log
 
 **Framework Compliance**:
 - UCE34: ✅ Q10 T1 Atomic + T9 Persistent tier selection
-- COCA: ✅ 100% lockfree, cache-aligned capsules
+- Chaos: ✅ 100% lockfree, cache-aligned capsules
 - ASSUM: ✅ 99.99% safe (10+ assumptions per component)
 - B32: ⏳ Benchmarks pending
 - T28: ⏳ 42 tests pending
@@ -605,4 +605,4 @@ cargo bench --bench security_performance -- audit_log
 **Author**: Claude Code (Sonnet 4.5)
 **Date**: 2025-11-16
 **Project**: atomic_mcp_server v0.2.0
-**Framework**: UCE34 + COCA + ASSUM + B32 + T28 + I20
+**Framework**: UCE34 + Chaos + ASSUM + B32 + T28 + I20

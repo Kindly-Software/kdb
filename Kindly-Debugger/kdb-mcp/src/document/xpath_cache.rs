@@ -6,7 +6,7 @@
 //! - **Q1 (What)**: Cache parsed XPath query results for Claude Code CLAUDE.md optimization
 //! - **Q2 (Assumptions)**: 40K token XML files, 95%+ cache hit rate target, <100ns lookup
 //! - **Q3 (Constraints)**: Zero external deps (atomic_capsule internals only), 100% lockfree
-//! - **Q4 (Context)**: MCP tool integration for framework queries (UCE34, COCA, ASSUM, B32)
+//! - **Q4 (Context)**: MCP tool integration for framework queries (UCE34, Chaos, ASSUM, B32)
 //! - **Q5 (Success)**: <100ns cache hit, 0.01% false positive rate, 99%+ hit rate
 //! - **Q6 (Failure)**: High false positive rate, cache thrashing, mutex deadlock
 //! - **Q7 (Patterns)**: BloomFilterCapsule (T10), LockfreeHashTable (T1), DualAtomicU64 (T0)

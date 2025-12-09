@@ -13,7 +13,7 @@ This document provides a comprehensive reference for all quantum gates implement
 - **7 Single-Qubit Gates**: H, X, Y, Z, S, T, Custom
 - **4 Multi-Qubit Gates**: CNOT, CZ, SWAP, Toffoli
 - **Performance**: 2.0-2.8× SIMD speedup (AVX2), 14.4× total vs scalar baseline
-- **Framework Compliance**: UCE34, COCA, ASSUM (99.5%+ safe), B32, T28
+- **Framework Compliance**: UCE34, Chaos, ASSUM (99.5%+ safe), B32, T28
 
 ---
 
@@ -587,7 +587,7 @@ let result = circuit.measure()?;
 - **Q33**: Automatic verification (#[derive(ComputationalCapsule)])
 - **Q34**: Audit trail (circuit depth, execution time, gate count tracking)
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 
 - **100% lockfree**: No mutex/RwLock, atomic coordination only
 - **Cache-aligned**: 256B (circuits), 512B (two-qubit gates), 128B (single-qubit gates)

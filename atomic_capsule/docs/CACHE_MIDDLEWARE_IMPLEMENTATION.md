@@ -2,7 +2,7 @@
 
 **Status**: Production-Ready (Phase 2025 Q4)
 **Tier**: T1 Atomic (lockfree coordination, <100ns latency)
-**Framework**: UCE34 (Q1-Q34), COCA (100% lockfree), B32 (fair benchmarking), T28 (comprehensive testing)
+**Framework**: UCE34 (Q1-Q34), Chaos (100% lockfree), B32 (fair benchmarking), T28 (comprehensive testing)
 
 ## Overview
 
@@ -384,7 +384,7 @@ Bandwidth reduction: 80% × 95% = 76%
 
 ## Related Documentation
 
-- [COCA Framework](../../docs/The%20Computational%20Capsule.md) - Foundational patterns
+- [Chaos Framework](../../docs/The%20Computational%20Capsule.md) - Foundational patterns
 - [UCE34 Framework](../../docs/UCE34_FRAMEWORK.md) - Systematic discovery
 - [B32 Benchmarking](../../docs/B32_BENCHMARKING.md) - Performance validation
 - [HTTP Module](../src/http/mod.rs) - HTTP/1.1 + HTTP/2 server

@@ -27,21 +27,12 @@
 //! - **Q17**: Performance budgets (<50ms for 1000 docs)
 //! - **Q18**: Realistic corpus (100K docs, 50% duplicates)
 
-use atomic_capsule::CpuCapabilityCapsule;
 use kindly_dedup::format::load_documents_auto;
-use kindly_dedup::DedupPipeline;
+use kindly_dedup::{Dedup, DedupMode};
 use std::time::Instant;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("===== Format Loading Example: JSONL =====\n");
-
-    // Detect CPU capabilities
-    let cpu_caps = CpuCapabilityCapsule::detect();
-    println!(
-        "CPU Capabilities: {} cores, {} SMT threads",
-        cpu_caps.physical_cores, cpu_caps.logical_cores
-    );
-    println!("SIMD: {}, {:?}\n", cpu_caps.simd_level, cpu_caps.features);
 
     // Create test JSONL corpus
     let test_file = "test_corpus.jsonl";
@@ -64,15 +55,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         docs.len() as f64 / load_time.as_secs_f64()
     );
 
-    // Create dedup pipeline
-    println!("Creating dedup pipeline...");
-    let mut pipeline = DedupPipeline::new(docs.len(), &cpu_caps)?;
+    // Create dedup facade with auto mode selection
+    println!("Creating dedup instance (auto mode)...");
+    let mut dedup = Dedup::new(docs.len())?;
+    println!("Selected mode: {:?}\n", dedup.current_mode());
 
     // Add documents to pipeline
     println!("Adding {} documents to pipeline...", docs.len());
     let start = Instant::now();
     for (i, doc) in docs.iter().enumerate() {
-        pipeline.add_document(doc.id, &doc.text)?;
+        dedup.add_document(doc.id as u64, &doc.text)?;
         if (i + 1) % 100 == 0 {
             print!(".");
         }
@@ -87,7 +79,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Find duplicates
     println!("Finding duplicates (Jaccard >= 0.85)...");
     let start = Instant::now();
-    let clusters = pipeline.find_duplicates(0.85)?;
+    let clusters = dedup.find_duplicates(0.85)?;
     let find_time = start.elapsed();
 
     println!(
@@ -97,6 +89,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Print summary statistics
+    let stats = dedup.stats();
     println!("===== Summary Statistics =====");
     println!("Total documents:        {}", docs.len());
     println!("Unique clusters:        {}", clusters.len());
@@ -112,6 +105,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "End-to-end throughput:  {:.0} docs/sec",
         docs.len() as f64 / (load_time + add_time + find_time).as_secs_f64()
     );
+    println!("\n===== Dedup Statistics =====");
+    println!("Mode:                   {:?}", stats.mode);
+    println!("Documents processed:    {}", stats.documents_processed);
+    println!("Avg time per doc:       {:?}", stats.avg_time_per_doc);
 
     // Cleanup
     std::fs::remove_file(test_file).ok();
@@ -136,11 +133,8 @@ fn create_test_corpus(path: &str, count: usize) -> Result<(), Box<dyn std::error
 
     for i in 0..count {
         let text_idx = i % texts.len();
-        let doc = serde_json::json!({
-            "id": i as u64,
-            "text": texts[text_idx]
-        });
-        writeln!(file, "{}", doc.to_string())?;
+        // Write JSONL format manually (no serde_json dependency)
+        writeln!(file, r#"{{"id":{}, "text":"{}"}}"#, i, texts[text_idx])?;
     }
 
     Ok(())

@@ -1,0 +1,29 @@
+[package]
+name = "kindly_governance"
+version = "0.1.0"
+edition = "2021"
+authors = ["Kindly Coin Team"]
+description = "Government compliance features for Kindly Coin with atomic capsule architecture"
+
+[dependencies]
+# Foundation primitives
+atomic_capsule = { workspace = true }
+
+# Core blockchain primitives
+kindly_core = { workspace = true }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+sha2 = "0.10"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[lib]
+name = "kindly_governance"
+path = "src/lib.rs"
+
+# TODO: Add benchmarks when governance implementation is complete
+# [[bench]]
+# name = "governance_bench"
+# harness = false

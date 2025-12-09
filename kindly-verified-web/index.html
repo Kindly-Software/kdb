@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Kindly Verified - Imperial-grade forensic AI image detection powered by Byzantine computational capsules. 90-95% accuracy, 40-150ms latency, 100% local processing." />
+    <meta name="keywords" content="AI detection, image forensics, deepfake detection, AI-generated images, PRNU, Benford's Law, computational capsules" />
+    <meta name="theme-color" content="#1a0033" />
+    <meta name="color-scheme" content="dark" />
+    <title>Kindly Verified - Imperial AI Image Detector</title>
+
+    <!-- Preload critical assets -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+    <!-- Favicon (will add later) -->
+    <!-- <link rel="icon" type="image/png" href="/favicon.png" /> -->
+
+    <style>
+      /* Critical CSS for immediate render */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        width: 100%;
+        height: 100%;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: linear-gradient(135deg, #1a0033 0%, #2d1b4e 100%);
+        color: #ffffff;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* Loading screen */
+      #loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #1a0033 0%, #2d1b4e 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        backdrop-filter: blur(0px);
+        -webkit-backdrop-filter: blur(0px);
+      }
+
+      /* Crown icon with glow */
+      .crown {
+        font-size: 6rem;
+        margin-bottom: 2rem;
+        animation: crownGlow 2s ease-in-out infinite;
+        text-shadow: 0 0 20px rgba(255, 215, 0, 0.5),
+                     0 0 40px rgba(255, 215, 0, 0.3);
+      }
+
+      @keyframes crownGlow {
+        0%, 100% {
+          filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.5));
+          transform: scale(1);
+        }
+        50% {
+          filter: drop-shadow(0 0 40px rgba(255, 215, 0, 0.8));
+          transform: scale(1.05);
+        }
+      }
+
+      /* Spinner */
+      .spinner {
+        width: 80px;
+        height: 80px;
+        border: 4px solid rgba(255, 215, 0, 0.2);
+        border-top-color: #FFD700;
+        border-right-color: #FFD700;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-top: 1rem;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+
+      /* Loading text */
+      .loading-text {
+        margin-top: 2rem;
+        font-size: 1.25rem;
+        color: #FFD700;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        animation: fadeInText 0.8s ease-out;
+      }
+
+      @keyframes fadeInText {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      /* Loading subtitle */
+      .loading-subtitle {
+        margin-top: 1rem;
+        font-size: 0.875rem;
+        color: rgba(255, 255, 255, 0.6);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        animation: fadeInText 0.8s ease-out 0.2s both;
+      }
+
+      /* Progress bar */
+      .progress-bar {
+        width: 200px;
+        height: 2px;
+        background: rgba(255, 215, 0, 0.2);
+        border-radius: 2px;
+        margin-top: 2rem;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #FFD700 0%, #DAA520 100%);
+        width: 0%;
+        animation: progress 2s ease-in-out infinite;
+        border-radius: 2px;
+      }
+
+      @keyframes progress {
+        0% { width: 0%; }
+        50% { width: 70%; }
+        100% { width: 100%; }
+      }
+
+      /* Imperial fleur-de-lis decoration */
+      .imperial-accent {
+        margin-top: 2rem;
+        font-size: 1.5rem;
+        color: rgba(255, 215, 0, 0.5);
+        animation: fadeInText 0.8s ease-out 0.4s both;
+      }
+
+      /* Root app element (hidden until WASM loads) */
+      #root {
+        display: none;
+      }
+
+      /* Root visible when WASM loaded */
+      #root.loaded {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Loading indicator (hidden once WASM loads) -->
+    <div id="loading">
+      <div class="crown">👑</div>
+
+      <div style="text-align: center;">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading Imperial Systems</div>
+        <div class="loading-subtitle">Powered by Byzantine Computational Capsules</div>
+      </div>
+
+      <div class="progress-bar">
+        <div class="progress-fill"></div>
+      </div>
+
+      <div class="imperial-accent">⚜️ Initializing Forensic Tribunal ⚜️</div>
+    </div>
+
+    <!-- Leptos app mounts here -->
+    <div id="root"></div>
+
+    <!-- Script to remove loading screen when WASM is ready -->
+    <script>
+      // Hide loading screen after WASM initializes
+      function hideLoadingScreen() {
+        const loading = document.getElementById('loading');
+        const root = document.getElementById('root');
+        if (loading) {
+          loading.style.opacity = '0';
+          loading.style.pointerEvents = 'none';
+          loading.style.transition = 'opacity 0.5s ease-out';
+        }
+        if (root) {
+          root.classList.add('loaded');
+        }
+      }
+
+      // Listen for when Leptos mounts the app (typically within 1-2 seconds)
+      const observer = new MutationObserver(() => {
+        const root = document.getElementById('root');
+        if (root && root.children.length > 0) {
+          setTimeout(hideLoadingScreen, 100);
+          observer.disconnect();
+        }
+      });
+
+      observer.observe(document.getElementById('root'), {
+        childList: true,
+        subtree: true
+      });
+
+      // Fallback: hide loading screen after 5 seconds regardless
+      setTimeout(() => {
+        const loading = document.getElementById('loading');
+        if (loading && loading.style.opacity !== '0') {
+          hideLoadingScreen();
+        }
+      }, 5000);
+    </script>
+  </body>
+</html>

@@ -88,7 +88,7 @@
   - Q33: Verification (58 tests)
   - Q34: Auditability (runtime stats)
 
-- [x] **COCA** - Computational Capsule Architecture
+- [x] **Chaos** - Computational Capsule Architecture
   - 100% capsule-based design
   - Atomic fields only (no thread-local)
   - Cache-aligned (256B)
@@ -226,7 +226,7 @@ Composed with:
 - [x] Documentation complete (400+ lines)
 - [x] Examples provided (production-ready)
 - [x] Performance validated (<10μs per request)
-- [x] Framework compliance verified (UCE34, COCA, ASSUM, B32, T28, I20)
+- [x] Framework compliance verified (UCE34, Chaos, ASSUM, B32, T28, I20)
 - [x] Integration verified (with all subsystems)
 - [x] Deployment ready (no external dependencies beyond tokio)
 
@@ -237,6 +237,6 @@ Composed with:
 **Status**: ✅ PRODUCTION READY  
 **Test Coverage**: 58/58 (100%)  
 **Performance**: <10μs per-request latency validated  
-**Framework**: Full UCE34/COCA/ASSUM/B32/T28/I20 compliance  
+**Framework**: Full UCE34/Chaos/ASSUM/B32/T28/I20 compliance  
 
 **Ready for immediate production deployment.**

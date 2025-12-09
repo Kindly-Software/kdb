@@ -1,0 +1,73 @@
+[package]
+name = "kindly-verified-web"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Leptos framework
+leptos = { version = "0.7", features = ["csr"] }
+leptos_meta = { version = "0.7" }
+leptos_router = { version = "0.7" }
+
+# WASM bindings
+wasm-bindgen = "0.2"
+web-sys = { version = "0.3", features = [
+    "Window",
+    "Navigator",
+    "Document",
+    "Element",
+    "HtmlElement",
+    "HtmlInputElement",
+    "HtmlCanvasElement",
+    "CanvasRenderingContext2d",
+    "File",
+    "FileList",
+    "FileReader",
+    "Blob",
+    "DragEvent",
+    "DataTransfer",
+    "Event",
+    "MouseEvent",
+    "ImageData",
+] }
+js-sys = "0.3"
+
+# HTTP client
+gloo-net = { version = "0.6", features = ["http"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Logging
+console_error_panic_hook = "0.1"
+console_log = "1.0"
+log = "0.4"
+
+# Compile-time assertions for capsules
+static_assertions = "1.1"
+
+# Checksum/hash functions for Q34 audit trails
+crc32fast = "1.3"
+
+# kindly-verified detection (path dependency)
+# Note: Will need to make WASM-compatible (no mmap, no file I/O)
+# kindly-verified = { path = "../kindly-verified", default-features = false, features = ["wasm"] }
+
+[profile.release]
+opt-level = "z"      # Optimize for size
+lto = true           # Link-time optimization
+codegen-units = 1    # Better optimization
+strip = true         # Remove symbols
+
+[profile.dev]
+opt-level = 1        # Some optimization for dev
+
+[profile.bench]
+opt-level = 3        # Maximum optimization for benchmarks
+lto = true
+codegen-units = 1

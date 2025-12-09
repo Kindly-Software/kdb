@@ -1,0 +1,27 @@
+[package]
+name = "atomic_risk_ladder_table"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.76"
+authors = ["Samuel <maintainer@example.com>"]
+description = "RLT-1024 risk ladder table primitive with atomic publish semantics"
+license = "Apache-2.0 OR MIT"
+keywords = ["atomic", "risk", "ladder", "table", "policy"]
+categories = ["concurrency", "data-structures", "embedded"]
+readme = "README.md"
+repository = "https://example.com/atomic_risk_ladder_table"
+
+[features]
+default = []
+std = []
+serde = ["dep:serde"]
+
+[dependencies]
+serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
+
+[dev-dependencies]
+proptest = "1.4"
+rand = "0.9"
+
+[package.metadata.docs.rs]
+all-features = true

@@ -78,9 +78,7 @@
 //! let clusters = optimizer.process_documents(&docs)?;
 //! ```
 
-use crate::pipeline::{DocId, JaccardThreshold, PipelineError};
-use atomic_capsule::probabilistic::UnionFind;
-use std::sync::Arc;
+use crate::pipeline::PipelineError;
 
 /// Configuration for Phase 6.3 optimizations
 #[derive(Debug, Clone)]

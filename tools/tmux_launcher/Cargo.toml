@@ -1,0 +1,38 @@
+[package]
+name = "tmux_launcher"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.76"
+authors = ["Samuel <maintainer@example.com>"]
+description = "T1 Atomic Capsule master coordinator - unifies 3 tmux capsules into single binary (<1ms orchestration, zero-mutex, 256B aligned)"
+license = "Apache-2.0 OR MIT"
+keywords = ["tmux", "launcher", "capsule", "atomic", "orchestration"]
+categories = ["command-line-utilities", "development-tools", "concurrency"]
+
+[lib]
+name = "tmux_launcher"
+path = "src/lib.rs"
+
+[[bin]]
+name = "tmux-launcher"
+path = "src/bin/tmux-launcher.rs"
+
+[dependencies]
+# Zero runtime dependencies for core LauncherCapsule
+# Only std library for SystemTime and process spawning
+
+[dev-dependencies]
+criterion = "0.5"
+proptest = "1.5"
+serial_test = "3.0"
+rand = "0.8"
+
+[[bench]]
+name = "launcher_bench"
+harness = false
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

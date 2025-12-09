@@ -20,7 +20,7 @@
 //
 // Framework Compliance:
 // - UCE34: Q1-Q34 systematic discovery (see TLS_INTEGRATION_PLAN.md Q19)
-// - COCA: 100% computational capsule, lockfree primitives
+// - Chaos: 100% computational capsule, lockfree primitives
 // - ASSUM: 99.99% safety (all assumptions documented)
 // - B32: Fair baseline (<50ns overhead per record)
 // - T28: 28+ comprehensive tests (unit/property/integration/production)

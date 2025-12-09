@@ -110,7 +110,7 @@
 - Q33: Verification via atomic_capsule primitives
 - Q34: Audit trails via hash-chained serialization
 
-### ✅ COCA (Computational Capsule)
+### ✅ Chaos (Computational Capsule)
 - 100% atomic capsules (JsonParserCapsule, JsonWriterCapsule)
 - 100% lockfree (no mutex/RwLock)
 - Cache-aligned data structures
@@ -290,7 +290,7 @@ cargo tree --depth 1 | grep -i serde
 **Binaries**: Serde still used in bin/ files (not part of library API)
 **Tests**: 98.0% passing (1 pre-existing SIGSEGV)
 **Performance**: 1.5-10× expected improvement (zero-copy + SIMD)
-**Framework**: UCE34, COCA, ASSUM, B32, T28, I20 compliant
+**Framework**: UCE34, Chaos, ASSUM, B32, T28, I20 compliant
 
 ### Next Steps
 
@@ -303,7 +303,7 @@ cargo tree --depth 1 | grep -i serde
 
 **Generated**: 2025-11-18
 **Agent**: Batch 2 Cleanup Agent
-**Framework**: UCE34 Q34, COCA 100%, ASSUM 99.99%, B32, T28, I20
+**Framework**: UCE34 Q34, Chaos 100%, ASSUM 99.99%, B32, T28, I20
 **Trade Secret**: Yes - All commits tagged [TRADE SECRET]
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)

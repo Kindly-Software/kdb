@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Date**: 2025-11-21
 **Status**: Production-Ready
-**Framework**: UCE34 (Q1-Q34), COCA (100% Lockfree), B32 (Honest Benchmarking), T28 (73K+ Tests)
+**Framework**: UCE34 (Q1-Q34), Chaos (100% Lockfree), B32 (Honest Benchmarking), T28 (73K+ Tests)
 
 ---
 
@@ -967,7 +967,7 @@ fn benchmark_configuration(config: QECConfig) -> Result<(), Box<dyn std::error::
 7. **IBM Qiskit** - *Quantum Software Framework* (https://qiskit.org/)
 
 ### Atomic Capsule Framework
-8. **Computational Capsule.md** - COCA architecture foundation
+8. **Computational Capsule.md** - Chaos architecture foundation
 9. **KEY_INNOVATIONS.md** - 9 breakthrough patterns
 10. **UCE34_FRAMEWORK.md** - Systematic discovery (Q1-Q34)
 
@@ -1047,4 +1047,4 @@ pub struct QECCycleResult {
 **Version**: 1.0
 **Last Updated**: 2025-11-21
 **Status**: Production-Ready ✓
-**Framework Compliance**: UCE34 (Q1-Q34), COCA, B32, T28, ASSUM, I20 ✓
+**Framework Compliance**: UCE34 (Q1-Q34), Chaos, B32, T28, ASSUM, I20 ✓

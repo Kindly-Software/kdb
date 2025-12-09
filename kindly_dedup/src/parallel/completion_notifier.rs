@@ -11,7 +11,7 @@
 //!
 //! **Framework Compliance**:
 //! - **UCE34**: T1 Atomic tier (AtomicBool completion flag)
-//! - **COCA**: Condvar is coordination primitive (not data protection), data flows via Arc
+//! - **Chaos**: Condvar is coordination primitive (not data protection), data flows via Arc
 //! - **ASSUM**: 99.99% safe (Mutex guards empty tuple, spurious wakeup handled, timeout prevents deadlock)
 //! - **B32**: 20× speedup measured (63ms → 3ms phase time, elimination of polling)
 //!

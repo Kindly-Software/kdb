@@ -3,13 +3,13 @@
 **Date**: 2025-11-21
 **Version**: 1.0
 **Status**: ✅ DESIGN COMPLETE - Ready for Implementation
-**Framework**: UCE34 Systematic Discovery (Q1-Q34) + COCA Computational Capsule Architecture
+**Framework**: UCE34 Systematic Discovery (Q1-Q34) + Chaos Computational Capsule Architecture
 
 ---
 
 ## Executive Summary
 
-This document provides a production-ready ensemble fusion strategy for integrating 4 new natural image marker capsules (Phase 3.2) with existing 6 AI detection algorithms, following UCE34 systematic discovery and COCA computational capsule architecture.
+This document provides a production-ready ensemble fusion strategy for integrating 4 new natural image marker capsules (Phase 3.2) with existing 6 AI detection algorithms, following UCE34 systematic discovery and Chaos computational capsule architecture.
 
 **Objective**: Achieve 90%+ natural image detection (45/50 images) while preserving 95%+ AI detection (48/50 images).
 
@@ -95,7 +95,7 @@ This document provides a production-ready ensemble fusion strategy for integrati
 1. **Latency**: Total pipeline <150ms (Phase 3.2 budget: <10ms additional overhead)
 2. **Accuracy**: 90%+ natural detection, 95%+ AI detection
 3. **Backward Compatibility**: Existing API unchanged, zero breaking changes
-4. **Framework Compliance**: UCE34 + COCA + ASSUM + B32 + T28 + I20 + Q34
+4. **Framework Compliance**: UCE34 + Chaos + ASSUM + B32 + T28 + I20 + Q34
 
 **Soft Constraints**:
 1. **Code Reuse**: 70%+ from existing ensemble_fusion.rs
@@ -707,7 +707,7 @@ BUT: Tier 2-3 would catch if Tier 1 skipped:
 //! Phase 3.2 Ensemble Fusion Capsule
 //!
 //! **Tier**: T1 Atomic (lockfree coordination) + T3 Fixed-Point (Q8.8 weight system)
-//! **Framework**: UCE34 Q10c, COCA 100% lockfree, ASSUM 99.99% safe
+//! **Framework**: UCE34 Q10c, Chaos 100% lockfree, ASSUM 99.99% safe
 //! **Expected Impact**: 90%+ natural detection via multi-marker fusion
 //!
 //! [TRADE SECRET] - Proprietary multi-tier fusion algorithm
@@ -1671,7 +1671,7 @@ fn test_adversarial_exif_injection() {
 
 ## Conclusion
 
-This Phase 3.2 Ensemble Fusion Strategy document provides a production-ready design for integrating 4 new natural image marker capsules with existing 6 AI detection algorithms, following UCE34 systematic discovery and COCA computational capsule architecture.
+This Phase 3.2 Ensemble Fusion Strategy document provides a production-ready design for integrating 4 new natural image marker capsules with existing 6 AI detection algorithms, following UCE34 systematic discovery and Chaos computational capsule architecture.
 
 **Key Achievements**:
 - ✅ UCE34 Q1-Q34 complete analysis (systematic discovery)
@@ -1695,7 +1695,7 @@ This Phase 3.2 Ensemble Fusion Strategy document provides a production-ready des
 4. Day 4: Validate on golden suite (50 natural + 50 AI)
 5. Day 5: Production stress tests + documentation
 
-**Framework Compliance**: UCE34 ✅, COCA ✅, ASSUM ✅, B32 ✅, T28 ✅, I20 ✅, Q34 ✅
+**Framework Compliance**: UCE34 ✅, Chaos ✅, ASSUM ✅, B32 ✅, T28 ✅, I20 ✅, Q34 ✅
 
 ---
 
@@ -1704,4 +1704,4 @@ This Phase 3.2 Ensemble Fusion Strategy document provides a production-ready des
 **Date**: 2025-11-21
 **Status**: ✅ DESIGN COMPLETE - Ready for Implementation
 **Total Lines**: 1,847
-**Frameworks**: UCE34 (Q1-Q34), COCA, ASSUM, B32, T28, I20, Q34 (100% compliant)
+**Frameworks**: UCE34 (Q1-Q34), Chaos, ASSUM, B32, T28, I20, Q34 (100% compliant)

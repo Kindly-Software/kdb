@@ -48,7 +48,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q1-Q34 systematic discovery (Q10 T8, Q33 verification)
-//! - **COCA**: 100% lockfree (atomic pointers, no mutex)
+//! - **Chaos**: 100% lockfree (atomic pointers, no mutex)
 //! - **ASSUM**: 99.99% safety (all rustls unsafe boundaries documented)
 //! - **B32**: Fair baselines (Nginx + OpenSSL)
 //! - **T28**: 28+ comprehensive tests (unit/property/integration/production)

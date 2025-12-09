@@ -80,9 +80,9 @@ pub use binary_generator::generate_binary_pdf;
 pub use generator::generate_compliance_pdf as generate_text_pdf;
 pub use generator::write_pdf_to_file;
 
-// Phase 4 Item 1: Async PDF generation (feature-gated)
+// Phase 4 Item 1: Background PDF generation (Chaos-compliant, uses std::thread instead of tokio)
 #[cfg(feature = "async-pdf")]
-pub use async_generator::generate_pdf_async;
+pub use async_generator::{generate_pdf_background, generate_pdf_sync};
 
 // Phase 4 Item 2: PDF/A-1b compliance (feature-gated)
 #[cfg(feature = "pdf-a")]

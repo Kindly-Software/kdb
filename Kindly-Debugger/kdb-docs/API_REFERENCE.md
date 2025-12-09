@@ -13,7 +13,7 @@ Communication uses JSON-RPC 2.0 over HTTPS.
 ### Endpoint
 
 ```
-https://api.kindly.services/mcp
+https://api.kindly.software/mcp
 ```
 
 ### Authentication
@@ -281,19 +281,19 @@ The API version is indicated in the protocol specification (2024-11-05). Breakin
 
 ```bash
 # List available tools
-curl -X POST https://api.kindly.services/mcp \
+curl -X POST https://api.kindly.software/mcp \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
 
 # Attach to process
-curl -X POST https://api.kindly.services/mcp \
+curl -X POST https://api.kindly.software/mcp \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"debugger/attach","arguments":{"pid":12345}}}'
 
 # Get stack trace
-curl -X POST https://api.kindly.services/mcp \
+curl -X POST https://api.kindly.software/mcp \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"debugger/get_stack_trace","arguments":{}}}'
@@ -306,7 +306,7 @@ While kindly-debugger can be used with any HTTP client, we recommend using the M
 - **TypeScript/JavaScript**: `@modelcontextprotocol/sdk`
 - **Python**: `mcp-sdk`
 
-See [kindly.services](https://kindly.services) for integration guides.
+See [kindly.software](https://kindly.software) for integration guides.
 
 ---
 

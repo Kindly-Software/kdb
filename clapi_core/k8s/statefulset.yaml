@@ -1,0 +1,268 @@
+# Kubernetes StatefulSet for clapi_core (P3-E6)
+# Rolling updates with persistent storage
+#
+# Features:
+# - StatefulSet for ordered deployment
+# - Rolling updates (maxUnavailable: 1)
+# - Persistent storage (optional)
+# - Health checks (liveness + readiness)
+# - Resource limits
+# - Anti-affinity (distribute pods across nodes)
+#
+# Usage:
+#   kubectl apply -f k8s/statefulset.yaml
+#   kubectl get pods -l app=clapi
+#   kubectl logs -f clapi-0
+#   kubectl delete -f k8s/statefulset.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: clapi
+  labels:
+    app: clapi
+    tier: backend
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  clusterIP: None  # Headless service for StatefulSet
+  selector:
+    app: clapi
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: clapi
+  labels:
+    app: clapi
+    tier: backend
+    version: v0.4.9
+spec:
+  serviceName: clapi
+  replicas: 3
+  selector:
+    matchLabels:
+      app: clapi
+
+  # Rolling update strategy
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0  # Update all pods
+
+  # Pod template
+  template:
+    metadata:
+      labels:
+        app: clapi
+        tier: backend
+        version: v0.4.9
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+
+    spec:
+      # Security context (non-root)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      # Pod anti-affinity (distribute across nodes)
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - clapi
+                topologyKey: kubernetes.io/hostname
+
+      # Containers
+      containers:
+        - name: clapi
+          image: clapi:latest
+          imagePullPolicy: IfNotPresent
+
+          # Ports
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+
+          # Environment variables
+          env:
+            - name: RUST_LOG
+              value: "info"
+            - name: CLAPI_PORT
+              value: "8080"
+            - name: CLAPI_BIND
+              value: "0.0.0.0"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+
+          # Resource limits
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          # Liveness probe (process alive?)
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 3
+
+          # Readiness probe (ready for traffic?)
+          readinessProbe:
+            httpGet:
+              path: /health?deep=true
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 3
+
+          # Startup probe (initial startup delay)
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 0
+            periodSeconds: 2
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 30  # 60 seconds max startup time
+
+          # Volume mounts (optional persistent storage)
+          volumeMounts:
+            - name: data
+              mountPath: /data
+
+  # Persistent volume claim template (optional)
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: fast-ssd  # Use fast storage
+        resources:
+          requests:
+            storage: 10Gi
+
+---
+
+# Horizontal Pod Autoscaler (optional)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: clapi-hpa
+  labels:
+    app: clapi
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: clapi
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+
+# Pod Disruption Budget (high availability)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: clapi-pdb
+  labels:
+    app: clapi
+spec:
+  minAvailable: 2  # Keep at least 2 pods running
+  selector:
+    matchLabels:
+      app: clapi
+
+---
+
+# ConfigMap (optional configuration)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clapi-config
+  labels:
+    app: clapi
+data:
+  RUST_LOG: "info"
+  CLAPI_PORT: "8080"
+  CLAPI_BIND: "0.0.0.0"
+
+---
+
+# Usage instructions:
+#
+# 1. Deploy:
+#    kubectl apply -f k8s/statefulset.yaml
+#
+# 2. Check status:
+#    kubectl get statefulset clapi
+#    kubectl get pods -l app=clapi
+#
+# 3. View logs:
+#    kubectl logs -f clapi-0
+#
+# 4. Port forward (local testing):
+#    kubectl port-forward clapi-0 8080:8080
+#
+# 5. Rolling update:
+#    kubectl set image statefulset/clapi clapi=clapi:v0.5.0
+#    kubectl rollout status statefulset/clapi
+#
+# 6. Rollback:
+#    kubectl rollout undo statefulset/clapi
+#
+# 7. Scale:
+#    kubectl scale statefulset clapi --replicas=5
+#
+# 8. Delete:
+#    kubectl delete -f k8s/statefulset.yaml

@@ -1,0 +1,24 @@
+# Primitives Workspace - Rust Toolchain Configuration
+#
+# UCE33 Q32 Analysis: Nightly Features Enable Advanced Optimizations
+#
+# Nightly Features Used:
+# - portable_simd: Cross-platform SIMD for feature extraction (4-8x speedup)
+# - const_fn_floating_point: Compile-time parameter validation
+# - atomic_from_mut: Zero-cost atomic creation from mutable refs
+# - generic_const_exprs: Generic parameter grids for optimization
+#
+# Compiler Optimizations:
+# - LLD linker: 30% faster builds
+# - Duplicate elimination: 10% instruction reduction
+# - Target-specific SIMD: AVX2, FMA, BMI2 on x86_64
+#
+# References:
+# - /home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/UCE32_FRAMEWORK.md
+# - Q32 analysis documents cutting-edge capabilities
+
+[toolchain]
+channel = "nightly-2025-10-06"  # Pin to specific nightly for reproducibility
+components = ["rustfmt", "clippy", "rust-src"]
+targets = ["x86_64-unknown-linux-gnu"]
+profile = "default"

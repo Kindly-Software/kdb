@@ -1,0 +1,156 @@
+{
+  "steps": [
+    {
+      "op": "publish",
+      "bundle": {
+        "header": {
+          "stale": false,
+          "state": 1,
+          "kind": 2,
+          "has_bracket": true,
+          "reduce_only_bundle": false,
+          "spare_flags": 0,
+          "symbol_id": 12,
+          "strategy_id": 3,
+          "account_id": 77,
+          "pair_id": 99,
+          "created_ms_coarse": 25000,
+          "ttl_ms": 1200
+        },
+        "entry": {
+          "side_is_buy": true,
+          "anchor": 1,
+          "order_type": 2,
+          "tif": 1,
+          "quantity": 5,
+          "price_ticks": 12,
+          "route_id": 410,
+          "slip_cap_bp": 25,
+          "post_only": false,
+          "reduce_only": false,
+          "allow_partial": true,
+          "risk_tag": 58,
+          "seq_hint": 17
+        },
+        "brackets": {
+          "take_profit_ticks": 8,
+          "stop_loss_ticks": -6,
+          "trailing_ticks": 0,
+          "time_stop_ms": 1500,
+          "exit_route_id": 512,
+          "exit_tif": 1,
+          "take_profit_kind": 0,
+          "stop_loss_kind": 0,
+          "rearm_on_reentry": false,
+          "scale_out_pct": 0,
+          "slip_cap_exit_bp": 40,
+          "latency_budget_us": 2000,
+          "flags": 0,
+          "oco_group": 18,
+          "spare": 0
+        },
+        "risk": {
+          "max_open_ms": 60000,
+          "max_adverse_cents": 1500,
+          "exit_on_breaker_ge_level": 1,
+          "exit_on_jitter": true,
+          "exit_on_cost_gt": false,
+          "forbid_after_min_ct": 930,
+          "eod_flat_min_ct": 1050,
+          "fallback_route_id": 610,
+          "on_fail": 2,
+          "spare": 0
+        }
+      }
+    },
+    {
+      "op": "load",
+      "expect": {
+        "outcome": "accept",
+        "now_ms_coarse": 25500,
+        "ttl_expired": false
+      }
+    },
+    {
+      "op": "mark_stale"
+    },
+    {
+      "op": "load",
+      "expect": {
+        "outcome": "deny",
+        "reason": "stale"
+      }
+    },
+    {
+      "op": "publish",
+      "bundle": {
+        "header": {
+          "stale": false,
+          "state": 1,
+          "kind": 1,
+          "has_bracket": true,
+          "reduce_only_bundle": false,
+          "spare_flags": 0,
+          "symbol_id": 22,
+          "strategy_id": 5,
+          "account_id": 88,
+          "pair_id": 101,
+          "created_ms_coarse": 26150,
+          "ttl_ms": 60
+        },
+        "entry": {
+          "side_is_buy": false,
+          "anchor": 2,
+          "order_type": 3,
+          "tif": 2,
+          "quantity": 8,
+          "price_ticks": -14,
+          "route_id": 320,
+          "slip_cap_bp": 35,
+          "post_only": false,
+          "reduce_only": true,
+          "allow_partial": false,
+          "risk_tag": 21,
+          "seq_hint": 44
+        },
+        "brackets": {
+          "take_profit_ticks": 10,
+          "stop_loss_ticks": -8,
+          "trailing_ticks": 2,
+          "time_stop_ms": 900,
+          "exit_route_id": 540,
+          "exit_tif": 2,
+          "take_profit_kind": 1,
+          "stop_loss_kind": 0,
+          "rearm_on_reentry": false,
+          "scale_out_pct": 25,
+          "slip_cap_exit_bp": 55,
+          "latency_budget_us": 1800,
+          "flags": 1,
+          "oco_group": 24,
+          "spare": 0
+        },
+        "risk": {
+          "max_open_ms": 45000,
+          "max_adverse_cents": 2200,
+          "exit_on_breaker_ge_level": 2,
+          "exit_on_jitter": true,
+          "exit_on_cost_gt": true,
+          "forbid_after_min_ct": 960,
+          "eod_flat_min_ct": 1100,
+          "fallback_route_id": 702,
+          "on_fail": 3,
+          "spare": 0
+        }
+      }
+    },
+    {
+      "op": "load",
+      "expect": {
+        "outcome": "accept",
+        "now_ms_coarse": 26250,
+        "ttl_expired": true
+      }
+    }
+  ]
+}

@@ -26,7 +26,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: T7 Heterogeneous tier (GPU compute)
-//! - **COCA**: Immutable input buffers, atomic output writes
+//! - **Chaos**: Immutable input buffers, atomic output writes
 //! - **ASSUM**: Input validation, bounds checking
 //! - **B32**: Fair benchmarking (vs CPU SIMD baseline)
 //! - **T28**: Kernel correctness tests
@@ -543,18 +543,47 @@ impl MinHashGpuCapsule {
         // Submit commands
         queue.submit(std::iter::once(encoder.finish()));
 
-        // Map staging buffer and read results
+        // Map staging buffer and read results with timeout protection
+        // Per wgpu issue #3601: Maintain::Wait can hang indefinitely on driver failure
+        // SOTA pattern: Use Maintain::Poll with try_recv() for graceful timeout handling
+        //
+        // #ASSUME_POLL_TIMEOUT: GPU operations complete within timeout under normal conditions
+        // #VERIFY_POLL_TIMEOUT: Environment variable KINDLY_GPU_POLL_TIMEOUT_SECS allows runtime config
+        let timeout_secs: u64 = std::env::var("KINDLY_GPU_POLL_TIMEOUT_SECS")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(5);
+        let poll_start = std::time::Instant::now();
+        let poll_timeout = std::time::Duration::from_secs(timeout_secs);
+
         let buffer_slice = staging_buffer.slice(..);
         let (tx, rx) = std::sync::mpsc::channel();
         buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
-            tx.send(result).unwrap();
+            let _ = tx.send(result); // Ignore send errors (receiver may have timed out)
         });
 
-        device.poll(wgpu::Maintain::Wait);
+        // Timeout-protected polling loop (T7 Heterogeneous tier - Chaos lockfree coordination)
+        loop {
+            device.poll(wgpu::Maintain::Poll);
 
-        rx.recv()
-            .unwrap()
-            .map_err(|e| GpuError::BufferMappingFailed(format!("{:?}", e)))?;
+            match rx.try_recv() {
+                Ok(result) => {
+                    result.map_err(|e| GpuError::BufferMappingFailed(format!("{:?}", e)))?;
+                    break;
+                }
+                Err(std::sync::mpsc::TryRecvError::Empty) => {
+                    if poll_start.elapsed() > poll_timeout {
+                        return Err(GpuError::Timeout { timeout_secs });
+                    }
+                    std::thread::sleep(std::time::Duration::from_micros(100));
+                }
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    return Err(GpuError::BufferMappingFailed(
+                        "Channel disconnected: GPU callback never fired".to_string(),
+                    ));
+                }
+            }
+        }
 
         // Extract u16 values from packed u32 buffer
         let data = buffer_slice.get_mapped_range();

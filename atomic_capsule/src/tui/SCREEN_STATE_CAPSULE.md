@@ -213,7 +213,7 @@ if screen == ScreenId::Menu {
 - **B32**: Fair baseline comparison (vs mutex<screen> pattern)
 - **T28**: 15 unit + integration tests (pyramid Q1-Q28)
 - **I20**: Integration validation (complete 20/20)
-- **COCA**: 100% lockfree (no mutex, no RwLock, atomic-only)
+- **Chaos**: 100% lockfree (no mutex, no RwLock, atomic-only)
 
 ## Usage Examples
 
@@ -384,7 +384,7 @@ Possible enhancements (40 bytes reserved):
 
 - **Source**: `/home/samuel/Primitives/atomic_capsule/src/tui/screen_state.rs`
 - **Example**: `/home/samuel/Primitives/atomic_capsule/examples/screen_state_demo.rs`
-- **Framework**: UCE34 (Q1-Q34), COCA (Computational Capsule Architecture)
+- **Framework**: UCE34 (Q1-Q34), Chaos (Computational Capsule Architecture)
 - **Documentation**: The Computational Capsule.md
 
 ## License

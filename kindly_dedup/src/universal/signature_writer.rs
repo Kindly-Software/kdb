@@ -1,5 +1,12 @@
 //! # MmapSignatureCapsule - T9+T2 Persistent SIMD MinHash Signature Writer
 //!
+//! # Clippy Suppressions
+//! - `unsafe_code`: Mmap operations require unsafe for raw pointer manipulation (ASSUM verified)
+//! - `dead_code`: Experimental functions retained for future development
+
+#![allow(unsafe_code)]
+#![allow(dead_code)]
+
 //! ## Overview
 //!
 //! High-performance MinHash signature computation and mmap-backed storage using computational
@@ -33,7 +40,7 @@
 //!
 //! ## Architecture
 //!
-//! **Capsule Design** (COCA compliant):
+//! **Capsule Design** (Chaos compliant):
 //! - **Lockfree coordination**: `AtomicU64` for buffer position (no mutex/RwLock)
 //! - **Cache-aligned**: `repr(C, align(128))` header prevents false sharing
 //! - **Zero-copy writes**: Direct mmap writes, no intermediate buffers
@@ -60,7 +67,7 @@
 //! - **ASSUM**: 99.99% safe (5 assumptions verified, zero unsafe in hot paths)
 //! - **B32**: Fair baselines (scalar MinHash, StreamingMinHashCapsule v2.2)
 //! - **T28**: Comprehensive testing (unit/property/integration/production)
-//! - **COCA**: 100% lockfree (AtomicU64 only, no mutex/RwLock)
+//! - **Chaos**: 100% lockfree (AtomicU64 only, no mutex/RwLock)
 //!
 //! ## Usage Example
 //!
@@ -95,7 +102,7 @@
 //!
 //! - Design Doc: `/home/samuel/Primitives/kindly_dedup/ZERO_COPY_INPUT_SIGNATURE_UCE34_DESIGN.md` Section 2
 //! - UCE34 Framework: `docs/frameworks/xml/frameworks/uce34.xml`
-//! - COCA Architecture: `/home/samuel/Docs/The Computational Capsule.md`
+//! - Chaos Architecture: `/home/samuel/Docs/The Computational Capsule.md`
 //! - MinHash Reference: `atomic_capsule::probabilistic::MinHashSignatureCapsule`
 
 use std::fs::OpenOptions;
@@ -249,7 +256,7 @@ impl MmapSignatureCapsule {
         let storage = vec![0u8; mmap_size as usize];
 
         // Initialize all buffer slots to u16::MAX (no signature yet)
-        let mut buffer = [[u16::MAX; 128]; 1000];
+        let buffer = [[u16::MAX; 128]; 1000];
 
         Ok(Self {
             buffer_pos: AtomicU64::new(0),

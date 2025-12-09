@@ -1,0 +1,61 @@
+=================================================================
+  KDB Admin Enterprise License
+=================================================================
+
+License Key:
+KDB-ENTERPRISE-1765251057-2ab601454eb247a2-e4a9eb8e83388aed6767acc7c0ab987f9a3f987f642ad319e4244b630df221b3d5dd25f9dd16447d80b91d4378ad9b6c664e397814c097de923d981352d25a09
+
+Tier: Enterprise (Unlimited sessions)
+Organization: Kindly Software Admin
+Generated: 2025-12-09
+Valid Until: 2033-01-01
+Status: ✅ ACTIVE on mcp.kindly.software
+
+=================================================================
+  Claude Code Setup
+=================================================================
+
+Add to ~/.claude.json:
+
+{
+  "mcpServers": {
+    "kdb": {
+      "transport": {
+        "type": "sse",
+        "url": "https://mcp.kindly.software/sse",
+        "headers": {
+          "X-License-Key": "KDB-ENTERPRISE-1765251057-2ab601454eb247a2-e4a9eb8e83388aed6767acc7c0ab987f9a3f987f642ad319e4244b630df221b3d5dd25f9dd16447d80b91d4378ad9b6c664e397814c097de923d981352d25a09"
+        }
+      }
+    }
+  }
+}
+
+Then restart Claude Code and run /mcp to connect.
+
+=================================================================
+  Verification
+=================================================================
+
+Test externally:
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -H "X-License-Key: KDB-ENTERPRISE-1765251057-2ab601454eb247a2-e4a9eb8e83388aed6767acc7c0ab987f9a3f987f642ad319e4244b630df221b3d5dd25f9dd16447d80b91d4378ad9b6c664e397814c097de923d981352d25a09" \
+  https://mcp.kindly.software/message?sessionId=YOUR_SESSION_ID \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"debugger/quota_status","arguments":{}}}'
+```
+
+Expected: `"result": { "content": [...], "isError": false }`
+
+=================================================================
+  Security Notes
+=================================================================
+
+- This is an admin Enterprise license with unlimited sessions
+- Valid until 2033-01-01
+- Configured in /etc/kdb-mcp/admin.env on kindly-hub server
+- Signed with Ed25519 private key from kdb-signup/keys/signing.key
+- DO NOT share publicly (TRADE SECRET)
+
+=================================================================

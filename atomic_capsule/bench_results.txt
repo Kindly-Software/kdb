@@ -1,0 +1,1930 @@
+warning: user-defined alias `bench` is ignored, because it is shadowed by a built-in command
+warning: /home/samuel/Primitives/Cargo.toml: `panic` setting is ignored for `bench` profile
+warning: /home/samuel/Primitives/atomic_capsule/Cargo.toml: `panic` setting is ignored for `test` profile
+   Compiling atomic_capsule v0.8.0 (/home/samuel/Primitives/atomic_capsule)
+warning: unused import: `std::io`
+  --> src/error.rs:11:5
+   |
+11 | use std::io;
+   |     ^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `core::time::Duration`
+  --> src/install/installer_state.rs:74:5
+   |
+74 | use core::time::Duration;
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Barrier` and `Mutex`
+  --> src/parallel/hybrid_batch_pool.rs:37:22
+   |
+37 | use std::sync::{Arc, Barrier, Mutex};
+   |                      ^^^^^^^  ^^^^^
+
+warning: unused import: `core::mem::size_of`
+ --> src/load_balancing/capsule.rs:4:5
+  |
+4 | use core::mem::size_of;
+  |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::collections::HashMap`
+ --> src/load_balancing/capsule.rs:7:5
+  |
+7 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `HealthCheckType`
+ --> src/load_balancing/capsule.rs:9:63
+  |
+9 | use super::check_types::{HealthCheckError, HealthCheckResult, HealthCheckType, HealthStatus};
+  |                                                               ^^^^^^^^^^^^^^^
+
+warning: unused import: `CircuitBreakerState`
+  --> src/load_balancing/capsule.rs:12:69
+   |
+12 | use super::circuit_breaker_integration::{CircuitBreakerIntegration, CircuitBreakerState};
+   |                                                                     ^^^^^^^^^^^^^^^^^^^
+
+warning: hidden lifetime parameters in types are deprecated
+   --> src/runtime/websocket/frame_writer.rs:54:37
+    |
+ 54 |     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    |                           ----------^^^^^^^^^
+    |                           |
+    |                           expected lifetime parameter
+    |
+note: the lint level is defined here
+   --> src/lib.rs:124:23
+    |
+124 | #![warn(missing_docs, rust_2018_idioms)]
+    |                       ^^^^^^^^^^^^^^^^
+    = note: `#[warn(elided_lifetimes_in_paths)]` implied by `#[warn(rust_2018_idioms)]`
+help: indicate the anonymous lifetime
+    |
+ 54 |     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    |                                              ++++
+
+warning: unused import: `std::sync::Arc`
+  --> src/runtime/tls/metrics.rs:30:5
+   |
+30 | use std::sync::Arc;
+   |     ^^^^^^^^^^^^^^
+
+warning: unused imports: `IOSQE_ASYNC`, `IOSQE_HARDLINK`, `IOSQE_LINK`, `IOSQE_SKIP_SUCCESS`, and `IoUringSqe`
+  --> src/runtime/io_uring_ops.rs:30:21
+   |
+30 |     IoUringCapsule, IoUringSqe, IoUringError, Result,
+   |                     ^^^^^^^^^^
+...
+36 |     IOSQE_LINK, IOSQE_ASYNC, IOSQE_HARDLINK, IOSQE_SKIP_SUCCESS,
+   |     ^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `core::sync::atomic::Ordering`
+  --> src/runtime/io_uring_ops.rs:39:5
+   |
+39 | use core::sync::atomic::Ordering;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `core::ptr::NonNull`
+   --> src/websocket/subscriber_pool.rs:144:5
+    |
+144 | use core::ptr::NonNull;
+    |     ^^^^^^^^^^^^^^^^^^
+
+warning: hidden lifetime parameters in types are deprecated
+  --> src/daemon/lock.rs:63:47
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard> {
+   |                                               ^^^^^^^^^ expected lifetime parameter
+   |
+help: indicate the anonymous lifetime
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard<'_>> {
+   |                                                        ++++
+
+warning: unnecessary parentheses around assigned value
+   --> src/daemon/lock.rs:163:29
+    |
+163 |             let new_state = ((gen as u64 + 1) << 32);
+    |                             ^                      ^
+    |
+    = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+    |
+163 -             let new_state = ((gen as u64 + 1) << 32);
+163 +             let new_state = (gen as u64 + 1) << 32;
+    |
+
+warning: unnecessary `unsafe` block
+   --> src/retry.rs:329:29
+    |
+329 | ...                   unsafe { core::arch::x86_64::_mm_pause(); }
+    |                       ^^^^^^ unnecessary `unsafe` block
+    |
+    = note: `#[warn(unused_unsafe)]` (part of `#[warn(unused)]`) on by default
+
+warning: unnecessary `unsafe` block
+   --> src/retry.rs:350:29
+    |
+350 | ...                   unsafe { core::arch::x86_64::_mm_pause(); }
+    |                       ^^^^^^ unnecessary `unsafe` block
+
+warning: unused variable: `state_bits`
+   --> src/capsules/security/zero_trust_session.rs:564:13
+    |
+564 |         let state_bits = (self.metadata.load_primary(Ordering::Relaxed) >> 60) as u8;
+    |             ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_state_bits`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `risk_q16`
+   --> src/capsules/security/zero_trust_session.rs:565:13
+    |
+565 |         let risk_q16 = self.get_risk_score_raw();
+    |             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_risk_q16`
+
+warning: unused variable: `count`
+   --> src/capsules/security/zero_trust_session.rs:566:13
+    |
+566 |         let count = self.get_verification_count();
+    |             ^^^^^ help: if this is intentional, prefix it with an underscore: `_count`
+
+warning: unused variable: `timestamp`
+   --> src/capsules/security/zero_trust_session.rs:567:13
+    |
+567 |         let timestamp = self.get_last_verified();
+    |             ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_timestamp`
+
+warning: unused variable: `nanoseconds`
+   --> src/runtime/io_uring_ops.rs:732:9
+    |
+732 |         nanoseconds: u64,
+    |         ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_nanoseconds`
+
+warning: unused variable: `request`
+   --> src/websocket/client.rs:487:13
+    |
+487 |         let request = self.build_handshake_request(&host, &port, path, &key)?;
+    |             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_request`
+
+warning: unused variable: `expected_accept`
+   --> src/websocket/client.rs:493:13
+    |
+493 |         let expected_accept = self.compute_accept_key(&key)?;
+    |             ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_expected_accept`
+
+warning: unused variable: `key`
+   --> src/websocket/client.rs:828:34
+    |
+828 |     fn compute_accept_key(&self, key: &[u8; 24]) -> Result<[u8; 28], ClientError> {
+    |                                  ^^^ help: if this is intentional, prefix it with an underscore: `_key`
+
+warning: unused variable: `queue_capacity`
+   --> src/daemon/coordinator.rs:101:33
+    |
+101 |     pub fn new(timeout_ns: u64, queue_capacity: usize) -> DaemonResult<Self> {
+    |                                 ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_queue_capacity`
+
+warning: constant `SECONDS_PER_MONTH` is never used
+  --> src/patterns/quota_tracker.rs:80:7
+   |
+80 | const SECONDS_PER_MONTH: u64 = 30 * 24 * 60 * 60;
+   |       ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `PHASE_BITS` is never used
+  --> src/install/installer_state.rs:80:7
+   |
+80 | const PHASE_BITS: u32 = 4;
+   |       ^^^^^^^^^^
+
+warning: method `free_slot` is never used
+   --> src/parallel/atomic_slot_pool.rs:331:8
+    |
+112 | impl AtomicSlotPool {
+    | ------------------- method in this implementation
+...
+331 |     fn free_slot(&self, slot_idx: usize) {
+    |        ^^^^^^^^^
+
+warning: field `expected_len` is never read
+   --> src/parallel/lockfree_list.rs:430:5
+    |
+428 | pub struct LockfreeListIter<'a, T> {
+    |            ---------------- field in this struct
+429 |     current: *mut Node<T>,
+430 |     expected_len: usize,
+    |     ^^^^^^^^^^^^
+
+warning: method `is_occupied` is never used
+   --> src/collections/append_only_map_optimized.rs:100:8
+    |
+ 88 | impl<K, V> MapEntry<K, V> {
+    | ------------------------- method in this implementation
+...
+100 |     fn is_occupied(&self) -> bool {
+    |        ^^^^^^^^^^^
+
+warning: method `try_claim` is never used
+   --> src/collections/concurrent_map.rs:216:8
+    |
+168 | impl<K, V> MapEntry<K, V> {
+    | ------------------------- method in this implementation
+...
+216 |     fn try_claim(&self, hash: u64, value: *mut V) -> Result<(), u64> {
+    |        ^^^^^^^^^
+
+warning: method `try_get` is never used
+   --> src/collections/entry.rs:453:19
+    |
+348 | / impl<'a, K, V> OccupiedEntry<'a, K, V>
+349 | | where
+350 | |     K: Hash + Eq + Clone + Send + Sync,
+351 | |     V: Send + Sync,
+    | |___________________- method in this implementation
+...
+453 |       pub(crate) fn try_get(&self) -> Option<&V> {
+    |                     ^^^^^^^
+
+warning: constant `LOAD_FACTOR_THRESHOLD` is never used
+   --> src/collections/scalable_hashmap.rs:135:7
+    |
+135 | const LOAD_FACTOR_THRESHOLD: f64 = 0.90;
+    |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `is_tombstone`, `generation`, and `neighborhood` are never used
+   --> src/collections/scalable_hashmap.rs:234:8
+    |
+213 | impl<K, V> HopscotchBucket<K, V> {
+    | -------------------------------- methods in this implementation
+...
+234 |     fn is_tombstone(&self) -> bool {
+    |        ^^^^^^^^^^^^
+...
+246 |     pub(crate) fn generation(&self) -> u64 {
+    |                   ^^^^^^^^^^
+...
+252 |     fn neighborhood(&self) -> u32 {
+    |        ^^^^^^^^^^^^
+
+warning: field `generation` is never read
+   --> src/collections/scalable_hashmap.rs:329:5
+    |
+321 | struct BucketArray<K, V> {
+    |        ----------- field in this struct
+...
+329 |     generation: u64,
+    |     ^^^^^^^^^^
+
+warning: field `resize_gen` is never read
+   --> src/collections/scalable_hashmap.rs:399:5
+    |
+388 | pub struct ScalableHashMapCapsule<K, V> {
+    |            ---------------------- field in this struct
+...
+399 |     resize_gen: AtomicU64,
+    |     ^^^^^^^^^^
+
+warning: constant `LOAD_FACTOR_THRESHOLD` is never used
+   --> src/collections/robin_hood_hash.rs:122:7
+    |
+122 | const LOAD_FACTOR_THRESHOLD: f64 = 0.90;
+    |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `is_empty`, `matches_hash`, `dib`, and `generation` are never used
+   --> src/collections/robin_hood_hash.rs:228:8
+    |
+213 | impl<K, V> RobinHoodBucket<K, V> {
+    | -------------------------------- methods in this implementation
+...
+228 |     fn is_empty(&self) -> bool {
+    |        ^^^^^^^^
+...
+234 |     fn matches_hash(&self, hash: u64) -> bool {
+    |        ^^^^^^^^^^^^
+...
+240 |     fn dib(&self) -> u8 {
+    |        ^^^
+...
+246 |     pub(crate) fn generation(&self) -> u64 {
+    |                   ^^^^^^^^^^
+
+warning: field `generation` is never read
+   --> src/collections/robin_hood_hash.rs:260:5
+    |
+252 | struct BucketArray<K, V> {
+    |        ----------- field in this struct
+...
+260 |     generation: u64,
+    |     ^^^^^^^^^^
+
+warning: constant `EWMA_ALPHA_FAST_Q8` is never used
+  --> src/capsules/security/adaptive_rate_limiter.rs:63:7
+   |
+63 | const EWMA_ALPHA_FAST_Q8: u16 = 128;
+   |       ^^^^^^^^^^^^^^^^^^
+
+warning: constant `FLAGS_MASK` is never used
+   --> src/capsules/security/constant_time_ops.rs:101:7
+    |
+101 | const FLAGS_MASK: u64 = 0x0000_0000_0000_FFFF;
+    |       ^^^^^^^^^^
+
+warning: constant `DECAY_FACTOR` is never used
+   --> src/capsules/security/behavioral_anomaly.rs:362:15
+    |
+362 |         const DECAY_FACTOR: f64 = 0.995;  // 99.5% retention - prevents threshold creep
+    |               ^^^^^^^^^^^^
+
+warning: function `assert_alignment` is never used
+   --> src/mcp/tool_registry.rs:205:14
+    |
+205 |     const fn assert_alignment() {
+    |              ^^^^^^^^^^^^^^^^
+
+warning: constant `ASSERT` is never used
+   --> src/tui/file_navigator.rs:137:11
+    |
+137 |     const ASSERT: () = assert!(
+    |           ^^^^^^
+
+warning: constant `ASSERT_ALIGN` is never used
+   --> src/tui/file_navigator.rs:141:11
+    |
+141 |     const ASSERT_ALIGN: () = assert!(
+    |           ^^^^^^^^^^^^
+
+warning: function `assert_size` is never used
+   --> src/load_balancing/capsule.rs:428:14
+    |
+428 |     const fn assert_size() {
+    |              ^^^^^^^^^^^
+
+warning: function `assert_size` is never used
+   --> src/load_balancing/backend_state.rs:282:14
+    |
+282 |     const fn assert_size() {
+    |              ^^^^^^^^^^^
+
+warning: function `assert_size` is never used
+   --> src/load_balancing/session_affinity.rs:219:14
+    |
+219 |     const fn assert_size() {
+    |              ^^^^^^^^^^^
+
+warning: associated function `from_u8` is never used
+  --> src/runtime/event_queue.rs:54:8
+   |
+53 | impl EventType {
+   | -------------- associated function in this implementation
+54 |     fn from_u8(v: u8) -> Option<Self> {
+   |        ^^^^^^^
+
+warning: fields `data` and `metadata` are never read
+   --> src/runtime/tls/certificate.rs:220:5
+    |
+219 | pub struct CertificateChain {
+    |            ---------------- fields in this struct
+220 |     data: Vec<u8>,
+    |     ^^^^
+221 |     metadata: CertificateMetadata,
+    |     ^^^^^^^^
+    |
+    = note: `CertificateChain` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: fields `data` and `key_type` are never read
+   --> src/runtime/tls/certificate.rs:226:5
+    |
+225 | pub struct PrivateKey {
+    |            ---------- fields in this struct
+226 |     data: Vec<u8>,
+    |     ^^^^
+227 |     key_type: String,
+    |     ^^^^^^^^
+    |
+    = note: `PrivateKey` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: function `check_size` is never used
+   --> src/runtime/tls/certificate.rs:275:14
+    |
+275 |     const fn check_size() {
+    |              ^^^^^^^^^^
+
+warning: function `compute` is never used
+   --> src/runtime/tls/certificate.rs:281:14
+    |
+281 |     const fn compute() {
+    |              ^^^^^^^
+
+warning: function `check_layout` is never used
+   --> src/runtime/io_uring.rs:294:14
+    |
+294 |     const fn check_layout() {
+    |              ^^^^^^^^^^^^
+
+warning: struct `SqRing` is never constructed
+   --> src/runtime/io_uring.rs:308:8
+    |
+308 | struct SqRing {
+    |        ^^^^^^
+
+warning: struct `CqRing` is never constructed
+   --> src/runtime/io_uring.rs:320:8
+    |
+320 | struct CqRing {
+    |        ^^^^^^
+
+warning: function `check_layout` is never used
+   --> src/runtime/io_uring_batch.rs:128:14
+    |
+128 |     const fn check_layout() {
+    |              ^^^^^^^^^^^^
+
+warning: constant `WEBSOCKET_GUID` is never used
+  --> src/websocket/upgrade.rs:31:7
+   |
+31 | const WEBSOCKET_GUID: &[u8; 36] = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+   |       ^^^^^^^^^^^^^^
+
+warning: method `increment_errors` is never used
+   --> src/websocket/frame_parser.rs:414:8
+    |
+258 | impl WebSocketFrameParserCapsule {
+    | -------------------------------- method in this implementation
+...
+414 |     fn increment_errors(&self) {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/patterns/deployment.rs:113:5
+    |
+113 |     Idle = 0,
+    |     ^^^^
+    |
+note: the lint level is defined here
+   --> src/lib.rs:124:9
+    |
+124 | #![warn(missing_docs, rust_2018_idioms)]
+    |         ^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/patterns/deployment.rs:114:5
+    |
+114 |     PreFlight = 1,
+    |     ^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/patterns/deployment.rs:115:5
+    |
+115 |     Building = 2,
+    |     ^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/patterns/deployment.rs:116:5
+    |
+116 |     BackingUp = 3,
+    |     ^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/patterns/deployment.rs:117:5
+    |
+117 |     Deploying = 4,
+    |     ^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/patterns/deployment.rs:118:5
+    |
+118 |     Validating = 5,
+    |     ^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/patterns/deployment.rs:119:5
+    |
+119 |     Complete = 6,
+    |     ^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/patterns/deployment.rs:120:5
+    |
+120 |     Failed = 7,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> src/patterns/deployment.rs:121:5
+    |
+121 |     RolledBack = 8,
+    |     ^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/patterns/deployment.rs:165:5
+    |
+165 |     Idle,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> src/patterns/deployment.rs:166:5
+    |
+166 |     InProgress,
+    |     ^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/patterns/deployment.rs:167:5
+    |
+167 |     Validating,
+    |     ^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/patterns/deployment.rs:168:5
+    |
+168 |     Complete,
+    |     ^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/patterns/deployment.rs:169:5
+    |
+169 |     Failed,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> src/patterns/deployment.rs:170:5
+    |
+170 |     RolledBack,
+    |     ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/install/install_audit.rs:176:22
+    |
+176 |     TamperDetected { event: u64, reason: String },
+    |                      ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/install/install_audit.rs:176:34
+    |
+176 |     TamperDetected { event: u64, reason: String },
+    |                                  ^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+ --> src/capsules/mod.rs:6:1
+  |
+6 | pub mod security;
+  | ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+ --> src/capsules/security/mod.rs:5:1
+  |
+5 | pub mod advanced_bot_detector;
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+ --> src/capsules/security/mod.rs:8:1
+  |
+8 | pub mod behavioral_anomaly;
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+ --> src/capsules/security/mod.rs:9:1
+  |
+9 | pub mod zero_trust_session;
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/capsules/security/advanced_bot_detector.rs:208:5
+    |
+208 |     pub bot_count: u32,
+    |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/capsules/security/advanced_bot_detector.rs:209:5
+    |
+209 |     pub human_count: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/capsules/security/advanced_bot_detector.rs:210:5
+    |
+210 |     pub evasion_count: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/capsules/security/advanced_bot_detector.rs:211:5
+    |
+211 |     pub challenge_count: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/capsules/security/behavioral_anomaly.rs:27:5
+   |
+27 |     RandomForest = 0,
+   |     ^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/capsules/security/behavioral_anomaly.rs:28:5
+   |
+28 |     XGBoost = 1,
+   |     ^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/capsules/security/behavioral_anomaly.rs:29:5
+   |
+29 |     LSTM = 2,
+   |     ^^^^
+
+warning: missing documentation for a variant
+  --> src/capsules/security/behavioral_anomaly.rs:30:5
+   |
+30 |     Autoencoder = 3,
+   |     ^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/capsules/security/behavioral_anomaly.rs:31:5
+   |
+31 |     IsolationForest = 4,
+   |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated constant
+  --> src/capsules/security/behavioral_anomaly.rs:35:5
+   |
+35 |     pub const COUNT: usize = 5;
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+  --> src/capsules/security/behavioral_anomaly.rs:37:5
+   |
+37 |     pub const fn all() -> [ModelId; Self::COUNT] {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/capsules/security/behavioral_anomaly.rs:86:9
+   |
+86 |         anomaly_type: AnomalyType,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/capsules/security/behavioral_anomaly.rs:87:9
+   |
+87 |         confidence: i64,  // Q16.16 fixed-point (0.0-1.0)
+   |         ^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+  --> src/capsules/security/zero_trust_session.rs:37:5
+   |
+37 |     pub fn from_u8(val: u8) -> Option<Self> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/tui/file_navigator.rs:149:5
+    |
+149 |     pub const HIDE_HIDDEN: u32 = 1 << 0;  // Hide files starting with .
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/tui/file_navigator.rs:150:5
+    |
+150 |     pub const HIDE_READONLY: u32 = 1 << 1; // Hide readonly files
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/tui/file_navigator.rs:151:5
+    |
+151 |     pub const HIDE_SYMLINKS: u32 = 1 << 2;  // Hide symbolic links
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/tui/file_navigator.rs:152:5
+    |
+152 |     pub const RECURSIVE: u32 = 1 << 3;      // Enable recursive directory descent
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/load_balancing/metrics.rs:83:5
+   |
+83 |     Info,
+   |     ^^^^
+
+warning: missing documentation for a variant
+  --> src/load_balancing/metrics.rs:84:5
+   |
+84 |     Warning,
+   |     ^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/load_balancing/metrics.rs:85:5
+   |
+85 |     Critical,
+   |     ^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/load_balancing/metrics.rs:91:5
+   |
+91 |     pub level: AlertLevel,
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/load_balancing/metrics.rs:92:5
+   |
+92 |     pub metric: String,
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/load_balancing/metrics.rs:93:5
+   |
+93 |     pub message: String,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/load_balancing/metrics.rs:94:5
+   |
+94 |     pub current_value: String,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/load_balancing/metrics.rs:95:5
+   |
+95 |     pub threshold: String,
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/load_balancing/metrics.rs:102:5
+    |
+102 |     Healthy = 0,
+    |     ^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/load_balancing/metrics.rs:103:5
+    |
+103 |     Degraded = 1,
+    |     ^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/load_balancing/metrics.rs:104:5
+    |
+104 |     Unhealthy = 2,
+    |     ^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/load_balancing/metrics.rs:105:5
+    |
+105 |     Quarantined = 3,
+    |     ^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:214:5
+    |
+214 |     pub total_requests: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:215:5
+    |
+215 |     pub successful_requests: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:216:5
+    |
+216 |     pub failed_requests: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:217:5
+    |
+217 |     pub requests_per_second: f64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:218:5
+    |
+218 |     pub success_rate: f64,
+    |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:221:5
+    |
+221 |     pub avg_latency_ns: f64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:222:5
+    |
+222 |     pub min_latency_ns: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:223:5
+    |
+223 |     pub max_latency_ns: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:224:5
+    |
+224 |     pub p50_latency_ns: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:225:5
+    |
+225 |     pub p95_latency_ns: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:226:5
+    |
+226 |     pub p99_latency_ns: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:229:5
+    |
+229 |     pub healthy_backends: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:230:5
+    |
+230 |     pub unhealthy_backends: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:231:5
+    |
+231 |     pub total_backends: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:234:5
+    |
+234 |     pub load_distribution_variance: f64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:235:5
+    |
+235 |     pub backend_utilization_avg: f64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:238:5
+    |
+238 |     pub total_connections: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:239:5
+    |
+239 |     pub active_connections: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:240:5
+    |
+240 |     pub idle_connections: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:241:5
+    |
+241 |     pub connection_errors: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:244:5
+    |
+244 |     pub session_hits: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:245:5
+    |
+245 |     pub session_misses: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:246:5
+    |
+246 |     pub session_hit_rate: f64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:249:5
+    |
+249 |     pub circuit_breaker_opens: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:250:5
+    |
+250 |     pub circuit_breaker_closes: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:251:5
+    |
+251 |     pub circuit_breaker_half_opens: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:254:5
+    |
+254 |     pub audit_hash: u64,
+    |     ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:255:5
+    |
+255 |     pub metrics_snapshot_count: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:828:5
+    |
+828 |     pub max_latency_ms: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:829:5
+    |
+829 |     pub min_healthy_backends: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:830:5
+    |
+830 |     pub max_error_rate: f32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:831:5
+    |
+831 |     pub max_circuit_breaker_opens: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/load_balancing/metrics.rs:832:5
+    |
+832 |     pub min_session_hit_rate: f32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/runtime/event_queue.rs:75:5
+   |
+75 |     pub event_type: EventType,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/runtime/event_queue.rs:76:5
+   |
+76 |     pub event_id: u64,
+   |     ^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/runtime/event_queue.rs:77:5
+   |
+77 |     pub payload: u64,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/runtime/websocket/frame_writer.rs:71:5
+   |
+71 |     Continuation = 0x0,
+   |     ^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/runtime/websocket/frame_writer.rs:72:5
+   |
+72 |     Text = 0x1,
+   |     ^^^^
+
+warning: missing documentation for a variant
+  --> src/runtime/websocket/frame_writer.rs:73:5
+   |
+73 |     Binary = 0x2,
+   |     ^^^^^^
+
+warning: missing documentation for a variant
+  --> src/runtime/websocket/frame_writer.rs:74:5
+   |
+74 |     Close = 0x8,
+   |     ^^^^^
+
+warning: missing documentation for a variant
+  --> src/runtime/websocket/frame_writer.rs:75:5
+   |
+75 |     Ping = 0x9,
+   |     ^^^^
+
+warning: missing documentation for a variant
+  --> src/runtime/websocket/frame_writer.rs:76:5
+   |
+76 |     Pong = 0xA,
+   |     ^^^^
+
+warning: missing documentation for a struct field
+  --> src/runtime/websocket/frame_writer.rs:82:5
+   |
+82 |     pub frame_count: u64,
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/runtime/websocket/frame_writer.rs:83:5
+   |
+83 |     pub bytes_written: u64,
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/runtime/websocket/frame_writer.rs:84:5
+   |
+84 |     pub error_count: u32,
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+   --> src/runtime/tls/mod.rs:135:1
+    |
+135 | pub mod metrics;
+    | ^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+   --> src/runtime/tls/certificate.rs:141:5
+    |
+141 |     pub fn from_u8(val: u8) -> Option<Self> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a type alias
+   --> src/runtime/tls/certificate.rs:214:1
+    |
+214 | pub type TlsCertificateResult<T> = Result<T, TlsCertificateError>;
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct
+   --> src/runtime/tls/certificate.rs:225:1
+    |
+225 | pub struct PrivateKey {
+    | ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/tls/certificate.rs:693:5
+    |
+693 |     pub state: CertificateState,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/tls/certificate.rs:694:5
+    |
+694 |     pub issue_date: u64,
+    |     ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/tls/certificate.rs:695:5
+    |
+695 |     pub expiry_date: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/tls/certificate.rs:696:5
+    |
+696 |     pub reload_count: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/tls/certificate.rs:697:5
+    |
+697 |     pub cert_hash: [u8; 32],
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/tls/certificate.rs:698:5
+    |
+698 |     pub domain_name: String,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a type alias
+  --> src/runtime/io_uring.rs:77:1
+   |
+77 | pub type Result<T> = StdResult<T, IoUringError>;
+   | ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/io_uring.rs:619:5
+    |
+619 |     pub total_submissions: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/io_uring.rs:620:5
+    |
+620 |     pub total_completions: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/io_uring.rs:621:5
+    |
+621 |     pub submission_errors: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/io_uring.rs:622:5
+    |
+622 |     pub completion_errors: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/io_uring.rs:623:5
+    |
+623 |     pub sq_dropped: u32,
+    |     ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/io_uring.rs:624:5
+    |
+624 |     pub cq_overflow: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a type alias
+  --> src/runtime/io_uring_batch.rs:38:1
+   |
+38 | pub type Result<T> = StdResult<T, IoUringError>;
+   | ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/io_uring_batch.rs:638:5
+    |
+638 |     pub batch_size: u32,
+    |     ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/io_uring_batch.rs:639:5
+    |
+639 |     pub pending_ops: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/io_uring_batch.rs:640:5
+    |
+640 |     pub ops_batched: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/io_uring_batch.rs:641:5
+    |
+641 |     pub batches_submitted: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/io_uring_batch.rs:642:5
+    |
+642 |     pub completions_batched: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/io_uring_batch.rs:643:5
+    |
+643 |     pub batches_harvested: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/io_uring_batch.rs:644:5
+    |
+644 |     pub avg_batch_latency_ns: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/io_uring_batch.rs:645:5
+    |
+645 |     pub queue_pressure: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/runtime/io_uring_batch.rs:646:5
+    |
+646 |     pub pending_completions: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/websocket/frame_parser.rs:73:5
+   |
+73 |     Continuation = 0x0,
+   |     ^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> src/websocket/frame_parser.rs:74:5
+   |
+74 |     Text = 0x1,
+   |     ^^^^
+
+warning: missing documentation for a variant
+  --> src/websocket/frame_parser.rs:75:5
+   |
+75 |     Binary = 0x2,
+   |     ^^^^^^
+
+warning: missing documentation for a variant
+  --> src/websocket/frame_parser.rs:76:5
+   |
+76 |     Close = 0x8,
+   |     ^^^^^
+
+warning: missing documentation for a variant
+  --> src/websocket/frame_parser.rs:77:5
+   |
+77 |     Ping = 0x9,
+   |     ^^^^
+
+warning: missing documentation for a variant
+  --> src/websocket/frame_parser.rs:78:5
+   |
+78 |     Pong = 0xA,
+   |     ^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/frame_parser.rs:109:5
+    |
+109 |     Start = 0,
+    |     ^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/frame_parser.rs:110:5
+    |
+110 |     Header = 1,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/frame_parser.rs:111:5
+    |
+111 |     Length7 = 2,
+    |     ^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/frame_parser.rs:112:5
+    |
+112 |     Length16 = 3,
+    |     ^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/frame_parser.rs:113:5
+    |
+113 |     Length64 = 4,
+    |     ^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/frame_parser.rs:114:5
+    |
+114 |     MaskKey = 5,
+    |     ^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/frame_parser.rs:115:5
+    |
+115 |     Payload = 6,
+    |     ^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/frame_parser.rs:116:5
+    |
+116 |     Done = 7,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/frame_parser.rs:117:5
+    |
+117 |     Invalid = 8,
+    |     ^^^^^^^
+
+warning: missing documentation for an associated function
+   --> src/websocket/frame_parser.rs:121:5
+    |
+121 |     pub fn from_bits(bits: u8) -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:118:5
+    |
+118 |     Disconnected = 0x00,
+    |     ^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:119:5
+    |
+119 |     Connecting = 0x01,
+    |     ^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:120:5
+    |
+120 |     Connected = 0x02,
+    |     ^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:121:5
+    |
+121 |     Closing = 0x03,
+    |     ^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:122:5
+    |
+122 |     Closed = 0x04,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:123:5
+    |
+123 |     Error = 0x05,
+    |     ^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:150:5
+    |
+150 |     Normal = 1000,
+    |     ^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:151:5
+    |
+151 |     GoingAway = 1001,
+    |     ^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:152:5
+    |
+152 |     ProtocolError = 1002,
+    |     ^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:153:5
+    |
+153 |     UnsupportedData = 1003,
+    |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:154:5
+    |
+154 |     Reserved = 1004,
+    |     ^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:155:5
+    |
+155 |     NoStatus = 1005,
+    |     ^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:156:5
+    |
+156 |     AbnormalClosure = 1006,
+    |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:157:5
+    |
+157 |     InvalidFramePayloadData = 1007,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:158:5
+    |
+158 |     PolicyViolation = 1008,
+    |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:159:5
+    |
+159 |     MessageTooBig = 1009,
+    |     ^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:160:5
+    |
+160 |     MissingExtension = 1010,
+    |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:161:5
+    |
+161 |     InternalError = 1011,
+    |     ^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:162:5
+    |
+162 |     ServiceRestart = 1012,
+    |     ^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:163:5
+    |
+163 |     TryAgainLater = 1013,
+    |     ^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:164:5
+    |
+164 |     BadGateway = 1014,
+    |     ^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:165:5
+    |
+165 |     TlsHandshakeFail = 1015,
+    |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:173:5
+    |
+173 |     InvalidUrl = 0x100,
+    |     ^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:174:5
+    |
+174 |     DnsResolutionFailed = 0x101,
+    |     ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:175:5
+    |
+175 |     TcpConnectFailed = 0x102,
+    |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:176:5
+    |
+176 |     TcpWriteFailed = 0x103,
+    |     ^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:177:5
+    |
+177 |     TcpReadFailed = 0x104,
+    |     ^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:178:5
+    |
+178 |     TimeoutOnConnect = 0x105,
+    |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:179:5
+    |
+179 |     TimeoutOnHandshake = 0x106,
+    |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:182:5
+    |
+182 |     InvalidHttpResponse = 0x200,
+    |     ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:183:5
+    |
+183 |     MissingUpgradeHeader = 0x201,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:184:5
+    |
+184 |     InvalidUpgradeValue = 0x202,
+    |     ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:185:5
+    |
+185 |     MissingConnectionHeader = 0x203,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:186:5
+    |
+186 |     MissingAcceptKey = 0x204,
+    |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:187:5
+    |
+187 |     InvalidAcceptKey = 0x205,
+    |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:188:5
+    |
+188 |     InvalidWebSocketVersion = 0x206,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:189:5
+    |
+189 |     HandshakeTimeout = 0x207,
+    |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:192:5
+    |
+192 |     InvalidFrameFormat = 0x300,
+    |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:193:5
+    |
+193 |     PayloadTooBig = 0x301,
+    |     ^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:194:5
+    |
+194 |     InvalidMaskKey = 0x302,
+    |     ^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:195:5
+    |
+195 |     PayloadNotMasked = 0x303,
+    |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:198:5
+    |
+198 |     NotConnected = 0x400,
+    |     ^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:199:5
+    |
+199 |     AlreadyConnected = 0x401,
+    |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:200:5
+    |
+200 |     AlreadyClosing = 0x402,
+    |     ^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:201:5
+    |
+201 |     ClosedByServer = 0x403,
+    |     ^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:202:5
+    |
+202 |     UnexpectedState = 0x404,
+    |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:205:5
+    |
+205 |     BufferTooSmall = 0x500,
+    |     ^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:206:5
+    |
+206 |     WriteBufferFull = 0x501,
+    |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:207:5
+    |
+207 |     ReadBufferEmpty = 0x502,
+    |     ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:210:5
+    |
+210 |     RandomGenerationFailed = 0x600,
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:211:5
+    |
+211 |     EncodingError = 0x601,
+    |     ^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:212:5
+    |
+212 |     InvalidUtf8 = 0x602,
+    |     ^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:213:5
+    |
+213 |     InternalError = 0x603,
+    |     ^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:216:5
+    |
+216 |     Unknown = 0xFFFF,
+    |     ^^^^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:262:5
+    |
+262 |     Text = 0x01,
+    |     ^^^^
+
+warning: missing documentation for a variant
+   --> src/websocket/client.rs:263:5
+    |
+263 |     Binary = 0x02,
+    |     ^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/websocket/client.rs:269:5
+    |
+269 |     pub msg_type: MessageType,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/websocket/client.rs:270:5
+    |
+270 |     pub data: Vec<u8>,
+    |     ^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/websocket/client.rs:271:5
+    |
+271 |     pub is_final: bool,
+    |     ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+  --> src/websocket/server.rs:83:5
+   |
+83 |     pub fn from_u8(val: u8) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> src/websocket/server.rs:97:5
+   |
+97 |     pub fn as_u8(self) -> u8 {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a type alias
+   --> src/websocket/server.rs:169:1
+    |
+169 | pub type Result<T> = std::result::Result<T, ServerError>;
+    | ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/websocket/server.rs:174:5
+    |
+174 |     pub active_connections: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/websocket/server.rs:175:5
+    |
+175 |     pub max_connections: u32,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/websocket/server.rs:176:5
+    |
+176 |     pub messages_sent: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/websocket/server.rs:177:5
+    |
+177 |     pub messages_received: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/websocket/server.rs:178:5
+    |
+178 |     pub bytes_sent: u64,
+    |     ^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/websocket/server.rs:179:5
+    |
+179 |     pub bytes_received: u64,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/daemon/error.rs:22:16
+   |
+22 |     LockHeld { holder_pid: u32 },
+   |                ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/daemon/error.rs:27:19
+   |
+27 |     LockTimeout { waited_ns: u64 },
+   |                   ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/daemon/error.rs:32:17
+   |
+32 |     QueueFull { capacity: usize },
+   |                 ^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+  --> src/daemon/lock.rs:51:5
+   |
+51 |     pub const fn new(timeout_ns: u64) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> src/daemon/lock.rs:63:5
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> src/daemon/lock.rs:63:24
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard> {
+   |                        ^^^^^                  ^^^^^^^^^ the same lifetime is hidden here
+   |                        |
+   |                        the lifetime is elided here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard<'_>> {
+   |                                                        ++++
+
+warning: missing documentation for a method
+   --> src/daemon/lock.rs:121:5
+    |
+121 |     pub fn is_locked(&self) -> bool {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/daemon/lock.rs:127:5
+    |
+127 |     pub fn holder(&self) -> Option<u32> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/daemon/lock.rs:137:5
+    |
+137 |     pub fn stats(&self) -> (u64, u64, u64) {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/daemon/lock.rs:146:5
+    |
+146 |     pub fn timeout_ns(&self) -> u64 {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct
+   --> src/daemon/lock.rs:151:1
+    |
+151 | pub struct LockGuard<'a> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `atomic_capsule` (lib) generated 277 warnings (run `cargo fix --lib -p atomic_capsule` to apply 22 suggestions)
+warning: unused import: `DaemonError`
+  --> src/bin/git-coordinated.rs:25:48
+   |
+25 | use atomic_capsule::daemon::{GitDaemonCapsule, DaemonError};
+   |                                                ^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused `Result` that must be used
+  --> tools/measure_baselines.rs:73:13
+   |
+73 |             std::hint::black_box(map.insert(i, i * 10));
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+   = note: `#[warn(unused_must_use)]` (part of `#[warn(unused)]`) on by default
+help: use `let _ = ...` to ignore the resulting value
+   |
+73 |             let _ = std::hint::black_box(map.insert(i, i * 10));
+   |             +++++++
+
+warning: unused `Result` that must be used
+  --> tools/measure_baselines.rs:83:13
+   |
+83 |             map.insert(i, i * 10);
+   |             ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+   |
+83 |             let _ = map.insert(i, i * 10);
+   |             +++++++
+
+warning: unused `Result` that must be used
+   --> tools/measure_baselines.rs:103:17
+    |
+103 |                 map.insert(i, i * 10);
+    |                 ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+103 |                 let _ = map.insert(i, i * 10);
+    |                 +++++++
+
+warning: unused `Result` that must be used
+   --> tools/measure_baselines.rs:130:13
+    |
+130 |             std::hint::black_box(table.insert(i as u64, i));
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+130 |             let _ = std::hint::black_box(table.insert(i as u64, i));
+    |             +++++++
+
+warning: unused `Result` that must be used
+   --> tools/measure_baselines.rs:140:13
+    |
+140 |             table.insert(i as u64, i);
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+140 |             let _ = table.insert(i as u64, i);
+    |             +++++++
+
+warning: unused `Result` that must be used
+   --> tools/measure_baselines.rs:173:21
+    |
+173 |                     map_clone.insert(key, key * 10);
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+173 |                     let _ = map_clone.insert(key, key * 10);
+    |                     +++++++
+
+warning: unused `Result` that must be used
+   --> tools/measure_baselines.rs:195:17
+    |
+195 |                 m.insert(i, i * 10);
+    |                 ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+195 |                 let _ = m.insert(i, i * 10);
+    |                 +++++++
+
+warning: unused `Result` that must be used
+   --> tools/measure_baselines.rs:231:21
+    |
+231 |                     m.insert(key, key * 10);
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+231 |                     let _ = m.insert(key, key * 10);
+    |                     +++++++
+
+warning: variants `ErrorRecoverable` and `ErrorFatal` are never constructed
+  --> src/bin/kindly_installer.rs:85:5
+   |
+76 | enum InstallPhase {
+   |      ------------ variants in this enum
+...
+85 |     ErrorRecoverable = 8,
+   |     ^^^^^^^^^^^^^^^^
+86 |     ErrorFatal = 9,
+   |     ^^^^^^^^^^
+   |
+   = note: `InstallPhase` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `log_error` is never used
+   --> src/bin/kindly_installer.rs:157:8
+    |
+126 | impl MockInstallerState {
+    | ----------------------- method in this implementation
+...
+157 |     fn log_error(&mut self, phase: InstallPhase, error_code: u32, error_msg: &str) {
+    |        ^^^^^^^^^
+
+warning: unused imports: `BenchmarkId`, `Criterion`, `black_box`, `criterion_group`, and `criterion_main`
+  --> benches/false_positive_mitigation_bench.rs:15:17
+   |
+15 | use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+   |                 ^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^  ^^^^^^^^^  ^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `atomic_capsule` (bin "measure_baselines") generated 8 warnings
+warning: `atomic_capsule` (bin "kindly_installer") generated 2 warnings
+warning: `atomic_capsule` (bin "git-coordinated") generated 1 warning (run `cargo fix --bin "git-coordinated" -p atomic_capsule` to apply 1 suggestion)
+warning: `atomic_capsule` (bench "false_positive_mitigation_bench") generated 1 warning (run `cargo fix --bench "false_positive_mitigation_bench" -p atomic_capsule` to apply 1 suggestion)
+    Finished `bench` profile [optimized] target(s) in 15.97s
+     Running benches/false_positive_mitigation_bench.rs (target/release/deps/false_positive_mitigation_bench-bcf582382acb8a2b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

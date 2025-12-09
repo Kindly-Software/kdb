@@ -176,6 +176,7 @@ pub fn multiply_q16_16(a: u32, b: u32) -> u32 {
 /// - `#ASSUME_ACQUIRE_RELEASE`: Memory ordering prevents data races
 #[repr(C, align(64))]
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
+#[cfg_attr(feature = "derive", capsule(alignment = 64))]
 pub struct RttEstimatorCapsule {
     /// Primary atomic (64 bits):
     /// - Bits 32-63: smoothed_rtt_q16 (u32, Q16.16)

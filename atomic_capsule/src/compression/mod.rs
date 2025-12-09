@@ -28,7 +28,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q1-Q34 systematic discovery (tier selection, testing, validation)
-//! - **COCA**: 100% lockfree (zero mutex/RwLock), cache-aligned (128B/256B)
+//! - **Chaos**: 100% lockfree (zero mutex/RwLock), cache-aligned (128B/256B)
 //! - **ASSUM**: 99.5% safe (zero unsafe code, all assumptions documented)
 //! - **B32**: Fair baselines, 95% CI, validated speedups (8×, 8:1, 2-4×, 2×)
 //! - **T28**: 112 comprehensive tests (28 per capsule)
@@ -74,6 +74,10 @@ pub mod simd_checkpoint_parsing;
 #[cfg(feature = "compression-streaming")]
 pub mod streaming_quantization;
 
+// T2 SIMD: Entropy Decoder (Huffman/ANS)
+#[cfg(feature = "compression-entropy")]
+pub mod simd_entropy_decoder;
+
 // Re-exports for convenience
 #[cfg(feature = "compression-lz4")]
 pub use parallel_lz4::{
@@ -95,4 +99,9 @@ pub use simd_checkpoint_parsing::{
 #[cfg(feature = "compression-streaming")]
 pub use streaming_quantization::{
     StreamingMetrics, StreamingQuantizationCapsule, StreamingQuantizationError, StreamingQuantizer,
+};
+
+#[cfg(feature = "compression-entropy")]
+pub use simd_entropy_decoder::{
+    EntropyDecoderSnapshot, EntropyError, HuffmanEntry, SimdEntropyDecoderCapsule,
 };

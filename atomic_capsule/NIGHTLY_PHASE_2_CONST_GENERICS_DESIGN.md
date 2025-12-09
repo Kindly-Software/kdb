@@ -42,7 +42,7 @@ This document designs **13 additional const generics primitives** to extend Nigh
 
 All 13 primitives achieve:
 - **UCE34**: Q10-Q34 application (tier selection, Rust transform, nightly features, auditability)
-- **COCA**: 100% lockfree (no mutex/RwLock)
+- **Chaos**: 100% lockfree (no mutex/RwLock)
 - **ASSUM**: 99.99% safety (all assumptions documented)
 - **B32**: Fair baselines, 95% CI, 1000+ iterations
 - **T28**: Comprehensive testing (unit/property/integration/production)
@@ -1277,7 +1277,7 @@ All 13 primitives apply Q10-Q34:
 | **Q33** | Verification: `#[derive(ComputationalCapsule)]` (all primitives) |
 | **Q34** | Auditability: ASSUM tags, audit trails (per primitive) |
 
-### COCA (Computational Capsule Compliance)
+### Chaos (Computational Capsule Compliance)
 
 **Guarantee**: 100% lockfree (no mutex/RwLock)
 
@@ -1462,7 +1462,7 @@ nightly-phase-2-extended = [
 - [ ] All 13 achieve 99.996% allocation speedup ✓
 - [ ] 4+ primitives achieve 50-100× compound speedup ✓
 - [ ] Comprehensive design (5,847 lines) ✓
-- [ ] Framework compliance (UCE34+COCA+ASSUM+B32+T28+I20) ✓
+- [ ] Framework compliance (UCE34+Chaos+ASSUM+B32+T28+I20) ✓
 - [ ] 12-week implementation roadmap ✓
 
 ---

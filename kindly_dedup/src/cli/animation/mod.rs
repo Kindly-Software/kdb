@@ -116,7 +116,7 @@
 //! - **ASSUM**: ✓ Zero unsafe code, 99.99%+ safe
 //! - **B32**: ✓ Fair baselines (vs scalar, vs mutex)
 //! - **T28**: ✓ 40+ tests (unit + property + integration)
-//! - **COCA**: ✓ 100% lockfree (atomic operations only)
+//! - **Chaos**: ✓ 100% lockfree (atomic operations only)
 //! - **I20**: ✓ Self-contained, zero external deps
 //!
 //! ## Trade Secrets

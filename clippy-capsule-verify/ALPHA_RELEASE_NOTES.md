@@ -8,9 +8,9 @@
 
 ## What's Included
 
-### 9 Custom Clippy Lints (100% COCA Enforcement)
+### 9 Custom Clippy Lints (100% Chaos Enforcement)
 
-Comprehensive lint suite for detecting violations of the Computational Capsule (COCA) architecture - the foundation of ultra-high-performance, lockfree Rust systems.
+Comprehensive lint suite for detecting violations of the Computational Capsule (Chaos) architecture - the foundation of ultra-high-performance, lockfree Rust systems.
 
 #### P0 Critical Lints (Deny Level)
 
@@ -154,7 +154,7 @@ See `CI_CD_INTEGRATION_GUIDE.xml` for:
 
 **Before (Manual)**:
 ```rust
-// Developer must remember COCA patterns
+// Developer must remember Chaos patterns
 #[repr(C, align(64))]
 struct MyLock {
     lock: Mutex<u64>,  // Oops - forgot to check for Mutex!
@@ -240,7 +240,7 @@ This release is fully compliant with the UCE34 systematic discovery framework:
 | Framework | Coverage | Status |
 |-----------|----------|--------|
 | **UCE34** | Q1-Q34 | ✅ 100% (tooling classification) |
-| **COCA** | 100% lockfree enforcement | ✅ 100% |
+| **Chaos** | 100% lockfree enforcement | ✅ 100% |
 | **ASSUM** | Safety documentation | ✅ 100% |
 | **B32** | Fair benchmarking | ✅ 100% |
 | **T28** | Test infrastructure | ⏳ 40% (UI tests deferred) |
@@ -275,16 +275,16 @@ This release is fully compliant with the UCE34 systematic discovery framework:
 
 ## Contributing
 
-This project uses the UCE34 framework for systematic discovery and COCA (Computational Capsule) architecture enforcement.
+This project uses the UCE34 framework for systematic discovery and Chaos (Computational Capsule) architecture enforcement.
 
 ### For Bug Reports
-1. Include COCA pattern context (T1 Atomic, T2 SIMD, etc.)
+1. Include Chaos pattern context (T1 Atomic, T2 SIMD, etc.)
 2. Provide minimal reproduction case
 3. Specify Rust version and platform
 4. Include output of `rustc --version` and `cargo --version`
 
 ### For Feature Requests
-1. Specify which COCA tier would benefit
+1. Specify which Chaos tier would benefit
 2. Explain expected detection pattern
 3. Provide 2-3 example violations
 4. Estimate impact (false positive rate expectations)
@@ -299,7 +299,7 @@ MIT OR Apache-2.0 (same as atomic_capsule)
 
 ## Acknowledgments
 
-Developed as part of the UCE34 framework systematic discovery initiative for COCA (Computational Capsule) architecture enforcement across the atomic_capsule ecosystem.
+Developed as part of the UCE34 framework systematic discovery initiative for Chaos (Computational Capsule) architecture enforcement across the atomic_capsule ecosystem.
 
 Special thanks to:
 - 12 parallel Sonnet agents for lint design

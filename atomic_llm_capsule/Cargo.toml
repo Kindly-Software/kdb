@@ -1,0 +1,49 @@
+[package]
+name = "atomic_llm_capsule"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.76"  # Stable unless nightly feature enabled
+authors = ["Samuel <samuel@kindly.dev>"]
+description = "Quantized LLM computation primitives using atomic capsule architecture"
+license = "MIT OR Apache-2.0"
+repository = "https://example.com/atomic_llm_capsule"
+keywords = ["atomic", "capsule", "llm", "quantization", "lock-free"]
+categories = ["concurrency", "data-structures", "machine-learning", "no-std"]
+readme = "README.md"
+
+[features]
+default = ["std"]
+std = ["atomic_capsule/std"]
+nightly = ["portable_simd", "atomic_capsule/nightly"]  # Enable nightly features
+portable_simd = ["atomic_capsule/portable_simd"]  # SIMD quantization primitives
+
+[dependencies]
+atomic_capsule = { path = "../atomic_capsule", version = "0.9" }
+half = "2.4"
+memmap2 = "0.9"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["fileapi", "handleapi"] }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+rand = "0.8"
+tempfile = "3.8"
+
+[lib]
+name = "atomic_llm_capsule"
+path = "src/lib.rs"
+
+[[bench]]
+name = "quant_microblock"
+harness = false
+
+[[bench]]
+name = "adaptive_quant_bench"
+harness = false
+
+[package.metadata.docs.rs]
+all-features = true

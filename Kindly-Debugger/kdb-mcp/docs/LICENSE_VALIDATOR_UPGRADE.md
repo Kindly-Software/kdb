@@ -7,7 +7,7 @@ This document describes the complete UCE34 Framework upgrade of `LicenseValidato
 **Tier**: T1 Atomic (lockfree crypto validation with caching)
 **Size**: 256 bytes (Tier 1 HotTier)
 **Performance**: <10ns cached validation, <50μs signature verification
-**Framework**: UCE34 (Q1-Q34), COCA, ASSUM, B32, T28, I20
+**Framework**: UCE34 (Q1-Q34), Chaos, ASSUM, B32, T28, I20
 **Safety**: 99.99% ASSUM safe, 100% lockfree
 
 ---
@@ -470,7 +470,7 @@ let info = validator.validate_cached("KINDLY-PRO-...")?;
 ## References
 
 ### Framework Documents
-- `/home/samuel/Docs/The Computational Capsule.md` - COCA foundation
+- `/home/samuel/Docs/The Computational Capsule.md` - Chaos foundation
 - `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md` - T1-T11 patterns
 - `/home/samuel/CLAUDE.md` - UCE34 systematic discovery (v6.0)
 

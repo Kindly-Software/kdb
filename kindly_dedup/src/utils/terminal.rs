@@ -26,7 +26,6 @@
 //! - Zero contention: Single writer (initialization), concurrent readers (Acquire ordering)
 
 use atomic_capsule::tui::TerminalCapabilityCapsule;
-use std::io::IsTerminal;
 use std::sync::OnceLock;
 
 // ============================================================================
@@ -104,6 +103,7 @@ pub fn is_terminal() -> bool {
 
 /// ANSI color codes
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub enum Color {
     // Standard 16 colors
     Black,
@@ -182,6 +182,7 @@ impl Color {
 
 /// ANSI style codes
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub enum Style {
     Reset,
     Bold,
@@ -270,6 +271,7 @@ pub fn colorize_with_style(text: &str, color: Color, style: Style) -> String {
 /// println!("{}", "Success!".green());
 /// println!("{}", "Error!".red().bold());
 /// ```
+#[allow(missing_docs)]
 pub trait Colorize {
     fn color(&self, color: Color) -> String;
 
@@ -589,6 +591,7 @@ pub fn supports_emoji() -> bool {
 /// - celebration: Parties and awards
 /// - food: Casual/fun contexts
 /// - animals: Mascots and personality
+#[allow(missing_docs)]
 pub mod emoji {
     // ========================================================================
     // PRIMARY BRAND EMOJI - Byzantine Purple Heart
@@ -937,6 +940,7 @@ pub fn with_emoji(emoji: &str, text: &str) -> String {
 /// println!("{}", "Success!".with_emoji(emoji::status::CHECKMARK));
 /// println!("{}", "Fast!".with_emoji(emoji::performance::ROCKET));
 /// ```
+#[allow(missing_docs)]
 pub trait EmojiPrefix {
     fn with_emoji(&self, emoji: &str) -> String;
 }
@@ -960,6 +964,7 @@ impl EmojiPrefix for String {
 /// Box drawing module for TUI rendering
 ///
 /// Provides Unicode line drawing characters for terminal UI borders and lines.
+#[allow(missing_docs)]
 pub mod box_drawing {
     /// Basic box drawing characters
     pub const HORIZONTAL: &str = "─";
@@ -1346,7 +1351,7 @@ pub fn format_duration(seconds: f64) -> String {
 #[inline]
 pub fn format_timestamp(timestamp_ns: u64) -> String {
     let secs = timestamp_ns / 1_000_000_000;
-    let nanos = timestamp_ns % 1_000_000_000;
+    let _nanos = timestamp_ns % 1_000_000_000;
 
     // Simple UTC timestamp conversion (without external crate)
     // This is a basic implementation - production code would use chrono

@@ -5,7 +5,7 @@
 // Purpose: Lockfree communication with GuC firmware for command submission and scheduling
 // Architecture: DualAtomicU64 for doorbell + response tracking
 // Performance: <1μs doorbell ring, <10μs firmware response
-// Framework Compliance: UCE34, COCA (100% lockfree), ASSUM (99.99%), B32, T28, I20
+// Framework Compliance: UCE34, Chaos (100% lockfree), ASSUM (99.99%), B32, T28, I20
 //
 // Key Operations:
 // - ring_doorbell(): Submit batch to firmware (<1μs latency)
@@ -24,7 +24,7 @@ use std::fmt;
 /// Lockfree coordination with Intel GuC firmware for context scheduling and batch submission.
 /// Organized as 256B cache-aligned structure using DualAtomicU64 for state management.
 ///
-/// COCA Compliance:
+/// Chaos Compliance:
 /// - 100% lockfree (zero mutex/RwLock)
 /// - Cache-aligned (256B for false-sharing prevention)
 /// - DualAtomicU64 for TOCTOU prevention
@@ -118,7 +118,7 @@ pub type GuCResult<T> = Result<T, GuCError>;
 impl GuCFirmwareCapsule {
     /// Create a new GuCFirmwareCapsule
     ///
-    /// COCA Compliance: Zero-allocation initialization, lockfree atomics only
+    /// Chaos Compliance: Zero-allocation initialization, lockfree atomics only
     pub fn new() -> Self {
         Self {
             primary: AtomicU64::new(0),      // State::Idle(0), Generation(0)
@@ -312,7 +312,7 @@ impl GuCFirmwareCapsule {
     /// Returns: (doorbell_index, state, response_index, batch_count)
     ///
     /// Performance: <50ns (4× atomic loads with Acquire ordering)
-    /// COCA Compliance: Zero-allocation, atomic-only operations
+    /// Chaos Compliance: Zero-allocation, atomic-only operations
     pub fn get_status(&self) -> FirmwareStatus {
         let primary = self.primary.load(Ordering::Acquire);
         let secondary = self.secondary.load(Ordering::Acquire);
@@ -335,7 +335,7 @@ impl GuCFirmwareCapsule {
 
     /// Atomic snapshot of entire state
     ///
-    /// COCA Compliance: Single atomic read captures coordinated state
+    /// Chaos Compliance: Single atomic read captures coordinated state
     /// Performance: ~10ns (single 64-bit atomic load)
     /// Use-case: Monitoring, checkpointing, debugging
     pub fn snapshot(&self) -> u64 {
@@ -363,7 +363,7 @@ impl GuCFirmwareCapsule {
 
     /// Check size and alignment (compile-time + runtime validation)
     ///
-    /// COCA Compliance: Verify cache-line alignment (256B)
+    /// Chaos Compliance: Verify cache-line alignment (256B)
     #[allow(dead_code)]
     fn verify_layout() {
         // Runtime verification of size and alignment

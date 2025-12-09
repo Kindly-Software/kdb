@@ -2,7 +2,7 @@
 
 **clippy-capsule-verify v0.2.0-stable** - Production-ready Rust linting for computational capsule architecture
 
-This guide demonstrates how to integrate clippy-capsule-verify into atomic_capsule for real-world validation of COCA compliance.
+This guide demonstrates how to integrate clippy-capsule-verify into atomic_capsule for real-world validation of Chaos compliance.
 
 ## Quick Start
 
@@ -26,7 +26,7 @@ cargo clippy --all-features -- \
   -D clippy::capsule_non_atomic_field
 ```
 
-**Expected Result**: 0 violations (atomic_capsule is 100% COCA compliant)
+**Expected Result**: 0 violations (atomic_capsule is 100% Chaos compliant)
 
 ### 3. Run P1 High Lints (Warn Level)
 
@@ -49,7 +49,7 @@ cargo clippy --all-features -- \
 
 **Expected Result**: Documentation improvements possible
 
-## P0 Critical Lints - COCA Compliance
+## P0 Critical Lints - Chaos Compliance
 
 ### CAPSULE_MUTEX_VIOLATION
 
@@ -61,7 +61,7 @@ Detects mutex/RwLock usage instead of lockfree atomic patterns.
 cargo clippy --lib -- -D clippy::capsule_mutex_violation
 ```
 
-**Fix**: Use DualAtomicU64 or other COCA-compliant capsules from atomic_capsule.
+**Fix**: Use DualAtomicU64 or other Chaos-compliant capsules from atomic_capsule.
 
 ### CAPSULE_UNALIGNED_VIOLATION
 
@@ -164,7 +164,7 @@ Suggests safety documentation for assumptions (ASSUM framework).
 ### GitHub Actions
 
 ```yaml
-name: COCA Compliance Check
+name: Chaos Compliance Check
 
 on: [push, pull_request]
 
@@ -178,7 +178,7 @@ jobs:
       - name: Install clippy-capsule-verify
         run: cargo install --path ./clippy-capsule-verify --locked --force
 
-      - name: P0 Critical Checks (COCA Compliance)
+      - name: P0 Critical Checks (Chaos Compliance)
         run: |
           cargo clippy --all-features -- \
             -D clippy::capsule_mutex_violation \
@@ -207,13 +207,13 @@ cp /home/samuel/Primitives/clippy-capsule-verify/scripts/setup-ci.sh .
 # Select: GitHub Actions + Local hooks
 ```
 
-This installs git hooks for automatic COCA compliance checks:
+This installs git hooks for automatic Chaos compliance checks:
 - **pre-commit**: 5-8 seconds (P0 checks only)
 - **pre-push**: 25-35 seconds (P0 + P1 checks)
 
 ## Expected Results for atomic_capsule
 
-### P0 Critical (COCA Compliance)
+### P0 Critical (Chaos Compliance)
 - ✅ **CAPSULE_MUTEX_VIOLATION**: 0 violations (lockfree mandate)
 - ✅ **CAPSULE_UNALIGNED_VIOLATION**: 0 violations (cache-aligned)
 - ✅ **CAPSULE_MISSING_GENERATION**: 0 violations (TOCTOU prevented)
@@ -238,7 +238,7 @@ cargo update
 cargo clippy --all-features -- -D clippy::capsule_mutex_violation
 ```
 
-### Issue: "COCA compliance check failed"
+### Issue: "Chaos compliance check failed"
 
 **Steps**:
 1. Run with detailed output: `cargo clippy -- --cap-lints=warn`
@@ -269,7 +269,7 @@ clippy-capsule-verify v0.2.0-stable enforces:
 | Framework | Compliance |
 |-----------|-----------|
 | **UCE34** | Q10 tier selection, Q33 verification, Q34 auditability |
-| **COCA** | 100% lockfree mandate, no mutex/RwLock, cache-aligned |
+| **Chaos** | 100% lockfree mandate, no mutex/RwLock, cache-aligned |
 | **ASSUM** | 99.5%+ safety, assumption documentation |
 | **B32** | Honest metrics, 95% CI, fair baselines |
 | **T28** | Comprehensive testing (unit/property/integration) |
@@ -282,7 +282,7 @@ clippy-capsule-verify v0.2.0-stable enforces:
 - `/home/samuel/Primitives/clippy-capsule-verify/BEFORE_AFTER_EXAMPLES.md` - Real examples
 - `/home/samuel/Primitives/clippy-capsule-verify/TESTING_GUIDE.md` - Testing strategies
 
-**COCA Patterns**:
+**Chaos Patterns**:
 - `/home/samuel/Docs/The Computational Capsule.md` - Foundation patterns
 - `/home/samuel/Docs/The Atomic Capsule.md` - Atomic operations
 - `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md` - Proven speedups
@@ -316,4 +316,4 @@ For issues, questions, or feedback:
 
 ---
 
-**clippy-capsule-verify**: Making COCA compliance automatic, clear, and delightful.
+**clippy-capsule-verify**: Making Chaos compliance automatic, clear, and delightful.

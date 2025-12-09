@@ -1365,4 +1365,4 @@ fn bench_attention_512(b: &mut Bencher) {
 5. Integration + docs (Week 4)
 6. Deploy at 100% (deterministic capsules)
 
-**Framework Compliance:** ✅ I20 (20/20), UCE34 (Q1-Q34), T28 (4-tier testing), B32 (honest benchmarking), ASSUM (99.9%+ safe), COCA (100% lockfree)
+**Framework Compliance:** ✅ I20 (20/20), UCE34 (Q1-Q34), T28 (4-tier testing), B32 (honest benchmarking), ASSUM (99.9%+ safe), Chaos (100% lockfree)

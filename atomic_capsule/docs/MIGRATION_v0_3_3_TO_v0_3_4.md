@@ -522,7 +522,7 @@ let bloom = BloomFilterCapsule::new();
 **Release Documentation**:
 - [Feature Matrix](FEATURE_MATRIX_v0.3.4.md) - Complete primitives reference
 - [Performance Summary](PERFORMANCE_SUMMARY_v0.3.4.md) - B32 benchmarks
-- [Framework Compliance](FRAMEWORK_COMPLIANCE_v0.3.4.md) - UCE34/ASSUM/B32/T28/I20/COCA
+- [Framework Compliance](FRAMEWORK_COMPLIANCE_v0.3.4.md) - UCE34/ASSUM/B32/T28/I20/Chaos
 - [README](../README.md) - Quick start guide
 
 **Bloom Filter Documentation**:

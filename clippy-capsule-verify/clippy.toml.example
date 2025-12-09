@@ -1,0 +1,20 @@
+# Clippy configuration for capsule verification
+#
+# Copy this file to your project root to enable capsule verification lint.
+
+# Capsule verification enforcement
+# Level options: "warn", "deny", "forbid"
+missing-capsule-verification = "warn"
+
+# In CI/CD, upgrade to "deny" to block merges:
+# missing-capsule-verification = "deny"
+
+# Suppress verification for specific paths
+# (e.g., test code, FFI bindings)
+#
+# Example:
+# allowed-missing-verification = [
+#     "tests/*",
+#     "benches/*",
+#     "src/ffi/*"
+# ]

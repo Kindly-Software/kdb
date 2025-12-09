@@ -1,0 +1,14 @@
+error: Padding fields have incorrect total size
+       Expected: 48 bytes (to reach total size = 64)
+       Got: 32 bytes
+       Current total: 48 bytes
+       Non-padding fields: 16 bytes
+
+       Fix: Adjust padding field(s) to total 48 bytes
+
+       For 1 padding field(s), one common pattern is:
+       _padding: [u8; 48]
+  --> tests/compile_fail/recursive_type.rs:18:15
+   |
+18 |     _padding: [u8; 32],
+   |               ^^^^^^^^

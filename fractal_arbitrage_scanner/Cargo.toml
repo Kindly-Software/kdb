@@ -1,0 +1,60 @@
+[package]
+name = "fractal_arbitrage_scanner"
+version = "0.1.0"
+edition = "2021"
+authors = ["Samuel & Claude"]
+description = "Advanced fractal arbitrage scanner with lockfree coordination"
+license = "PROPRIETARY"
+
+[lib]
+doctest = false
+
+[dependencies]
+aid_96 = { path = "../aid_96", features = ["serde"] }
+atomic_breaker = { path = "../atomic_breaker", features = ["auto_tune"] }
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+
+[features]
+default = ["std", "fractal_protection", "adaptive_parameters"]
+std = []
+legacy-tests = []
+legacy-modules = []
+# Nightly Rust features
+portable_simd = []
+atomic_from_mut = []
+const_trait_impl = []
+const_fn_floating_point_arithmetic = []
+generic_const_exprs = []
+nightly = ["portable_simd", "atomic_from_mut", "const_trait_impl", "const_fn_floating_point_arithmetic", "generic_const_exprs"]
+
+# Fractal protection features
+fractal_protection = ["adaptive_parameters"]
+adaptive_parameters = []
+alpha_learning = ["adaptive_parameters"]
+proof_of_work = ["fractal_protection"]
+obfuscation = ["fractal_protection"]
+
+# Protection tiers
+protection_basic = ["fractal_protection"]
+protection_advanced = ["protection_basic", "alpha_learning", "proof_of_work"]
+protection_military = ["protection_advanced", "obfuscation", "nightly"]
+
+# Performance-oriented builds
+performance = []
+no_protection = []
+
+[dev-dependencies]
+serde_json = "1.0"
+criterion = { version = "0.5", features = ["html_reports"] }
+parking_lot = "0.12"
+dashmap = "5.5"
+
+[[bench]]
+name = "performance_benchmarks"
+harness = false
+
+[[bench]]
+name = "fractal_protection_bench"
+harness = false

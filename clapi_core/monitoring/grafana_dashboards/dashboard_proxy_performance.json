@@ -1,0 +1,278 @@
+{
+  "dashboard": {
+    "title": "clapi_core - Proxy Performance",
+    "tags": ["clapi_core", "proxy", "latency", "slo"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Proxy Latency (P50, P95, P99, P999)",
+        "type": "graph",
+        "gridPos": {"h": 10, "w": 24, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(clapi_proxy_latency_ns_bucket[1m])) / 1e6",
+            "legendFormat": "P50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(clapi_proxy_latency_ns_bucket[1m])) / 1e6",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(clapi_proxy_latency_ns_bucket[1m])) / 1e6",
+            "legendFormat": "P99"
+          },
+          {
+            "expr": "histogram_quantile(0.999, rate(clapi_proxy_latency_ns_bucket[1m])) / 1e6",
+            "legendFormat": "P999"
+          }
+        ],
+        "yaxes": [
+          {"format": "ms", "label": "Latency (ms)"},
+          {"format": "short", "show": false}
+        ],
+        "thresholds": [
+          {"value": 10, "colorMode": "custom", "op": "gt", "fill": false, "line": true, "yaxis": "left", "lineColor": "yellow"},
+          {"value": 100, "colorMode": "custom", "op": "gt", "fill": false, "line": true, "yaxis": "left", "lineColor": "red"}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [15], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "1m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "Proxy P50 Latency > 15ms (SLO violation)",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 2,
+        "title": "Request Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10},
+        "targets": [
+          {
+            "expr": "rate(clapi_proxy_requests_total[1m])",
+            "legendFormat": "Proxy Requests/sec"
+          },
+          {
+            "expr": "sum(rate(clapi_provider_requests_total[1m]))",
+            "legendFormat": "Provider Requests/sec"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Requests/sec"},
+          {"format": "short", "show": false}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Error Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10},
+        "targets": [
+          {
+            "expr": "(rate(clapi_proxy_errors_total[1m]) / rate(clapi_proxy_requests_total[1m])) * 100",
+            "legendFormat": "Error %"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "label": "Error Rate", "min": 0, "max": 10},
+          {"format": "short", "show": false}
+        ],
+        "thresholds": [
+          {"value": 0.1, "colorMode": "critical", "op": "gt", "fill": false, "line": true, "yaxis": "left"},
+          {"value": 5, "colorMode": "critical", "op": "gt", "fill": true, "line": true, "yaxis": "left"}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [5], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "2m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "Error Rate > 5% (Critical)",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 4,
+        "title": "Provider Latency Distribution",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 18},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(clapi_proxy_provider_latency_ms_bucket[1m]))",
+            "legendFormat": "P50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(clapi_proxy_provider_latency_ms_bucket[1m]))",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(clapi_proxy_provider_latency_ms_bucket[1m]))",
+            "legendFormat": "P99"
+          }
+        ],
+        "yaxes": [
+          {"format": "ms", "label": "Provider Latency (ms)"},
+          {"format": "short", "show": false}
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Provider Routing Distribution",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 18},
+        "targets": [
+          {
+            "expr": "sum by (provider_id) (rate(clapi_provider_requests_total[5m]))",
+            "legendFormat": "{{provider_id}}"
+          }
+        ],
+        "options": {
+          "pieType": "pie",
+          "legend": {
+            "show": true,
+            "values": true,
+            "percentage": true
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Hot Path Overhead Breakdown",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 26},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, rate(clapi_budget_validation_latency_ns_bucket[1m]))",
+            "legendFormat": "Budget Validation"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(clapi_routing_decision_latency_ns_bucket[1m]))",
+            "legendFormat": "Provider Routing"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(clapi_circuit_breaker_check_latency_ns_bucket[1m]))",
+            "legendFormat": "Circuit Breaker Check"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(clapi_audit_log_write_latency_ns_bucket[1m]))",
+            "legendFormat": "Audit Logging"
+          }
+        ],
+        "yaxes": [
+          {"format": "ns", "label": "Latency (ns)"},
+          {"format": "short", "show": false}
+        ]
+      },
+      {
+        "id": 7,
+        "title": "SLO Compliance (P50 <10ms)",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 8, "x": 0, "y": 34},
+        "targets": [
+          {
+            "expr": "(count_over_time((histogram_quantile(0.50, rate(clapi_proxy_latency_ns_bucket[1m])) < 10000000)[1h:1m]) / 60) * 100",
+            "legendFormat": "SLO %"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "red"},
+                {"value": 95, "color": "yellow"},
+                {"value": 99.5, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "SLO Compliance (P99 <100ms)",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 8, "x": 8, "y": 34},
+        "targets": [
+          {
+            "expr": "(count_over_time((histogram_quantile(0.99, rate(clapi_proxy_latency_ns_bucket[1m])) < 100000000)[1h:1m]) / 60) * 100",
+            "legendFormat": "SLO %"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "red"},
+                {"value": 95, "color": "yellow"},
+                {"value": 99, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "Availability (Last 30 days)",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 8, "x": 16, "y": 34},
+        "targets": [
+          {
+            "expr": "avg_over_time(up{job=\"clapi_core\"}[30d]) * 100",
+            "legendFormat": "Uptime %"
+          }
+        ],
+        "options": {
+          "graphMode": "none",
+          "colorMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "decimals": 3,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "red"},
+                {"value": 99.5, "color": "yellow"},
+                {"value": 99.9, "color": "green"}
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

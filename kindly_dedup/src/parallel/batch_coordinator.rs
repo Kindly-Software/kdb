@@ -64,7 +64,7 @@
 //! - Commit: <20ns
 //! - **Total**: ~16.7ms (overhead <0.6%)
 //!
-//! ## COCA Compliance
+//! ## Chaos Compliance
 //!
 //! - **100% Lockfree**: No mutex/RwLock, only atomic operations
 //! - **Cache-aligned**: 128-byte alignment prevents false sharing
@@ -89,14 +89,13 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 (T1+T4 tier selection), Q33 (deterministic coordination), Q34 (generation counters)
-//! - **COCA**: 100% lockfree computational capsule (no mutex/RwLock)
+//! - **Chaos**: 100% lockfree computational capsule (no mutex/RwLock)
 //! - **ASSUM**: 99.99% safe (4 assumptions, all verified)
 //! - **B32**: Fair baselines (claim/commit <200ns, 1000× sample size per thread)
 //! - **T28**: 35 tests (12 unit + 8 property + 10 integration + 5 production)
 //! - **I20**: Zero breaking changes, full composition safety
 
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
-use std::sync::Arc;
 
 use atomic_capsule::patterns::DualAtomicU64;
 
@@ -237,8 +236,9 @@ pub struct BatchCoordinatorCapsule {
     /// **Purpose**: Track per-worker progress, detect stalled workers
     worker_assignments: [AtomicU32; 16],
 
-    /// Padding for 128-byte alignment (prevents false sharing)
-    _padding: [u8; 32],
+    /// Padding for 128-byte alignment (128 - 80 = 48)
+    /// Fields: head_tail(8) + generation(8) + worker_assignments(64) = 80
+    _padding: [u8; 48],
 }
 
 // Safety: All fields are atomic → Send + Sync
@@ -275,7 +275,7 @@ impl BatchCoordinatorCapsule {
             head_tail: DualAtomicU64::new(0, 0),
             generation: AtomicU64::new(0),
             worker_assignments,
-            _padding: [0; 32],
+            _padding: [0; 48],
         }
     }
 
@@ -401,16 +401,8 @@ impl BatchCoordinatorCapsule {
             return Err(BatchCoordinatorError::InvalidWorkerId(worker_id));
         }
 
-        // Increment generation (even → odd → even, two-phase commit)
-        let generation = self.generation.fetch_add(1, Ordering::AcqRel);
-
-        // Verify generation is now odd (committed state)
-        if (generation + 1) % 2 == 0 {
-            return Err(BatchCoordinatorError::InvalidGenerationParity {
-                expected_odd: true,
-                actual_generation: generation,
-            });
-        }
+        // Increment generation counter to track completions
+        let _generation = self.generation.fetch_add(1, Ordering::AcqRel);
 
         // Reset worker assignment (mark as idle)
         self.worker_assignments[worker_id as usize].store(u32::MAX, Ordering::Release);
@@ -442,9 +434,11 @@ impl BatchCoordinatorCapsule {
     /// assert!(coordinator.all_complete()); // All done
     /// ```
     pub fn all_complete(&self) -> bool {
-        // Check if generation is even (all committed)
+        // Check if all claimed batches are completed
+        let head = self.head_tail.load_primary(Ordering::Acquire);
         let generation = self.generation.load(Ordering::Acquire);
-        generation % 2 == 0
+        // All batches claimed are completed if generation (completions) == head (claims)
+        generation >= head
     }
 
     /// Get current coordination statistics
@@ -479,7 +473,7 @@ impl BatchCoordinatorCapsule {
         CoordinationStats {
             total_batches: tail as u32,
             batches_claimed: head as u32,
-            batches_completed: (generation / 2) as u32,
+            batches_completed: generation as u32,
             generation,
             stalled_workers,
         }

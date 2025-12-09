@@ -1,0 +1,190 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                   C4 BENCHMARK - EXECUTION SUMMARY                         ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+RESULT: ❌ CRITICAL FAILURE - Benchmark unable to complete
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FAILURE POINT:
+
+  Phase 2.3 (LSH Bucketing) 
+  Document 568,846 of 12,097,545 (4.7% of corpus)
+  
+  Error: CapsuleError("LSH insert failed for doc_id=568846: InsertError(
+    \"Memtable insert failed: capacity exceeded: collection is full 
+    (bounded capacity reached)\"
+  )")
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PHASE BREAKDOWN:
+
+  Phase 1: Load Corpus
+    Status: ✅ COMPLETE
+    Documents: 12,097,545
+    Time: 230.98 seconds
+    Throughput: 52,375 docs/sec
+    
+  Phase 2.1: Parse (JSONL)
+    Status: ✅ COMPLETE
+    Documents: 12,097,545 parsed
+    
+  Phase 2.2: Sign (MinHash)
+    Status: ✅ COMPLETE
+    Documents: 12,097,545 signatures generated
+    
+  Phase 2.3: Hash (LSH Bucketing)
+    Status: ❌ FAILED
+    Documents processed: 568,846 (4.7%)
+    Documents remaining: 11,528,699 (95.3%)
+    Error: Memtable capacity exceeded
+    
+  Phase 3: Job-Level Parallelism
+    Status: ❌ NOT TESTED
+    Reason: Benchmark failed before reaching this phase
+    
+  Phase 4: Results & Validation
+    Status: ❌ NOT GENERATED
+    Reason: Process terminated abnormally
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PERFORMANCE METRICS COLLECTED (Partial):
+
+  Metric                          Value
+  ─────────────────────────────────────────────────
+  Corpus loading time             230.98s
+  Corpus loading throughput       52,375 docs/sec
+  JSONL parsing                   ✅ Complete (12.1M)
+  MinHash signing                 ✅ Complete (12.1M)
+  LSH bucketing progress          4.7% (568.8K docs)
+  
+  Speedup claim validation        ❌ FAILED - No measurements
+  Job-level parallelism test      ❌ FAILED - Not reached
+  
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+EXPECTED vs ACTUAL:
+
+  Metric                   Expected        Actual          Status
+  ───────────────────────────────────────────────────────────────
+  Baseline time            160-200s        NOT MEASURED    ❌
+  Job-level time           55-56s          NOT MEASURED    ❌
+  Total speedup            3.6×            UNKNOWN         ❌
+  Parallel speedup         10-14×          UNKNOWN         ❌
+  Throughput               200-215K d/s    NOT MEASURED    ❌
+  
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ROOT CAUSE ANALYSIS:
+
+  Issue: LSH memtable capacity exceeded
+  
+  Details:
+    - The LSH (Locality-Sensitive Hashing) bucketing layer uses a 
+      BOUNDED MEMTABLE with FIXED CAPACITY
+    - This capacity was exhausted at document 568,846 out of 12,097,545
+    - The capacity is NOT configurable via command-line flags
+    - No graceful overflow handling (immediate failure instead)
+    - Likely configured for smaller datasets (e.g., 1M docs), not 12.1M
+  
+  Impact:
+    - Cannot process full C4 corpus
+    - No job-level parallelism tested
+    - No speedup claim validated
+    - Benchmark implementation itself has critical bug
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SYSTEM RESOURCES:
+
+  CPU: AMD Ryzen 9 6900HX (8 cores, 16 threads)
+  RAM: 30GB available (24GB used at peak)
+  Benchmark memory: ~25GB (16 jobs × 1.44GB - would need if reached Phase 3)
+  
+  Resource Availability: ✅ SUFFICIENT
+  Actual Blocker: LSH memtable capacity bug (not hardware)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FRAMEWORK COMPLIANCE:
+
+  UCE34 (Systematic Discovery)        ❌ FAILED - Q33 Validation incomplete
+  B32 (Fair Benchmarking)             ❌ FAILED - No baseline measurement
+  T28 (Testing Framework)             ❌ FAILED - Test itself has bug
+  ASSUM (Safety Assumptions)          ❌ FAILED - Capacity assumption violated
+  I20 (Integration Validation)        ❌ FAILED - Safety issues found
+  COCA (Lockfree Architecture)        ⚠️  UNTESTED - Not reached in benchmark
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CRITICAL FINDINGS:
+
+  1. Speedup Claim CANNOT BE VALIDATED
+     - Benchmark failed before reaching job-level parallelism
+     - No baseline or parallel times measured
+     - 3.6× speedup claim is UNPROVEN
+
+  2. LSH Memtable Capacity Bug BLOCKS EXECUTION
+     - Hardcoded capacity insufficient for 12.1M documents
+     - Failure at 4.7% corpus coverage
+     - Requires fix before any benchmarking possible
+
+  3. Amdahl's Law Analysis Suggests Claim May Be Unachievable
+     - Loading + parsing + merging are inherently sequential
+     - Only LSH bucketing is parallelizable (~46.7% of baseline)
+     - Theoretical max speedup with 16 jobs: ~1.76×
+     - Realistic speedup (60-80% efficiency): 1.05-1.41×
+     - Target claim (3.6×) may be IMPOSSIBLE per Amdahl's Law
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+VERDICT:
+
+  Production Readiness: ❌ NOT PRODUCTION-READY
+  Speedup Claim Status: ❌ CANNOT VALIDATE (benchmark failure)
+  Risk Assessment: 🔴 CRITICAL - Do not publicize current results
+  
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+NEXT STEPS (Priority Order):
+
+  1. FIX LSH MEMTABLE CAPACITY BUG (CRITICAL)
+     - Locate BoundedMemtable in src/universal/lsh_bucket.rs
+     - Scale capacity with corpus size OR implement unbounded LSH
+     - Add --lsh-capacity command-line flag
+     - Time estimate: 1-2 days
+
+  2. RE-RUN COMPLETE BENCHMARK (HIGH)
+     - Test on increasing corpus sizes (100K → 1M → 12.1M)
+     - Collect full metrics (baseline, parallel, speedup)
+     - Validate actual speedup ≥ 2.0× per B32 fair benchmarking
+     - Time estimate: 2-3 hours
+
+  3. VALIDATE AGAINST AMDAHL'S LAW (CRITICAL)
+     - Recalculate theoretical speedup limits
+     - Determine if 3.6× is achievable or requires redesign
+     - Document realistic limits in CLAUDE.md
+     - Time estimate: 2-4 hours
+
+  4. PUBLISH HONEST RESULTS (HIGH)
+     - Update marketing claims to match actual speedup
+     - Document Amdahl constraints
+     - If speedup <2×, do not claim "speedup"
+     - Time estimate: 1 hour
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BENCHMARK EXECUTION LOG:
+
+  Start:     2025-11-22 01:38 UTC
+  Failure:   2025-11-22 02:04 UTC
+  Duration:  26 minutes (before hitting LSH capacity error)
+  Runtime:   ~45 minutes total (including monitoring)
+  Status:    Process killed (SIGTERM) after error detected
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DETAILED REPORT: /tmp/C4_BENCHMARK_FINAL_VALIDATION.md (405 lines)
+

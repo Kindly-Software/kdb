@@ -16,7 +16,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 T2+T4, Q33 lockfree, Q34 generation counter
-//! - **COCA**: 256B aligned, SIMD-optimized, cache-friendly
+//! - **Chaos**: 256B aligned, SIMD-optimized, cache-friendly
 //! - **ASSUM**: 99.99% safe, all assumptions documented
 //! - **T28**: 28+ tests (unit/property/integration/production)
 //! - **B32**: Fair baseline (full search), 10-20× target

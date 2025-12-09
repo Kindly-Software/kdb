@@ -20,7 +20,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 T9 Persistent + T0 Auditable tier selection
-//! - **COCA**: 100% lockfree reads (zero atomic operations in hot path)
+//! - **Chaos**: 100% lockfree reads (zero atomic operations in hot path)
 //! - **ASSUM**: #ASSUME_MMAP_CONSISTENT, #ASSUME_CRC64_RELIABLE
 //! - **T28**: Integration tests validate recovery from various corruption scenarios
 

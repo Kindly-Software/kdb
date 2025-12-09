@@ -115,7 +115,7 @@ error[E0277]: the trait bound `AtomicBool: Clone` is not satisfied
 - ✅ Q33: 100% lockfree (zero mutex/RwLock)
 - ✅ Q34: Audit trails (hash-chained, tamper-evident)
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 - ✅ 100% atomic_capsule primitives (35 serialization capsules)
 - ✅ Zero external serialization dependencies
 - ✅ Cache-aligned (64B/128B/256B)
@@ -206,7 +206,7 @@ Migration achievements:
 - 35 atomic_capsule serialization primitives
 
 Performance: 10-50× zero-copy speedup (EXCEPTIONAL tier)
-Framework: UCE34 Q34 compliant, COCA 100%, ASSUM 99.99%
+Framework: UCE34 Q34 compliant, Chaos 100%, ASSUM 99.99%
 Security: Trade secret protection, Q34 audit trails
 Dependencies: -11 to -16 deps (~40-50% reduction)
 

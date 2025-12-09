@@ -3,7 +3,7 @@
 **Status**: Production Ready (v0.6.1+)
 **Tier**: T11 QuantumHybrid
 **Library**: qip 0.13.1 (pure Rust quantum simulator)
-**Framework**: UCE34 Q10 T11, ASSUM 99.5%+, B32 validated, T28 28/28 tests, COCA 100%
+**Framework**: UCE34 Q10 T11, ASSUM 99.5%+, B32 validated, T28 28/28 tests, Chaos 100%
 
 ---
 
@@ -368,7 +368,7 @@ Full 4-tier test pyramid:
 cargo test --features quantum-simulation quantum_state_t28
 ```
 
-### COCA (Computational Capsule 100%)
+### Chaos (Computational Capsule 100%)
 
 - **Tier**: T11 QuantumHybrid (highest tier in UCE34 framework)
 - **Coordination**: T1 Atomic lockfree primitives (no mutex/RwLock)
@@ -461,6 +461,6 @@ To achieve advertised speedups, you need:
 **Status**: Production Ready (2025-11-16)
 **Author**: Samuel (samuel@kindly.dev)
 **License**: MIT OR Apache-2.0
-**Framework**: UCE34 T11 QuantumHybrid + ASSUM + B32 + T28 + COCA
+**Framework**: UCE34 T11 QuantumHybrid + ASSUM + B32 + T28 + Chaos
 
 **Motto**: *"Quantum speedups on classical hardware - breakthrough T11 tier"* 🚀

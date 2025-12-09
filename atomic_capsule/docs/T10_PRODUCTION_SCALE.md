@@ -495,7 +495,7 @@ impl SemanticCacheKey {
 
 **Architectural Alignment**: ✅ 100% compatible (both lockfree, both cache-aligned)
 
-**Risk**: None (both components follow COCA principles)
+**Risk**: None (both components follow Chaos principles)
 
 ---
 

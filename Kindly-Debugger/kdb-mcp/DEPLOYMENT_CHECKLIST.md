@@ -38,7 +38,7 @@ cargo bench --bench b32_authentication_overhead --features json-rpc --no-run
 ### ✅ Framework Compliance
 
 - [x] **UCE34**: Q10 (T1 Atomic), Q11 (Rust transform), Q28 (simplicity), Q31 (type safety), Q33 (validation), Q34 (audit)
-- [x] **COCA**: 100% lockfree, atomic operations, cache-aligned
+- [x] **Chaos**: 100% lockfree, atomic operations, cache-aligned
 - [x] **ASSUM**: 99.99% safe, zero unsafe in fast path
 - [x] **B32**: <500ns overhead target (Phase 1), fair baselines
 - [x] **T28**: 20 integration tests, positive/negative/attack scenarios

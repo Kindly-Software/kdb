@@ -21,7 +21,7 @@
 // - ACM Mouse Dynamics Survey 2024: https://dl.acm.org/doi/10.1145/3640311
 // - TypingDNA Mouse Dynamics: https://www.typingdna.com/glossary/what-is-mouse-dynamics-and-how-it-works
 //
-// Framework Compliance: UCE34 (Q1-Q34), COCA (100% lockfree), ASSUM (99.5%+), B32, T28, I20
+// Framework Compliance: UCE34 (Q1-Q34), Chaos (100% lockfree), ASSUM (99.5%+), B32, T28, I20
 
 use core::sync::atomic::{AtomicI64, AtomicU64, Ordering};
 

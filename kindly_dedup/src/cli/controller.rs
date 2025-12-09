@@ -10,7 +10,7 @@
 //! - T1 Atomic state management via ScreenStateCapsule
 //!
 //! ## Architecture
-//! **COCA Compliance**: 100% lockfree, T1 Atomic (ScreenStateCapsule)
+//! **Chaos Compliance**: 100% lockfree, T1 Atomic (ScreenStateCapsule)
 //! - Single ScreenStateCapsule manages all screen navigation
 //! - Back stack built into capsule (<30ns traversal)
 //! - Generation counters for SWeMR synchronization
@@ -149,7 +149,7 @@ impl MenuChoice {
 /// - fps_target: Target FPS (8-60)
 /// - last_frame_time: Timestamp of last render
 ///
-/// **COCA Compliance**:
+/// **Chaos Compliance**:
 /// - 100% lockfree (atomic capsules only, SWeMR pattern)
 /// - Cache-aligned (128B/64B)
 /// - Zero mutex/RwLock

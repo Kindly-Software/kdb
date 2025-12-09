@@ -9,7 +9,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q21-Q34 (Implementation validation)
-//! - **COCA**: 100% lockfree kernels
+//! - **Chaos**: 100% lockfree kernels
 //! - **ASSUM**: GPU assumptions documented
 //! - **B32**: 95% CI, fair baselines
 //! - **T28**: Equivalence tests, performance tests

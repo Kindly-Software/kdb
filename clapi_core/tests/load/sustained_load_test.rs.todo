@@ -1,0 +1,343 @@
+// Sustained Load Tests - T28 Q22 Long-Duration Stability Validation
+//
+// Validates system stability over extended periods (5 minutes continuous):
+// - Duration: 300 seconds (5 minutes)
+// - Load: 50K requests/sec
+// - Monitoring: Latency stability, memory usage, thermal throttling, tail latency growth
+//
+// Goals:
+// - Detect memory leaks
+// - Detect GC pause artifacts (if any allocations)
+// - Detect thermal throttling (CPU scaling)
+// - Validate tail latency remains stable (no degradation over time)
+
+use clapi_core::BudgetMetacapsule;
+use clapi_core::capsules::CircuitBreaker;
+use clapi_core::auth::OAuthSessionCapsule;
+use clapi_core::capsules::ProviderCircuitArray;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+
+#[path = "../load_test_common.rs"]
+mod load_test_common;
+use load_test_common::{LoadTestConfig, LoadTestHarness, LatencyCollector};
+
+/// Sustained Test 1: Budget registry (5 minutes continuous)
+///
+/// Target: Stable <10ms p50 latency for 5 minutes
+/// Monitoring: Latency drift, memory growth, throughput stability
+#[test]
+#[ignore] // Run with: cargo test --test sustained_load_test -- --ignored
+#[ignore] // FIXME: Update for new capsule APIs
+fn sustained1_budget_registry_5min() {
+    println!("\n=== Sustained Test 1: Budget Registry (5 minutes) ===\n");
+
+    let registry = Arc::new(BudgetMetacapsule::new());
+
+    // Pre-populate
+    println!("Pre-populating 100,000 budgets...");
+    for i in 0..100_000 {
+        let _ = registry.get_or_create_budget(i, 1_000_00);
+    }
+    println!("Pre-population complete\n");
+
+    let config = LoadTestConfig::sustained(); // 5 minutes, 16 threads, 50K req/s
+
+    let registry_handle = Arc::clone(&registry);
+    let harness = LoadTestHarness::new(config);
+
+    println!("Starting 5-minute sustained load test...");
+    let results = harness.run(move || {
+        let budget_id = rand::random::<u64>() % 100_000;
+        let amount_cents = 10;
+
+        if let Some(budget) = registry_handle.get_budget(budget_id) {
+            let _ = budget.try_deduct(amount_cents);
+        }
+    });
+
+    println!("{}", results.summary());
+
+    // Assertions: <10ms p50 target (sustained)
+    assert!(
+        results.meets_p50_target(),
+        "Sustained P50 {:.2}ms exceeds 10ms target",
+        results.latency_p50_ms
+    );
+
+    // Assertions: P99 should stay stable (<100ms)
+    assert!(
+        results.latency_p99_ms < 100.0,
+        "Sustained P99 {:.2}ms too high",
+        results.latency_p99_ms
+    );
+
+    // Assertions: Throughput should stay high
+    assert!(
+        results.throughput_rps > 30_000.0,
+        "Sustained throughput {:.0} req/s too low",
+        results.throughput_rps
+    );
+
+    // Check for tail latency growth (P999 should be <500ms)
+    assert!(
+        results.latency_p999_ms < 500.0,
+        "Tail latency {:.2}ms indicates degradation",
+        results.latency_p999_ms
+    );
+}
+
+/// Sustained Test 2: Circuit breaker (5 minutes continuous)
+///
+/// Target: Stable circuit state transitions over 5 minutes
+/// Monitoring: State flip frequency, latency stability
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn sustained2_circuit_breaker_5min() {
+    println!("\n=== Sustained Test 2: Circuit Breaker (5 minutes) ===\n");
+
+    let breaker = Arc::new(CircuitBreaker::new());
+
+    let config = LoadTestConfig::sustained();
+
+    let breaker_handle = Arc::clone(&breaker);
+    let harness = LoadTestHarness::new(config);
+
+    println!("Starting 5-minute sustained load test...");
+    let results = harness.run(move || {
+        // 5% failure rate (should keep circuit in half-open/closed)
+        let is_failure = rand::random::<u8>() % 100 < 5;
+
+        if is_failure {
+            breaker_handle.record_failure();
+        } else {
+            breaker_handle.record_success();
+        }
+
+        let _ = breaker_handle.check();
+    });
+
+    println!("{}", results.summary());
+
+    // Assertions: <1ms p50 target (circuit checks are very fast)
+    assert!(
+        results.latency_p50_ms < 1.0,
+        "Circuit check P50 {:.2}ms too high",
+        results.latency_p50_ms
+    );
+
+    // Assertions: Throughput should be very high
+    assert!(
+        results.throughput_rps > 100_000.0,
+        "Circuit check throughput {:.0} req/s too low",
+        results.throughput_rps
+    );
+
+    // Check circuit state (should be closed or half-open)
+    let final_state = breaker.state();
+    println!("Final circuit state: {:?}", final_state);
+}
+
+/// Sustained Test 3: Multi-provider circuits (5 minutes continuous)
+///
+/// Target: Independent circuit stability across 16 providers
+/// Monitoring: Provider-specific metrics, isolation verification
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn sustained3_multi_provider_5min() {
+    println!("\n=== Sustained Test 3: Multi-Provider Circuits (5 minutes) ===\n");
+
+    let provider_circuits = Arc::new(ProviderCircuitArray::new());
+
+    // Initialize providers with varying health
+    for provider_id in 0..16 {
+        let status = provider_circuits.get_provider_status(provider_id);
+        for _ in 0..100 {
+            status.record_success();
+        }
+    }
+
+    let config = LoadTestConfig::sustained();
+
+    let circuits_handle = Arc::clone(&provider_circuits);
+    let harness = LoadTestHarness::new(config);
+
+    println!("Starting 5-minute sustained load test...");
+    let results = harness.run(move || {
+        let provider_id = rand::random::<usize>() % 16;
+        let status = circuits_handle.get_provider_status(provider_id);
+
+        // Varying failure rates by provider
+        let failure_rate = match provider_id % 4 {
+            0 => 1,  // Healthy
+            1 => 5,  // Degraded
+            2 => 10, // Struggling
+            3 => 15, // Failing
+            _ => unreachable!(),
+        };
+
+        let is_failure = rand::random::<u8>() % 100 < failure_rate;
+
+        if is_failure {
+            status.record_failure();
+        } else {
+            status.record_success();
+        }
+
+        let _ = status.check();
+    });
+
+    println!("{}", results.summary());
+
+    // Assertions: <1ms p50 target
+    assert!(
+        results.latency_p50_ms < 1.0,
+        "Multi-provider P50 {:.2}ms too high",
+        results.latency_p50_ms
+    );
+
+    // Verify independent circuit states
+    println!("\n--- Final Provider States ---");
+    for provider_id in 0..16 {
+        let status = provider_circuits.get_provider_status(provider_id);
+        let state = status.state();
+        let failure_rate_bp = status.failure_rate_bp();
+        println!(
+            "Provider {}: {:?} ({:.2}% failure rate)",
+            provider_id,
+            state,
+            failure_rate_bp as f64 / 100.0
+        );
+    }
+}
+
+/// Sustained Test 4: Full stack (5 minutes continuous)
+///
+/// Target: Complete system stability over 5 minutes
+/// Monitoring: All components, end-to-end latency, memory pressure
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn sustained4_full_stack_5min() {
+    println!("\n=== Sustained Test 4: Full Stack (5 minutes) ===\n");
+
+    let budget_registry = Arc::new(BudgetMetacapsule::new());
+    let oauth_sessions = Arc::new(dashmap::DashMap::<u64, OAuthSessionCapsule>::new());
+    let provider_circuits = Arc::new(ProviderCircuitArray::new());
+
+    // Pre-populate
+    println!("Pre-populating system...");
+    for i in 0..50_000 {
+        let _ = budget_registry.get_or_create_budget(i, 1_000_00);
+
+        let session = OAuthSessionCapsule::new_active(
+            i,
+            &format!("token_{}", i),
+            &format!("refresh_{}", i),
+            3600,
+        );
+        oauth_sessions.insert(i, session);
+    }
+    println!("Pre-population complete\n");
+
+    let config = LoadTestConfig::sustained();
+
+    let budget_handle = Arc::clone(&budget_registry);
+    let sessions_handle = Arc::clone(&oauth_sessions);
+    let circuits_handle = Arc::clone(&provider_circuits);
+
+    let harness = LoadTestHarness::new(config);
+
+    println!("Starting 5-minute sustained load test...");
+    let results = harness.run(move || {
+        let user_id = rand::random::<u64>() % 50_000;
+        let budget_id = user_id;
+        let provider_id = (user_id % 16) as usize;
+
+        // Full stack request simulation
+        if let Some(session) = sessions_handle.get(&user_id) {
+            if session.is_active() {
+                if let Some(budget) = budget_handle.get_budget(budget_id) {
+                    if budget.try_deduct(10).is_ok() {
+                        let status = circuits_handle.get_provider_status(provider_id);
+                        if status.check().is_ok() {
+                            status.record_success();
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    println!("{}", results.summary());
+
+    // Assertions: <10ms p50 target (full stack sustained)
+    assert!(
+        results.meets_p50_target(),
+        "Full stack sustained P50 {:.2}ms exceeds 10ms target",
+        results.latency_p50_ms
+    );
+
+    // Assertions: P99 <100ms
+    assert!(
+        results.latency_p99_ms < 100.0,
+        "Full stack sustained P99 {:.2}ms too high",
+        results.latency_p99_ms
+    );
+
+    // Assertions: Throughput should stay high
+    assert!(
+        results.throughput_rps > 20_000.0,
+        "Full stack throughput {:.0} req/s too low",
+        results.throughput_rps
+    );
+}
+
+/// Sustained Test 5: Memory stability check
+///
+/// Target: No memory leaks over 5 minutes
+/// Monitoring: Allocation patterns, heap growth
+#[test]
+#[ignore]
+#[ignore] // FIXME: Update for new capsule APIs
+fn sustained5_memory_stability_check() {
+    println!("\n=== Sustained Test 5: Memory Stability (5 minutes) ===\n");
+
+    let registry = Arc::new(BudgetMetacapsule::new());
+
+    // Pre-populate
+    for i in 0..10_000 {
+        let _ = registry.get_or_create_budget(i, 1_000_00);
+    }
+
+    let config = LoadTestConfig::sustained();
+
+    let registry_handle = Arc::clone(&registry);
+    let harness = LoadTestHarness::new(config);
+
+    // Note: Manual memory monitoring would be done externally (valgrind, heaptrack)
+    // This test just ensures the system runs for 5 minutes without crashing
+
+    println!("Starting 5-minute memory stability test...");
+    println!("(External tools like valgrind/heaptrack should be used for detailed analysis)");
+
+    let results = harness.run(move || {
+        // Read-heavy workload (minimal allocations)
+        let budget_id = rand::random::<u64>() % 10_000;
+
+        if let Some(budget) = registry_handle.get_budget(budget_id) {
+            let _ = budget.balance_cents();
+        }
+    });
+
+    println!("{}", results.summary());
+
+    // Assertions: Test completing = no crash/panic (basic stability)
+    assert!(
+        results.total_requests > 1_000_000,
+        "Memory stability test completed {} requests",
+        results.total_requests
+    );
+}

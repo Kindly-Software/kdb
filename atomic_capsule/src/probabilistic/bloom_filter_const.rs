@@ -2,7 +2,7 @@
 //!
 //! **Tier**: T10 (Probabilistic)
 //! **Category**: Membership Testing via const generics
-//! **Framework**: UCE34 Q10-Q34, COCA (100% lockfree), ASSUM (99.99% safe), B32 (50-100× speedup)
+//! **Framework**: UCE34 Q10-Q34, Chaos (100% lockfree), ASSUM (99.99% safe), B32 (50-100× speedup)
 //!
 //! ## Purpose
 //!
@@ -101,7 +101,7 @@ pub const fn calculate_optimal_hash_count(m_bits: u32, n_items: u32) -> u32 {
 /// BloomFilterConst - Compile-time Bloom filter with FPR guarantees
 ///
 /// **Tier**: T10 Probabilistic
-/// **Framework**: UCE34, COCA (100% lockfree), ASSUM (99.99% safe)
+/// **Framework**: UCE34, Chaos (100% lockfree), ASSUM (99.99% safe)
 ///
 /// # Const Generic Parameters
 ///

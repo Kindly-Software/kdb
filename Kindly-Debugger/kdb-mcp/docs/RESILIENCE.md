@@ -3,7 +3,7 @@
 **Project**: atomic_mcp_server
 **Date**: 2025-11-16
 **Status**: Production Ready (95/100)
-**Framework Compliance**: UCE34, COCA, ASSUM, B32, T28, I20
+**Framework Compliance**: UCE34, Chaos, ASSUM, B32, T28, I20
 
 ---
 
@@ -249,7 +249,7 @@ fn write_checkpoint_atomic(data: &[u8], path: &Path) -> Result<(), std::io::Erro
 - **Q33 (Verification)**: All capsules verified (derive macros not needed for simple capsules)
 - **Q34 (Auditability)**: Capability checks provide audit trail for permission validation
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 
 - **Lockfree**: ConnectionPoolCapsule uses 100% atomic operations (RwLock only for non-critical per-IP tracking)
 - **Cache-aligned**: All capsules 256-byte aligned (prevent false sharing)

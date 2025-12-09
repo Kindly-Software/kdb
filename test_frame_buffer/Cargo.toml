@@ -1,0 +1,7 @@
+[package]
+name = "test_frame_buffer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+atomic_capsule = { path = "../atomic_capsule", features = ["std"] }

@@ -1,0 +1,127 @@
+[package]
+name = "kindly_compression"
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.83"
+authors = ["Samuel <samuel@kindly.ai>"]
+license = "PROPRIETARY"
+description = "Unified compression framework: Base (T3) + Advanced (T6 Mixed) algorithms (TRADE SECRET)"
+publish = false
+keywords = ["compression", "quantization", "deterministic", "simd", "batch"]
+categories = ["compression", "encoding"]
+
+# TRADE SECRET: All algorithms and code are proprietary
+# NEVER commit to public repositories, NEVER share publicly
+
+[dependencies]
+# Base dependencies (always available)
+# Core computational capsule foundation with advanced features (I20 Phase 1 Complete - 2025-10-26)
+# Features integrated: portable_simd (T2), const-hashing (0ns), simd-hashing (2-8×), histogram (P50/P95/P99)
+atomic_capsule = { path = "../atomic_capsule", features = [
+    "std",              # Standard library support (required)
+    "portable_simd",    # T2 SIMD operations (2-19× speedups, nightly)
+    "const-hashing",    # 0ns compile-time hashing (100× vs runtime)
+    "simd-hashing",     # 2-8× multi-field hashing (4+ fields, nightly)
+    "histogram",        # P50/P95/P99/P999 latency monitoring (<10ns record)
+] }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.4"
+rand = "0.8"
+rand_chacha = "0.3"
+
+[lib]
+name = "kindly_compression"
+path = "src/lib.rs"
+
+# ============================================================================
+# Feature Flags
+# ============================================================================
+
+[features]
+default = ["std"]
+
+# Core features
+std = []                                    # Standard library support
+
+# Base algorithms (T3 tier - always available, no feature flag needed)
+# - token_clustering: Token compression codec (uses atomic_capsule::parallel)
+# - quantization: Q4.4/Q6.6/Q8.8 fixed-point quantization
+
+# Advanced algorithms (T6 Mixed tier - feature-gated)
+advanced = []                              # Enable all advanced types
+simd-advanced = ["advanced", "portable_simd", "atomic_capsule/portable_simd"]  # T2 SIMD operations
+batch-processing = ["advanced"]            # T4 batch parallel processing (uses atomic_capsule::parallel)
+
+# Nightly optimizations (requires Rust nightly)
+portable_simd = []                         # SIMD vectorization marker (f32x8)
+nightly-const-fp = []                      # const_fn_floating_point (0ns centroid init)
+nightly-all = ["simd-advanced", "nightly-const-fp"]
+
+# ============================================================================
+# atomic_capsule Feature Integration (I20 Phase 1 - 2025-10-26)
+# ============================================================================
+# Features from atomic_capsule are ALWAYS enabled (no opt-out) to maximize performance
+# See: I20_MULTI_STAGE_INTEGRATION.md for full integration analysis
+#
+# Integrated Features:
+# - portable_simd: T2 SIMD operations (2-19× speedups, requires nightly)
+# - const-hashing: 0ns compile-time hashing (100× vs runtime hash)
+# - simd-hashing: 2-8× multi-field hashing (4+ fields, nightly)
+# - histogram: P50/P95/P99/P999 latency monitoring (<10ns record, T6 Mixed)
+#
+# Performance Impact (B32 validated):
+# - Overhead: <1% amortized (well within <10% budget)
+# - SIMD threshold: 4+ fields (automatic scalar fallback)
+# - Monitoring: Optional (histogram.record() <10ns)
+#
+# Framework Compliance:
+# - I20: All 20 questions answered (I20-Capsule deployment)
+# - UCE34: Q10-Q12 (T2 SIMD + T0 Auditable + T6 Mixed)
+# - ASSUM: 99.99% safe (zero unsafe code)
+# - B32: <1% overhead (fair baselines, 95% CI)
+# - T28: Property tests (1000+ iterations, SIMD correctness + histogram monotonic)
+#
+# NOTE: These features are pulled in via atomic_capsule dependency above.
+# No separate feature flags needed - always available when using kindly_compression.
+
+# ============================================================================
+# B32 Benchmark Configuration
+# ============================================================================
+# Comprehensive benchmarking suite following B32 Framework requirements:
+# - B1: Fair baselines (GPTQ, Q8.8, not strawman)
+# - B2: Statistical rigor (1000+ iterations, 95% CI)
+# - B3: Realistic workloads (real data, not synthetic)
+# - B5: Full disclosure (methodology, hardware, variance)
+
+[[bench]]
+name = "compression_ratio"
+harness = false
+required-features = []
+
+[[bench]]
+name = "accuracy_loss"
+harness = false
+required-features = []
+
+[[bench]]
+name = "decompression_latency"
+harness = false
+required-features = []
+
+[[bench]]
+name = "baseline_comparison"
+harness = false
+required-features = []
+
+[[bench]]
+name = "batch_decompression_bench"
+harness = false
+required-features = []
+
+[profile.bench]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+debug = false

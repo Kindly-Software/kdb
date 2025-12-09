@@ -779,4 +779,4 @@ pub type Probability = f64;
 
 **Version**: 1.0
 **Last Updated**: 2025-11-21
-**Framework Compliance**: UCE34, COCA, B32, T28, ASSUM, I20 ✓
+**Framework Compliance**: UCE34, Chaos, B32, T28, ASSUM, I20 ✓

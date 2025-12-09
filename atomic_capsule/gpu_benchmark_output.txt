@@ -1,0 +1,5 @@
+warning: user-defined alias `bench` is ignored, because it is shadowed by a built-in command
+warning: /home/samuel/Primitives/atomic_capsule/Cargo.toml: `panic` setting is ignored for `test` profile
+warning: /home/samuel/Primitives/Cargo.toml: `panic` setting is ignored for `test` profile
+error: target `gpu_b32_benchmarks` in package `atomic_capsule` requires the features: `gpu-intel`
+Consider enabling them by passing, e.g., `--features="gpu-intel"`

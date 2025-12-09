@@ -625,4 +625,4 @@ For issues, improvements, or new features:
 
 **Status**: Production Ready (v0.7.0)
 **Last Updated**: November 2025
-**Compliance**: UCE34 T0+T1, COCA 100% lockfree, ASSUM 99.99%, B32, T28, I20
+**Compliance**: UCE34 T0+T1, Chaos 100% lockfree, ASSUM 99.99%, B32, T28, I20

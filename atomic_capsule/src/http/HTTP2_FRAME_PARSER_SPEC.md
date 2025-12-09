@@ -2,7 +2,7 @@
 
 **Tier**: T1 Atomic
 **Status**: Production Ready
-**Framework Compliance**: UCE34 (Q1-Q34) + COCA + ASSUM (99.99%) + B32 + T28 + I20
+**Framework Compliance**: UCE34 (Q1-Q34) + Chaos + ASSUM (99.99%) + B32 + T28 + I20
 **Date**: 2025-11-21
 
 ## Overview
@@ -430,7 +430,7 @@ parser.set_max_frame_size(32768)?; // Increase from default 16384
 - **RFC 9113**: HTTP/2 Specification (IETF, June 2022)
 - **RFC 9110**: HTTP Semantics (IETF, June 2022)
 - **RFC 7540**: HTTP/2 (IETF, May 2015, obsoleted by RFC 9113)
-- **COCA Framework**: /home/samuel/Docs/The Computational Capsule.md
+- **Chaos Framework**: /home/samuel/Docs/The Computational Capsule.md
 - **UCE34 Framework**: /home/samuel/Docs/UCE34_FRAMEWORK.md
 - **B32 Framework**: /home/samuel/Docs/B32_BENCHMARKING.md
 - **T28 Framework**: /home/samuel/Docs/T28_TESTING.md

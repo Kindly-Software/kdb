@@ -70,7 +70,7 @@
 //! - `#ASSUME_CACHE_COHERENCY`: Relaxed ordering sufficient (single-writer pattern)
 //! - `#ASSUME_ENCRYPTED_VALUES_STABLE`: Compile-time constants, never modified
 //!
-//! ## COCA Compliance (100% Lockfree)
+//! ## Chaos Compliance (100% Lockfree)
 //!
 //! - Zero mutex, zero RwLock, zero parking_lot
 //! - All synchronization via AtomicU64 with relaxed ordering

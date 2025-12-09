@@ -155,7 +155,7 @@ pub fn last_unwind_time(&self) -> u64
 - ✅ Integration tests: end-to-end unwinding
 - ✅ MockMemoryReader for isolated testing
 
-### COCA
+### Chaos
 - ✅ 100% computational capsule architecture
 - ✅ 100% lockfree (zero mutex/RwLock)
 - ✅ Cache-aligned (64B frames, 512B capsule)

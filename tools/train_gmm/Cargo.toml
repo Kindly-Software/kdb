@@ -11,7 +11,7 @@ categories = ["science", "command-line-utilities"]
 readme = "README.md"
 
 [dependencies]
-# Zero external dependencies for core functionality (COCA compliance)
+# Zero external dependencies for core functionality (Chaos compliance)
 # Only CLI parsing from standard library
 
 [[bin]]

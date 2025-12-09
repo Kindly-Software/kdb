@@ -1,0 +1,100 @@
+176 |     num_heads: usize,
+    |     ^^^^^^^^^
+    |
+    = note: `FlashAttentionCapsule` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: method `forward_standard` is never used
+   --> src/primitives/inference.rs:211:8
+    |
+181 | impl FlashAttentionCapsule {
+    | -------------------------- method in this implementation
+...
+211 |     fn forward_standard(&self, query: &[f32], key: &[f32], value: &[f32], seq_len: usize) -> Vec<f32> {
+    |        ^^^^^^^^^^^^^^^^
+
+warning: fields `zero_point` and `bits` are never read
+   --> src/primitives/inference.rs:332:5
+    |
+330 | pub struct QuantizationCapsule {
+    |            ------------------- fields in this struct
+331 |     scale: f32,
+332 |     zero_point: i8,
+    |     ^^^^^^^^^^
+333 |     bits: u8,
+    |     ^^^^
+    |
+    = note: `QuantizationCapsule` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: field `virtual_nodes_per_node` is never read
+   --> src/kv_cache/distributed_l3.rs:917:5
+    |
+915 | pub struct ConsistentHashRing {
+    |            ------------------ field in this struct
+916 |     /// Virtual nodes per physical node (128 recommended)
+917 |     virtual_nodes_per_node: usize,
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `ConsistentHashRing` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: `kindly_inference` (lib) generated 5 warnings
+   Compiling serde v1.0.228
+   Compiling tinytemplate v1.2.1
+   Compiling half v2.7.1
+   Compiling ppv-lite86 v0.2.21
+   Compiling ciborium-ll v0.2.2
+   Compiling rand_chacha v0.9.0
+   Compiling ciborium v0.2.2
+   Compiling proptest v1.8.0
+   Compiling futures-executor v0.3.31
+   Compiling criterion v0.5.1
+   Compiling futures v0.3.31
+    Finished `bench` profile [optimized] target(s) in 26.00s
+     Running benches/inference_primitives_bench.rs (target/release/deps/inference_primitives_bench-afe2fd73d4b7c02b)
+Gnuplot not found, using plotters backend
+test matmul/scalar_baseline/4096 ... bench:    18435614 ns/iter (+/- 598208)
+test matmul/simd_capsule/4096 ... bench:     8943470 ns/iter (+/- 424072)
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 8.3s, or reduce sample count to 60.
+test matmul/scalar_baseline/8192 ... bench:    77855162 ns/iter (+/- 3525325)
+test matmul/simd_capsule/8192 ... bench:    38302640 ns/iter (+/- 10420015)
+
+test attention/standard_baseline/128 ... bench:     1800294 ns/iter (+/- 77392)
+test attention/flash_capsule/128 ... bench:      828627 ns/iter (+/- 119846)
+
+Warning: Unable to complete 50 samples in 5.0s. You may wish to increase target time to 5.4s, or reduce sample count to 40.
+test attention/standard_baseline/512 ... bench:    77038099 ns/iter (+/- 42855945)
+
+Warning: Unable to complete 50 samples in 5.0s. You may wish to increase target time to 5.4s, or reduce sample count to 40.
+test attention/flash_capsule/512 ... bench:    79510475 ns/iter (+/- 41321517)
+
+test quantization/f32_baseline/4096 ... bench:        1271 ns/iter (+/- 624)
+test quantization/int8_capsule_roundtrip/4096 ... bench:       17386 ns/iter (+/- 18024)
+test quantization/int8_capsule_quantize/4096 ... bench:       16875 ns/iter (+/- 6451)
+test quantization/f32_baseline/8192 ... bench:        1662 ns/iter (+/- 474)
+test quantization/int8_capsule_roundtrip/8192 ... bench:       23676 ns/iter (+/- 8525)
+test quantization/int8_capsule_quantize/8192 ... bench:       41761 ns/iter (+/- 4595)
+test quantization/f32_baseline/16384 ... bench:        3234 ns/iter (+/- 635)
+test quantization/int8_capsule_roundtrip/16384 ... bench:       45431 ns/iter (+/- 17280)
+test quantization/int8_capsule_quantize/16384 ... bench:       43866 ns/iter (+/- 31653)
+
+test quantized_matmul/f32_matmul_baseline/512 ... bench:      485621 ns/iter (+/- 209908)
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.8s, enable flat sampling, or reduce sample count to 60.
+test quantized_matmul/int8_matmul_capsule/512 ... bench:     1040796 ns/iter (+/- 450141)
+test quantized_matmul/f32_matmul_baseline/1024 ... bench:     2091453 ns/iter (+/- 997520)
+test quantized_matmul/int8_matmul_capsule/1024 ... bench:     9069231 ns/iter (+/- 2295613)
+test quantized_matmul/f32_matmul_baseline/2048 ... bench:    15349280 ns/iter (+/- 5574355)
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 6.6s, or reduce sample count to 70.
+test quantized_matmul/int8_matmul_capsule/2048 ... bench:    41939074 ns/iter (+/- 31077878)
+
+test batch_scaling/scalar_batch/1 ... bench:    38406923 ns/iter (+/- 18145821)
+test batch_scaling/simd_batch/1 ... bench:    10724887 ns/iter (+/- 6524867)
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 20.4s, or reduce sample count to 20.
+test batch_scaling/scalar_batch/4 ... bench:   158882152 ns/iter (+/- 129469878)
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 9.1s, or reduce sample count to 50.
+test batch_scaling/simd_batch/4 ... bench:    36195785 ns/iter (+/- 51110268)
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 184.1s, or reduce sample count to 10.

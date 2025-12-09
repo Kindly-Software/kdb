@@ -40,7 +40,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 (T4 Batch + optional T2 SIMD), Q33 (verified), Q34 (audit stats)
-//! - **COCA**: 100% lockfree (thread-local buffers, atomic stats)
+//! - **Chaos**: 100% lockfree (thread-local buffers, atomic stats)
 //! - **ASSUM**: 100% safe (zero unsafe code)
 //! - **T28**: Comprehensive test coverage (unit/property/integration/production)
 //! - **B32**: Fair baseline comparison (13-39× validated)

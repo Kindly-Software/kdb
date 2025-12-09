@@ -34,7 +34,11 @@ use std::time::Duration;
 ///
 /// **Performance**: N × 50μs per signature
 /// **Algorithm**: Individual verification (no batching)
-fn baseline_sequential_ed25519(messages: &[&[u8]], _signatures: &[&[u8; 64]], _public_keys: &[&[u8; 32]]) -> Vec<bool> {
+fn baseline_sequential_ed25519(
+    messages: &[&[u8]],
+    _signatures: &[&[u8; 64]],
+    _public_keys: &[&[u8; 32]],
+) -> Vec<bool> {
     messages
         .iter()
         .map(|_msg| {
@@ -49,7 +53,11 @@ fn baseline_sequential_ed25519(messages: &[&[u8]], _signatures: &[&[u8; 64]], _p
 ///
 /// **Performance**: N × 100μs per signature
 /// **Algorithm**: Individual verification (no batching)
-fn baseline_sequential_ecdsa(messages: &[&[u8]], _signatures: &[&[u8]], _public_keys: &[&[u8]]) -> Vec<bool> {
+fn baseline_sequential_ecdsa(
+    messages: &[&[u8]],
+    _signatures: &[&[u8]],
+    _public_keys: &[&[u8]],
+) -> Vec<bool> {
     messages
         .iter()
         .map(|_msg| {

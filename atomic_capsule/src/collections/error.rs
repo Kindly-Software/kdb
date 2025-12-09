@@ -379,6 +379,7 @@ mod tests {
             MapError::ConcurrentModification => "concurrent",
             MapError::IoError => "io",
             MapError::InvalidState => "invalid",
+            MapError::InvalidKey => "invalid_key",
         };
     }
 
@@ -476,6 +477,7 @@ mod tests {
                 MapError::ConcurrentModification => "retry operation",
                 MapError::IoError => "check disk space",
                 MapError::InvalidState => "system error",
+                MapError::InvalidKey => "invalid key",
             }
         }
 

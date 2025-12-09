@@ -306,7 +306,7 @@ cargo run --bin deploy --release
 - ✅ **Q33**: #[derive(ComputationalCapsule)] verification (compile-time checks)
 - ✅ **Q34**: Hash-chain integrity for compliance (SOX/SOC2/GDPR/HIPAA)
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 
 - ✅ **100% lockfree**: All coordination via atomic operations, zero mutex/RwLock
 - ✅ **Cache-aligned**: 256-byte alignment prevents false sharing
@@ -354,7 +354,7 @@ cargo run --bin deploy --release
 | **Coordination** | N/A (single-threaded) | <100ns lockfree | **DeploymentCapsule** |
 | **Metrics** | ❌ None | ✅ Deployment stats (success/fail/rollback) | **DeploymentCapsule** |
 | **Reusability** | ❌ Copy-paste per project | ✅ Generic trait (any project) | **DeploymentCapsule** |
-| **COCA compliance** | ❌ Not applicable | ✅ 100% computational capsule | **DeploymentCapsule** |
+| **Chaos compliance** | ❌ Not applicable | ✅ 100% computational capsule | **DeploymentCapsule** |
 
 **Result**: DeploymentCapsule wins 9/10 categories.
 
@@ -452,7 +452,7 @@ test test_statistics_consistency ... ok
 test test_capsule_size_optimization ... ok
 test test_rapid_capsule_creation ... ok
 test test_capsule_drop_safety ... ok
-test test_coca_compliance ... ok
+test test_chaos_compliance ... ok
 test test_assum_safety ... ok
 test test_b32_performance_targets ... ok
 
@@ -485,7 +485,7 @@ Initial Statistics:
 ✓ UCE34: Q11 (100% Rust, zero bash scripts)
 ✓ UCE34: Q33 (Computational capsule verification)
 ✓ UCE34: Q34 (Hash-chain audit trail for compliance)
-✓ COCA:  100% lockfree, atomic operations only
+✓ Chaos:  100% lockfree, atomic operations only
 ✓ ASSUM: Type-safe, no shell injection, validated SSH
 ✓ B32:   <100ns coordination, honest deployment claims
 ```
@@ -544,6 +544,6 @@ DeploymentCapsule is part of the atomic_capsule trade secret codebase. Do not di
 
 ## Summary
 
-DeploymentCapsule is the **first deployment orchestration primitive** built as a computational capsule. It satisfies CLAUDE.md absolute mandates (100% Rust, 100% COCA), provides Q34 audit trail compliance, and delivers production-grade deployment automation with type safety, lockfree coordination, and automatic rollback.
+DeploymentCapsule is the **first deployment orchestration primitive** built as a computational capsule. It satisfies CLAUDE.md absolute mandates (100% Rust, 100% Chaos), provides Q34 audit trail compliance, and delivers production-grade deployment automation with type safety, lockfree coordination, and automatic rollback.
 
 **Use it. Replace your bash scripts. Deploy with confidence.**

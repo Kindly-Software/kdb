@@ -31,7 +31,7 @@
 //! | Cache miss (from base) | less than 1ms | Full page read + delta |
 //! | LRU eviction | less than 100ns | Min access_count scan |
 //!
-//! # COCA Compliance
+//! # Chaos Compliance
 //!
 //! - 100% lockfree (atomic operations only)
 //! - Cache-aligned entries (64B PageCacheEntry)

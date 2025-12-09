@@ -2,7 +2,7 @@
 
 **Date**: 2025-11-16
 **Status**: ✅ Implementation Complete
-**Framework**: B32 Fair Benchmarking, UCE34, ASSUM, COCA
+**Framework**: B32 Fair Benchmarking, UCE34, ASSUM, Chaos
 **Classification**: Production-Ready (T9+T1+T5+T10 tiers)
 
 ## Overview
@@ -238,7 +238,7 @@ jq .estimates target/criterion/insert_latency/disk_backed_insert/base/estimates.
 | **Honest Reporting** | Percentiles, variance, sample count documented |
 | **Reality Check** | 2-10× slowdown is expected (disk I/O overhead acceptable for 5-60× memory savings) |
 
-### ✅ COCA (100% Lockfree)
+### ✅ Chaos (100% Lockfree)
 
 | Component | Verification |
 |---|---|
@@ -358,7 +358,7 @@ grep -r "generation\|ABA" src/disk_backed_*.rs
 - ✅ Reproducibility (deterministic datasets, seed logged)
 - ✅ UCE34 compliance (Q10/Q33/Q34)
 - ✅ ASSUM compliance (99.99% safety, assumptions verified)
-- ✅ COCA compliance (100% lockfree)
+- ✅ Chaos compliance (100% lockfree)
 - ✅ T28 coverage (unit, property, integration, production tiers)
 
 ## References
@@ -382,4 +382,4 @@ For benchmark results, questions, or issues:
 **Status**: ✅ Phase 8 Complete (2025-11-16)
 **Lines of Code**: 378 (disk_backed_lsh_b32.rs)
 **Test Cases**: 2 (memory measurement, hardware info validation)
-**Framework Compliance**: 100% (B32, UCE34, ASSUM, COCA, T28)
+**Framework Compliance**: 100% (B32, UCE34, ASSUM, Chaos, T28)

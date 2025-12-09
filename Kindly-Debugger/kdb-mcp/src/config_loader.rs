@@ -12,7 +12,7 @@
 //! - Load: O(n) where n = number of lines (~1ms for 100 entries)
 //! - Lookup after load: <45ns (Bloom + hash table)
 //!
-//! **Framework**: UCE34, COCA, T1 Atomic, 99.99% ASSUM safe
+//! **Framework**: UCE34, Chaos, T1 Atomic, 99.99% ASSUM safe
 
 use std::collections::HashSet;
 use std::fs::File;

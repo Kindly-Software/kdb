@@ -4,7 +4,7 @@
 **Status**: CONFIDENTIAL - INTERNAL USE ONLY
 **Version**: 1.0
 **Date**: 2025-10-24
-**Framework**: UCE34 (Q10-Q15) + COCA + ASSUM + B32
+**Framework**: UCE34 (Q10-Q15) + Chaos + ASSUM + B32
 **Series**: Meta-Capsule Part 1B of 4 (Architecture)
 **Previous**: META_CAPSULE_PART1A.md (Q1-Q9 Foundation)
 
@@ -18,7 +18,7 @@
 4. [UCE34 Q13: Core Structure](#uce34-q13-core-structure)
 5. [UCE34 Q14: State Management](#uce34-q14-state-management)
 6. [UCE34 Q15: Coordination Patterns](#uce34-q15-coordination-patterns)
-7. [COCA Pattern Integration](#coca-pattern-integration)
+7. [Chaos Pattern Integration](#coca-pattern-integration)
 8. [Memory Layout](#memory-layout)
 9. [Next Steps](#next-steps)
 
@@ -1041,7 +1041,7 @@ Uninitialized --(initialize())--> Initialized
 
 ### UCE34 Q15: How are concurrent operations coordinated?
 
-**Answer**: **100% lockfree** coordination using 3 COCA patterns:
+**Answer**: **100% lockfree** coordination using 3 Chaos patterns:
 1. **DualAtomicU64** (SeqLock for consistent reads)
 2. **Generation Counters** (TOCTOU prevention)
 3. **Cache Alignment** (false sharing elimination)
@@ -1200,11 +1200,11 @@ pub struct ParallelMetaCapsule {
 
 ---
 
-## COCA PATTERN INTEGRATION
+## Chaos PATTERN INTEGRATION
 
-### COCA Principle Application
+### Chaos Principle Application
 
-**Core COCA Principles** (from The Computational Capsule.md):
+**Core Chaos Principles** (from The Computational Capsule.md):
 1. **Shape data to fit decisions** (256-byte alignment for security boundary)
 2. **Pack data tight** (4 cache lines, zero padding waste)
 3. **Align data right** (separate cache lines for independent access)
@@ -1213,7 +1213,7 @@ pub struct ParallelMetaCapsule {
 6. **No RwLock** (SeqLock pattern instead)
 7. **No scattered atomics** (consolidated in DualAtomicU64)
 
-### COCA Compliance Checklist
+### Chaos Compliance Checklist
 
 - ✅ **Capsule Tier**: T6.5 (security-first meta-container)
 - ✅ **Alignment**: 256 bytes (4 cache lines, false sharing eliminated)

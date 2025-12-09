@@ -1,10 +1,14 @@
 # Kindly Debugger
 
-A hosted MCP (Model Context Protocol) server providing time-travel debugging capabilities for AI-assisted development workflows.
+**World's first audit-compliant time-travel debugger for AI workflows**
+
+A commercial MCP (Model Context Protocol) server providing time-travel debugging capabilities for AI-assisted development workflows.
 
 ## Overview
 
 Kindly Debugger brings powerful debugging capabilities directly into your AI coding assistant through the MCP protocol. Debug your applications with time-travel, set breakpoints, inspect variables, and maintain complete audit trails - all through natural language commands.
+
+**Platform-Agnostic Access**: Users on macOS, Windows, or Linux can debug via their AI assistant (Claude Code, Cursor, etc.). The debugger runs server-side on Linux, but you never interact with it directly.
 
 ## Key Features
 
@@ -18,7 +22,7 @@ Kindly Debugger brings powerful debugging capabilities directly into your AI cod
 
 ### 1. Get Your API Key
 
-Visit [kindly.services](https://kindly.services) to create an account and obtain your API key.
+Visit [kindly.software](https://kindly.software) to create an account and obtain your API key.
 
 ### 2. Configure Claude Code
 
@@ -28,7 +32,7 @@ Add the following to your `~/.config/claude-code/mcp_servers.json`:
 {
   "kindly-debugger": {
     "type": "remote",
-    "url": "https://api.kindly.services/mcp",
+    "url": "https://api.kindly.software/mcp",
     "headers": {
       "Authorization": "Bearer YOUR_API_KEY"
     }
@@ -71,11 +75,17 @@ Once configured, you can use natural language commands in Claude Code:
 - [FAQ](FAQ.md) - Frequently asked questions
 - [Changelog](CHANGELOG.md) - Version history
 
-## Supported Platforms
+## Platform Support
 
-- **Target Platforms**: Linux (x86_64), with macOS and Windows support planned
-- **Client Requirements**: Any MCP-compatible client (Claude Code, etc.)
-- **Protocol**: MCP 2024-11-05 specification
+**MCP-First Delivery Model** - Platform Agnostic Access
+
+| What | Platform Support | Notes |
+|------|------------------|-------|
+| **You (MCP Client)** | macOS, Windows, Linux | Any MCP-compatible AI assistant |
+| **Debugging Server** | Linux x86_64 | Server-side, you never interact directly |
+| **Protocol** | MCP 2024-11-05 | Standard Model Context Protocol |
+
+**How it works**: Your AI assistant (Claude Code, Cursor, etc.) connects to the Kindly Debugger MCP server. The server runs the debugging operations on Linux and returns results to your AI. You debug through natural language, regardless of your operating system.
 
 ## Use Cases
 
@@ -93,12 +103,17 @@ Find similar bugs across your codebase by analyzing execution patterns and memor
 
 ## Pricing
 
-Visit [kindly.services](https://kindly.services) for pricing tiers:
+Visit [kindly.software](https://kindly.software) for pricing and signup:
 
-- **Free Tier** - Limited quota for evaluation
-- **Developer** - Individual developer usage
-- **Team** - Multi-user with shared quota
-- **Enterprise** - Custom limits and SLA
+| Tier | Price | Sessions | Features |
+|------|-------|----------|----------|
+| **Hobby** | Free | 5/month* | Time-travel, breakpoints, stack traces, audit trails |
+| **Pro** | Coming Soon | Extended | All Hobby features + memory write, symbol resolution |
+| **Enterprise** | Contact | Unlimited | All features + priority support, custom SLA, on-prem option |
+
+*During the 7-day launch promotional period, Hobby tier users get **unlimited sessions**.
+
+**Sign up now**: https://api.kindly.software/api/v1/signup
 
 ## Support
 
@@ -119,12 +134,14 @@ For security concerns, contact security@kindly.software.
 
 ## License
 
-This documentation is licensed under [CC-BY-4.0](LICENSE) (Creative Commons Attribution 4.0).
+**This documentation** is licensed under [CC-BY-4.0](LICENSE) (Creative Commons Attribution 4.0).
 
-The Kindly Debugger service is proprietary software provided by Kindly Software.
+**The Kindly Debugger software** is proprietary and commercial. It is NOT open source. All rights reserved by Kindly Software.
+
+For licensing inquiries, contact: sales@kindly.software
 
 ---
 
 **Kindly Software** - Building tools for the next generation of AI-assisted development.
 
-[kindly.services](https://kindly.services) | [support@kindly.software](mailto:support@kindly.software)
+[kindly.software](https://kindly.software) | [support@kindly.software](mailto:support@kindly.software)

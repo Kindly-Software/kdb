@@ -29,7 +29,9 @@ fn benchmark_dequantize_q16_8lanes(c: &mut Criterion) {
     c.bench_function("dequantize_q16_8lanes_1000", |b| {
         b.iter(|| {
             for _ in 0..1000 {
-                let quantized = black_box([49150i32, 81918, 114687, 147455, 180224, 212992, 245760, 278529]);
+                let quantized = black_box([
+                    49150i32, 81918, 114687, 147455, 180224, 212992, 245760, 278529,
+                ]);
                 let _dequantized = capsule.dequantize_simd(&quantized);
             }
         })
@@ -58,8 +60,7 @@ fn benchmark_quantize_q32_16lanes(c: &mut Criterion) {
         b.iter(|| {
             for _ in 0..1000 {
                 let values = black_box([
-                    0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8,
-                    0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6
+                    0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6,
                 ]);
                 let _quantized = capsule.quantize_simd(&values);
             }

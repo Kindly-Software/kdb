@@ -8,13 +8,13 @@ use leptos::prelude::*;
 #[component]
 pub fn Hero() -> impl IntoView {
     let hero_style = "
-        min-height: 100vh;
+        min-height: auto;
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
         align-items: center;
         text-align: center;
-        padding: 10rem 2rem 2rem;
+        padding: 7rem 2rem 6rem;
         position: relative;
         z-index: 1;
     ";
@@ -34,11 +34,11 @@ pub fn Hero() -> impl IntoView {
 
     let headline_style = "
         font-family: 'Space Grotesk', sans-serif;
-        font-size: clamp(2.5rem, 8vw, 5rem);
+        font-size: clamp(1.8rem, 5vw, 3rem);
         font-weight: 700;
-        line-height: 1.1;
-        margin-bottom: 1.5rem;
-        max-width: 900px;
+        line-height: 1.25;
+        margin-bottom: 1.25rem;
+        max-width: 850px;
     ";
 
     let shimmer_style = "
@@ -58,10 +58,10 @@ pub fn Hero() -> impl IntoView {
     ";
 
     let subheadline_style = "
-        font-size: clamp(1.125rem, 2vw, 1.5rem);
+        font-size: clamp(1rem, 2.2vw, 1.2rem);
         color: rgba(255, 255, 255, 0.7);
-        max-width: 700px;
-        margin-bottom: 3rem;
+        max-width: 600px;
+        margin-bottom: 1.75rem;
         line-height: 1.6;
     ";
 
@@ -105,8 +105,8 @@ pub fn Hero() -> impl IntoView {
 
     let stats_container_style = "
         display: flex;
-        gap: clamp(1rem, 4vw, 3rem);
-        margin-top: 4rem;
+        gap: clamp(1.5rem, 5vw, 3rem);
+        margin-top: 2.5rem;
         flex-wrap: wrap;
         justify-content: center;
     ";
@@ -117,7 +117,7 @@ pub fn Hero() -> impl IntoView {
 
     let stat_value_style = "
         font-family: 'Space Grotesk', sans-serif;
-        font-size: 2.5rem;
+        font-size: 2rem;
         font-weight: 700;
         color: #FFD700;
     ";
@@ -153,26 +153,25 @@ pub fn Hero() -> impl IntoView {
             }"
         </style>
         <section id="hero" style=hero_style>
-            <img src="/kdb-logo.jpg" alt="Kindly Debugger" style="width: 120px; height: 120px; margin-bottom: 2rem; animation: float 3s ease-in-out infinite, glow 2s ease-in-out infinite; filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.5)); transition: transform 0.3s ease; border-radius: 50%; object-fit: cover;" class="hero-logo" />
+            <img src="/kdb-logo.jpg" alt="Kindly Debugger" style="width: 110px; height: 110px; margin-bottom: 1.5rem; animation: float 3s ease-in-out infinite, glow 2s ease-in-out infinite; filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.5)); transition: transform 0.3s ease; border-radius: 50%; object-fit: cover;" class="hero-logo" />
 
             <h1 style=headline_style>
-                <span style="color: #fff;">"The "</span>
-                <span style=shimmer_style class="gold-shimmer">"Time-Travel"</span>
-                <span style="color: #fff;">" Debugger"</span>
+                <span style="color: #fff;">"Give your AI the superpower of "</span>
+                <span style=shimmer_style class="gold-shimmer">"traveling back in time"</span>
                 <br/>
-                <span style="color: rgba(255, 255, 255, 0.9);">"for AI Workflows"</span>
+                <span style="color: rgba(255, 255, 255, 0.9);">"to find what went wrong and fix the timeline."</span>
             </h1>
 
             <p style=subheadline_style>
                 "Step forward. Step backward. "
                 <strong style="color: #FFD700;">"Debug as if the bug never existed."</strong>
-                " Built for Claude Code and AI-assisted development."
+                " Platform-agnostic via MCP. Works with Claude Code, Cursor, and any AI assistant."
             </p>
 
             <div style=cta_container_style>
-                <a href="#pricing" style=primary_button_style class="hero-cta">
-                    <span>"⏱️"</span>
-                    <span>"Start Debugging"</span>
+                <a href="#signup" style=primary_button_style class="hero-cta">
+                    <span>"🎉"</span>
+                    <span>"Start Free - 1 Week Unlimited"</span>
                 </a>
                 <a href="#features" style=secondary_button_style class="learn-more-btn hero-cta">
                     <span>"📖"</span>
@@ -186,8 +185,8 @@ pub fn Hero() -> impl IntoView {
                     <div style=stat_label_style>"Time Travel"</div>
                 </div>
                 <div style=stat_style>
-                    <div style=stat_value_style>"⚡"</div>
-                    <div style=stat_label_style>"Instant Snapshots"</div>
+                    <div style=stat_value_style>"🌐"</div>
+                    <div style=stat_label_style>"Any Platform"</div>
                 </div>
                 <div style=stat_style>
                     <div style=stat_value_style>"🔐"</div>
@@ -195,7 +194,7 @@ pub fn Hero() -> impl IntoView {
                 </div>
                 <div style=stat_style>
                     <div style=stat_value_style>"🤖"</div>
-                    <div style=stat_label_style>"AI-Native"</div>
+                    <div style=stat_label_style>"MCP-Native"</div>
                 </div>
             </div>
         </section>

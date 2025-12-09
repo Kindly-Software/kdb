@@ -21,7 +21,7 @@
 //! - Fair baselines (novel capability, measuring absolute performance)
 //! - Warm-up iterations to ensure JIT/cache steady state
 //!
-//! # COCA Compliance
+//! # Chaos Compliance
 //!
 //! All benchmarks verify lockfree operation (zero mutex/RwLock in hot paths).
 

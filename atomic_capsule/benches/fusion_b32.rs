@@ -38,12 +38,24 @@ fn create_baseline_circuit(num_qubits: usize, num_gates: usize) -> QuantumCircui
         let q = i % num_qubits;
         match i % 5 {
             0 => circuit.add_gate(GateType::H { qubit: q }),
-            1 => circuit.add_gate(GateType::Rx { qubit: q, theta: PI / 4.0 }),
-            2 => circuit.add_gate(GateType::Ry { qubit: q, theta: PI / 3.0 }),
-            3 => circuit.add_gate(GateType::Rz { qubit: q, theta: PI / 6.0 }),
+            1 => circuit.add_gate(GateType::Rx {
+                qubit: q,
+                theta: PI / 4.0,
+            }),
+            2 => circuit.add_gate(GateType::Ry {
+                qubit: q,
+                theta: PI / 3.0,
+            }),
+            3 => circuit.add_gate(GateType::Rz {
+                qubit: q,
+                theta: PI / 6.0,
+            }),
             4 => {
                 if q + 1 < num_qubits {
-                    circuit.add_gate(GateType::CNOT { control: q, target: q + 1 });
+                    circuit.add_gate(GateType::CNOT {
+                        control: q,
+                        target: q + 1,
+                    });
                 }
             }
             _ => {}
@@ -189,8 +201,14 @@ fn bench_pattern_matching(c: &mut Criterion) {
     // CNOT cancellation
     let mut cnot_circuit = QuantumCircuit::new(2, "cnot");
     for _ in 0..50 {
-        cnot_circuit.add_gate(GateType::CNOT { control: 0, target: 1 });
-        cnot_circuit.add_gate(GateType::CNOT { control: 0, target: 1 });
+        cnot_circuit.add_gate(GateType::CNOT {
+            control: 0,
+            target: 1,
+        });
+        cnot_circuit.add_gate(GateType::CNOT {
+            control: 0,
+            target: 1,
+        });
     }
 
     group.bench_function("cnot_cancellation", |b| {
@@ -203,13 +221,18 @@ fn bench_pattern_matching(c: &mut Criterion) {
     // Rotation composition
     let mut rotation_circuit = QuantumCircuit::new(1, "rotation");
     for _ in 0..50 {
-        rotation_circuit.add_gate(GateType::Rx { qubit: 0, theta: PI / 50.0 });
+        rotation_circuit.add_gate(GateType::Rx {
+            qubit: 0,
+            theta: PI / 50.0,
+        });
     }
 
     group.bench_function("rotation_composition", |b| {
         b.iter(|| {
             fusion.reset_metrics();
-            fusion.optimize(black_box(rotation_circuit.clone())).unwrap()
+            fusion
+                .optimize(black_box(rotation_circuit.clone()))
+                .unwrap()
         });
     });
 
@@ -217,14 +240,19 @@ fn bench_pattern_matching(c: &mut Criterion) {
     let mut hadamard_circuit = QuantumCircuit::new(2, "hadamard");
     for _ in 0..30 {
         hadamard_circuit.add_gate(GateType::H { qubit: 0 });
-        hadamard_circuit.add_gate(GateType::CNOT { control: 0, target: 1 });
+        hadamard_circuit.add_gate(GateType::CNOT {
+            control: 0,
+            target: 1,
+        });
         hadamard_circuit.add_gate(GateType::H { qubit: 0 });
     }
 
     group.bench_function("hadamard_conjugation", |b| {
         b.iter(|| {
             fusion.reset_metrics();
-            fusion.optimize(black_box(hadamard_circuit.clone())).unwrap()
+            fusion
+                .optimize(black_box(hadamard_circuit.clone()))
+                .unwrap()
         });
     });
 
@@ -259,7 +287,13 @@ fn bench_baseline_comparison(c: &mut Criterion) {
         );
 
         group.bench_with_input(
-            BenchmarkId::new("optimized", format!("{}q_{}g_{}%red", num_qubits, optimized_gates, reduction as u32)),
+            BenchmarkId::new(
+                "optimized",
+                format!(
+                    "{}q_{}g_{}%red",
+                    num_qubits, optimized_gates, reduction as u32
+                ),
+            ),
             num_qubits,
             |b, _| {
                 b.iter(|| {

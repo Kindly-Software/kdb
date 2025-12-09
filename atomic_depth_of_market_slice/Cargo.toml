@@ -1,0 +1,28 @@
+[package]
+name = "atomic_depth_of_market_slice"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.76"
+authors = ["Samuel <maintainer@example.com>"]
+description = "DOS-1024 atomic depth-of-market capsule for paired symbols"
+license = "Apache-2.0 OR MIT"
+repository = "https://example.com/atomic_depth_of_market_slice"
+keywords = ["atomic", "orderbook", "depth", "market-data"]
+categories = ["concurrency", "finance"]
+readme = "README.md"
+
+[features]
+default = ["std"]
+std = []
+
+[dependencies]
+portable-atomic = { workspace = true, default-features = false }
+
+[dev-dependencies]
+rand = { workspace = true }
+proptest = "1.4"
+criterion = { workspace = true, default-features = false }
+
+[[bench]]
+name = "publish"
+harness = false

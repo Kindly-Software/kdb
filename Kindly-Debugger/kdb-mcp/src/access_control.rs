@@ -3,7 +3,7 @@
 //! Lockfree bitmap-based process and command access control for secure MCP debugging.
 //! **Latency**: <20ns PID bitmap check + <10ns command check
 //! **Tier**: T1 Atomic (lockfree bitmap coordination via AtomicU64)
-//! **Framework**: UCE34 Q1-Q34, COCA, 100% lockfree, ASSUM safe
+//! **Framework**: UCE34 Q1-Q34, Chaos, 100% lockfree, ASSUM safe
 //!
 //! ## UCE34 Analysis (Q1-Q34)
 //!

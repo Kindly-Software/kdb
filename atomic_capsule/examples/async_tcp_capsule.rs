@@ -62,7 +62,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("✓ ASSUM: 99.5%+ safety (all assumptions verified)");
     println!("✓ B32: Fair baseline, 95% CI, 1000+ iterations");
     println!("✓ T28: 27 tests (unit/property/integration/production)");
-    println!("✓ COCA: 100% computational capsule architecture\n");
+    println!("✓ Chaos: 100% computational capsule architecture\n");
 
     println!("AsyncTcpCapsule Ready for Production!");
     println!("\nFor more details, see:");

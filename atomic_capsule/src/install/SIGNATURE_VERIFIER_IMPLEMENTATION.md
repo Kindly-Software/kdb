@@ -239,7 +239,7 @@ Returns latest audit event hash (for Q34 compliance validation)
 - ✅ All error cases covered
 - ✅ Audit trail verified
 
-### COCA (100% Lockfree)
+### Chaos (100% Lockfree)
 
 - ✅ No mutex/RwLock
 - ✅ No spinlocks
@@ -448,7 +448,7 @@ std::thread::spawn(move || {
 
 ### Framework Documents
 - **UCE34**: `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/uce34.xml`
-- **COCA**: `/home/samuel/Docs/The Computational Capsule.md`
+- **Chaos**: `/home/samuel/Docs/The Computational Capsule.md`
 - **Atomic Capsule Config**: `/home/samuel/Primitives/atomic_capsule/CLAUDE.md`
 
 ### Spec Reference
@@ -473,7 +473,7 @@ rustc --edition 2021 --test src/install/signature_verifier.rs -o /tmp/sig_tests
 SignatureVerifierCapsule is production-ready with:
 - ✅ 20/20 tests passing (100% pass rate)
 - ✅ Zero unsafe code (100% type-safe Rust)
-- ✅ Full UCE34 + ASSUM + B32 + T28 + I20 + COCA compliance
+- ✅ Full UCE34 + ASSUM + B32 + T28 + I20 + Chaos compliance
 - ✅ T0 Auditable tier with hash-chained verification
 - ✅ <1ms Ed25519 verification, <50ns audit events
 - ✅ Ready for integration with installer components

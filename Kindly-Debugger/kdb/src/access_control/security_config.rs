@@ -30,7 +30,7 @@
 //!
 //! # Framework Compliance
 //!
-//! - **COCA**: Zero runtime overhead for config access (compile-time constants where possible)
+//! - **Chaos**: Zero runtime overhead for config access (compile-time constants where possible)
 //! - **T28 Q22-Q28**: Production-ready configuration with sensible defaults
 //! - **Q34 Audit**: AuditLevel configuration for SOX/SOC2/GDPR/HIPAA compliance
 

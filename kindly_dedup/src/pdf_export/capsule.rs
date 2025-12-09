@@ -13,7 +13,7 @@
 //! - export_duration_ms: AtomicU64 (milliseconds to generate) (8B)
 //! - _padding: [u8; 224] (pad to 256B)
 //!
-//! # COCA Compliance
+//! # Chaos Compliance
 //! - 100% lockfree (AtomicU8/AtomicU64 only, Relaxed ordering for non-critical)
 //! - Cache-aligned (256B)
 //! - No #[derive(ComputationalCapsule)] yet (MVP, simple structure)
@@ -64,7 +64,7 @@ impl PdfExportStatus {
 /// - 100% lockfree (atomic operations only)
 /// - <50ns coordination overhead per operation
 ///
-/// # COCA Verification
+/// # Chaos Verification
 /// - Zero mutex/RwLock (verified: grep -c "Mutex\|RwLock" = 0)
 /// - Cache-aligned (repr(C, align(256)))
 /// - Generation counter: Not needed (status is state machine, not versioned data)

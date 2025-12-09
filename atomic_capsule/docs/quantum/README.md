@@ -28,7 +28,7 @@
 - T1 Atomic capsule architecture (128B cache-aligned)
 - Clifford gate update rules (H, S, CNOT, Pauli)
 - Measurement protocol (deterministic + probabilistic)
-- Framework compliance checklist (UCE34, COCA, B32, T28, ASSUM, I20)
+- Framework compliance checklist (UCE34, Chaos, B32, T28, ASSUM, I20)
 
 **Key Sections**:
 ```
@@ -252,7 +252,7 @@ pub struct StabilizerStateCapsule {
 ### UCE34 (Q1-Q34 Systematic Discovery)
 ✅ Complete (all 34 questions answered)
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 ✅ 100% lockfree, 128B cache-aligned, zero dependencies
 
 ### B32 (Honest Benchmarking)

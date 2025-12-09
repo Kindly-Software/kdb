@@ -22,7 +22,7 @@
 #![cfg(feature = "observability")]
 
 use atomic_capsule::composite::{ObservabilityCapsule, TraceEvent, TraceRingBuffer};
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId, Throughput};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
@@ -77,9 +77,24 @@ impl PrometheusMetrics {
         *histogram.entry(bucket).or_insert(0) += 1;
     }
 
-    fn append_trace(&self, trace_id_hi: u64, trace_id_lo: u64, span_id: u64, timestamp_us: u32, duration_us: u16, flags: u16) {
+    fn append_trace(
+        &self,
+        trace_id_hi: u64,
+        trace_id_lo: u64,
+        span_id: u64,
+        timestamp_us: u32,
+        duration_us: u16,
+        flags: u16,
+    ) {
         let mut traces = self.trace_log.lock().unwrap();
-        traces.push((trace_id_hi, trace_id_lo, span_id, timestamp_us, duration_us, flags));
+        traces.push((
+            trace_id_hi,
+            trace_id_lo,
+            span_id,
+            timestamp_us,
+            duration_us,
+            flags,
+        ));
     }
 
     fn aggregate_durations(&self) -> u64 {
@@ -151,7 +166,14 @@ fn bench_append_trace_single_threaded(c: &mut Criterion) {
     group.bench_function("prometheus_baseline", |b| {
         let metrics = PrometheusMetrics::new();
         b.iter(|| {
-            metrics.append_trace(black_box(0x1234), black_box(0x5678), black_box(0xABCD), black_box(1000), black_box(100), black_box(0));
+            metrics.append_trace(
+                black_box(0x1234),
+                black_box(0x5678),
+                black_box(0xABCD),
+                black_box(1000),
+                black_box(100),
+                black_box(0),
+            );
         });
     });
 
@@ -160,7 +182,14 @@ fn bench_append_trace_single_threaded(c: &mut Criterion) {
         let obs = ObservabilityCapsule::new();
         let mut ring_buffer = TraceRingBuffer::default();
         b.iter(|| {
-            let trace = TraceEvent::new(black_box(0x1234), black_box(0x5678), black_box(0xABCD), black_box(1000), black_box(100), black_box(0));
+            let trace = TraceEvent::new(
+                black_box(0x1234),
+                black_box(0x5678),
+                black_box(0xABCD),
+                black_box(1000),
+                black_box(100),
+                black_box(0),
+            );
             obs.append_trace(trace, &mut ring_buffer);
         });
     });
@@ -213,44 +242,52 @@ fn bench_increment_requests_multi_threaded(c: &mut Criterion) {
         group.throughput(Throughput::Elements(thread_count as u64 * 1000));
 
         // Baseline: Prometheus mutex-based
-        group.bench_with_input(BenchmarkId::new("prometheus_baseline", thread_count), &thread_count, |b, &threads| {
-            b.iter(|| {
-                let metrics = PrometheusMetrics::new();
-                let handles: Vec<_> = (0..threads)
-                    .map(|_| {
-                        let m = metrics.clone();
-                        thread::spawn(move || {
-                            for _ in 0..1000 {
-                                m.increment_requests();
-                            }
+        group.bench_with_input(
+            BenchmarkId::new("prometheus_baseline", thread_count),
+            &thread_count,
+            |b, &threads| {
+                b.iter(|| {
+                    let metrics = PrometheusMetrics::new();
+                    let handles: Vec<_> = (0..threads)
+                        .map(|_| {
+                            let m = metrics.clone();
+                            thread::spawn(move || {
+                                for _ in 0..1000 {
+                                    m.increment_requests();
+                                }
+                            })
                         })
-                    })
-                    .collect();
-                for h in handles {
-                    h.join().unwrap();
-                }
-            });
-        });
+                        .collect();
+                    for h in handles {
+                        h.join().unwrap();
+                    }
+                });
+            },
+        );
 
         // Optimized: ObservabilityCapsule (T1 Atomic)
-        group.bench_with_input(BenchmarkId::new("observability_capsule", thread_count), &thread_count, |b, &threads| {
-            b.iter(|| {
-                let obs = Arc::new(ObservabilityCapsule::new());
-                let handles: Vec<_> = (0..threads)
-                    .map(|_| {
-                        let o = Arc::clone(&obs);
-                        thread::spawn(move || {
-                            for _ in 0..1000 {
-                                o.increment_requests();
-                            }
+        group.bench_with_input(
+            BenchmarkId::new("observability_capsule", thread_count),
+            &thread_count,
+            |b, &threads| {
+                b.iter(|| {
+                    let obs = Arc::new(ObservabilityCapsule::new());
+                    let handles: Vec<_> = (0..threads)
+                        .map(|_| {
+                            let o = Arc::clone(&obs);
+                            thread::spawn(move || {
+                                for _ in 0..1000 {
+                                    o.increment_requests();
+                                }
+                            })
                         })
-                    })
-                    .collect();
-                for h in handles {
-                    h.join().unwrap();
-                }
-            });
-        });
+                        .collect();
+                    for h in handles {
+                        h.join().unwrap();
+                    }
+                });
+            },
+        );
     }
 
     group.finish();
@@ -263,44 +300,52 @@ fn bench_record_duration_multi_threaded(c: &mut Criterion) {
         group.throughput(Throughput::Elements(thread_count as u64 * 1000));
 
         // Baseline: Prometheus RwLock<HashMap>
-        group.bench_with_input(BenchmarkId::new("prometheus_baseline", thread_count), &thread_count, |b, &threads| {
-            b.iter(|| {
-                let metrics = PrometheusMetrics::new();
-                let handles: Vec<_> = (0..threads)
-                    .map(|thread_id| {
-                        let m = metrics.clone();
-                        thread::spawn(move || {
-                            for i in 0..1000 {
-                                m.record_duration_us(((thread_id * 1000 + i) % 10_000) as u32);
-                            }
+        group.bench_with_input(
+            BenchmarkId::new("prometheus_baseline", thread_count),
+            &thread_count,
+            |b, &threads| {
+                b.iter(|| {
+                    let metrics = PrometheusMetrics::new();
+                    let handles: Vec<_> = (0..threads)
+                        .map(|thread_id| {
+                            let m = metrics.clone();
+                            thread::spawn(move || {
+                                for i in 0..1000 {
+                                    m.record_duration_us(((thread_id * 1000 + i) % 10_000) as u32);
+                                }
+                            })
                         })
-                    })
-                    .collect();
-                for h in handles {
-                    h.join().unwrap();
-                }
-            });
-        });
+                        .collect();
+                    for h in handles {
+                        h.join().unwrap();
+                    }
+                });
+            },
+        );
 
         // Optimized: ObservabilityCapsule (T2 SIMD histogram)
-        group.bench_with_input(BenchmarkId::new("observability_capsule", thread_count), &thread_count, |b, &threads| {
-            b.iter(|| {
-                let obs = Arc::new(ObservabilityCapsule::new());
-                let handles: Vec<_> = (0..threads)
-                    .map(|thread_id| {
-                        let o = Arc::clone(&obs);
-                        thread::spawn(move || {
-                            for i in 0..1000 {
-                                o.record_duration_us(((thread_id * 1000 + i) % 10_000) as u32);
-                            }
+        group.bench_with_input(
+            BenchmarkId::new("observability_capsule", thread_count),
+            &thread_count,
+            |b, &threads| {
+                b.iter(|| {
+                    let obs = Arc::new(ObservabilityCapsule::new());
+                    let handles: Vec<_> = (0..threads)
+                        .map(|thread_id| {
+                            let o = Arc::clone(&obs);
+                            thread::spawn(move || {
+                                for i in 0..1000 {
+                                    o.record_duration_us(((thread_id * 1000 + i) % 10_000) as u32);
+                                }
+                            })
                         })
-                    })
-                    .collect();
-                for h in handles {
-                    h.join().unwrap();
-                }
-            });
-        });
+                        .collect();
+                    for h in handles {
+                        h.join().unwrap();
+                    }
+                });
+            },
+        );
     }
 
     group.finish();

@@ -403,7 +403,7 @@ fn tool_attach(&self, params: &serde_json::Value, debugger: &DebuggerCapsule,
 - Q33: #[derive(ComputationalCapsule)] on all auth capsules
 - Q34: Q34 audit trail (AuditEnhancementCapsule logs all auth events)
 
-**COCA**: 100% lockfree (all auth capsules use atomics, no mutex)
+**Chaos**: 100% lockfree (all auth capsules use atomics, no mutex)
 
 **ASSUM**: 99.99% safe (10+ assumptions verified via tests)
 

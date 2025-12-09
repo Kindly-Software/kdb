@@ -38,7 +38,6 @@
 //! - `#ASSUME_FORMAT_DETECTION`: Extension-based detection is reliable
 
 use crate::format::{Document, FormatError, FormatReaderCapsule, FormatRegistryCapsule};
-use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use std::sync::Arc;

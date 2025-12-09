@@ -31,8 +31,8 @@
 //! - Reproducibility: Fixed random seeds
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
-use std::sync::{Arc, Mutex};
 use std::collections::VecDeque;
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 #[cfg(feature = "batch-streaming")]

@@ -28,7 +28,7 @@
 //! # Framework
 //!
 //! - **UCE34**: Q10 T6 Mixed tier selection, Q33 lockfree, Q34 audit trails
-//! - **COCA**: 100% computational capsules, lockfree coordination
+//! - **Chaos**: 100% computational capsules, lockfree coordination
 //! - **ASSUM**: 99.99% safe, all assumptions documented
 //! - **B32**: Fair baseline comparison, 2-5× conservative speedup
 //! - **T28**: Comprehensive testing framework
@@ -318,7 +318,7 @@ mod encoder_demo {
         // Verify framework compliance
         println!("=== Framework Compliance ===");
         println!("  ✓ UCE34: Q10 T6 Mixed tier selection, Q33 lockfree, Q34 audit trails");
-        println!("  ✓ COCA: 100% computational capsules (8 capsules, all lockfree)");
+        println!("  ✓ Chaos: 100% computational capsules (8 capsules, all lockfree)");
         println!("  ✓ ASSUM: 99.99% safe (zero unsafe in hot paths)");
         println!("  ✓ B32: Fair baseline comparison, deterministic results");
         println!("  ✓ T28: Comprehensive testing framework validated");

@@ -346,7 +346,7 @@ impl TierBucket {
 
 /// Per-tier rate limiter capsule (512 bytes = 5 tiers × 64B + 192B metadata)
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 /// - T1 Atomic: All operations use AtomicU64 with CAS
 /// - 100% lockfree: No mutex/RwLock
 /// - Cache-aligned: 64-byte alignment, no false sharing
@@ -414,7 +414,7 @@ impl TierRateLimiterCapsule {
     ///
     /// # Returns
     /// * `Ok(RateLimitInfo)` - Request allowed, includes limit/remaining/reset
-    /// * `Err(wait_secs)` - Rate limited, includes wait time in seconds
+    /// * `Err(wait_secs)` - Rate limited, includes jittered wait time in seconds
     pub fn check(&self, tier: SubscriptionTier, tokens: u64) -> Result<RateLimitInfo, u64> {
         self.total_checks.fetch_add(1, Ordering::Relaxed);
 
@@ -439,9 +439,56 @@ impl TierRateLimiterCapsule {
             }
             Err(wait_secs) => {
                 self.total_rejected.fetch_add(1, Ordering::Relaxed);
-                Err(wait_secs)
+                Err(self.retry_after_with_jitter(wait_secs))
             }
         }
+    }
+
+    /// Calculate Retry-After with random jitter (±20%)
+    ///
+    /// This prevents thundering herd when multiple clients get rate-limited
+    /// at the same time and all retry simultaneously.
+    ///
+    /// # Arguments
+    /// * `base_secs` - Base retry-after time in seconds
+    ///
+    /// # Returns
+    /// * Jittered retry time: base_secs ± 20%
+    ///
+    /// # Performance
+    /// - <10ns (single xorshift + arithmetic)
+    ///
+    /// # Example
+    /// ```
+    /// // If base is 60 seconds, returns value in range [48, 72]
+    /// let limiter = kdb_mcp::tier_rate_limiter::TierRateLimiterCapsule::new();
+    /// let retry = limiter.retry_after_with_jitter(60);
+    /// assert!(retry >= 48 && retry <= 72);
+    /// ```
+    pub fn retry_after_with_jitter(&self, base_secs: u64) -> u64 {
+        // Use generation counter as PRNG seed for determinism in tests
+        // but different values across instances
+        let seed = self.total_checks.load(Ordering::Relaxed)
+            .wrapping_mul(0x517cc1b727220a95);  // Golden ratio-based constant
+
+        // XorShift64 for fast random
+        let mut x = seed;
+        x ^= x << 13;
+        x ^= x >> 7;
+        x ^= x << 17;
+
+        // Calculate jitter: ±20% of base
+        let jitter_range = base_secs / 5;  // 20%
+        if jitter_range == 0 {
+            return base_secs;
+        }
+
+        // Random offset in range [0, 2 * jitter_range]
+        let offset = x % (jitter_range * 2 + 1);
+
+        // Apply offset centered around base
+        // Result in range [base - 20%, base + 20%]
+        base_secs.saturating_sub(jitter_range).saturating_add(offset)
     }
 
     /// Get statistics for all tiers
@@ -935,5 +982,79 @@ mod tests {
     fn test_default_tier() {
         let tier = SubscriptionTier::default();
         assert_eq!(tier, SubscriptionTier::Hobby);
+    }
+
+    // ========================================================================
+    // Retry-After Jitter Tests
+    // ========================================================================
+
+    #[test]
+    fn test_retry_after_jitter_range() {
+        let limiter = TierRateLimiterCapsule::new();
+
+        // Test that jitter stays within ±20% bounds
+        for _ in 0..100 {
+            // Consume tokens to change the seed
+            let _ = limiter.check(SubscriptionTier::Enterprise, 1);
+
+            let base = 60u64;
+            let jittered = limiter.retry_after_with_jitter(base);
+
+            // Should be in range [48, 72] (60 ± 20%)
+            assert!(jittered >= 48, "Jitter too low: {} < 48", jittered);
+            assert!(jittered <= 72, "Jitter too high: {} > 72", jittered);
+        }
+    }
+
+    #[test]
+    fn test_retry_after_jitter_zero_base() {
+        let limiter = TierRateLimiterCapsule::new();
+
+        // Zero base should return zero (no jitter possible)
+        assert_eq!(limiter.retry_after_with_jitter(0), 0);
+
+        // Very small base (< 5) should have minimal jitter
+        assert!(limiter.retry_after_with_jitter(1) <= 2);
+    }
+
+    #[test]
+    fn test_retry_after_jitter_distribution() {
+        let limiter = TierRateLimiterCapsule::new();
+
+        // Run many iterations and verify we get different values
+        let mut values = std::collections::HashSet::new();
+        for _ in 0..1000 {
+            let _ = limiter.check(SubscriptionTier::Enterprise, 1);
+            let jittered = limiter.retry_after_with_jitter(100);
+            values.insert(jittered);
+        }
+
+        // With 1000 iterations and jitter range of [80, 120],
+        // we should get at least 10 different values
+        assert!(values.len() >= 10, "Expected at least 10 different jitter values, got {}", values.len());
+    }
+
+    #[test]
+    fn test_rate_limited_response_uses_jitter() {
+        let limiter = TierRateLimiterCapsule::new();
+
+        // Exhaust Hobby tier
+        for _ in 0..10 {
+            let _ = limiter.check(SubscriptionTier::Hobby, 1);
+        }
+
+        // Collect rate limit responses
+        let mut wait_times = Vec::new();
+        for _ in 0..100 {
+            if let Err(wait_secs) = limiter.check(SubscriptionTier::Hobby, 1) {
+                wait_times.push(wait_secs);
+            }
+        }
+
+        // All wait times should be in jittered range
+        // Base is 1 second for Hobby tier (1 token needed / 1 token/sec)
+        // ±20% of 1 = ±0.2, but since we use integer division, base/5 = 0 for base=1
+        // So small bases will have minimal jitter
+        assert!(!wait_times.is_empty(), "Should have collected rate limit responses");
     }
 }

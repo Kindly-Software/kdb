@@ -1540,5 +1540,5 @@ Pros                          Cons
 
 **Total Lines**: ~1,250
 **Sections**: 12 + 3 Appendices
-**Frameworks Applied**: UCE34 (Q1-Q34), COCA (100% lockfree), ASSUM (5 assumptions), T28 (530+ tests), B32 (performance validation)
+**Frameworks Applied**: UCE34 (Q1-Q34), Chaos (100% lockfree), ASSUM (5 assumptions), T28 (530+ tests), B32 (performance validation)
 

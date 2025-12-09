@@ -240,7 +240,7 @@ rg "AuthGuard::new\(" tests/ -A 3
 ## Framework Compliance Maintained
 
 - ✅ UCE34: Q31 (Simplicity) - clean fixes
-- ✅ COCA: Zero changes to capsule architecture
+- ✅ Chaos: Zero changes to capsule architecture
 - ✅ ASSUM: No unsafe code additions
 - ✅ I20: Zero breaking changes
 - ✅ B32: No performance regressions

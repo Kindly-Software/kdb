@@ -44,7 +44,7 @@
 //! - B32: Fair baselines (<100ms CLI overhead vs manual invocation)
 //! - T28: 28/28 tests (this file)
 //! - I20: 20/20 integration questions
-//! - COCA: 100% lockfree (atomic progress tracking, META_CAPSULE coordination)
+//! - Chaos: 100% lockfree (atomic progress tracking, META_CAPSULE coordination)
 
 #![cfg(test)]
 #![allow(dead_code)] // Test helpers

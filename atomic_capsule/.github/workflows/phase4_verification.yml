@@ -1,0 +1,291 @@
+# Phase 4: Comprehensive Compilation & Verification CI/CD Pipeline
+#
+# UCE34 Q33 Compliance: All capsules must compile and pass verification
+# ASSUM Safety: CI validates 100% capsule compliance
+# B32 Performance: <5 minutes total CI runtime
+#
+# Workflow Triggers:
+# - Push to main/analysis branches
+# - Pull requests targeting main
+# - Manual workflow dispatch
+
+name: Phase 4 Verification
+
+on:
+  push:
+    branches: [ main, 'analysis/**' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  # Job 1: Stable Compilation (baseline)
+  stable-compilation:
+    name: Stable Rust Compilation
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        features:
+          - "std"
+          - "std,capsule-serialize"
+          - "std,async-log"
+          - "std,fast-hash"
+          - "std,audit-trail"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-stable-${{ matrix.features }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Compile (stable, features=${{ matrix.features }})
+        run: cargo build --features "${{ matrix.features }}" --verbose
+
+      - name: Run tests (stable)
+        run: cargo test --features "${{ matrix.features }}" --verbose
+
+  # Job 2: Nightly Compilation (all features)
+  nightly-compilation:
+    name: Nightly Rust Compilation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+          components: clippy, rustfmt
+
+      - name: Cache cargo build (nightly)
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-nightly-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Compile (nightly, all features)
+        run: cargo build --all-features --verbose
+
+      - name: Run all tests (nightly)
+        run: cargo test --all-features --verbose
+
+  # Job 3: Clippy Verification
+  clippy-verification:
+    name: Clippy Lint Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust nightly (for clippy)
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+          components: clippy
+
+      - name: Run clippy (all features)
+        run: cargo clippy --all-features -- -A clippy::absurd_extreme_comparisons -A clippy::eq_op
+
+      - name: Run clippy (strict mode)
+        continue-on-error: true
+        run: cargo clippy --all-features -- -D warnings -A clippy::absurd_extreme_comparisons -A clippy::eq_op -A clippy::missing_docs_in_private_items
+
+  # Job 4: Format Verification
+  format-verification:
+    name: Rustfmt Format Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust nightly (for rustfmt)
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+  # Job 5: Benchmark Compilation (verify benchmarks build)
+  benchmark-compilation:
+    name: Benchmark Compilation Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+
+      - name: Build all benchmarks
+        run: cargo bench --all-features --no-run
+
+  # Job 6: Documentation Build
+  documentation-build:
+    name: Documentation Generation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+
+      - name: Generate documentation
+        run: cargo doc --all-features --no-deps
+
+  # Job 7: Capsule Count Verification
+  capsule-count-verification:
+    name: Verify Minimum Capsule Count
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Count ComputationalCapsule derives
+        run: |
+          echo "=== Phase 4 Capsule Verification ==="
+          CAPSULE_COUNT=$(grep -r "derive.*ComputationalCapsule" src/ | wc -l)
+          echo "Found $CAPSULE_COUNT capsules with #[derive(ComputationalCapsule)]"
+
+          MIN_EXPECTED=15
+          if [ "$CAPSULE_COUNT" -lt "$MIN_EXPECTED" ]; then
+            echo "ERROR: Expected at least $MIN_EXPECTED capsules, found $CAPSULE_COUNT"
+            exit 1
+          fi
+
+          echo "✓ Capsule count verification passed ($CAPSULE_COUNT >= $MIN_EXPECTED)"
+
+  # Job 8: Verification Report Generation
+  verification-report:
+    name: Generate Verification Report
+    runs-on: ubuntu-latest
+    needs: [stable-compilation, nightly-compilation, clippy-verification]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+
+      - name: Generate verification report
+        run: |
+          echo "=== Phase 4 Comprehensive Verification Report ===" > verification_report.txt
+          echo "" >> verification_report.txt
+          echo "Date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> verification_report.txt
+          echo "Commit: ${{ github.sha }}" >> verification_report.txt
+          echo "Branch: ${{ github.ref_name }}" >> verification_report.txt
+          echo "" >> verification_report.txt
+
+          echo "## Compilation Status" >> verification_report.txt
+          cargo build --all-features 2>&1 | tail -5 >> verification_report.txt
+          echo "" >> verification_report.txt
+
+          echo "## Test Status" >> verification_report.txt
+          cargo test --all-features 2>&1 | grep "test result:" >> verification_report.txt
+          echo "" >> verification_report.txt
+
+          echo "## Clippy Status" >> verification_report.txt
+          cargo clippy --all-features 2>&1 | tail -3 >> verification_report.txt
+          echo "" >> verification_report.txt
+
+          echo "## Capsule Count" >> verification_report.txt
+          grep -r "derive.*ComputationalCapsule" src/ | wc -l >> verification_report.txt
+
+          cat verification_report.txt
+
+      - name: Upload verification report
+        uses: actions/upload-artifact@v3
+        with:
+          name: phase4-verification-report
+          path: verification_report.txt
+          retention-days: 30
+
+  # Job 9: Performance Baseline (optional, for tracking)
+  performance-baseline:
+    name: Performance Baseline Measurement
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+
+      - name: Run baseline benchmarks
+        run: |
+          cargo bench --all-features --bench parallel_benchmarks 2>&1 | tee benchmark_baseline.txt || true
+
+      - name: Upload baseline results
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-baseline
+          path: benchmark_baseline.txt
+          retention-days: 90

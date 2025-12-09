@@ -176,7 +176,7 @@ Developers ask quick questions → Quick Reference answers them → Want details
 - Classification clear (public non-trade-secret)
 - Next review date defined (Q1 2026)
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 
 ✅ **Acknowledged**
 
@@ -333,7 +333,7 @@ TOTAL:                          2,162 lines
 | **Testing documented** | ✅ Met | 38 tests on x86_64, needs planned for others |
 | **Performance analyzed** | ✅ Met | Snapshot latency, stack unwinding, memory overhead tables |
 | **README integrated** | ✅ Met | Platform Support section added to README.md |
-| **Framework compliance** | ✅ Met | UCE34 Q8+Q34, COCA, B32, ASSUM coverage |
+| **Framework compliance** | ✅ Met | UCE34 Q8+Q34, Chaos, B32, ASSUM coverage |
 
 ---
 
@@ -345,7 +345,7 @@ TOTAL:                          2,162 lines
 - ✅ **Honesty**: No exaggerated claims, caveats documented
 - ✅ **Usability**: Clear organization, table of contents, examples
 - ✅ **Maintainability**: Markdown format, easy to update, references clear
-- ✅ **Compliance**: Follows UCE34 framework, COCA philosophy
+- ✅ **Compliance**: Follows UCE34 framework, Chaos philosophy
 - ✅ **Integration**: README and Cargo.toml enhanced
 
 ---
@@ -401,8 +401,8 @@ TOTAL:                          2,162 lines
 - `/home/samuel/Primitives/kdb/README.md` - Main project README
 - `/home/samuel/Primitives/kdb/CLAUDE.md` - Project configuration
 - `/home/samuel/Primitives/kdb/docs/` - Additional documentation
-- `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md` - COCA framework
-- `/home/samuel/Docs/The Computational Capsule.md` - COCA philosophy
+- `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md` - Chaos framework
+- `/home/samuel/Docs/The Computational Capsule.md` - Chaos philosophy
 
 ### External References
 

@@ -1,0 +1,1527 @@
+warning: /home/samuel/Primitives/Cargo.toml: `panic` setting is ignored for `bench` profile
+warning: unused import: `std::time::Duration`
+   --> src/primitives/coordination/tests.rs:253:9
+    |
+253 |     use std::time::Duration;
+    |         ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/primitives/mod.rs:180:9
+    |
+180 |     use super::*;
+    |         ^^^^^^^^
+
+warning: unused import: `std::io`
+  --> src/error.rs:11:5
+   |
+11 | use std::io;
+   |     ^^^^^^^
+
+warning: unexpected `cfg` condition value: `proptest-disabled`
+   --> src/hash/const_hash.rs:281:21
+    |
+281 |     #[cfg(all(test, feature = "proptest-disabled"))]
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `DISABLED_PENDING_TRAIT_UPDATE`, `adaptive-parallel`, `alloc`, `anomaly-detection`, `async-broadcast`, `async-channels`, `async-log`, `async-mpsc`, `async-oneshot`, `async-watch`, `atomic-core`, `audit-q34`, `audit-trail`, `auto_tune`, `batch-native`, `batch-wasm`, `bloom-filter`, `bloom-filter-all`, `bloom-filter-persistent`, `bloom-filter-simd`, `btree-batch`, `btree-cow`, `btree-cow-simd`, `btree-simd`, `cache`, `cache-encryption`, `cache-hmac`, `cache-multi-tenant`, `cache-security-full`, `capsule-mmap`, `capsule-os`, `capsule-serialize`, `circuit-breaker-adaptive`, `circuit-breaker-auto-tune`, and `circuit-breaker-compact48` and 139 more
+    = help: consider adding `proptest-disabled` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: requested on the command line with `-W unexpected-cfgs`
+
+warning: unexpected `cfg` condition value: `proptest-disabled`
+   --> src/hash/simd_hash.rs:319:21
+    |
+319 |     #[cfg(all(test, feature = "proptest-disabled"))]
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `DISABLED_PENDING_TRAIT_UPDATE`, `adaptive-parallel`, `alloc`, `anomaly-detection`, `async-broadcast`, `async-channels`, `async-log`, `async-mpsc`, `async-oneshot`, `async-watch`, `atomic-core`, `audit-q34`, `audit-trail`, `auto_tune`, `batch-native`, `batch-wasm`, `bloom-filter`, `bloom-filter-all`, `bloom-filter-persistent`, `bloom-filter-simd`, `btree-batch`, `btree-cow`, `btree-cow-simd`, `btree-simd`, `cache`, `cache-encryption`, `cache-hmac`, `cache-multi-tenant`, `cache-security-full`, `capsule-mmap`, `capsule-os`, `capsule-serialize`, `circuit-breaker-adaptive`, `circuit-breaker-auto-tune`, and `circuit-breaker-compact48` and 139 more
+    = help: consider adding `proptest-disabled` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unused import: `core::time::Duration`
+  --> src/install/installer_state.rs:74:5
+   |
+74 | use core::time::Duration;
+   |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Barrier` and `Mutex`
+  --> src/parallel/hybrid_batch_pool.rs:37:22
+   |
+37 | use std::sync::{Arc, Barrier, Mutex};
+   |                      ^^^^^^^  ^^^^^
+
+warning: unused import: `std::sync::Arc`
+   --> src/parallel/result_aggregator_v2.rs:707:9
+    |
+707 |     use std::sync::Arc;
+    |         ^^^^^^^^^^^^^^
+
+warning: unused import: `ParallelError`
+  --> src/parallel/tests/parallel_contention_minimal.rs:15:23
+   |
+15 | use crate::parallel::{ParallelError, ThreadPool};
+   |                       ^^^^^^^^^^^^^
+
+warning: unused import: `ParallelError`
+  --> src/parallel/tests/parallel_panic_minimal.rs:14:23
+   |
+14 | use crate::parallel::{ParallelError, ThreadPool};
+   |                       ^^^^^^^^^^^^^
+
+warning: unused import: `ParallelError`
+  --> src/parallel/tests/parallel_shutdown_minimal.rs:14:23
+   |
+14 | use crate::parallel::{ParallelError, ThreadPool};
+   |                       ^^^^^^^^^^^^^
+
+warning: hidden lifetime parameters in types are deprecated
+   --> src/daemon/lock.rs:63:47
+    |
+ 63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard> {
+    |                                               ^^^^^^^^^ expected lifetime parameter
+    |
+note: the lint level is defined here
+   --> src/lib.rs:124:23
+    |
+124 | #![warn(missing_docs, rust_2018_idioms)]
+    |                       ^^^^^^^^^^^^^^^^
+    = note: `#[warn(elided_lifetimes_in_paths)]` implied by `#[warn(rust_2018_idioms)]`
+help: indicate the anonymous lifetime
+    |
+ 63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard<'_>> {
+    |                                                        ++++
+
+warning: unnecessary parentheses around assigned value
+   --> src/daemon/lock.rs:163:29
+    |
+163 |             let new_state = ((gen as u64 + 1) << 32);
+    |                             ^                      ^
+    |
+    = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+    |
+163 -             let new_state = ((gen as u64 + 1) << 32);
+163 +             let new_state = (gen as u64 + 1) << 32;
+    |
+
+warning: hidden lifetime parameters in types are deprecated
+  --> src/daemon/mod.rs:86:49
+   |
+86 |         let _guard_type = std::any::type_name::<LockGuard>();
+   |                                                 ^^^^^^^^^ expected lifetime parameter
+   |
+help: indicate the anonymous lifetime
+   |
+86 |         let _guard_type = std::any::type_name::<LockGuard<'_>>();
+   |                                                          ++++
+
+warning: unused variable: `speed1`
+   --> src/install/download_progress.rs:547:13
+    |
+547 |         let speed1 = progress.speed_bps();
+    |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_speed1`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `i`
+   --> src/parallel/segmented_mpmc.rs:448:13
+    |
+448 |         for i in 0..10 {
+    |             ^ help: if this is intentional, prefix it with an underscore: `_i`
+
+warning: variable `total_executed` is assigned to, but never used
+   --> src/parallel/segmented_mpmc.rs:622:13
+    |
+622 |         let mut total_executed = 0;
+    |             ^^^^^^^^^^^^^^^^^^
+    |
+    = note: consider using `_total_executed` instead
+
+warning: value assigned to `total_executed` is never read
+   --> src/parallel/segmented_mpmc.rs:624:13
+    |
+624 |             total_executed += h.join().unwrap();
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `thread_id`
+   --> src/parallel/segmented_mpmc.rs:789:19
+    |
+789 |             .map(|thread_id| {
+    |                   ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_thread_id`
+
+warning: unused variable: `result`
+   --> src/parallel/tests/parallel_panic_minimal.rs:106:9
+    |
+106 |     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+    |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_result`
+
+warning: unused variable: `e`
+   --> src/parallel/tests/parallel_shutdown_minimal.rs:210:9
+    |
+210 |     let e = executed.clone();
+    |         ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `queue_capacity`
+   --> src/daemon/coordinator.rs:101:33
+    |
+101 |     pub fn new(timeout_ns: u64, queue_capacity: usize) -> DaemonResult<Self> {
+    |                                 ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_queue_capacity`
+
+warning: constant `SECONDS_PER_MONTH` is never used
+  --> src/patterns/quota_tracker.rs:80:7
+   |
+80 | const SECONDS_PER_MONTH: u64 = 30 * 24 * 60 * 60;
+   |       ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `PHASE_BITS` is never used
+  --> src/install/installer_state.rs:80:7
+   |
+80 | const PHASE_BITS: u32 = 4;
+   |       ^^^^^^^^^^
+
+warning: method `free_slot` is never used
+   --> src/parallel/atomic_slot_pool.rs:331:8
+    |
+112 | impl AtomicSlotPool {
+    | ------------------- method in this implementation
+...
+331 |     fn free_slot(&self, slot_idx: usize) {
+    |        ^^^^^^^^^
+
+warning: field `id` is never read
+   --> src/parallel/tests/iter_tests.rs:573:9
+    |
+572 |     struct Record {
+    |            ------ field in this struct
+573 |         id: usize,
+    |         ^^
+    |
+    = note: `Record` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: function `assert_send` is never used
+   --> src/collections/error.rs:265:8
+    |
+265 |     fn assert_send<T: Send>() {}
+    |        ^^^^^^^^^^^
+
+warning: function `assert_sync` is never used
+   --> src/collections/error.rs:266:8
+    |
+266 |     fn assert_sync<T: Sync>() {}
+    |        ^^^^^^^^^^^
+
+warning: function `verify_error_traits` is never used
+   --> src/collections/error.rs:268:8
+    |
+268 |     fn verify_error_traits() {
+    |        ^^^^^^^^^^^^^^^^^^^
+
+warning: method `is_occupied` is never used
+   --> src/collections/append_only_map_optimized.rs:100:8
+    |
+ 88 | impl<K, V> MapEntry<K, V> {
+    | ------------------------- method in this implementation
+...
+100 |     fn is_occupied(&self) -> bool {
+    |        ^^^^^^^^^^^
+
+warning: method `try_claim` is never used
+   --> src/collections/concurrent_map.rs:216:8
+    |
+168 | impl<K, V> MapEntry<K, V> {
+    | ------------------------- method in this implementation
+...
+216 |     fn try_claim(&self, hash: u64, value: *mut V) -> Result<(), u64> {
+    |        ^^^^^^^^^
+
+warning: field `period_ns` is never read
+    --> src/collections/concurrent_map.rs:2075:13
+     |
+2073 |         struct Config {
+     |                ------ field in this struct
+2074 |             capacity: u32,
+2075 |             period_ns: u64,
+     |             ^^^^^^^^^
+
+warning: method `try_get` is never used
+   --> src/collections/entry.rs:453:19
+    |
+348 | / impl<'a, K, V> OccupiedEntry<'a, K, V>
+349 | | where
+350 | |     K: Hash + Eq + Clone + Send + Sync,
+351 | |     V: Send + Sync,
+    | |___________________- method in this implementation
+...
+453 |       pub(crate) fn try_get(&self) -> Option<&V> {
+    |                     ^^^^^^^
+
+warning: function `assert_alignment` is never used
+   --> src/mcp/tool_registry.rs:205:14
+    |
+205 |     const fn assert_alignment() {
+    |              ^^^^^^^^^^^^^^^^
+
+warning: constant `ASSERT` is never used
+   --> src/tui/file_navigator.rs:137:11
+    |
+137 |     const ASSERT: () = assert!(
+    |           ^^^^^^
+
+warning: constant `ASSERT_ALIGN` is never used
+   --> src/tui/file_navigator.rs:141:11
+    |
+141 |     const ASSERT_ALIGN: () = assert!(
+    |           ^^^^^^^^^^^^
+
+warning: comparison is useless due to type limits
+   --> src/patterns/quota_tracker.rs:960:17
+    |
+960 |         assert!(tracker.total_violations() >= 0);
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_comparisons)]` on by default
+
+warning: comparison is useless due to type limits
+   --> src/install/download_progress.rs:701:17
+    |
+701 |         assert!(speed >= 0, "Speed should never be negative");
+    |                 ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/install/install_audit.rs:167:22
+    |
+167 |     TamperDetected { event: u64, reason: String },
+    |                      ^^^^^^^^^^
+    |
+note: the lint level is defined here
+   --> src/lib.rs:124:9
+    |
+124 | #![warn(missing_docs, rust_2018_idioms)]
+    |         ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> src/install/install_audit.rs:167:34
+    |
+167 |     TamperDetected { event: u64, reason: String },
+    |                                  ^^^^^^^^^^^^^^
+
+warning: unused `std::result::Result` that must be used
+  --> src/parallel/tests/parallel_contention_minimal.rs:47:13
+   |
+47 | /             s.spawn(move || {
+48 | |                 // Minimal work to keep contention high
+49 | |                 black_box(42);
+50 | |                 c.fetch_add(1, SeqCst);
+...  |
+54 | |             });
+   | |______________^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+   = note: `#[warn(unused_must_use)]` (part of `#[warn(unused)]`) on by default
+help: use `let _ = ...` to ignore the resulting value
+   |
+47 |             let _ = s.spawn(move || {
+   |             +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_contention_minimal.rs:112:17
+    |
+112 | /                 s.spawn(move || {
+113 | |                     black_box(42);
+114 | |                     c.fetch_add(1, SeqCst);
+115 | |                 });
+    | |__________________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+112 |                 let _ = s.spawn(move || {
+    |                 +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_contention_minimal.rs:160:17
+    |
+160 | /                 s.spawn(move || {
+161 | |                     black_box(42);
+162 | |                     c.fetch_add(1, SeqCst);
+163 | |                 });
+    | |__________________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+160 |                 let _ = s.spawn(move || {
+    |                 +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_contention_minimal.rs:200:13
+    |
+200 | /             s.spawn(move || {
+201 | |                 black_box(42);
+202 | |                 c.fetch_add(1, SeqCst);
+203 | |             });
+    | |______________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+200 |             let _ = s.spawn(move || {
+    |             +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_contention_minimal.rs:221:13
+    |
+221 | /             s.spawn(move || {
+222 | |                 black_box(42);
+223 | |                 c.fetch_add(1, SeqCst);
+224 | |             });
+    | |______________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+221 |             let _ = s.spawn(move || {
+    |             +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_contention_minimal.rs:263:13
+    |
+263 | /             s.spawn(move || {
+264 | |                 black_box(42);
+265 | |                 c.fetch_add(1, SeqCst);
+266 | |                 if i % 10_000 == 0 {
+...   |
+269 | |             });
+    | |______________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+263 |             let _ = s.spawn(move || {
+    |             +++++++
+
+warning: unused `std::result::Result` that must be used
+  --> src/parallel/tests/parallel_panic_minimal.rs:45:13
+   |
+45 | /             s.spawn(move || {
+46 | |                 c0.fetch_add(1, SeqCst);
+47 | |                 eprintln!("[Task 0] Completed normally");
+48 | |             });
+   | |______________^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+   |
+45 |             let _ = s.spawn(move || {
+   |             +++++++
+
+warning: unused `std::result::Result` that must be used
+  --> src/parallel/tests/parallel_panic_minimal.rs:51:13
+   |
+51 | /             s.spawn(|| {
+52 | |                 eprintln!("[Task 1] About to panic...");
+53 | |                 panic!("Expected panic - testing queue corruption");
+54 | |             });
+   | |______________^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+   |
+51 |             let _ = s.spawn(|| {
+   |             +++++++
+
+warning: unused `std::result::Result` that must be used
+  --> src/parallel/tests/parallel_panic_minimal.rs:58:13
+   |
+58 | /             s.spawn(move || {
+59 | |                 c2.fetch_add(1, SeqCst);
+60 | |                 eprintln!("[Task 2] Completed normally");
+61 | |             });
+   | |______________^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+   |
+58 |             let _ = s.spawn(move || {
+   |             +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_panic_minimal.rs:111:17
+    |
+111 | /                 s.spawn(move || {
+112 | |                     if i % 3 == 0 {
+113 | |                         panic!("Panic in task {}", i);
+114 | |                     } else {
+...   |
+118 | |                 });
+    | |__________________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+111 |                 let _ = s.spawn(move || {
+    |                 +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_panic_minimal.rs:160:13
+    |
+160 | /             s.spawn(|| {
+161 | |                 panic!("Intentional panic");
+162 | |             });
+    | |______________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+160 |             let _ = s.spawn(|| {
+    |             +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_panic_minimal.rs:173:13
+    |
+173 | /             s.spawn(move || {
+174 | |                 c.fetch_add(1, SeqCst);
+175 | |                 eprintln!("[Task {}] Completed in phase 2", i);
+176 | |             });
+    | |______________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+173 |             let _ = s.spawn(move || {
+    |             +++++++
+
+warning: unused `std::result::Result` that must be used
+  --> src/parallel/tests/parallel_shutdown_minimal.rs:46:13
+   |
+46 | /             s.spawn(move || {
+47 | |                 // Simulate 1ms work
+48 | |                 thread::sleep(Duration::from_millis(1));
+49 | |                 e.fetch_add(1, SeqCst);
+...  |
+53 | |             });
+   | |______________^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+   |
+46 |             let _ = s.spawn(move || {
+   |             +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_shutdown_minimal.rs:109:13
+    |
+109 | /             s.spawn(move || {
+110 | |                 // Minimal work (maximize steal attempts)
+111 | |                 e.fetch_add(1, SeqCst);
+112 | |                 if i % 1000 == 0 {
+...   |
+115 | |             });
+    | |______________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+109 |             let _ = s.spawn(move || {
+    |             +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_shutdown_minimal.rs:166:17
+    |
+166 | /                 s.spawn(move || {
+167 | |                     thread::sleep(Duration::from_micros(100));
+168 | |                     e.fetch_add(1, SeqCst);
+169 | |                 });
+    | |__________________^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+166 |                 let _ = s.spawn(move || {
+    |                 +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/parallel/tests/parallel_shutdown_minimal.rs:236:5
+    |
+236 |     submit_handle.join();
+    |     ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+236 |     let _ = submit_handle.join();
+    |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2244:5
+     |
+2244 |     map.insert("hello".to_string(), 42);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2244 |     let _ = map.insert("hello".to_string(), 42);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2245:5
+     |
+2245 |     map.insert("world".to_string(), 100);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2245 |     let _ = map.insert("world".to_string(), 100);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2258:5
+     |
+2258 |     map.insert("key1".to_string(), 1);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2258 |     let _ = map.insert("key1".to_string(), 1);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2259:5
+     |
+2259 |     map.insert("key2".to_string(), 2);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2259 |     let _ = map.insert("key2".to_string(), 2);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2272:5
+     |
+2272 |     map.insert("hello".to_string(), 42);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2272 |     let _ = map.insert("hello".to_string(), 42);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2288:5
+     |
+2288 |     map.insert(key1.clone(), "value1".to_string());
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2288 |     let _ = map.insert(key1.clone(), "value1".to_string());
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2289:5
+     |
+2289 |     map.insert(key2.clone(), "value2".to_string());
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2289 |     let _ = map.insert(key2.clone(), "value2".to_string());
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2308:5
+     |
+2308 |     map.insert("test".to_string(), 123);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2308 |     let _ = map.insert("test".to_string(), 123);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2339:5
+     |
+2339 |     map.insert("alpha".to_string(), 1);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2339 |     let _ = map.insert("alpha".to_string(), 1);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2345:5
+     |
+2345 |     map.insert("alpha".to_string(), 2);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2345 |     let _ = map.insert("alpha".to_string(), 2);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2367:9
+     |
+2367 |         map.insert(format!("key{}", i), i);
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2367 |         let _ = map.insert(format!("key{}", i), i);
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2394:5
+     |
+2394 |     map.insert("".to_string(), 0);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2394 |     let _ = map.insert("".to_string(), 0);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2407:5
+     |
+2407 |     map.insert(long_key.clone(), 999);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2407 |     let _ = map.insert(long_key.clone(), 999);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2419:5
+     |
+2419 |     map.insert("こんにちは".to_string(), 1);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2419 |     let _ = map.insert("こんにちは".to_string(), 1);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2420:5
+     |
+2420 |     map.insert("🦀 Rust".to_string(), 2);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2420 |     let _ = map.insert("🦀 Rust".to_string(), 2);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2421:5
+     |
+2421 |     map.insert("Привет".to_string(), 3);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2421 |     let _ = map.insert("Привет".to_string(), 3);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2433:5
+     |
+2433 |     map.insert(" ".to_string(), 1);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2433 |     let _ = map.insert(" ".to_string(), 1);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2434:5
+     |
+2434 |     map.insert("\t".to_string(), 2);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2434 |     let _ = map.insert("\t".to_string(), 2);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2435:5
+     |
+2435 |     map.insert("\n".to_string(), 3);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2435 |     let _ = map.insert("\n".to_string(), 3);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2436:5
+     |
+2436 |     map.insert("  spaces  ".to_string(), 4);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2436 |     let _ = map.insert("  spaces  ".to_string(), 4);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2449:5
+     |
+2449 |     map.insert("key".to_string(), 100);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2449 |     let _ = map.insert("key".to_string(), 100);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2456:5
+     |
+2456 |     map.insert("key".to_string(), 200);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2456 |     let _ = map.insert("key".to_string(), 200);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2475:17
+     |
+2475 |                 map_clone.insert(format!("key{}", i), i);
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2475 |                 let _ = map_clone.insert(format!("key{}", i), i);
+     |                 +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2520:5
+     |
+2520 |     map.insert("Hello".to_string(), 1);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2520 |     let _ = map.insert("Hello".to_string(), 1);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2521:5
+     |
+2521 |     map.insert("hello".to_string(), 2);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2521 |     let _ = map.insert("hello".to_string(), 2);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2522:5
+     |
+2522 |     map.insert("HELLO".to_string(), 3);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2522 |     let _ = map.insert("HELLO".to_string(), 3);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2534:5
+     |
+2534 |     map.insert("key@123".to_string(), 1);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2534 |     let _ = map.insert("key@123".to_string(), 1);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2535:5
+     |
+2535 |     map.insert("key#456".to_string(), 2);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2535 |     let _ = map.insert("key#456".to_string(), 2);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2536:5
+     |
+2536 |     map.insert("key$789".to_string(), 3);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2536 |     let _ = map.insert("key$789".to_string(), 3);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2549:5
+     |
+2549 |     map.insert(key.clone(), 42);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2549 |     let _ = map.insert(key.clone(), 42);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2564:9
+     |
+2564 |         map.insert(format!("key{:04}", i), i);
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2564 |         let _ = map.insert(format!("key{:04}", i), i);
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2593:9
+     |
+2593 |         map.insert("reused_key".to_string(), iteration);
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2593 |         let _ = map.insert("reused_key".to_string(), iteration);
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2605:5
+     |
+2605 |     map.insert("a".to_string(), 1);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2605 |     let _ = map.insert("a".to_string(), 1);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2606:5
+     |
+2606 |     map.insert("ab".to_string(), 2);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2606 |     let _ = map.insert("ab".to_string(), 2);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2607:5
+     |
+2607 |     map.insert("abc".to_string(), 3);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2607 |     let _ = map.insert("abc".to_string(), 3);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2608:5
+     |
+2608 |     map.insert("abcd".to_string(), 4);
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2608 |     let _ = map.insert("abcd".to_string(), 4);
+     |     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:1378:9
+     |
+1378 |         map.insert(1, "hello".to_string());
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1378 |         let _ = map.insert(1, "hello".to_string());
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:1379:9
+     |
+1379 |         map.insert(2, "world".to_string());
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1379 |         let _ = map.insert(2, "world".to_string());
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:1390:9
+     |
+1390 |         map.insert(1, "hello".to_string());
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1390 |         let _ = map.insert(1, "hello".to_string());
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:1456:21
+     |
+1456 |                     map_clone.insert(key, key * 10);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1456 |                     let _ = map_clone.insert(key, key * 10);
+     |                     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:1549:21
+     |
+1549 |                     map_clone.insert(i, i * 10);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1549 |                     let _ = map_clone.insert(i, i * 10);
+     |                     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:1559:21
+     |
+1559 |                     map_clone.insert(i, i * 10);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1559 |                     let _ = map_clone.insert(i, i * 10);
+     |                     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/concurrent_map.rs:2046:25
+     |
+2046 |                         map_clone.insert(50 + i, (50 + i) * 10);
+     |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2046 |                         let _ = map_clone.insert(50 + i, (50 + i) * 10);
+     |                         +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/collections/entry.rs:905:9
+    |
+905 |         map.insert(42, String::from("existing"));
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+905 |         let _ = map.insert(42, String::from("existing"));
+    |         +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/collections/entry.rs:923:9
+    |
+923 |         map.insert(42, 50);
+    |         ^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+923 |         let _ = map.insert(42, 50);
+    |         +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/collections/entry.rs:946:9
+    |
+946 |         map.insert(42, 100);
+    |         ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+946 |         let _ = map.insert(42, 100);
+    |         +++++++
+
+warning: unused `std::result::Result` that must be used
+   --> src/collections/entry.rs:992:9
+    |
+992 |         map.insert(42, String::from("value"));
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+    |
+992 |         let _ = map.insert(42, String::from("value"));
+    |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/entry.rs:1004:9
+     |
+1004 |         map.insert(42, String::from("value"));
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1004 |         let _ = map.insert(42, String::from("value"));
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/entry.rs:1017:9
+     |
+1017 |         map.insert(42, String::from("old"));
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1017 |         let _ = map.insert(42, String::from("old"));
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/entry.rs:1031:9
+     |
+1031 |         map.insert(42, String::from("value"));
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1031 |         let _ = map.insert(42, String::from("value"));
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/entry.rs:1046:9
+     |
+1046 |         map.insert(42, String::from("value"));
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1046 |         let _ = map.insert(42, String::from("value"));
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1409:9
+     |
+1409 |         table.insert(1u64, "value".to_string());
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1409 |         let _ = table.insert(1u64, "value".to_string());
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1420:9
+     |
+1420 |         table.insert(key.clone(), 100);
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1420 |         let _ = table.insert(key.clone(), 100);
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1432:9
+     |
+1432 |         table.insert(key.clone(), 42);
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1432 |         let _ = table.insert(key.clone(), 42);
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1444:13
+     |
+1444 |             table.insert(key.clone(), i * 2);
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1444 |             let _ = table.insert(key.clone(), i * 2);
+     |             +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1460:9
+     |
+1460 |         table.insert(key.clone(), 42);
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1460 |         let _ = table.insert(key.clone(), 42);
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1469:9
+     |
+1469 |         table.insert(key.clone(), 42);
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1469 |         let _ = table.insert(key.clone(), 42);
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1481:9
+     |
+1481 |         table.insert(key.clone(), 100);
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1481 |         let _ = table.insert(key.clone(), 100);
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1570:21
+     |
+1570 |                     table_clone.insert(key, i);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1570 |                     let _ = table_clone.insert(key, i);
+     |                     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1631:21
+     |
+1631 |                     table_clone.insert(key, key * 2);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1631 |                     let _ = table_clone.insert(key, key * 2);
+     |                     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1665:21
+     |
+1665 |                     table_clone.insert(key, i * 2);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1665 |                     let _ = table_clone.insert(key, i * 2);
+     |                     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1708:29
+     |
+1708 | ...                   table_clone.insert(i, new_val);
+     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1708 |                             let _ = table_clone.insert(i, new_val);
+     |                             +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1771:21
+     |
+1771 |                     table_clone.insert(key, key);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1771 |                     let _ = table_clone.insert(key, key);
+     |                     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1798:9
+     |
+1798 |         table.insert(42, "value".to_string());
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1798 |         let _ = table.insert(42, "value".to_string());
+     |         +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:1979:17
+     |
+1979 |                 table_clone.insert(i, i);
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+1979 |                 let _ = table_clone.insert(i, i);
+     |                 +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:2045:21
+     |
+2045 |                     table_clone.insert(key, key * 2);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2045 |                     let _ = table_clone.insert(key, key * 2);
+     |                     +++++++
+
+warning: unused `std::result::Result` that must be used
+    --> src/collections/lockfree_table.rs:2075:21
+     |
+2075 |                     table_clone.insert(key, i);
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2075 |                     let _ = table_clone.insert(key, i);
+     |                     +++++++
+
+warning: comparison is useless due to type limits
+   --> src/tui/audit_log.rs:869:17
+    |
+869 |         assert!(audit.prev_hash() >= 0);         // ✓
+    |                 ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/tui/file_navigator.rs:149:5
+    |
+149 |     pub const HIDE_HIDDEN: u32 = 1 << 0;  // Hide files starting with .
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/tui/file_navigator.rs:150:5
+    |
+150 |     pub const HIDE_READONLY: u32 = 1 << 1; // Hide readonly files
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/tui/file_navigator.rs:151:5
+    |
+151 |     pub const HIDE_SYMLINKS: u32 = 1 << 2;  // Hide symbolic links
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> src/tui/file_navigator.rs:152:5
+    |
+152 |     pub const RECURSIVE: u32 = 1 << 3;      // Enable recursive directory descent
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/daemon/error.rs:22:16
+   |
+22 |     LockHeld { holder_pid: u32 },
+   |                ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/daemon/error.rs:27:19
+   |
+27 |     LockTimeout { waited_ns: u64 },
+   |                   ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> src/daemon/error.rs:32:17
+   |
+32 |     QueueFull { capacity: usize },
+   |                 ^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+  --> src/daemon/lock.rs:51:5
+   |
+51 |     pub const fn new(timeout_ns: u64) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> src/daemon/lock.rs:63:5
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> src/daemon/lock.rs:63:24
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard> {
+   |                        ^^^^^                  ^^^^^^^^^ the same lifetime is hidden here
+   |                        |
+   |                        the lifetime is elided here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard<'_>> {
+   |                                                        ++++
+
+warning: missing documentation for a method
+   --> src/daemon/lock.rs:121:5
+    |
+121 |     pub fn is_locked(&self) -> bool {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/daemon/lock.rs:127:5
+    |
+127 |     pub fn holder(&self) -> Option<u32> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/daemon/lock.rs:137:5
+    |
+137 |     pub fn stats(&self) -> (u64, u64, u64) {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> src/daemon/lock.rs:146:5
+    |
+146 |     pub fn timeout_ns(&self) -> u64 {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct
+   --> src/daemon/lock.rs:151:1
+    |
+151 | pub struct LockGuard<'a> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `atomic_capsule` (lib test) generated 139 warnings (run `cargo fix --lib -p atomic_capsule --tests` to apply 17 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.13s
+     Running unittests src/lib.rs (target/debug/deps/atomic_capsule-ea55231ac73f282e)
+
+running 49 tests
+test cli::tests::test_builtin_non_empty_passes ... ok
+test cli::tests::test_builtin_non_empty_fails ... ok
+test cli::tests::test_boolean_flag_with_empty_default ... ok
+test cli::tests::test_builtin_non_negative_int_passes_zero ... ok
+test cli::tests::test_builtin_positive_int_fails_negative ... ok
+test cli::tests::test_builtin_range_0_1_fails_above ... ok
+test cli::tests::test_builtin_positive_int_passes ... ok
+test cli::tests::test_builtin_positive_int_fails_zero ... ok
+test cli::tests::test_builtin_range_0_1_fails_below ... ok
+test cli::tests::test_builtin_range_0_1_passes ... ok
+test cli::tests::test_builtin_range_0_1_passes_boundaries ... ok
+test cli::tests::test_cli_flag_overrides_env_var ... ok
+test cli::tests::test_default_applied_when_flag_not_provided ... ok
+test cli::tests::test_command_suggestion ... ok
+test cli::tests::test_default_overridden_by_user ... ok
+test cli::tests::test_default_shown_in_help ... ok
+test cli::tests::test_default_used_when_env_var_not_set ... ok
+test cli::tests::test_defaults_with_positional_args ... ok
+test cli::tests::test_defaults_with_required_flags ... ok
+test cli::tests::test_env_mapping_added_to_spec ... ok
+test cli::tests::test_env_var_combined_with_default ... ok
+test cli::tests::test_env_var_used_when_flag_not_provided ... ok
+test cli::tests::test_env_var_validation_fails ... ok
+test cli::tests::test_env_var_with_validator ... ok
+test cli::tests::test_flag_missing_value_equals ... ok
+test cli::tests::test_flag_missing_value_space_separated ... ok
+test cli::tests::test_flag_parsing_equals ... ok
+test cli::tests::test_flag_parsing_space_separated ... ok
+test cli::tests::test_global_flag_added_to_spec ... ok
+test cli::tests::test_has_flag ... ok
+test cli::tests::test_help_generation ... ok
+test cli::tests::test_levenshtein_distance ... ok
+test cli::tests::test_long_flags ... ok
+test cli::tests::test_missing_required_arg_error ... ok
+test cli::tests::test_mixed_flags_and_positional ... ok
+test cli::tests::test_multiple_defaults ... ok
+test cli::tests::test_multiple_env_mappings ... ok
+test cli::tests::test_multiple_global_flags ... ok
+test cli::tests::test_missing_required_flag_error ... ok
+test cli::tests::test_no_command_error ... ok
+test cli::tests::test_positional_args ... ok
+test cli::tests::test_multiple_validators ... ok
+test cli::tests::test_simple_command_parsing ... ok
+test cli::tests::test_unknown_command_error ... ok
+test cli::tests::test_selective_defaults ... ok
+test cli::tests::test_validator_fails ... ok
+test cli::tests::test_validator_fails_for_invalid_default ... ok
+test cli::tests::test_validator_passes ... ok
+test cli::tests::test_validator_with_default ... ok
+
+test result: ok. 49 passed; 0 failed; 0 ignored; 0 measured; 1421 filtered out; finished in 0.00s
+

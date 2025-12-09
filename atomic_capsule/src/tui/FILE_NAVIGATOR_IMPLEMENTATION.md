@@ -116,7 +116,7 @@ All assumptions are verified at compile-time:
 | `#ASSUME_VALID_INDEX` | Logic invariant | `navigate_*()` wraps at boundaries |
 | `#ASSUME_CACHE_LINE_64B` | Architecture detection | x86-64/ARM standard |
 
-## COCA (Computational Capsule) Principles
+## Chaos (Computational Capsule) Principles
 
 ✅ **100% Lockfree**: No mutex/RwLock
 ✅ **Cache-Aligned**: 128-byte alignment prevents false sharing
@@ -301,7 +301,7 @@ use atomic_capsule::tui::filter_flags;
 
 ## References
 
-- **COCA Architecture**: `/home/samuel/Docs/The Computational Capsule.md`
+- **Chaos Architecture**: `/home/samuel/Docs/The Computational Capsule.md`
 - **UCE34 Framework**: atomic_capsule/CLAUDE.md (v0.6.1)
 - **Performance (B32)**: atomic_capsule/Cargo.toml (benchmarking standards)
 - **Safety (ASSUM)**: 99.99%+ target, all assumptions verified

@@ -17,8 +17,8 @@
 //! 4. **Mixed Workload**: 80% reads, 20% writes
 //! 5. **Comparison**: LockfreeBTree vs std::BTreeMap
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use atomic_capsule::collections::lockfree_btree::LockfreeBTree;
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 use std::thread;
@@ -205,9 +205,7 @@ fn bench_stats_overhead(c: &mut Criterion) {
     let btree = LockfreeBTree::new(16);
 
     group.bench_function("stats_snapshot", |b| {
-        b.iter(|| {
-            black_box(btree.stats())
-        });
+        b.iter(|| black_box(btree.stats()));
     });
 
     group.finish();

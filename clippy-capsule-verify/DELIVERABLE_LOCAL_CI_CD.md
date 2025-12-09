@@ -4,7 +4,7 @@
 
 ## Overview
 
-Complete local CI/CD integration system for clippy-capsule-verify, enabling COCA compliance enforcement through cargo clippy without cloud dependencies.
+Complete local CI/CD integration system for clippy-capsule-verify, enabling Chaos compliance enforcement through cargo clippy without cloud dependencies.
 
 **Framework**: UCE34 Q30-Q34 (Validation + Auditability)
 **Scope**: Local enforcement only (git hooks, editor integration, cargo commands)
@@ -198,11 +198,11 @@ git commit -m "[P0 FIX] Replace Mutex with AtomicU64"
 | **UCE34** | Q30 (Validation) | ✅ Compile-time verification enforcement |
 | **UCE34** | Q33 (Lockfree) | ✅ P0.1 lint enforces lockfree mandate |
 | **UCE34** | Q34 (Auditability) | ✅ Commit message format enforced |
-| **COCA** | 100% lockfree | ✅ P0.1 denies Mutex/RwLock |
-| **COCA** | Cache-aligned | ✅ P0.2 enforces size alignment |
-| **COCA** | Generation counters | ✅ P0.3 enforces TOCTOU prevention |
-| **COCA** | Atomic types | ✅ P0.4 enforces atomic fields |
-| **COCA** | Verification macros | ✅ P1.0 warns on missing verification |
+| **Chaos** | 100% lockfree | ✅ P0.1 denies Mutex/RwLock |
+| **Chaos** | Cache-aligned | ✅ P0.2 enforces size alignment |
+| **Chaos** | Generation counters | ✅ P0.3 enforces TOCTOU prevention |
+| **Chaos** | Atomic types | ✅ P0.4 enforces atomic fields |
+| **Chaos** | Verification macros | ✅ P1.0 warns on missing verification |
 
 ## Performance Benchmarks
 
@@ -225,7 +225,7 @@ git commit -m "[P0 FIX] Replace Mutex with AtomicU64"
 - [ASSUM_FRAMEWORK.md](ASSUM_FRAMEWORK.md) - Safety assumptions
 
 ### External Documentation
-- [The Computational Capsule](/home/samuel/Docs/The%20Computational%20Capsule.md) - COCA foundation
+- [The Computational Capsule](/home/samuel/Docs/The%20Computational%20Capsule.md) - Chaos foundation
 - [KEY_INNOVATIONS](/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md) - 2-19× speedups
 - [UCE34 Framework](/home/samuel/CLAUDE.md) - Q30-Q34 validation
 - [atomic_capsule](/home/samuel/Primitives/atomic_capsule/CLAUDE.md) - 328 primitives
@@ -241,7 +241,7 @@ git commit -m "[P0 FIX] Replace Mutex with AtomicU64"
 
 ## Trade Secret Notice
 
-This deliverable is part of the clippy-capsule-verify project, which is **NOT trade secret** (open-source utility for COCA compliance).
+This deliverable is part of the clippy-capsule-verify project, which is **NOT trade secret** (open-source utility for Chaos compliance).
 
 ## Version
 
@@ -261,6 +261,6 @@ Complete local CI/CD integration system for clippy-capsule-verify:
 - ✅ **Zero cloud dependencies** (100% local enforcement)
 - ✅ **95%+ detection rate** (proven via UI tests)
 - ✅ **<1ms overhead per capsule** (compile-time only)
-- ✅ **Framework compliant** (UCE34 Q30-Q34, COCA)
+- ✅ **Framework compliant** (UCE34 Q30-Q34, Chaos)
 
 **Mission accomplished. Ready for production use.**

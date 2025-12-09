@@ -60,6 +60,8 @@
 //! - State transitions: Valid → GracePeriod → Expired, HardwareMismatch
 //! - Tamper detection: Hardware ID hash mismatch triggers immediate failure
 
+#![allow(dead_code)]
+
 use super::hardware_id::HardwareId;
 use atomic_capsule::hash::{AtomicHash256, AtomicHash64};
 use atomic_capsule::patterns::DualAtomicU64;

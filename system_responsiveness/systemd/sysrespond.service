@@ -1,0 +1,30 @@
+[Unit]
+Description=System Responsiveness Daemon (Computational Capsule Architecture)
+Documentation=https://github.com/kindly-ai/system-responsiveness
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=%h/bin/sysrespond
+Restart=on-failure
+RestartSec=5s
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sysrespond
+
+# Resource limits (self-limiting to 5% CPU, 50MB RAM)
+CPUQuota=100%
+MemoryMax=50M
+MemoryHigh=40M
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.local/share/sysrespond
+
+[Install]
+WantedBy=default.target

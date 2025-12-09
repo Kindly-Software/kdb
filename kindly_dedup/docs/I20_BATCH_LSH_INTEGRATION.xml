@@ -906,7 +906,7 @@ fn performance_budget_enforcement() {
 
         <no-gradual-rollout>
           <reason>Capsules are deterministic (tests predict production)</reason>
-          <reason>100% COCA compliant (lockfree, verified)</reason>
+          <reason>100% Chaos compliant (lockfree, verified)</reason>
           <reason>Property tests validate all edge cases (1000+ random cases)</reason>
           <reason>No statistical uncertainty (deterministic output)</reason>
         </no-gradual-rollout>
@@ -1042,7 +1042,7 @@ fn test_capsule_is_deterministic() {
       </validation>
     </framework>
 
-    <framework name="COCA">
+    <framework name="Chaos">
       <status>100% COMPLIANT</status>
       <validation>
         <item>Zero Mutex/RwLock (lockfree ConcurrentMapCapsule + rayon)</item>

@@ -1395,6 +1395,6 @@ cargo mutants --all-features
 
 **Total**: 28 tests across 4 tiers, 95%+ code coverage, 100% correctness.
 
-**Framework Compliance**: UCE34 (Q1-Q34), COCA (lockfree), B32 (fair baselines), T28 (28 tests), ASSUM (99.99% safe), I20 (integration validated), Q34 (audit trail).
+**Framework Compliance**: UCE34 (Q1-Q34), Chaos (lockfree), B32 (fair baselines), T28 (28 tests), ASSUM (99.99% safe), I20 (integration validated), Q34 (audit trail).
 
 **Performance Validation**: 5-10× depth reduction, <100μs latency (99th percentile), validated on surface code circuits (distance 3-10).

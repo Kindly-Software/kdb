@@ -13,7 +13,7 @@ crate-type = ["cdylib", "rlib"]
 name = "kindly-services-server"
 path = "src/main.rs"
 
-# Production HTTP server using COCA capsule architecture
+# Production HTTP server using Chaos capsule architecture
 [[bin]]
 name = "http_server"
 path = "src/bin/http_server.rs"
@@ -36,13 +36,14 @@ leptos_router = "0.7"
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 
-# Web APIs (WebGL, Canvas, Animation)
+# Web APIs (WebGL, Canvas, Animation, Fetch)
 web-sys = { version = "0.3", features = [
     "Window",
     "Document",
     "Element",
     "HtmlElement",
     "HtmlCanvasElement",
+    "HtmlInputElement",
     "CssStyleDeclaration",
     "WebGlRenderingContext",
     "WebGl2RenderingContext",
@@ -51,6 +52,9 @@ web-sys = { version = "0.3", features = [
     "WebGlBuffer",
     "WebGlUniformLocation",
     "WebGlContextAttributes",
+    "WebGlContextEvent",
+    "CanvasRenderingContext2d",
+    "CanvasGradient",
     "Performance",
     "Navigator",
     "Clipboard",
@@ -63,6 +67,11 @@ web-sys = { version = "0.3", features = [
     "DomRectReadOnly",
     "Location",
     "console",
+    # Fetch API for signup form
+    "Headers",
+    "Request",
+    "RequestInit",
+    "Response",
 ] }
 js-sys = "0.3"
 
@@ -76,7 +85,7 @@ getrandom = { version = "0.2", features = ["js"] }
 # Protection capsules (native-only, feature-gated)
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # atomic_capsule with encryption support (encrypted-state feature enables AES-256-GCM)
-atomic_capsule = { path = "../atomic_capsule", default-features = false, features = ["std", "http", "security-adaptive-rate-limiter", "security-constant-time-ops", "encrypted-state"], optional = true }
+atomic_capsule = { path = "../../atomic_capsule", default-features = false, features = ["std", "http", "security-adaptive-rate-limiter", "security-constant-time-ops", "encrypted-state"], optional = true }
 lazy_static = { version = "1.5", optional = true }
 sha2 = { version = "0.10", optional = true }
 hex = { version = "0.4", optional = true }

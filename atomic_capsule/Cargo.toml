@@ -253,7 +253,7 @@ terminal-output = ["terminal"]  # T1+T3: Output styling and colors
 terminal-simd = ["terminal-parser", "nightly", "portable_simd"]  # T2 SIMD parser acceleration
 terminal-unix = ["terminal"]  # Unix backend (termios, signals)
 terminal-windows = ["terminal"]  # Windows backend (SetConsoleMode)
-terminal-gpu = ["terminal", "std"]  # T4+T5: GPU rendering capsules (glyph cache, batch rasterization)
+terminal-gpu = ["terminal", "std"]  # T4+T5: GPU rendering capsules (glyph cache, batch rasterization) - Color/Rect now defined in style/types.rs
 terminal-widgets = ["terminal", "terminal-event", "std"]  # T1+T3: Widget system (button, label, checkbox, etc.)
 terminal-style = ["terminal", "std"]  # T1+T3: CSS-like animations and styling (Q16.16 timing, easing functions)
 terminal-full = ["terminal", "terminal-event", "terminal-parser", "terminal-output", "terminal-unix", "terminal-widgets", "terminal-style"]  # Complete terminal stack (excludes Windows)
@@ -425,16 +425,27 @@ profile-high-performance = ["nightly", "simd-hashing", "const-hashing", "highway
 # TIER 8: Inference Primitives (NIGHTLY-FIRST per IMPL-2 V3.1)
 inference-primitives = ["portable_simd", "std"]  # Base inference (REQUIRES nightly)
 inference-matmul = ["inference-primitives", "dep:rayon"]  # T2+T4 matmul
+inference-rmsnorm = ["inference-primitives"]  # T2 SIMD: RMS Normalization (Qwen3/LLaMA, <100ns for 4096 hidden_size)
 inference-attention = ["inference-primitives"]  # T2+T5 flash attention
 inference-quantization = ["inference-primitives", "fixed-point"]  # T3 Q8/Q16
 inference-avx2-quant = ["inference-primitives"]  # T2 custom AVX2 intrinsics (10-20× target)
+inference-swiglu = ["inference-primitives"]  # T2 SIMD: SwiGLU activation (Qwen3 FFN, 4-8× speedup, SIMD sigmoid approximation)
+inference-rope = ["inference-primitives"]  # T2 SIMD: Rotary Position Embedding (Qwen3 128K context, base=1M, <50ns/position, precomputed sin/cos)
 inference-kv-cache-compression = ["inference-primitives", "fixed-point"]  # T2+T10: KV-cache compression (2-8× via INT8/INT4/VQ, MiniKV+PyramidKV layer-discriminative)
 inference-learned-codebook = ["inference-primitives", "dep:half"]  # T0+T10: Learned codebook quantization (AQLM/QuIP#/AWQ, <1% perplexity loss at 4-bit)
 inference-multi-token-prediction = ["inference-primitives", "fixed-point"]  # T5 Streaming: Multi-token prediction (2.5-5× speedup, 4 heads, ring buffer, Q16.16 confidence)
 inference-speculative-draft = ["inference-primitives", "fixed-point"]  # T1+T5 Atomic+Streaming: Speculative decoding (2-5× speedup, adaptive gamma, rejection sampling, EWMA acceptance)
 inference-prefetch-scheduler = ["inference-primitives"]  # T4+T5 Batch+Streaming: Memory prefetch scheduler (80%+ latency hiding, <50ns schedule, >90% hit rate)
 inference-llm-metacapsule = ["inference-primitives"]  # T6 Mixed: LLM inference orchestrator (10-100× compound speedup)
-inference-all = ["inference-matmul", "inference-attention", "inference-quantization", "inference-avx2-quant", "inference-kv-cache-compression", "inference-learned-codebook", "inference-multi-token-prediction", "inference-speculative-draft", "inference-prefetch-scheduler", "inference-llm-metacapsule"]  # All inference
+inference-bpe-tokenizer = ["std"]  # T4 Batch: BPE tokenizer for Qwen3/GPT-2 (151K vocab, 100K merges, <100μs encode 2K tokens, 5× vs tiktoken)
+inference-bpe-tokenizer-parallel = ["inference-bpe-tokenizer", "tokenization-batch"]  # T4 Batch: Parallel BPE with thread_local (zero-contention encoding)
+inference-vector-quant = ["std"]  # T1+T2 Atomic+SIMD: Lockfree vector quantization (VPTQ/AQLM 10× vs mutex, <10ns lookup, <5ns reconstruct)
+inference-vector-quant-simd = ["inference-vector-quant", "portable_simd"]  # T1+T2 SIMD: f32x8 vectorized reconstruction (8× throughput)
+inference-qwen3 = ["inference-primitives", "std"]  # T6 Mixed: Qwen3 architecture metacapsule (8B/30B, GQA, 128K context, orchestrates T1+T2+T4+T5 sub-capsules)
+inference-ternary-matmul = ["std"]  # T2+T3 SIMD+Fixed-Point: BitNet b1.58 ternary matmul (2.71× speedup, 8× memory reduction, addition-only)
+inference-ternary-matmul-simd = ["inference-ternary-matmul", "nightly", "portable_simd"]  # T2 SIMD: f32x8 masked add/sub (4-8× throughput over scalar)
+inference-streaming-kv = ["inference-primitives", "fixed-point"]  # T5+T10 Streaming+Probabilistic: StreamingKVCapsule (StreamingLLM+MiniKV+H2O, 86% memory reduction, unlimited context, <100ns append)
+inference-all = ["inference-matmul", "inference-rmsnorm", "inference-attention", "inference-quantization", "inference-avx2-quant", "inference-swiglu", "inference-rope", "inference-kv-cache-compression", "inference-learned-codebook", "inference-multi-token-prediction", "inference-speculative-draft", "inference-prefetch-scheduler", "inference-llm-metacapsule", "inference-vector-quant-simd", "inference-bpe-tokenizer", "inference-qwen3", "inference-ternary-matmul-simd", "inference-streaming-kv"]  # All inference
 
 # TIER 9: CNLS Quantum Wave Mechanics (T2+T3+T6)
 complex-simd = ["portable_simd"]  # T2 ComplexF32x4 (10-13× speedup)
@@ -442,7 +453,7 @@ cnls = ["complex-simd", "complex-fixed", "capsule-serialize", "std", "fixed-poin
 split-step-fourier = ["cnls", "dep:rustfft"]  # Split-Step Fourier method
 quantum-cnls = ["cnls"]  # Alias for quantum module integration (Phase 4.2 migration)
 quantum-wave = ["cnls", "split-step-fourier"]  # Complete quantum wave mechanics suite
-quantum-pure = ["std", "portable_simd", "dep:rand"]  # Phase Q3.0-Q3.3: Pure-capsule quantum simulator (100% COCA, no qip dependency)
+quantum-pure = ["std", "portable_simd", "dep:rand"]  # Phase Q3.0-Q3.3: Pure-capsule quantum simulator (100% Chaos, no qip dependency)
 quantum-multi-qubit = ["quantum-pure"]  # Phase Q3.3: Multi-qubit gates (CNOT, CZ, SWAP, Toffoli)
 quantum-fusion = ["std"]  # Phase Q3.4: Gate fusion optimization (T4 Batch, 3-5× speedup via 60-80% gate reduction)
 quantum-syndrome = ["std", "portable_simd"]  # Phase Q3.5: Syndrome extraction for QEC (T2 SIMD, 3-4× speedup)
@@ -494,6 +505,7 @@ gpu-cuda = ["std", "dep:cudarc"]  # T7: CUDA backend (NVIDIA GPU, Compute Capabi
 gpu-rocm = ["std"]  # T7: ROCm/HIP backend (AMD GPU, GCN 4.0+/RDNA 1+, 100-1000× speedup, FFI bindings pending)
 gpu-intel = ["std"]  # T1 Atomic: Intel GPU driver primitives (i915, Iris Xe, 10-50× speedup, zero external deps)
 gpu-all = ["gpu-cuda", "gpu-rocm", "gpu-intel"]  # T7: All GPU backends (auto-detect at runtime)
+gpu-hybrid-dispatch = ["std", "cpu-capabilities"]  # T7 Heterogeneous: Intelligent multi-accelerator dispatch (Intel Arc/RTX 3080M/CPU, <50ns dispatch decision)
 
 # KGPU-Driver: Pure Rust GPU Driver Stack (Replaces Vulkan/Mesa - Phase 2.0)
 # #ASSUME_DIRECT_GPU: Direct hardware access via DRM/GEM or MMIO

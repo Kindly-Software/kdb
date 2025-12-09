@@ -183,7 +183,7 @@ All with 1000+ iterations per benchmark for 95% confidence intervals.
 - **B32**: Fair baseline comparisons, 95% CI, 1000+ iterations
 - **T28**: 4-tier testing (unit/property/integration/production)
 - **I20**: Integration-ready design
-- **COCA**: 100% computational capsule architecture
+- **Chaos**: 100% computational capsule architecture
 
 ## Files
 

@@ -3,10 +3,8 @@
 //! Performance validation framework (95% CI, 1000+ iterations)
 //! Target: <50ns query, <100ns update operations
 
-use atomic_capsule::encoder::{
-    EncoderStateCapsule, EncoderState, SpeedPreset, QualityMode,
-};
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use atomic_capsule::encoder::{EncoderState, EncoderStateCapsule, QualityMode, SpeedPreset};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 
 // ============================================================================
 // Baseline Benchmarks: Pure Atomic Operations

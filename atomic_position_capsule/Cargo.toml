@@ -1,0 +1,34 @@
+[package]
+name = "atomic_position_capsule"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.76"
+authors = ["Samuel <maintainer@example.com>"]
+description = "APC-512 atomic position capsule for live position, P&L, and headroom snapshots"
+license = "Apache-2.0 OR MIT"
+repository = "https://example.com/atomic_position_capsule"
+keywords = ["atomic", "trading", "risk", "position"]
+categories = ["concurrency", "finance"]
+readme = "README.md"
+
+[features]
+default = ["checksum", "require-cas"]
+checksum = []
+require-cas = ["portable-atomic/require-cas"]
+
+[dependencies]
+portable-atomic = { version = "1.6", default-features = false, features = ["fallback"] }
+
+[dev-dependencies]
+core_affinity = "0.8"
+criterion = "0.5"
+atomic_execution_bundle = { path = "../atomic_execution_bundle" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[package.metadata.docs.rs]
+all-features = true
+
+[[bench]]
+name = "hot_loop"
+harness = false

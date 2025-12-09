@@ -301,7 +301,7 @@ println!("Throughput: {} MB/s", stats.total_bytes_written as f64 / 1_000_000.0);
 ## Framework Compliance
 
 - **UCE34**: Q10 (T5 Streaming tier), Q33 (verification required)
-- **COCA**: 100% computational capsule architecture
+- **Chaos**: 100% computational capsule architecture
 - **ASSUM**: All unsafe code verified (UnsafeCell interior mutability safe)
 - **B32**: Fair baseline benchmarking, 95% CI, 1000+ iterations
 - **T28**: 14 comprehensive tests (unit/property/integration/concurrent)

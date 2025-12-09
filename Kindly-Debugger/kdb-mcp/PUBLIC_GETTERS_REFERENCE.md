@@ -245,7 +245,7 @@ All getters/setters are **zero-cost abstractions**:
 
 ## Framework Compliance
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 ✅ 100% lockfree (atomic operations only)
 ✅ Cache-aligned (preserves capsule alignment)
 ✅ Encapsulation (private fields, public getters)

@@ -144,7 +144,7 @@ All public APIs maintain 100% backward compatibility:
 - ✅ Q10-Q12 Tier Selection: T0 (Auditable) + T1 (Atomic) + T2 (SIMD) + T5 (Streaming)
 - ✅ Q33 Verification: `#[derive(ComputationalCapsule)]` compile-time validation
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 - ✅ 100% lockfree: All writers use atomic coordination
 - ✅ Cache-aligned: 64-byte alignment prevents false sharing
 - ✅ Generation counters: TOCTOU prevention in all capsules
@@ -261,7 +261,7 @@ All public APIs maintain 100% backward compatibility:
 
 **Frameworks Used**:
 - UCE34: Q1-Q34 systematic discovery
-- COCA: 100% computational capsule architecture
+- Chaos: 100% computational capsule architecture
 - ASSUM: 99.99% safety validation
 - B32: Fair benchmarking standards
 - T28: Comprehensive testing (494 tests)

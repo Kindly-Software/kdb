@@ -112,7 +112,7 @@ pub type PersistentBloomResult<T> = Result<T, PersistentBloomError>;
 
 /// Persistent Bloom filter with mmap backing
 ///
-/// # COCA Architecture
+/// # Chaos Architecture
 ///
 /// **Alignment**: 64 bytes (HotTier) to prevent false sharing
 /// **Coordination**: Lockfree atomics for statistics (T1 Atomic)

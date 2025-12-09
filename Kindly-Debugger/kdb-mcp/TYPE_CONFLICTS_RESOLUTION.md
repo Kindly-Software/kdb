@@ -166,7 +166,7 @@ $ cargo check --all-features
 ### Framework Compliance
 
 - ✅ **UCE34 Q31 (Simplicity)**: Single source of truth for shared types
-- ✅ **COCA**: No architectural changes, maintains 100% lockfree design
+- ✅ **Chaos**: No architectural changes, maintains 100% lockfree design
 - ✅ **ASSUM**: No unsafe code introduced
 - ✅ **I20**: Zero breaking changes (imports updated, APIs unchanged)
 - ✅ **B32**: Honest reporting (compilation succeeds, tests have unrelated issues)
@@ -207,7 +207,7 @@ The main library compiles with `--all-features`, but **test compilation** has 8 
 - ✅ Single source of truth for shared types
 - ✅ Zero breaking changes to public APIs
 - ✅ All individual features still compile
-- ✅ Framework compliance maintained (UCE34, COCA, ASSUM, I20)
+- ✅ Framework compliance maintained (UCE34, Chaos, ASSUM, I20)
 
 ## Conclusion
 
@@ -226,4 +226,4 @@ The solution is **clean, maintainable, and future-proof**:
 
 ---
 
-**Framework Validation**: UCE34 (Q31 Simplicity ✅), COCA (100% lockfree ✅), ASSUM (99.99% safe ✅), I20 (0 breaking changes ✅), B32 (honest reporting ✅)
+**Framework Validation**: UCE34 (Q31 Simplicity ✅), Chaos (100% lockfree ✅), ASSUM (99.99% safe ✅), I20 (0 breaking changes ✅), B32 (honest reporting ✅)

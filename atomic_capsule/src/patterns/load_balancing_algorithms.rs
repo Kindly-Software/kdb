@@ -383,7 +383,7 @@ mod tests {
 
         let mut counts = [0u32; 3];
         for _ in 0..100 {
-            if let Some(id) = LoadBalancingAlgorithm::WeightedRoundRobin::weighted_round_robin(
+            if let Some(id) = LoadBalancingAlgorithm::weighted_round_robin(
                 &backends,
                 &index,
                 get_weight,

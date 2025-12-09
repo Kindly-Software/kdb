@@ -27,7 +27,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34 Q10**: T1 (Atomic) tier selection
-//! - **COCA**: 100% lockfree (Treiber stack, no mutex/RwLock)
+//! - **Chaos**: 100% lockfree (Treiber stack, no mutex/RwLock)
 //! - **ASSUM**: All assumptions documented with #ASSUME/#VERIFY tags
 //! - **B32**: Fair baseline (vs naive Vec-based pool)
 //! - **T28**: 4-tier testing (unit/property/integration/production)
@@ -104,6 +104,7 @@ use std::sync::Arc;
 /// # ASSUME: Heap pointers are stored separately (Vec buffers, Vec next pointers)
 /// # VERIFY: sizeof(BufferPool) >= 64 bytes with #[repr(C, align(64))]
 #[repr(C, align(64))]
+#[allow(dead_code)]
 pub struct BufferPool {
     // Configuration (16 bytes)
     buffer_size: usize,           // Size of each buffer (typically 64 KB)

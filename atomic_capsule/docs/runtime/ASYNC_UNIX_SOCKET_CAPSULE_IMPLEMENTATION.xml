@@ -295,7 +295,7 @@
     Q34: No audit trail needed (no compliance data)
   </framework>
 
-  <framework name="COCA">
+  <framework name="Chaos">
     100% computational capsule architecture
     Inline send_buf and fd_buffer for T5 streaming
   </framework>

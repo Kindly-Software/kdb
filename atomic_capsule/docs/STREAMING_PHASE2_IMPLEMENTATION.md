@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Date**: November 21, 2025
 **Status**: ✅ PRODUCTION READY
-**Framework Compliance**: UCE34 + COCA + ASSUM + B32 + T28 + I20
+**Framework Compliance**: UCE34 + Chaos + ASSUM + B32 + T28 + I20
 
 ## Executive Summary
 
@@ -391,7 +391,7 @@ pub use reduce::StreamingReduceCapsule;
 - **Q33**: Verification (#[derive(ComputationalCapsule)] ready)
 - **Q34**: Auditability (generation counters for tracking)
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 - 100% lockfree (no mutex/RwLock anywhere)
 - Cache-aligned (64B/64B/64B)
 - Fixed memory footprint (no Vec/Box in fast paths)
@@ -563,6 +563,6 @@ Phase 2 of T5 Streaming delivery completes three essential stream processing pri
 - **O(1) operations** for bounded latency
 - **4-6× speedups** vs standard library
 - **62 comprehensive tests** validating production readiness
-- **100% UCE34/COCA/ASSUM/B32/T28/I20 compliance**
+- **100% UCE34/Chaos/ASSUM/B32/T28/I20 compliance**
 
 The implementations are production-ready and integrated into atomic_capsule v0.8.0+.

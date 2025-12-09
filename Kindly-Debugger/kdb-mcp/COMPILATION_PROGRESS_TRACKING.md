@@ -128,7 +128,7 @@ E0753 errors have remained at 0 across all checkpoints. No regressions introduce
 
 ### Framework Compliance Phase (After test execution)
 1. Verify T28 (4 test tiers: Q1-Q7, Q8-Q14, Q15-Q21, Q22-Q28)
-2. Verify COCA (100% lockfree, no mutex/RwLock)
+2. Verify Chaos (100% lockfree, no mutex/RwLock)
 3. Verify ASSUM (99.99%+ safety, #ASSUME/#VERIFY tags)
 4. Verify UCE34 (Q10-Q12 tier selection, Q33/Q34)
 5. Verify B32 (fair baselines, honest claims)

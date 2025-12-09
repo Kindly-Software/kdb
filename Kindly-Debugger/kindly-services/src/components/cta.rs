@@ -128,17 +128,17 @@ pub fn Cta() -> impl IntoView {
 
                 <p style=subtitle_style>
                     "Join developers using the first audit-compliant time-travel debugger. "
-                    "MCP-native for AI workflows."
+                    "Platform-agnostic via MCP - works anywhere."
                 </p>
 
                 <div style=button_container_style>
-                    <a href="#pricing" style=primary_button_style>
-                        <span>"⏱️"</span>
-                        <span>"Start Free Trial"</span>
+                    <a href="#signup" style=primary_button_style>
+                        <span>"🎉"</span>
+                        <span>"Start Free - 7 Days Unlimited"</span>
                     </a>
-                    <a href="https://github.com/kindly-software/kdb" style=secondary_button_style class="cta-secondary-btn" target="_blank">
-                        <span>"📦"</span>
-                        <span>"View on GitHub"</span>
+                    <a href="#docs" style=secondary_button_style class="cta-secondary-btn">
+                        <span>"📖"</span>
+                        <span>"View Documentation"</span>
                     </a>
                 </div>
 

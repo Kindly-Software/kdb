@@ -1,0 +1,20 @@
+[package]
+name = "tmux_layout_capsule"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.76"
+authors = ["Samuel <maintainer@example.com>"]
+description = "T1 Atomic Capsule for hot-swap tmux pane management (<100ns swaps, zero-mutex, 128B aligned)"
+license = "Apache-2.0 OR MIT"
+keywords = ["tmux", "pane", "layout", "capsule", "atomic"]
+categories = ["command-line-utilities", "development-tools"]
+
+# Zero runtime dependencies - pure lockfree atomics
+# Only std library needed for SystemTime
+
+[[bin]]
+name = "tmux-swap"
+path = "src/bin/tmux-swap.rs"
+
+[lints]
+workspace = true

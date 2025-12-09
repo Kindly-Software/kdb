@@ -463,7 +463,7 @@ println!("Average time: {}ns", synthesis.average_synthesis_ns());
 - **Property validation**: Unitarity, equivalence, stability
 - **Stress testing**: 1000+ fusions, concurrent synthesis
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 
 - **100% lockfree**: Atomic metrics coordination
 - **Cache-aligned**: 256B alignment (false sharing prevention)

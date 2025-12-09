@@ -201,6 +201,12 @@ impl From<crate::pipeline::PipelineError> for PersistentError {
                     format!("Resource limit exceeded: {}", reason),
                 ))
             }
+            crate::pipeline::PipelineError::MemoryBudgetExceeded => {
+                PersistentError::IoError(std::io::Error::new(
+                    std::io::ErrorKind::OutOfMemory,
+                    "Memory budget exceeded",
+                ))
+            }
             #[cfg(feature = "audit-trail")]
             crate::pipeline::PipelineError::AuditError { reason } => {
                 PersistentError::IoError(std::io::Error::new(
@@ -458,7 +464,7 @@ impl<'a> PersistentDedupPipeline<'a> {
     /// - `#ASSUME_DISK_SPACE`: Sufficient disk space (capacity × 256B)
     /// - `#VERIFY_DISK_SPACE`: File allocation fails if insufficient
     /// - `#ASSUME_PARALLEL_SAFETY`: ParallelDedupPipeline is thread-safe (100% lockfree)
-    /// - `#VERIFY_PARALLEL_SAFETY`: Phase 4.4 validated 100% COCA compliance
+    /// - `#VERIFY_PARALLEL_SAFETY`: Phase 4.4 validated 100% Chaos compliance
     pub fn create<P: AsRef<Path>>(
         path: P,
         capacity: usize,

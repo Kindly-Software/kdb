@@ -4,7 +4,7 @@
 //!
 //! ## Framework Compliance
 //! - UCE34: Q10 T2 SIMD tier validation
-//! - COCA: 100% lockfree coordination
+//! - Chaos: 100% lockfree coordination
 //! - ASSUM: 99.99% safe, all assumptions verified
 //! - B32: Fair baseline (rav1e), EXCEPTIONAL tier (25-41×)
 //! - T28: 4 tiers × 7 tests each = 28 total

@@ -15,7 +15,7 @@
 //! - T28: Production tier (Q22-Q28)
 //! - ASSUM: 99.99% safe
 //! - B32: Fair benchmarking
-//! - COCA: 100% lockfree
+//! - Chaos: 100% lockfree
 
 use atomic_capsule::CpuCapabilityCapsule;
 use kindly_dedup::DedupPipeline;

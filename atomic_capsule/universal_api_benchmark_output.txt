@@ -1,0 +1,26 @@
+warning: user-defined alias `bench` is ignored, because it is shadowed by a built-in command
+warning: /home/samuel/Primitives/Cargo.toml: `panic` setting is ignored for `test` profile
+warning: /home/samuel/Primitives/atomic_capsule/Cargo.toml: `panic` setting is ignored for `test` profile
+    Blocking waiting for file lock on artifact directory
+   Compiling atomic_capsule v0.8.0 (/home/samuel/Primitives/atomic_capsule)
+error: unwinding panics are not supported without std
+  |
+  = help: using nightly cargo, use -Zbuild-std with panic="abort" to avoid unwinding
+  = note: since the core library is usually precompiled with panic="unwind", rebuilding your crate with panic="abort" may not be enough to fix the problem
+
+warning: unnecessary `unsafe` block
+   --> src/retry.rs:330:29
+    |
+330 | ...                   unsafe {
+    |                       ^^^^^^ unnecessary `unsafe` block
+    |
+    = note: `#[warn(unused_unsafe)]` (part of `#[warn(unused)]`) on by default
+
+warning: unnecessary `unsafe` block
+   --> src/retry.rs:354:29
+    |
+354 | ...                   unsafe {
+    |                       ^^^^^^ unnecessary `unsafe` block
+
+warning: `atomic_capsule` (lib) generated 2 warnings
+error: could not compile `atomic_capsule` (lib) due to 1 previous error; 2 warnings emitted

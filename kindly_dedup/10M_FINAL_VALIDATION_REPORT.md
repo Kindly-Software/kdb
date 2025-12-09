@@ -287,7 +287,7 @@ The 10M test timeout revealed that **the current pipeline is bottlenecked by SIM
 | **ASSUM** | ✅ COMPLIANT | Zero unsafe code, all assumptions documented |
 | **B32** | ✅ COMPLIANT | Fair baseline (Python datasketch 1.6K docs/sec), 95% CI |
 | **T28** | ✅ COMPLIANT | Multiple test harnesses, unit/integration tests |
-| **COCA** | ✅ COMPLIANT | All primitives are lockfree atomic capsules |
+| **Chaos** | ✅ COMPLIANT | All primitives are lockfree atomic capsules |
 | **I20** | ✅ COMPLIANT | Zero breaking changes, backward compatible |
 
 ### UCE-D7 Constraints Met

@@ -1,0 +1,61 @@
+[package]
+name = "kdb-signup"
+version = "0.1.0"
+edition = "2021"
+description = "KDB Hobby Tier signup service - Axum-based with lockfree capsule architecture"
+license = "Proprietary"
+authors = ["Kindly Software"]
+
+# Standalone project - not part of Primitives workspace
+[workspace]
+
+[dependencies]
+# Web framework
+axum = "0.7"
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Email
+resend-rs = "0.9"
+mailchecker = "6"
+
+# Cryptography
+blake3 = "1.5"
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+base64 = "0.22"
+getrandom = "0.2"
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json"] }
+
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Metrics
+metrics = "0.24"
+metrics-exporter-prometheus = "0.16"
+
+[dev-dependencies]
+# Testing
+tower = { version = "0.5", features = ["util"] }
+
+[build-dependencies]
+# For disposable email hash generation
+blake3 = "1.5"
+
+[[bin]]
+name = "kdb-signup"
+path = "src/main.rs"
+
+[lib]
+name = "kdb_signup"
+path = "src/lib.rs"

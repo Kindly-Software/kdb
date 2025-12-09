@@ -34,7 +34,7 @@ use thiserror::Error;
 
 use atomic_capsule::collections::queue::{QueueCapsule, PushError, MPMC};
 
-use super::orchestrator::{DedupMetacapsule, MetacapsuleError, State};
+use super::orchestrator::{DedupMetacapsule, State};
 
 // Re-export DocId from the crate root (legacy_pipeline)
 // This ensures consistency across all modules

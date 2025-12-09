@@ -69,7 +69,7 @@
 
 ### Framework Compliance
 
-- [ ] **COCA Mandate**: 100% lockfree (zero rayon, zero Mutex in hot path)
+- [ ] **Chaos Mandate**: 100% lockfree (zero rayon, zero Mutex in hot path)
   - Status: ✅ VERIFIED
   - Evidence: `grep -r "rayon" src/` → 0 results
   - Evidence: ThreadPool + thread-local buffers + sequential merge
@@ -293,7 +293,7 @@ If rollback required:
 
 | Framework | Requirement | Status | Evidence |
 |-----------|------------|--------|----------|
-| **COCA** | 100% lockfree | ✅ | Zero rayon, pure atomic_capsule::parallel |
+| **Chaos** | 100% lockfree | ✅ | Zero rayon, pure atomic_capsule::parallel |
 | **UCE34** | Q1-Q34 applied | ✅ | Tier selection Q10-Q34 in QUICK_FIX_SUMMARY |
 | **ASSUM** | 99.99% safe | ✅ | 5 safety assumptions documented + verified |
 | **B32** | Fair baselines | ⏳ | Pending benchmark execution |
@@ -309,7 +309,7 @@ If rollback required:
 - [ ] Code quality verified (compilation, clippy, format)
 - [ ] All tests passing (unit, integration, doc)
 - [ ] Performance targets met (85-100K docs/sec)
-- [ ] Framework compliance validated (COCA/UCE34/ASSUM/B32/T28/I20)
+- [ ] Framework compliance validated (Chaos/UCE34/ASSUM/B32/T28/I20)
 - [ ] Documentation updated (CHANGELOG, CLAUDE.md)
 
 ### Operational Review
@@ -365,7 +365,7 @@ Document:
 1. ✅ Code compiles without errors
 2. ✅ All tests pass (unit/integration/doc)
 3. ✅ Performance meets targets: 85-100K docs/sec (1.4-1.7×)
-4. ✅ Framework compliance verified (COCA/UCE34/ASSUM)
+4. ✅ Framework compliance verified (Chaos/UCE34/ASSUM)
 5. ✅ B32 benchmark validation: 95% CI, 1000+ iterations
 6. ✅ Zero breaking changes (backward compatible)
 7. ✅ Documentation updated (CHANGELOG + CLAUDE.md)

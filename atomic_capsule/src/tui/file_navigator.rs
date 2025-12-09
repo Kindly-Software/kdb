@@ -9,7 +9,7 @@
 //! - **Q11 (Rust)**: Atomic operations, cache-aligned (128B), zero unsafe code
 //! - **Q12 (Nightly)**: None required (stable-compatible)
 //!
-//! ## COCA (Computational Capsule) Architecture
+//! ## Chaos (Computational Capsule) Architecture
 //!
 //! **Key Design Decisions**:
 //! - **128-byte alignment**: Prevents false sharing in concurrent navigation scenarios
@@ -95,7 +95,7 @@ use blake3::Hasher as Blake3Hasher;
 /// - Offset 52-63: filter_flags (u32) + padding (8 bytes)
 /// - Offset 64-127: Cache line padding (64 bytes)
 ///
-/// # COCA Requirements
+/// # Chaos Requirements
 /// - **100% lockfree**: No mutex/RwLock, atomic operations only
 /// - **Cache-aligned**: 128-byte alignment prevents false sharing
 /// - **Generation counters**: Hash comparison prevents stale reads

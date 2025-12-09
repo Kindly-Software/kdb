@@ -62,7 +62,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 T11 QuantumHybrid (T1+T2+T5 composition), Q12 nightly (`portable_simd`)
-//! - **COCA**: 100% computational capsules, cache-aligned, lockfree
+//! - **Chaos**: 100% computational capsules, cache-aligned, lockfree
 //! - **ASSUM**: 99.5%+ safety, all assumptions documented
 //! - **B32**: Fair baselines (vs qip, not strawman), 95% CI, 1000+ iterations
 //! - **T28**: 28 comprehensive tests (unit/property/integration/production)

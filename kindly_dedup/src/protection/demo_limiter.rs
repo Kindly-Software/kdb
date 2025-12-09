@@ -32,6 +32,8 @@
 //! This is DEMO software protection - prevents unauthorized use beyond trial limit.
 //! Licensed software with agreed protection (DMCA §1201 anti-circumvention).
 
+#![allow(dead_code)]
+
 use std::fs;
 use std::io::Write as IoWrite;
 use std::path::PathBuf;
@@ -300,6 +302,7 @@ impl DemoLimiter {
             last_update: unix_timestamp_secs(),
             reserved: [0; 12],
             hmac: [0; 32], // Computed below
+            _padding: [0; 20],
         };
 
         // Compute HMAC (tamper detection)
@@ -385,6 +388,9 @@ struct DemoUsageState {
     last_update: i64,      // Unix timestamp
     reserved: [u8; 12],    // Future use
     hmac: [u8; 32],        // HMAC-SHA256
+    // Padding to 128 bytes for align(64): 128 - 108 = 20 bytes
+    // (108 = 8 + 4 + 32 + 4_implicit + 8 + 8 + 12 + 32)
+    _padding: [u8; 20],
 }
 
 /// Demo limit error
@@ -636,24 +642,30 @@ fn constant_time_eq(a: &[u8; 32], b: &[u8; 32]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     /// Helper macro to create unique test env var name
+    ///
+    /// **SAFETY**: Uses thread ID to ensure unique env var names across concurrent tests
+    /// to avoid UB from concurrent env var access (https://doc.rust-lang.org/std/env/fn.set_var.html)
     macro_rules! test_env_setup {
         ($suffix:expr) => {{
             let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
             let temp_path = temp_dir.path().to_str().expect("Invalid UTF-8 in path");
-            let env_key = format!("KINDLY_DEDUP_TEST_DIR_{}", $suffix);
+            let thread_id = std::thread::current().id();
+            let env_key = format!("KINDLY_DEDUP_TEST_DIR_{}_{:?}", $suffix, thread_id);
+            let env_key_var = format!("KINDLY_DEDUP_TEST_ENV_KEY_{:?}", thread_id);
             std::env::set_var(&env_key, temp_path);
-            std::env::set_var("KINDLY_DEDUP_TEST_ENV_KEY", &env_key);
-            (temp_dir, env_key)
+            std::env::set_var(&env_key_var, &env_key);
+            (temp_dir, env_key, env_key_var)
         }};
     }
 
     /// Helper macro to cleanup test env vars
     macro_rules! test_env_cleanup {
-        ($temp_dir:expr, $env_key:expr) => {{
+        ($temp_dir:expr, $env_key:expr, $env_key_var:expr) => {{
             std::env::remove_var(&$env_key);
-            std::env::remove_var("KINDLY_DEDUP_TEST_ENV_KEY");
+            std::env::remove_var(&$env_key_var);
             drop($temp_dir);
         }};
     }
@@ -688,8 +700,9 @@ mod tests {
 
     #[test]
     #[cfg(target_arch = "x86_64")]
+    #[serial]
     fn test_demo_limiter_initialize_new() {
-        let (temp_dir, env_key) = test_env_setup!("initialize_new");
+        let (temp_dir, env_key, env_key_var) = test_env_setup!("initialize_new");
 
         // Create test hardware binding
         let hw_id = HardwareId::derive().expect("Failed to derive hardware ID");
@@ -702,13 +715,14 @@ mod tests {
         assert_eq!(limiter.document_count.load(Ordering::Relaxed), 0);
         assert_eq!(limiter.get_remaining(), DEMO_LIMIT);
 
-        test_env_cleanup!(temp_dir, env_key);
+        test_env_cleanup!(temp_dir, env_key, env_key_var);
     }
 
     #[test]
     #[cfg(target_arch = "x86_64")]
+    #[serial]
     fn test_demo_limiter_increment() {
-        let (temp_dir, env_key) = test_env_setup!("increment");
+        let (temp_dir, env_key, env_key_var) = test_env_setup!("increment");
 
         let hw_id = HardwareId::derive().expect("Failed to derive hardware ID");
         let puf = PufEntropy::extract().expect("Failed to extract PUF");
@@ -723,13 +737,14 @@ mod tests {
         assert_eq!(limiter.document_count.load(Ordering::Relaxed), 1000);
         assert_eq!(limiter.get_remaining(), DEMO_LIMIT - 1000);
 
-        test_env_cleanup!(temp_dir, env_key);
+        test_env_cleanup!(temp_dir, env_key, env_key_var);
     }
 
     #[test]
     #[cfg(target_arch = "x86_64")]
+    #[serial]
     fn test_demo_limiter_limit_enforcement() {
-        let (temp_dir, env_key) = test_env_setup!("limit_enforcement");
+        let (temp_dir, env_key, env_key_var) = test_env_setup!("limit_enforcement");
 
         let hw_id = HardwareId::derive().expect("Failed to derive hardware ID");
         let puf = PufEntropy::extract().expect("Failed to extract PUF");
@@ -751,13 +766,14 @@ mod tests {
             _ => panic!("Expected LimitReached error"),
         }
 
-        test_env_cleanup!(temp_dir, env_key);
+        test_env_cleanup!(temp_dir, env_key, env_key_var);
     }
 
     #[test]
     #[cfg(target_arch = "x86_64")]
+    #[serial]
     fn test_demo_limiter_persistence() {
-        let (temp_dir, env_key) = test_env_setup!("persistence");
+        let (temp_dir, env_key, env_key_var) = test_env_setup!("persistence");
 
         let hw_id = HardwareId::derive().expect("Failed to derive hardware ID");
         let puf = PufEntropy::extract().expect("Failed to extract PUF");
@@ -778,7 +794,7 @@ mod tests {
             assert_eq!(count, 100_000, "Count should persist across restarts");
         }
 
-        test_env_cleanup!(temp_dir, env_key);
+        test_env_cleanup!(temp_dir, env_key, env_key_var);
     }
 
     #[test]
@@ -796,6 +812,7 @@ mod tests {
             last_update: unix_timestamp_secs(),
             reserved: [0; 12],
             hmac: [0; 32],
+            _padding: [0; 20],
         };
 
         // Compute HMAC
@@ -850,6 +867,7 @@ mod tests {
             last_update: unix_timestamp_secs(),
             reserved: [0; 12],
             hmac: [0; 32],
+            _padding: [0; 20],
         };
 
         // Compute HMAC
@@ -870,8 +888,9 @@ mod tests {
 
     #[test]
     #[cfg(target_arch = "x86_64")]
+    #[serial]
     fn test_hardware_binding() {
-        let (temp_dir, env_key) = test_env_setup!("hardware_binding");
+        let (temp_dir, env_key, env_key_var) = test_env_setup!("hardware_binding");
 
         let hw_id1 = HardwareId::derive().expect("Failed to derive hardware ID");
         let puf1 = PufEntropy::extract().expect("Failed to extract PUF");
@@ -907,6 +926,6 @@ mod tests {
             panic!("State file should exist after sync");
         }
 
-        test_env_cleanup!(temp_dir, env_key);
+        test_env_cleanup!(temp_dir, env_key, env_key_var);
     }
 }

@@ -843,7 +843,7 @@ pub use collection_serializer::{
 /// - **ASSUM**: 99.99% safe (zero unsafe code, field ordering guaranteed)
 /// - **B32**: Fair baselines (<500ns per struct)
 /// - **T28**: 25 comprehensive tests (unit/property/integration)
-/// - **COCA**: 100% lockfree (Vec + atomic operations only)
+/// - **Chaos**: 100% lockfree (Vec + atomic operations only)
 pub mod flatten;
 pub use flatten::{
     FlattenSerializerCapsule, FlattenError, FlattenResult,
@@ -1124,7 +1124,7 @@ pub use yaml_writer::{
 /// - **B32**: Fair baselines (inline performance <30ns per field)
 /// - **T28**: 25 comprehensive tests (unit/property/integration)
 /// - **I20**: Zero breaking changes, backward compatible
-/// - **COCA**: Simplified capsule pattern (no atomics needed, single-pass reader)
+/// - **Chaos**: Simplified capsule pattern (no atomics needed, single-pass reader)
 pub mod protobuf;
 pub use protobuf::{
     ProtobufWriterCapsule, ProtobufReaderCapsule, WireType, ProtobufValue, ProtobufError,

@@ -11,7 +11,7 @@
 // - Q33: Verification (#[derive(ComputationalCapsule)])
 // - Q34: Audit trail (allocation/deallocation tracking)
 //
-// COCA Compliance: T1 Atomic coordination + T7 GPU storage
+// Chaos Compliance: T1 Atomic coordination + T7 GPU storage
 // ASSUM Safety: 99.99%+
 // - #ASSUME_TENSOR_ALIGNMENT: Device memory 256-byte aligned
 // - #ASSUME_SHAPE_VALID: Shape dimensions non-zero, product ≤ 2^32

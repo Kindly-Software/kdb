@@ -1,0 +1,523 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ============================================================================
+     ATOMIC CAPSULE PATTERNS
+     Practical patterns for real-time systems (trading, desktop assistant, robotics)
+     Migrated from: /home/samuel/Docs/The Atomic Capsule.md (365 lines)
+     Version: 1.0
+     Date: 2025-11-24
+     ============================================================================ -->
+<atomic-capsule-patterns version="1.0" date="2025-11-24" source="/home/samuel/Docs/The Atomic Capsule.md" lines="365">
+
+  <!-- ============================================================================
+       EXECUTIVE SUMMARY (TL;DR)
+       ============================================================================ -->
+  <executive-summary>
+    <what>A way to shape data so each important decision can be made from one tiny, aligned, atomic snapshot (capsule)</what>
+    <why>Replace multi-step joins, locks, and partial state with deterministic, nanosecond-class decisions</why>
+    <novelty>Store the decision itself (pre-digested truth), not just raw inputs. Publish whole truth at once; readers see all-old or all-new, never torn.</novelty>
+    <how>Define capsules (64-1024 bits), assign one writer, publish via two-phase commit (odd to even version). Readers do one load, one branch.</how>
+    <tagline>One word - One read - One decision</tagline>
+  </executive-summary>
+
+  <!-- ============================================================================
+       TARGET AUDIENCE
+       ============================================================================ -->
+  <target-audience>
+    <audience id="1">Solo builders who want speed + reliability without a giant framework</audience>
+    <audience id="2">Teams that need predictable tail latency (p99/p999) and auditability</audience>
+    <audience id="3">Projects that must degrade, not die under stress (network spikes, bursts, news)</audience>
+  </target-audience>
+
+  <!-- ============================================================================
+       GLOSSARY (5 Core Terms)
+       ============================================================================ -->
+  <glossary>
+    <term id="1" name="Capsule">A tiny, aligned, fixed-size snapshot that contains enough truth to decide immediately</term>
+    <term id="2" name="SWeMR">Single-Writer, Many-Readers ownership; the writer publishes snapshots; readers never lock</term>
+    <term id="3" name="Commit flip">The writer marks a snapshot valid by toggling a small header (odd to even version or commit=1)</term>
+    <term id="4" name="One read">Readers load a capsule (often a single cache line) with one atomic read instruction</term>
+    <term id="5" name="Degrade, don't die">Quality levels L0 to L3 controlled by a tiny breaker capsule</term>
+  </glossary>
+
+  <!-- ============================================================================
+       COMPARISON: TRADITIONAL vs CAPSULE
+       ============================================================================ -->
+  <comparison>
+    <row topic="Decision path">
+      <traditional>Gather data, lock, recompute, join</traditional>
+      <capsule>Read capsule - decide</capsule>
+    </row>
+    <row topic="Hot-path compute">
+      <traditional>Many steps, variable</traditional>
+      <capsule>O(1), constant and tiny</capsule>
+    </row>
+    <row topic="Concurrency">
+      <traditional>Locks, queues, races</traditional>
+      <capsule>No locks in readers (SWeMR)</capsule>
+    </row>
+    <row topic="State integrity">
+      <traditional>Risk of partial writes</traditional>
+      <capsule>All-old or all-new (commit flip)</capsule>
+    </row>
+    <row topic="Tail latency">
+      <traditional>Spiky (lock/GC/joins)</traditional>
+      <capsule>Stable (cache-line atoms)</capsule>
+    </row>
+    <row topic="Audit">
+      <traditional>Bolted on later</traditional>
+      <capsule>Built-in (hash-chained logs)</capsule>
+    </row>
+  </comparison>
+
+  <!-- ============================================================================
+       DESIGN RULES (The "One Page" You Can Print)
+       ============================================================================ -->
+  <design-rules>
+    <rule id="1" name="shape-data">Shape the data to the decision. Pack only what a reader needs to branch now.</rule>
+    <rule id="2" name="one-writer">One writer, many readers. If multiple sources feed a capsule, add an aggregator writer.</rule>
+    <rule id="3" name="two-phase-publish">Publish in two phases. Build payload - set ver odd - write tail - flip header (ver even or commit=1).</rule>
+    <rule id="4" name="cache-line-size">Single cache line where possible. 64-512 bits are ideal; 1024 bits for portfolio/time tables.</rule>
+    <rule id="5" name="fixed-point">Fixed-point over floats. Ticks, basis points, milliseconds - tiny integers, no FP stalls.</rule>
+    <rule id="6" name="no-locks-hot-path">No locks in the hot path. Readers do load(Relaxed); use Acquire only if you dereference a freshly published pointer.</rule>
+    <rule id="7" name="degrade-dont-die">Degrade, don't die. A tiny breaker capsule (L0..L3) controls quality globally.</rule>
+    <rule id="8" name="always-log">Always log. A 16-byte hash-chained ledger entry on every important event.</rule>
+  </design-rules>
+
+  <!-- ============================================================================
+       THE FRACTAL IDEA
+       ============================================================================ -->
+  <fractal-principle>
+    <description>Repeat the same rule at every scale</description>
+    <applications>
+      <level scope="Per decision">One capsule tells you now (go/scale/stop)</level>
+      <level scope="Per symbol/device">One capsule summarizes position/health/time</level>
+      <level scope="Per portfolio/app">One capsule ranks where to add/cut risk</level>
+      <level scope="Per run">One tile (1 kB) snapshots counters and last hashes for crash-safe recovery</level>
+    </applications>
+    <insight>The same SWeMR + commit rule applies at each level. It scales because the rule never changes.</insight>
+  </fractal-principle>
+
+  <!-- ============================================================================
+       CAPSULE TEMPLATE (Anatomy)
+       ============================================================================ -->
+  <capsule-template>
+    <fields>
+      <field name="Name" example="[CAPSULE_NAME]" description="Short purpose identifier"/>
+      <field name="Size" example="64|128|256|512|1024 bits" alignment="#[repr(C, align(64))]"/>
+      <field name="Writer" example="[process/thread]" ownership="SWeMR"/>
+      <field name="Readers" example="[list]"/>
+      <field name="Decision" example="plain yes/no or discrete level"/>
+    </fields>
+
+    <layout>
+      <word id="W0" name="head">commit:1 | stale:1 | ver:8 | seq:16 | [ids/time/flags...]</word>
+      <word id="W1..Wn" name="payload">[fixed-point fields, counters, timers]</word>
+      <word id="Wn" name="tail">checksum16:16 | ver_tail:8 | seq_tail:16 | [spare]</word>
+    </layout>
+
+    <publish-protocol>
+      <step id="1">Set ver ODD; fill payload; compute checksum; set ver_tail=ver</step>
+      <step id="2">Release-store head with commit=1, ver++ (EVEN), stale=0</step>
+      <step id="3">Optional: set stale=1 to cancel/replace quickly</step>
+    </publish-protocol>
+
+    <reader-accept-rule>
+      <step id="1">Load head (Relaxed). Accept if commit=1, ver EVEN; verify ver == ver_tail</step>
+      <step id="2">Do one branch to decide; Acquire only if following a pointer</step>
+    </reader-accept-rule>
+
+    <tests>
+      <test>Pack/unpack bounds</test>
+      <test>Never accept odd ver</test>
+      <test>Fuzz concurrent updates</test>
+      <test>Microbench read path</test>
+    </tests>
+  </capsule-template>
+
+  <!-- ============================================================================
+       SWEMR PATTERN
+       ============================================================================ -->
+  <swemr-pattern>
+    <description>Single-Writer, Many-Readers ownership pattern</description>
+    <read-operation ordering="Relaxed">Readers load capsule with atomic load, no locks</read-operation>
+    <write-operation ordering="Release">Writer builds payload, commits with Release store</write-operation>
+    <commit-flip>
+      <odd-version meaning="in-flight">Build payload, payload not yet committed</odd-version>
+      <even-version meaning="committed">Readers can safely use the data</even-version>
+    </commit-flip>
+    <acquire-usage>Use Acquire ordering ONLY if following a freshly published pointer</acquire-usage>
+  </swemr-pattern>
+
+  <!-- ============================================================================
+       NAMED PATTERNS (16 Capsule Types)
+       ============================================================================ -->
+  <named-patterns count="16">
+
+    <pattern id="ACB-64" name="Circuit Breaker" size="64 bits">
+      <purpose>Fast fail coordination with quality levels</purpose>
+      <fields>state/level + cause bits (L0 normal ... L3 pause)</fields>
+      <latency>9.8ns protection level check</latency>
+      <speedup>3.3x faster than mutex</speedup>
+      <levels>
+        <level id="L0" name="Normal">Full operation</level>
+        <level id="L1" name="Size reduced">Scale down</level>
+        <level id="L2" name="Taker only">Quality reduced</level>
+        <level id="L3" name="Pause">Halt and flatten</level>
+      </levels>
+    </pattern>
+
+    <pattern id="ACT-128" name="Cost/Edge Gate" size="128 bits">
+      <purpose>Cost threshold decision</purpose>
+      <fields>gross, fees, slip, net, min threshold</fields>
+      <decision>One read yes/no: net greater than or equal to min?</decision>
+    </pattern>
+
+    <pattern id="ARE-128" name="Risk Envelope" size="128 bits">
+      <purpose>Risk gates for prop rules and quotas</purpose>
+      <fields>daily, time, size hard gates</fields>
+      <decision>Pass/fail against risk limits</decision>
+    </pattern>
+
+    <pattern id="APC-512" name="Position" size="512 bits">
+      <purpose>Position tracking with full context</purpose>
+      <fields>pos, VWAP, realized/unrealized, headroom, timers</fields>
+      <latency>22ns</latency>
+      <speedup>3.1x vs DashMap</speedup>
+    </pattern>
+
+    <pattern id="AEB-512" name="Execution Bundle" size="512 bits">
+      <purpose>Complete execution specification in one publish</purpose>
+      <fields>entry + OCO + routes + budgets</fields>
+      <decision>Full trade specification atomically published</decision>
+    </pattern>
+
+    <pattern id="AVS-128" name="Venue/Signal Digest" size="128 bits">
+      <purpose>Market microstructure signals</purpose>
+      <fields>spread, OBI, microprice, vol, sweep</fields>
+      <decision>Venue selection and signal strength</decision>
+    </pattern>
+
+    <pattern id="ALT-128" name="Latency Ticket" size="128 bits">
+      <purpose>Latency monitoring and alerting</purpose>
+      <fields>f2d, d2a, a2f, jitter, loss, qpos</fields>
+      <decision>System health and latency state</decision>
+    </pattern>
+
+    <pattern id="APM-1024" name="Portfolio Map" size="1024 bits">
+      <purpose>Portfolio-level position summary</purpose>
+      <fields>slices for N symbols + totals/headroom</fields>
+      <decision>Portfolio risk and allocation state</decision>
+    </pattern>
+
+    <pattern id="PEX-1024" name="Pre-executed Plays" size="1024 bits">
+      <purpose>Pre-computed trade specifications</purpose>
+      <fields>2-4 ready specs waiting for triggers</fields>
+      <decision>Which pre-computed play to execute</decision>
+    </pattern>
+
+    <pattern id="DOS-1024" name="DOM Slice" size="1024 bits">
+      <purpose>Order book depth snapshot</purpose>
+      <fields>L1-L5 bid/ask for two instruments + derived metrics</fields>
+      <decision>Market depth analysis and liquidity</decision>
+    </pattern>
+
+    <pattern id="ASF-256" name="Slip/Fee Surface" size="256 bits">
+      <purpose>Slippage and fee estimation</purpose>
+      <fields>linear-quadratic slippage coefficients + fees</fields>
+      <decision>Trade cost estimation</decision>
+    </pattern>
+
+    <pattern id="ECO-1024" name="Event Lockout" size="1024 bits">
+      <purpose>Event-based trading restrictions</purpose>
+      <fields>minute bitmap + event action (L1/L2/L3)</fields>
+      <decision>Whether trading is restricted by events</decision>
+    </pattern>
+
+    <pattern id="RLT-1024" name="Risk Ladder" size="1024 bits">
+      <purpose>Risk thresholds and escalation</purpose>
+      <fields>thresholds and actions per level/strategy</fields>
+      <decision>Risk level and corresponding action</decision>
+    </pattern>
+
+    <pattern id="ALE-128" name="Ledger Line" size="128 bits">
+      <purpose>Tamper-evident audit logging</purpose>
+      <fields>timestamp, event code, actor, prev-hash</fields>
+      <decision>Audit trail entry (hash-chained)</decision>
+    </pattern>
+
+    <pattern id="ET-1kB" name="Epoch Tile" size="8192 bits (1 kB)">
+      <purpose>Crash-safe recovery snapshot</purpose>
+      <fields>counters, last hashes, next windows</fields>
+      <decision>Recovery point for crash-safe restart</decision>
+      <cadence>Every 0.5-1 second</cadence>
+    </pattern>
+
+    <pattern id="AID-96" name="Atomic ID" size="96 bits">
+      <purpose>Sortable unique identifier</purpose>
+      <fields>time | node | counter | class</fields>
+      <format>12-byte sortable handle</format>
+    </pattern>
+
+  </named-patterns>
+
+  <!-- ============================================================================
+       BREAKER PATTERN (Degrade Don't Die)
+       ============================================================================ -->
+  <breaker-pattern id="ACB-64">
+    <description>Quality degradation instead of failure</description>
+    <levels>
+      <level id="L0" name="Normal">Normal operation</level>
+      <level id="L1" name="Size reduced">Reduce position sizes</level>
+      <level id="L2" name="Taker only">Taker-only/quality reduced</level>
+      <level id="L3" name="Pause">Pause and flatten</level>
+    </levels>
+    <reader-behavior>Apply L rules instantly (size multipliers, route restrictions)</reader-behavior>
+    <writer-behavior>Decide when to raise/lower based on thresholds + dwell times</writer-behavior>
+    <writers>ALT (latency), ECO (events), RLT (risk ladder)</writers>
+  </breaker-pattern>
+
+  <!-- ============================================================================
+       RUST IMPLEMENTATION NOTES
+       ============================================================================ -->
+  <implementation language="Rust">
+
+    <alignment-types>
+      <code>
+#[repr(C, align(64))]
+pub struct Aeb512 {
+    pub w0: core::sync::atomic::AtomicU128,
+    pub w1: core::sync::atomic::AtomicU128,
+    pub w2: core::sync::atomic::AtomicU128,
+    pub w3: core::sync::atomic::AtomicU128,
+}
+      </code>
+    </alignment-types>
+
+    <writer-two-phase>
+      <code>
+// 1) build W1..W3 with local odd version
+w1.store(payload1, Ordering::Relaxed);
+w2.store(payload2, Ordering::Relaxed);
+w3.store(with_tail_ver(payload3, odd_ver), Ordering::Relaxed);
+
+// 2) publish head with even version
+let head = pack_head(/*commit=1, ver=odd_ver+1, ...*/);
+w0.store(head, Ordering::Release);
+      </code>
+    </writer-two-phase>
+
+    <reader-one-decision>
+      <code>
+let h = w0.load(Ordering::Relaxed);
+if !is_committed_even(h) { return Deny; }
+let t = w3.load(Ordering::Relaxed);
+if !head_tail_match(h, t) { return Deny; }
+Decide::YesOrNo(decode_and_branch(h, t))
+      </code>
+    </reader-one-decision>
+
+    <fixed-point-helpers>
+      <format name="Q8.8">Use for basis points</format>
+      <format name="Q4.12">Use for fractional ticks</format>
+      <rule>Keep conversions centralized; never scatter FP math in readers</rule>
+    </fixed-point-helpers>
+
+    <minimal-capsule>
+      <code>
+#[repr(C, align(64))]
+pub struct Capsule128 {
+    head: AtomicU128, // commit:1 | ver:8 | ... (header)
+    body: AtomicU128, // payload + ver_tail:8
+}
+
+impl Capsule128 {
+    pub fn publish(&amp;self, payload: u128, odd_ver: u8) {
+        let body = set_ver_tail(payload, odd_ver);
+        self.body.store(body, Ordering::Relaxed);
+        let head = make_head(/*commit=1, ver=odd_ver+1 even, ...*/);
+        self.head.store(head, Ordering::Release);
+    }
+    pub fn read_ok(&amp;self) -> Option&lt;(u128,u128)&gt; {
+        let h = self.head.load(Ordering::Relaxed);
+        if !is_committed_even(h) { return None; }
+        let b = self.body.load(Ordering::Relaxed);
+        if !head_tail_match(h, b) { return None; }
+        Some((h, b))
+    }
+}
+      </code>
+    </minimal-capsule>
+
+  </implementation>
+
+  <!-- ============================================================================
+       FIELD SIZE CHEAT SHEET
+       ============================================================================ -->
+  <field-sizes>
+    <field name="Ticks" type="i16" range="plus/minus 32767" note="or i24 when packed"/>
+    <field name="Basis points" type="u16/i16" format="Q8.8"/>
+    <field name="Milliseconds" type="u20" range="up to ~17 minutes" note="or u24 up to ~4.6 hours"/>
+    <field name="Minutes-since-midnight" type="u11" range="0..1439"/>
+    <field name="Flags" type="u8/u10" note="pack into bits"/>
+    <field name="Checksum" type="u16" note="CRC or truncated hash"/>
+  </field-sizes>
+
+  <!-- ============================================================================
+       NEW CAPSULE CHECKLIST
+       ============================================================================ -->
+  <new-capsule-checklist>
+    <step id="1">Define the decision the reader must make in one branch</step>
+    <step id="2">List fields that are strictly necessary (scores, timers, caps)</step>
+    <step id="3">Pick size (64-512 bits usually) and fixed-point units</step>
+    <step id="4">Choose the single writer and update cadence</step>
+    <step id="5">Design head/tail with ver (odd to even), optional checksum16</step>
+    <step id="6">Implement pack/unpack + publish + accept rule</step>
+    <step id="7">Add unit, property, stress, bench tests</step>
+    <step id="8">Log ALE-128 on every publish/consume decision</step>
+  </new-capsule-checklist>
+
+  <!-- ============================================================================
+       TESTING PLAN
+       ============================================================================ -->
+  <testing-plan>
+    <tier name="Unit">Bit packing, range limits, fixed-point conversions</tier>
+    <tier name="Property">Never accept odd ver, head==tail or reject, hysteresis/dwell never chatter</tier>
+    <tier name="Stress">Concurrent writers (via aggregator), reader flood, clock skew</tier>
+    <tier name="Replay">Feed recorded inputs; reader decisions must be identical</tier>
+    <tier name="Bench">Per-read 5-20 ns or less; publish 50-400 ns or less depending on size</tier>
+  </testing-plan>
+
+  <!-- ============================================================================
+       OBSERVABILITY AND RECOVERY
+       ============================================================================ -->
+  <observability>
+    <component id="ALE-128" name="Ledger Line">
+      <description>Every important event produces 16 bytes with a hash link</description>
+      <benefit>Linear verification catches tampering</benefit>
+    </component>
+    <component id="ET-1kB" name="Epoch Tile">
+      <description>Every 0.5-1 second produces crash-safe snapshot</description>
+      <fields>counters, last hashes, next windows</fields>
+      <recovery>On startup, scan for last valid tile and resume</recovery>
+    </component>
+  </observability>
+
+  <!-- ============================================================================
+       NOVEL CAPABILITIES UNLOCKED
+       ============================================================================ -->
+  <novel-capabilities>
+    <capability id="1" name="Deterministic tail">
+      <description>Decisions are constant time, so p99 approximately equals median</description>
+    </capability>
+    <capability id="2" name="Hot swapping policy">
+      <description>Push a new RLT and the whole system's behavior changes without code edits</description>
+    </capability>
+    <capability id="3" name="Instant global reactions">
+      <description>A tiny breaker flip synchronizes quality across modules in nanoseconds</description>
+    </capability>
+    <capability id="4" name="Audit you can prove">
+      <description>Hash-chained ledger + tile digests give forensic-grade trails</description>
+    </capability>
+    <capability id="5" name="Fractal portability">
+      <description>The same capsule rules work on a laptop UI, an exchange router, or a robot loop</description>
+    </capability>
+  </novel-capabilities>
+
+  <!-- ============================================================================
+       MIGRATION GUIDE
+       ============================================================================ -->
+  <migration-guide>
+    <step id="1">Pick one decision that currently stalls/recomputes often</step>
+    <step id="2">Draft a capsule that answers it directly (64-128 bits)</step>
+    <step id="3">Wrap the old code behind the capsule writer; stop recomputing in the reader</step>
+    <step id="4">Gate the reader to only use the capsule</step>
+    <step id="5">Add breaker and ledger; measure tail latency before/after</step>
+    <step id="6">Repeat for the next hotspot</step>
+  </migration-guide>
+
+  <!-- ============================================================================
+       SECURITY AND OPS (Trade Secret Friendly)
+       ============================================================================ -->
+  <security>
+    <rule id="1">Keep capsule packers/commit logic in a private crate</rule>
+    <rule id="2">Never expose raw capsules over external APIs; export summarized, human fields only</rule>
+    <rule id="3">Watermark builds; log policy_id, node_id, and last hashes in ET tiles</rule>
+  </security>
+
+  <!-- ============================================================================
+       FILL-IN TEMPLATE
+       ============================================================================ -->
+  <fill-in-template>
+    <field name="Project/Domain">[...]</field>
+    <field name="Decision">[Describe in one sentence what the reader must decide]</field>
+    <field name="Capsule">[NAME-SIZE]</field>
+    <field name="Writer">[process/thread] - cadence [event/Hz]</field>
+    <field name="Readers">[list]</field>
+    <field name="Fields">
+      <format>[field1_name (bits): meaning / unit]</format>
+      <format>[field2_name (bits): meaning / unit]</format>
+    </field>
+    <field name="Publish protocol">[odd to even, checksum?]</field>
+    <field name="Reader accept rule">[conditions in one line]</field>
+    <field name="Actions">[what readers do on green / amber / red]</field>
+    <field name="Tests">[unit, property, stress, replay, bench targets]</field>
+  </fill-in-template>
+
+  <!-- ============================================================================
+       ARCHITECTURE FLOW
+       ============================================================================ -->
+  <architecture-flow>
+    <description>Read path: ~4 capsule reads - 1 publish. Publishers do the heavy lifting off-path and commit whole truths atomically.</description>
+    <producers>
+      <producer id="P1">Signals - AVS-128</producer>
+      <producer id="P2">Latency - ALT-128</producer>
+      <producer id="P3">Risk - ARE-128/APC-512</producer>
+      <producer id="P4">Policy - RLT-1024</producer>
+    </producers>
+    <decision-path>
+      <capsule order="1">AVS-128</capsule>
+      <capsule order="2">ACT-128</capsule>
+      <capsule order="3">ARE/APC</capsule>
+      <capsule order="4">ACB-64</capsule>
+      <capsule order="5">AEB-512 publish</capsule>
+    </decision-path>
+    <observability>
+      <component>ALE-128</component>
+      <component>ET-1kB</component>
+    </observability>
+  </architecture-flow>
+
+  <!-- ============================================================================
+       END-TO-END SEQUENCE
+       ============================================================================ -->
+  <sequence-diagram>
+    <participants>
+      <participant id="Sig" name="AVS Writer"/>
+      <participant id="Risk" name="APC/ARE Writer"/>
+      <participant id="Lat" name="ALT Writer"/>
+      <participant id="Strat" name="Strategy (Reader)"/>
+      <participant id="Exec" name="Router (Reader)"/>
+    </participants>
+    <flow>
+      <step actor="Sig">build AVS-128 (Release store)</step>
+      <step actor="Risk">build APC/ARE (Release store)</step>
+      <step actor="Lat">build ALT-128 (Release store)</step>
+      <step actor="Strat" reads="Sig">load AVS (Relaxed)</step>
+      <step actor="Strat" reads="Risk">load APC/ARE (Relaxed)</step>
+      <step actor="Strat" reads="Lat">load ACB/ALT (Relaxed)</step>
+      <step actor="Strat">branch once (go/scale/stop)</step>
+      <step actor="Strat" writes="Exec">publish AEB-512 (Release)</step>
+      <step actor="Exec">one read, place orders</step>
+    </flow>
+  </sequence-diagram>
+
+  <!-- ============================================================================
+       CLOSING PHILOSOPHY
+       ============================================================================ -->
+  <closing>
+    <statement>Think in capsules, not classes.</statement>
+    <philosophy>Choose the decision, shape one tiny truth, publish once, and let everything else move at cache-line speed.</philosophy>
+    <result>A system that is fast, steady, and easy to reason about - and small enough for a solo builder to own end-to-end.</result>
+  </closing>
+
+</atomic-capsule-patterns>

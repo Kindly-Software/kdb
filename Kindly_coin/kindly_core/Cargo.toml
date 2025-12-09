@@ -1,0 +1,52 @@
+[package]
+name = "kindly_core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+description = "Core atomic capsule primitives for Kindly Coin cryptocurrency"
+
+[dependencies]
+# Atomic capsule foundation
+atomic_capsule.workspace = true
+atomic_capsule_map.workspace = true
+
+# Cryptography
+ed25519-dalek.workspace = true
+sha3.workspace = true
+blake3.workspace = true
+
+# Serialization
+serde.workspace = true
+bincode.workspace = true
+
+# Utilities
+thiserror = "1.0"
+
+[features]
+default = []
+# Q32: Portable SIMD for batch transaction validation (8-16 signatures)
+portable_simd = []
+# Q32: Const fn floating point for compile-time phi constant calculations
+const_float = []
+
+[dev-dependencies]
+proptest.workspace = true
+criterion.workspace = true
+blake3.workspace = true
+
+[[bench]]
+name = "transaction_capsule"
+harness = false
+
+[[bench]]
+name = "block_capsule"
+harness = false
+
+[[bench]]
+name = "account_state_capsule"
+harness = false

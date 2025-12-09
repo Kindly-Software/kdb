@@ -1,0 +1,21 @@
+error: Verified capsules require >= 64-byte alignment
+       Got: 32 bytes
+       Required: 64 bytes (single cache line for atomic operations)
+
+       T0 Verified capsules use formal verification tools:
+       - TLA+/Spin: Model checking for lockfree algorithms
+       - Z3: SMT solving for fixed-point arithmetic invariants
+       - KLEE: Symbolic execution for pipeline correctness
+
+       These tools require atomic operations to be cache-aligned.
+
+       Help: Use #[capsule(alignment = 64, verified = true)]
+  --> tests/compile_fail/verified_alignment_too_small.rs:10:1
+   |
+10 | / #[capsule(alignment = 32, size = 32, verified = true)]  // ❌ Too small! Verified requires >= 64 bytes
+11 | | #[repr(C, align(32))]
+12 | | struct TooSmallVerified {
+13 | |     state: AtomicU64,
+14 | |     _padding: [u8; 24],
+15 | | }
+   | |_^

@@ -70,7 +70,7 @@ tests/*.rs                      - authenticate() calls fixed (automated)
 
 - **UCE34 Q31**: ✅ Minimal automated changes
 - **T28**: ✅ Fixing tests to match implementation
-- **COCA**: ✅ Zero capsule implementation changes
+- **Chaos**: ✅ Zero capsule implementation changes
 - **I20**: ✅ Zero breaking changes
 - **ASSUM**: ✅ No unsafe code changes
 

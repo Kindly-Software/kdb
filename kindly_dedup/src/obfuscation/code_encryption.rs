@@ -34,7 +34,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q1-Q34 complete (T1+T2+T4 tier selection, Q34 audit trails)
-//! - **COCA**: 100% lockfree (no mutex/RwLock, 100% atomic operations)
+//! - **Chaos**: 100% lockfree (no mutex/RwLock, 100% atomic operations)
 //! - **ASSUM**: 99.99% safe (zero unsafe code in fast paths)
 //! - **T28**: Comprehensive tests (unit/property/integration/production)
 //! - **I20**: Integration validation (zero breaking changes)

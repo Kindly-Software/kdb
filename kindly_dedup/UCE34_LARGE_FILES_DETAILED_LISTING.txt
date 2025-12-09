@@ -1,0 +1,237 @@
+================================================================================
+UCE34 FRAMEWORK - DETAILED FILE LISTING (>25K TOKENS)
+================================================================================
+
+RANKED BY TOKEN COUNT (Descending):
+
+1. UCE33_FRAMEWORK_ORIGINAL.md
+   Location: /home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/
+   Size: 381K | Tokens: 97,315 | Lines: 11,967
+   Type: Markdown (Legacy Framework)
+   Status: DEPRECATED ⚠️ (Superseded by XML v6.0, Nov 2025)
+   Content: Original 33-question framework (complete implementation guide)
+   Recommendation: Move to legacy/v5.14/ → Archival
+   ───────────────────────────────────────────────────────────────────────────
+
+2. primitives-catalog-foundation.xml
+   Location: /home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/
+   Size: 100K | Tokens: 25,596 | Lines: ~2,200
+   Type: XML (Primitives Catalog - Part 1 of 3)
+   Status: PRODUCTION ✓ (v5.13, actively maintained)
+   Content: 114 primitives (T0-T5: Auditable, Atomic, SIMD, Fixed-Point, Batch, Streaming)
+            + 31 async/container/hft runtime primitives
+   Structure: <primitive id="..."> → name, description, tier, alignment, speedup, latency, module, features, use-cases
+   Key Metric: Each primitive ≈ 18-25 lines / ≈200-300 bytes
+   Queryable: XPath (//@id, //tier[@id='T0'], etc.)
+   Optimization Status: Can't compress (each primitive independently queryable)
+   ───────────────────────────────────────────────────────────────────────────
+
+3. NEGATIVE_TRAIT_BOUNDS_PLAN.md
+   Location: /home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/
+   Size: 82K | Tokens: 20,957 | Lines: 2,798
+   Type: Markdown (Research Document)
+   Status: RESEARCH (Advanced Rust pattern exploration)
+   Content: Negative trait bounds optimization techniques, advanced Rust patterns
+   Purpose: Long-term language feature research (not critical path)
+   ───────────────────────────────────────────────────────────────────────────
+
+4. primitives-catalog-extended.xml
+   Location: /home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/
+   Size: 79K | Tokens: 20,045 | Lines: ~1,900
+   Type: XML (Primitives Catalog - Part 3 of 3)
+   Status: PRODUCTION ✓ (v5.13, actively maintained)
+   Content: 54 primitives (T8-T10: Network, Persistent, Probabilistic)
+            + 8 HTTP server primitives
+            + Complete MIGRATION GUIDE (major space consumer)
+   Migration Guide Components:
+     - 25+ XPath examples with before/after
+     - 6 XSLT transformation recipes
+     - Step-by-step migration procedures
+     - Code samples showing migration patterns
+   Optimization Opportunity: Extract migration guide → separate migration-examples.xml
+   Estimated savings: ~30% (5.5K tokens) if extracted
+   ───────────────────────────────────────────────────────────────────────────
+
+5. HISTOGRAM_CAPSULE_BLUEPRINT.md
+   Location: /home/samuel/Primitives/Docs/
+   Size: 69K | Tokens: 17,586 | Lines: 1,886
+   Type: Markdown (Detailed Capsule Design Specification)
+   Status: PRODUCTION ✓ (Reference standard for capsule design)
+   Content Breakdown:
+     - Architecture & Design (15%) - Structural overview, diagrams
+     - Performance Tables (25%) - Latency profiles, memory layouts, benchmark matrices
+     - Implementation Guide (40%) - Step-by-step instructions with code snippets
+     - Validation & Testing (10%) - Edge cases, test strategies
+     - API Reference (10%) - Configuration options, tuning parameters
+   Optimization Status: Can't compress (tables need detail, ~90% of other blueprints reference this)
+   Gold Standard: Design pattern followed by SERIALIZE, ASYNC, JSON, HTTP, ZSTD blueprints
+   ───────────────────────────────────────────────────────────────────────────
+
+6. SERIALIZE_CAPSULE_BLUEPRINT.md
+   Location: /home/samuel/Primitives/Docs/
+   Size: 70K | Tokens: 17,711 | Lines: 1,934
+   Type: Markdown (Detailed Capsule Design Specification)
+   Status: PRODUCTION ✓ (Format specification & implementation)
+   Content Breakdown: Similar to HISTOGRAM (15/25/40/10/10 split)
+   Focus: Format specifications, binary layout, serialization protocols
+   ───────────────────────────────────────────────────────────────────────────
+
+7. frameworks/uce34.xml
+   Location: /home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/
+   Size: 70K | Tokens: 17,855 | Lines: ~1,600
+   Type: XML (Main Framework - Q1-Q34 Discovery)
+   Status: PRODUCTION ✓ (Canonical source for systematic discovery)
+   Content Breakdown:
+     - Q1-Q34 Question Definitions (50%) - 33 questions × 200-400 bytes each with examples
+     - Decision Trees & Logic (20%) - Tier selection, framework routing conditionals
+     - Code Examples & Validation (20%) - Runnable examples, performance profiles
+     - Supporting Content (10%) - Metadata, cross-references to shared-components.xml
+   Queryable: XPath (/question[@id='Q10'], //decision-tree[@type='tier-selection'])
+   Cross-References: Heavily links to shared-components.xml (tier definitions)
+   ───────────────────────────────────────────────────────────────────────────
+
+8. KEY_INNOVATIONS.md
+   Location: /home/samuel/Primitives/Docs/
+   Size: 57K | Tokens: 14,561 | Lines: ~1,400
+   Type: Markdown (Innovation Catalog)
+   Status: PRODUCTION ✓ (Core reference for breakthrough patterns)
+   Content: 9 major innovations with 7-35× speedups
+            Detailed implementation guides for each innovation
+            Performance metrics, validation results
+   ───────────────────────────────────────────────────────────────────────────
+
+9. COMPUTATIONAL_CAPSULE_UCE33_ANALYSIS.md
+   Location: /home/samuel/Primitives/Docs/
+   Size: 47K | Tokens: 11,801 | Lines: ~1,300
+   Type: Markdown (Analysis Document)
+   Status: PRODUCTION ✓ (Complete capsule architecture reference)
+   Content: Full taxonomy of computational capsule patterns across all 10 tiers
+            Detailed analysis of composition patterns, performance characteristics
+   ───────────────────────────────────────────────────────────────────────────
+
+10. RUST_DEBUG_FRAMEWORK_UCE32.md
+    Location: /home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/
+    Size: 43K | Tokens: 11,005 | Lines: 1,265
+    Type: Markdown (Legacy Framework)
+    Status: LEGACY (Superseded by uce-d7.xml in v6.0)
+    Content: Legacy debug framework (Q1-Q32 debugging questions)
+    ───────────────────────────────────────────────────────────────────────────
+
+
+================================================================================
+SUPPORTING FILES (15-25K range - not in top 10 but worth noting):
+
+frameworks/b32.xml (35K / ~8.75K tokens)
+  Purpose: Fair benchmarking framework (K1-K70 hardware reality, 95% CI)
+  
+frameworks/i20.xml (37K / ~9.25K tokens)
+  Purpose: Integration validation framework (20 questions)
+
+frameworks/t28.xml (48K / ~12K tokens)
+  Purpose: Testing strategy framework (4 tiers: Unit/Property/Integration/Production)
+
+frameworks/assum.xml (25K / ~6.25K tokens)
+  Purpose: Safety categories, assumptions verification
+
+frameworks/q12-ultrathink.xml (21K / ~5.25K tokens)
+  Purpose: Nightly features & unstable optimizations (20+ features)
+
+frameworks/uce-d7.xml (16K / ~4K tokens)
+  Purpose: Debugging framework (replacement for UCE32, Q1-Q7 constraints)
+
+shared/shared-components.xml (22K / ~5.5K tokens) ⭐ CANONICAL
+  Purpose: Single source of truth for tier definitions, decision trees, performance claims
+  Status: Heavily XPath-referenced by other frameworks
+
+shared/framework-selection-tree.xml (27K / ~6.75K tokens) ⭐ CANONICAL
+  Purpose: Framework routing matrix, 5 curated presets, compatibility table
+
+primitives-catalog-composite.xml (26K / ~6.5K tokens)
+  Purpose: T6-T7 primitives (Mixed/Composite, Heterogeneous/GPU) - Part 2 of 3
+
+code-examples.xml (61K / ~15.25K tokens)
+  Purpose: Runnable code examples for all frameworks and primitives
+
+question-hierarchy.xml (89K / ~22.25K tokens)
+  Purpose: Complete Q1-Q34 taxonomy with relationships
+
+tier-registry.xml (60K / ~15K tokens)
+  Purpose: Tier performance claims validation & registry
+
+
+================================================================================
+OPTIMIZATION ANALYSIS:
+
+Current Large-File Budget (>25K tokens): ~183K tokens
+
+Breakdown:
+  PRODUCTION:     ~180K tokens (98%)
+    - Primitives catalogs: 52.2K (29%)
+    - Blueprints: 73K (40%)
+    - XML frameworks: 55K (30%)
+  
+  DEPRECATED:      ~97K tokens (53% of LARGE FILE budget)
+    - UCE33_FRAMEWORK_ORIGINAL.md only
+  
+  RESEARCH:        ~21K tokens (11%)
+    - NEGATIVE_TRAIT_BOUNDS_PLAN.md
+  
+  LEGACY:          ~11K tokens (6%)
+    - RUST_DEBUG_FRAMEWORK_UCE32.md
+
+Problem: 1 file (97K) represents 53% of large-file overhead and is deprecated
+
+Solution Path:
+  Phase 1 (Immediate): Archive deprecated file
+    Expected savings: 97K tokens (53% of large-file overhead)
+  
+  Phase 2 (Medium-term): Extract migration guide from extended.xml
+    Expected savings: 6K tokens (30% of that file)
+  
+  Phase 3 (Long-term): Modularize uce34.xml if splitting needed
+    Potential savings: 3-5K tokens (but reduces monolithic access)
+
+
+================================================================================
+TOKEN EFFICIENCY RATINGS:
+
+EXCELLENT (High value per token):
+  ✓ shared-components.xml (22K) - Single source of truth, heavily XPath-referenced
+  ✓ framework-selection-tree.xml (27K) - Essential routing logic
+  ✓ uce34.xml (70K) - Core discovery framework, unavoidably large
+
+GOOD (Medium-high value):
+  ✓ primitives-catalog-foundation.xml (100K) - 114 distinct primitives, essential reference
+  ✓ primitives-catalog-extended.xml (79K) - Can reduce by extracting migration guide
+  ✓ HISTOGRAM_CAPSULE_BLUEPRINT.md (69K) - Reference standard, drives design of other blueprints
+
+ACCEPTABLE (Medium value):
+  ≈ KEY_INNOVATIONS.md (57K) - Important but could be shortened with link-heavy approach
+  ≈ SERIALIZE_CAPSULE_BLUEPRINT.md (70K) - Similar to HISTOGRAM, reference value
+
+POOR (Low value per token):
+  ✗ UCE33_FRAMEWORK_ORIGINAL.md (381K / 97K tokens) - DEPRECATED, should archive
+  ✗ NEGATIVE_TRAIT_BOUNDS_PLAN.md (82K / 21K tokens) - RESEARCH, not critical path
+
+
+================================================================================
+MIGRATION STRATEGY:
+
+READY TO EXECUTE (Today):
+  1. Archive UCE33_FRAMEWORK_ORIGINAL.md
+  2. Verify no active links to it in code comments/docs
+  3. Update CLAUDE.md to point to XML v6.0 as canonical
+
+READY TO PLAN (This week):
+  1. Extract migration examples from primitives-catalog-extended.xml
+  2. Design new migration-examples.xml structure
+  3. Validate XPath queries still work
+
+CONSIDER FOR FUTURE (This month):
+  1. Profile which files are most frequently accessed
+  2. If extended.xml frequently downloaded, extract performance-claims.xml
+  3. Monitor uce34.xml access patterns (may need splitting if heavy use)
+
+
+================================================================================
+Generated: 2025-11-13

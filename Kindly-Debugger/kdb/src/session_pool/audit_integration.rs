@@ -42,7 +42,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: T0 Auditable tier, Q34 hash-chain integrity
-//! - **COCA**: 100% lockfree, no mutex/RwLock
+//! - **Chaos**: 100% lockfree, no mutex/RwLock
 //! - **ASSUM**: All assumptions documented with #ASSUME/#VERIFY tags
 //! - **T28**: 20+ tests (unit/property/integration)
 //! - **B32**: <50ns append validated

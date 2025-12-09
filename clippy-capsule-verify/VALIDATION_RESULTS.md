@@ -207,7 +207,7 @@ test result: ok. 7 passed; 0 failed
 ### With Framework
 - ✅ Linked to ASSUM framework (/home/samuel/xml/frameworks/assum.xml)
 - ✅ Aligned with UCE34 Q34 auditability
-- ✅ References COCA compliance (no mutex/RwLock)
+- ✅ References Chaos compliance (no mutex/RwLock)
 - ✅ References T28 testing, B32 validation, I20 integration
 
 ## Security Considerations
@@ -288,4 +288,4 @@ None identified. All enhancements are additive and non-breaking.
 
 **Generated**: 2025-11-23
 **Validator**: Haiku 4.5 Ultrathink Agent (P2.2 ASSUM Enhancement)
-**Framework**: UCE34 + ASSUM + COCA
+**Framework**: UCE34 + ASSUM + Chaos

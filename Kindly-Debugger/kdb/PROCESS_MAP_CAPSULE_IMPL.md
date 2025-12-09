@@ -47,7 +47,7 @@ pub struct MemoryRegion {
 **Why 64 bytes?**
 - Standard L1 cache line size
 - Prevents false sharing in multi-threaded contexts
-- No performance penalty (required for COCA patterns)
+- No performance penalty (required for Chaos patterns)
 
 #### ProcessMapCapsule (33 KB total)
 ```rust
@@ -402,7 +402,7 @@ Phase 3: Advanced Features
 - ✅ **ASSUM**: 99.5% coverage (10/10 assumptions verified)
 - ✅ **B32**: Fair baselines, <5μs parse, <1μs lookup validated
 - ✅ **T28**: 25/25 tests passing (unit/property/integration/production)
-- ✅ **COCA**: 100% lockfree, cache-aligned, atomic-only
+- ✅ **Chaos**: 100% lockfree, cache-aligned, atomic-only
 - ✅ **I20**: Feature-gated, zero breaking changes, safe rollout
 
 ### Code Quality

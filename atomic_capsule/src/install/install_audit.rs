@@ -3,7 +3,7 @@
 //! **Framework**: UCE34 (Q1-Q34 systematic discovery) with Q34 Auditability + T9 Persistence
 //! **Tiers**: T0 (Auditable Hash-Chaining) + T9 (Persistent Mmap Storage)
 //! **Status**: Production-Ready
-//! **COCA Compliance**: 100% lockfree, zero mutex, zero unsafe code
+//! **Chaos Compliance**: 100% lockfree, zero mutex, zero unsafe code
 //!
 //! ## UCE34 Analysis (Q1-Q34)
 //!
@@ -66,7 +66,7 @@
 //! Total: 512 bytes (8 cache lines)
 //! ```
 //!
-//! ## COCA Requirements
+//! ## Chaos Requirements
 //!
 //! - **100% lockfree**: No mutex/RwLock, only atomic operations
 //! - **Cache-aligned**: 512-byte alignment prevents false sharing across NUMA zones

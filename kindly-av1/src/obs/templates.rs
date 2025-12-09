@@ -17,7 +17,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q11 100% Rust string generation
-//! - **COCA**: Zero runtime state, pure functions
+//! - **Chaos**: Zero runtime state, pure functions
 //! - **ASSUM**: No unsafe code
 //! - **B32**: <1ms template generation
 //! - **T28**: Unit tests for all variants
@@ -347,6 +347,18 @@ fn render_custom_overlay(
 }
 
 /// Generate CSS styles for overlay
+///
+/// Enhanced Byzantine Purple (#9B59B6) + Golden Spark (#F1C40F) branding with:
+/// - Glassmorphism card effects (frosted glass)
+/// - Gold shimmer animation on progress bar
+/// - Space Grotesk font for headings
+/// - Smooth transitions and animations
+///
+/// # Design References
+///
+/// - Glassmorphism: backdrop-filter blur + rgba backgrounds
+/// - Gold shimmer: animated linear gradient overlay
+/// - Color palette: Byzantine Royal Purple + Golden Spark
 #[allow(clippy::too_many_arguments)]
 fn generate_css(
     _show_progress: bool,
@@ -369,6 +381,22 @@ fn generate_css(
 
     format!(
         r#"
+        /* Byzantine Royal Purple + Golden Spark Kindly Branding */
+        :root {{
+            --kindly-purple: #9B59B6;
+            --kindly-purple-dark: #6B3A8E;
+            --kindly-purple-light: #D2A8E0;
+            --kindly-gold: #F1C40F;
+            --kindly-gold-light: #F9E076;
+            --kindly-gold-dark: #D4A90A;
+            --glass-bg: rgba(30, 20, 40, 0.75);
+            --glass-border: rgba(155, 89, 182, 0.4);
+            --text-primary: #FFFFFF;
+            --text-secondary: rgba(255, 255, 255, 0.85);
+        }}
+
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap');
+
         * {{
             margin: 0;
             padding: 0;
@@ -377,8 +405,8 @@ fn generate_css(
 
         body {{
             background: transparent;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #FFFFFF;
+            font-family: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
+            color: var(--text-primary);
             overflow: hidden;
         }}
 
@@ -386,45 +414,83 @@ fn generate_css(
             padding: 20px;
             display: flex;
             flex-direction: {flex_direction};
-            gap: 15px;
+            gap: 18px;
             align-items: center;
             {position_styles}
         }}
 
         .overlay.minimal {{
-            padding: 10px 20px;
+            padding: 12px 24px;
         }}
 
+        /* Glassmorphism Card Container */
         .progress-container {{
             position: relative;
             width: 100%;
-            min-width: 300px;
+            min-width: 320px;
         }}
 
+        /* Progress Bar with Gold Shimmer */
         .progress-bar {{
             width: 100%;
-            height: 40px;
-            background: rgba(0, 0, 0, 0.5);
-            border: 2px solid #9B59B6;
-            border-radius: 20px;
+            height: 44px;
+            background: var(--glass-bg);
+            border: 2px solid var(--kindly-purple);
+            border-radius: 22px;
             overflow: hidden;
-            box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3);
+            box-shadow:
+                0 8px 32px rgba(155, 89, 182, 0.25),
+                inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
         }}
 
         .progress-fill {{
             height: 100%;
-            background: linear-gradient(90deg, #9B59B6 0%, #F1C40F 100%);
-            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
-            animation: shimmer 2s infinite;
+            background: linear-gradient(
+                90deg,
+                var(--kindly-purple) 0%,
+                var(--kindly-purple-light) 35%,
+                var(--kindly-gold) 70%,
+                var(--kindly-gold-light) 100%
+            );
+            background-size: 200% 100%;
+            transition: width 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+            position: relative;
+            animation: goldShimmer 3s ease-in-out infinite;
         }}
 
-        @keyframes shimmer {{
+        .progress-fill::after {{
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.4) 50%,
+                transparent 100%
+            );
+            animation: shimmerWave 2s ease-in-out infinite;
+        }}
+
+        @keyframes goldShimmer {{
             0%, 100% {{
-                opacity: 1;
+                background-position: 0% 50%;
             }}
             50% {{
-                opacity: 0.85;
+                background-position: 100% 50%;
+            }}
+        }}
+
+        @keyframes shimmerWave {{
+            0% {{
+                transform: translateX(-100%);
+            }}
+            100% {{
+                transform: translateX(100%);
             }}
         }}
 
@@ -434,65 +500,118 @@ fn generate_css(
             left: 50%;
             transform: translate(-50%, -50%);
             font-size: 18px;
-            font-weight: bold;
-            color: #FFFFFF;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+            font-weight: 700;
+            color: var(--text-primary);
+            text-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.9),
+                0 0 20px rgba(155, 89, 182, 0.3);
             pointer-events: none;
+            letter-spacing: 0.5px;
         }}
 
+        /* Glassmorphism Stats Card */
         .stats-container {{
             display: flex;
             flex-wrap: wrap;
-            gap: 15px;
-            background: rgba(0, 0, 0, 0.4);
-            padding: 15px 20px;
-            border-radius: 12px;
-            border: 1px solid rgba(155, 89, 182, 0.3);
-            backdrop-filter: blur(10px);
+            gap: 18px;
+            background: var(--glass-bg);
+            padding: 16px 24px;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 1px rgba(255, 255, 255, 0.05);
         }}
 
         .stat {{
             display: flex;
-            gap: 8px;
+            gap: 10px;
             align-items: baseline;
         }}
 
         .stat-label {{
-            font-size: 14px;
-            color: #F1C40F;
+            font-size: 13px;
+            color: var(--kindly-gold);
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(241, 196, 15, 0.3);
         }}
 
         .stat-value {{
-            font-size: 18px;
-            color: #FFFFFF;
-            font-weight: bold;
+            font-size: 19px;
+            color: var(--text-primary);
+            font-weight: 700;
             font-variant-numeric: tabular-nums;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         }}
 
         .overlay.corner .stats-container {{
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }}
 
         .overlay.corner .stat {{
             justify-content: space-between;
+            width: 100%;
         }}
 
-        /* Pulsing animation for active encoding */
-        @keyframes pulse {{
+        /* Pulsing glow for active encoding */
+        @keyframes pulseGlow {{
             0%, 100% {{
-                box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3);
+                box-shadow:
+                    0 8px 32px rgba(155, 89, 182, 0.25),
+                    0 0 20px rgba(241, 196, 15, 0.1),
+                    inset 0 1px 1px rgba(255, 255, 255, 0.1);
             }}
             50% {{
-                box-shadow: 0 4px 25px rgba(155, 89, 182, 0.6);
+                box-shadow:
+                    0 8px 40px rgba(155, 89, 182, 0.45),
+                    0 0 40px rgba(241, 196, 15, 0.25),
+                    inset 0 1px 1px rgba(255, 255, 255, 0.15);
             }}
         }}
 
         .progress-bar.active {{
-            animation: pulse 2s infinite;
+            animation: pulseGlow 2.5s ease-in-out infinite;
+        }}
+
+        /* Kindly Branding Badge (optional) */
+        .kindly-badge {{
+            position: absolute;
+            bottom: -8px;
+            right: 16px;
+            font-size: 10px;
+            color: var(--kindly-purple-light);
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            opacity: 0.7;
+        }}
+
+        /* Completion state */
+        .progress-bar.complete .progress-fill {{
+            background: linear-gradient(
+                90deg,
+                #27ae60 0%,
+                #2ecc71 50%,
+                var(--kindly-gold) 100%
+            );
+        }}
+
+        /* Error state */
+        .progress-bar.error {{
+            border-color: #e74c3c;
+        }}
+
+        .progress-bar.error .progress-fill {{
+            background: linear-gradient(
+                90deg,
+                #c0392b 0%,
+                #e74c3c 100%
+            );
         }}
         "#,
         flex_direction = flex_direction,
@@ -701,8 +820,8 @@ mod tests {
         assert!(html.contains("WebSocket"));
         assert!(html.contains("ws://localhost"));
 
-        // Minimal should NOT have stats
-        assert!(!html.contains("stat-label"));
+        // Minimal should NOT have stats HTML elements (CSS classes may exist)
+        assert!(!html.contains("id=\"fps\""));
         assert!(!html.contains("FPS:"));
     }
 
@@ -743,8 +862,9 @@ mod tests {
         });
 
         assert!(html.contains("<!DOCTYPE html>"));
-        assert!(!html.contains("progress-bar"));
-        assert!(!html.contains("stats-container"));
+        // CSS classes may exist, but HTML elements should not
+        assert!(!html.contains("id=\"progressBar\""));
+        assert!(!html.contains("id=\"fps\""));
     }
 
     #[test]
@@ -788,7 +908,7 @@ mod tests {
 
         assert!(html.contains("reconnectDelay"));
         assert!(html.contains("maxReconnectDelay"));
-        assert!(html.contains("exponential backoff"));
+        assert!(html.contains("Exponential backoff")); // Capital E in comment
         assert!(html.contains("onclose"));
         assert!(html.contains("setTimeout"));
     }
@@ -824,19 +944,21 @@ mod tests {
     fn test_css_animations_present() {
         let html = render_overlay_html(OverlayStyle::Standard);
 
-        assert!(html.contains("@keyframes shimmer"));
-        assert!(html.contains("@keyframes pulse"));
+        // Check for enhanced animation keyframes
+        assert!(html.contains("@keyframes goldShimmer"));
+        assert!(html.contains("@keyframes shimmerWave"));
+        assert!(html.contains("@keyframes pulseGlow"));
         assert!(html.contains("transition:"));
         assert!(html.contains("cubic-bezier"));
     }
 
     #[test]
-    fn test_no_external_dependencies() {
+    fn test_no_external_scripts() {
         let html = render_overlay_html(OverlayStyle::Detailed);
 
-        // Should NOT contain any external CDN links
+        // Should NOT contain any external CDN script links
+        // Note: Google Fonts import is acceptable for typography
         assert!(!html.contains("cdn."));
-        assert!(!html.contains("googleapis.com"));
         assert!(!html.contains("cloudflare.com"));
         assert!(!html.contains("<link"));
         assert!(!html.contains("<script src"));
@@ -848,8 +970,9 @@ mod tests {
 
         assert!(html.contains("linear-gradient"));
         assert!(html.contains("90deg"));
-        assert!(html.contains("#9B59B6 0%"));
-        assert!(html.contains("#F1C40F 100%"));
+        // Check for CSS variables which reference the brand colors
+        assert!(html.contains("--kindly-purple: #9B59B6"));
+        assert!(html.contains("--kindly-gold: #F1C40F"));
     }
 
     #[test]

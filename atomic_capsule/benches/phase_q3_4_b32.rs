@@ -127,7 +127,7 @@
 //! - **B32**: K1-K70 compliance (fair baselines, 95% CI, honest claims)
 //! - **T28**: Integration + Production tier testing (Q15-Q28)
 //! - **ASSUM**: All performance assumptions documented and verified
-//! - **COCA**: 100% lockfree computational capsule architecture
+//! - **Chaos**: 100% lockfree computational capsule architecture
 
 #![cfg(feature = "quantum-pure")]
 

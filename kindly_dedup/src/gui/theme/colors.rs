@@ -1,5 +1,6 @@
 //! Byzantine Purple + Gold Color Palette
 //! Matching kindly.software branding
+//! Compatible with iced 0.13 (Color API unchanged)
 
 use iced::Color;
 

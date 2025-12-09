@@ -43,7 +43,7 @@
 //!
 //! ## Framework Compliance
 //! - **UCE34**: Q10 Tier 6 (composite), Q34 audit trail
-//! - **COCA**: 100% lockfree coordination
+//! - **Chaos**: 100% lockfree coordination
 //! - **ASSUM**: 99.99% safe (no unsafe code in git module)
 //! - **B32**: Fair baselines with git command execution
 

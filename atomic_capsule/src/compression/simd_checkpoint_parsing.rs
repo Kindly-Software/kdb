@@ -28,7 +28,7 @@
 //!   validate_all(f64x8)          // Parallel IEEE754 check
 //! ```
 //!
-//! # COCA Principles Applied
+//! # Chaos Principles Applied
 //! - **64-byte alignment**: SIMD vector alignment for AVX-512
 //! - **DualAtomicU64**: Primary (bytes parsed) + Secondary (chunks completed)
 //! - **100% lockfree**: Zero mutex, atomic-only coordination

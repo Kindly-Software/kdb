@@ -6,7 +6,7 @@
 //! - AnimationStateCapsule: Pulsing UI animation (<3ns)
 //! - LicenseStateCapsule: License tier tracking (<5ns)
 //!
-//! ## COCA Compliance
+//! ## Chaos Compliance
 //! - 100% lockfree (no mutex, rwlock, or scattered atomics)
 //! - Cache-aligned (64B HotTier)
 //! - Generation counters for TOCTOU prevention

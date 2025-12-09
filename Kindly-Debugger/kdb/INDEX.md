@@ -122,7 +122,7 @@ sudo journalctl -u kdb -f
 ## Framework Compliance
 
 ✅ **UCE34** - Systematic discovery (Q1-Q34)
-✅ **COCA** - T1 Atomic lockfree implementation
+✅ **Chaos** - T1 Atomic lockfree implementation
 ✅ **ASSUM** - 99.99% safety verification
 ✅ **B32** - Fair baselines, all targets met
 ✅ **T28** - 16 comprehensive tests (100%)

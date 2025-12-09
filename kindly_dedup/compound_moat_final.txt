@@ -1,0 +1,1022 @@
+warning: user-defined alias `bench` is ignored, because it is shadowed by a built-in command
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/atomic_network_gateway/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/kiang/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/atomic_capsule_derive/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/clapi_core/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/kindly-web/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/kindly_compression/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/kindly_dedup/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/capsule-migrate/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/git_coord/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: /home/samuel/Primitives/Cargo.toml: `panic` setting is ignored for `bench` profile
+warning: /home/samuel/Primitives/kindly_dedup/Cargo.toml: `panic` setting is ignored for `bench` profile
+warning: /home/samuel/Primitives/kindly_dedup/Cargo.toml: `panic` setting is ignored for `test` profile
+warning: unexpected `cfg` condition value: `std`
+  --> atomic_capsule_derive/src/audit.rs:34:7
+   |
+34 | #[cfg(feature = "std")]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+   = help: consider adding `std` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unexpected `cfg` condition value: `std`
+  --> atomic_capsule_derive/src/audit.rs:84:7
+   |
+84 | #[cfg(feature = "std")]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+   = help: consider adding `std` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> atomic_capsule_derive/src/audit.rs:418:7
+    |
+418 | #[cfg(feature = "std")]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> atomic_capsule_derive/src/audit.rs:424:7
+    |
+424 | #[cfg(feature = "std")]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> atomic_capsule_derive/src/audit.rs:639:7
+    |
+639 | #[cfg(feature = "std")]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> atomic_capsule_derive/src/audit.rs:386:11
+    |
+386 |     #[cfg(feature = "std")]
+    |           ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> atomic_capsule_derive/src/audit.rs:394:15
+    |
+394 |     #[cfg(not(feature = "std"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: enum `AuditError` is never used
+  --> atomic_capsule_derive/src/audit.rs:39:10
+   |
+39 | pub enum AuditError {
+   |          ^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: enum `MigrationStatus` is never used
+  --> atomic_capsule_derive/src/audit.rs:96:10
+   |
+96 | pub enum MigrationStatus {
+   |          ^^^^^^^^^^^^^^^
+
+warning: associated function `from_u8` is never used
+   --> atomic_capsule_derive/src/audit.rs:109:12
+    |
+107 | impl MigrationStatus {
+    | -------------------- associated function in this implementation
+108 |     /// Parse u8 into MigrationStatus
+109 |     pub fn from_u8(value: u8) -> Option<Self> {
+    |            ^^^^^^^
+
+warning: multiple associated items are never used
+   --> atomic_capsule_derive/src/audit.rs:202:12
+    |
+178 | impl MigrationLogEntry {
+    | ---------------------- associated items in this implementation
+...
+202 |     pub fn record(
+    |            ^^^^^^
+...
+261 |     pub fn fast_hash(&self) -> u64 {
+    |            ^^^^^^^^^
+...
+266 |     pub fn prev_fast_hash(&self) -> u64 {
+    |            ^^^^^^^^^^^^^^
+...
+271 |     pub fn generation(&self) -> u64 {
+    |            ^^^^^^^^^^
+...
+276 |     pub fn timestamp_ns(&self) -> u64 {
+    |            ^^^^^^^^^^^^
+...
+281 |     pub fn status(&self) -> MigrationStatus {
+    |            ^^^^^^
+...
+291 |     pub fn capsule_name(&self) -> Result<&str, AuditError> {
+    |            ^^^^^^^^^^^^
+...
+311 |     pub fn verify_integrity(&self) -> Result<(), AuditError> {
+    |            ^^^^^^^^^^^^^^^^
+...
+348 |     fn compute_entry_hash(prev: u64, ts: u64, name: &[u8; 64], status: u8) -> u64 {
+    |        ^^^^^^^^^^^^^^^^^^
+...
+395 |     fn current_timestamp_ns() -> u64 {
+    |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `MigrationStats` is never constructed
+   --> atomic_capsule_derive/src/audit.rs:648:12
+    |
+648 | pub struct MigrationStats {
+    |            ^^^^^^^^^^^^^^
+
+warning: methods `success_rate` and `failure_rate` are never used
+   --> atomic_capsule_derive/src/audit.rs:664:12
+    |
+662 | impl MigrationStats {
+    | ------------------- methods in this implementation
+663 |     /// Calculate success rate (0.0 - 100.0)
+664 |     pub fn success_rate(&self) -> f64 {
+    |            ^^^^^^^^^^^^
+...
+672 |     pub fn failure_rate(&self) -> f64 {
+    |            ^^^^^^^^^^^^
+
+warning: associated function `with_source` is never used
+  --> atomic_capsule_derive/src/field_size.rs:73:12
+   |
+61 | impl FieldSizeCalculator {
+   | ------------------------ associated function in this implementation
+...
+73 |     pub fn with_source(source: String) -> Self {
+   |            ^^^^^^^^^^^
+
+warning: `atomic_capsule_derive` (lib) generated 14 warnings
+warning: unused import: `MmapManager`
+  --> atomic_capsule/src/persistence/persistent_atomic.rs:22:38
+   |
+22 | use super::mmap_manager::{MmapError, MmapManager};
+   |                                      ^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `atomic_capsule_derive::ComputationalCapsule`
+   --> atomic_capsule/src/protection/crypto_license.rs:131:5
+    |
+131 | use atomic_capsule_derive::ComputationalCapsule;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `atomic_capsule_derive::ComputationalCapsule`
+   --> atomic_capsule/src/protection/orchestrator.rs:174:5
+    |
+174 | use atomic_capsule_derive::ComputationalCapsule;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `probabilistic::minhash::migration::LegacyMinHashSignature`: Use MinHashSignatureCapsule (Q8.8) instead
+   --> atomic_capsule/src/probabilistic/minhash.rs:451:10
+    |
+451 |     impl LegacyMinHashSignature {
+    |          ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated struct `probabilistic::minhash::migration::LegacyMinHashSignature`: Use MinHashSignatureCapsule (Q8.8) instead
+   --> atomic_capsule/src/probabilistic/minhash.rs:486:65
+    |
+486 |     pub fn q8_8_to_legacy(capsule: &MinHashSignatureCapsule) -> LegacyMinHashSignature {
+    |                                                                 ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `probabilistic::minhash::migration::LegacyMinHashSignature`: Use MinHashSignatureCapsule (Q8.8) instead
+   --> atomic_capsule/src/probabilistic/minhash.rs:491:9
+    |
+491 |         LegacyMinHashSignature {
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated field `probabilistic::minhash::migration::LegacyMinHashSignature::signature`: Use MinHashSignatureCapsule (Q8.8) instead
+   --> atomic_capsule/src/probabilistic/minhash.rs:464:37
+    |
+464 |                 new_signature[i] = (self.signature[i] & 0xFFFF) as u16;
+    |                                     ^^^^^^^^^^^^^^
+
+warning: use of deprecated field `probabilistic::minhash::migration::LegacyMinHashSignature::signature`: Use MinHashSignatureCapsule (Q8.8) instead
+   --> atomic_capsule/src/probabilistic/minhash.rs:473:20
+    |
+473 |             Self { signature }
+    |                    ^^^^^^^^^
+
+warning: use of deprecated field `probabilistic::minhash::migration::LegacyMinHashSignature::signature`: Use MinHashSignatureCapsule (Q8.8) instead
+   --> atomic_capsule/src/probabilistic/minhash.rs:492:13
+    |
+492 |             signature: legacy_signature,
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> atomic_capsule/src/protection/encrypted_state.rs:284:32
+    |
+284 |         let nonce_obj = Nonce::from_slice(&nonce);
+    |                                ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> atomic_capsule/src/protection/encrypted_state.rs:382:32
+    |
+382 |         let nonce_obj = Nonce::from_slice(&nonce);
+    |                                ^^^^^^^^^^
+
+warning: value assigned to `failed_task` is never read
+   --> atomic_capsule/src/parallel/migration_batch.rs:177:21
+    |
+177 |                     failed_task = None;
+    |                     ^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> atomic_capsule/src/probabilistic/bloom_filter_sharded.rs:443:13
+    |
+443 |         let mut new = Box::new(Self::new());
+    |             ----^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `ciphertext_len`
+   --> atomic_capsule/src/protection/encrypted_state.rs:361:14
+    |
+361 |         let (ciphertext_len, nonce, tag, ciphertext) = unsafe {
+    |              ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+help: if this is intentional, prefix it with an underscore
+    |
+361 |         let (_ciphertext_len, nonce, tag, ciphertext) = unsafe {
+    |              +
+help: you might have meant to pattern match on the similarly named constant `MIN_ALIGNMENT`
+    |
+361 -         let (ciphertext_len, nonce, tag, ciphertext) = unsafe {
+361 +         let (MIN_ALIGNMENT, nonce, tag, ciphertext) = unsafe {
+    |
+
+warning: field `expected_len` is never read
+   --> atomic_capsule/src/parallel/lockfree_list.rs:430:5
+    |
+428 | pub struct LockfreeListIter<'a, T> {
+    |            ---------------- field in this struct
+429 |     current: *mut Node<T>,
+430 |     expected_len: usize,
+    |     ^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `is_occupied` is never used
+   --> atomic_capsule/src/collections/append_only_map_optimized.rs:100:8
+    |
+ 88 | impl<K, V> MapEntry<K, V> {
+    | ------------------------- method in this implementation
+...
+100 |     fn is_occupied(&self) -> bool {
+    |        ^^^^^^^^^^^
+
+warning: method `try_claim` is never used
+   --> atomic_capsule/src/collections/concurrent_map.rs:216:8
+    |
+168 | impl<K, V> MapEntry<K, V> {
+    | ------------------------- method in this implementation
+...
+216 |     fn try_claim(&self, hash: u64, value: *mut V) -> Result<(), u64> {
+    |        ^^^^^^^^^
+
+warning: method `try_get` is never used
+   --> atomic_capsule/src/collections/entry.rs:453:19
+    |
+348 | / impl<'a, K, V> OccupiedEntry<'a, K, V>
+349 | | where
+350 | |     K: Hash + Eq + Clone + Send + Sync,
+351 | |     V: Send + Sync,
+    | |___________________- method in this implementation
+...
+453 |       pub(crate) fn try_get(&self) -> Option<&V> {
+    |                     ^^^^^^^
+
+warning: fields `lsh_tables` and `similarity_threshold` are never read
+   --> atomic_capsule/src/collections/persistent_dedup.rs:273:5
+    |
+264 | pub struct PersistentDedupImpl {
+    |            ------------------- fields in this struct
+...
+273 |     lsh_tables: MultiTableLshCapsule,
+    |     ^^^^^^^^^^
+...
+286 |     similarity_threshold: f32,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a module
+   --> atomic_capsule/src/primitives/mod.rs:54:1
+    |
+ 54 | pub mod cpu_capabilities;
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: the lint level is defined here
+   --> atomic_capsule/src/lib.rs:124:9
+    |
+124 | #![warn(missing_docs, rust_2018_idioms)]
+    |         ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> atomic_capsule/src/error.rs:143:23
+    |
+143 |     InvalidFileSize { expected: usize, actual: usize },
+    |                       ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> atomic_capsule/src/error.rs:143:40
+    |
+143 |     InvalidFileSize { expected: usize, actual: usize },
+    |                                        ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> atomic_capsule/src/error.rs:146:20
+    |
+146 |     InvalidMagic { expected: u64, actual: u64 },
+    |                    ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> atomic_capsule/src/error.rs:146:35
+    |
+146 |     InvalidMagic { expected: u64, actual: u64 },
+    |                                   ^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> atomic_capsule/src/error.rs:161:25
+    |
+161 |     InsufficientSpace { required: usize, available: usize },
+    |                         ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> atomic_capsule/src/error.rs:161:42
+    |
+161 |     InsufficientSpace { required: usize, available: usize },
+    |                                          ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> atomic_capsule/src/persistence/mmap_manager.rs:34:24
+   |
+34 |     InvalidAlignment { offset: u64, required: u64 },
+   |                        ^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> atomic_capsule/src/persistence/mmap_manager.rs:34:37
+   |
+34 |     InvalidAlignment { offset: u64, required: u64 },
+   |                                     ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> atomic_capsule/src/persistence/mmap_manager.rs:37:24
+   |
+37 |     CapacityExceeded { requested: usize, available: usize },
+   |                        ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> atomic_capsule/src/persistence/mmap_manager.rs:37:42
+   |
+37 |     CapacityExceeded { requested: usize, available: usize },
+   |                                          ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> atomic_capsule/src/persistence/mmap_manager.rs:49:26
+   |
+49 |     InvalidRegionIndex { index: usize, max: usize },
+   |                          ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> atomic_capsule/src/persistence/mmap_manager.rs:49:40
+   |
+49 |     InvalidRegionIndex { index: usize, max: usize },
+   |                                        ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> atomic_capsule/src/persistence/mmap_manager.rs:52:26
+   |
+52 |     GenerationMismatch { expected: u64, actual: u64 },
+   |                          ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> atomic_capsule/src/persistence/mmap_manager.rs:52:41
+   |
+52 |     GenerationMismatch { expected: u64, actual: u64 },
+   |                                         ^^^^^^^^^^^
+
+warning: `atomic_capsule` (lib) generated 34 warnings (run `cargo fix --lib -p atomic_capsule` to apply 4 suggestions)
+warning: unexpected `cfg` condition value: `http-simd`
+  --> kindly_dedup/src/lib.rs:78:7
+   |
+78 | #[cfg(feature = "http-simd")]
+   |       ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `anomaly-detector`, `audit-trail`, `benchmarking`, `binary-protection`, `chrono`, `client-demo`, `compound-ground-truth`, `default`, `download-tools`, `flate2`, `full`, `futures-util`, `http-body-util`, `http-server`, `hyper`, `hyper-util`, `interactive`, `kernel-protection`, `memory-encryption`, `meta-capsule`, `meta-capsule-full`, `meta-capsule-p0`, `meta-capsule-p1`, `nightly`, `orchestrator`, `parallel-dedup`, `parallel-ground-truth`, `parking_lot`, `persistent-dedup`, `protection-build-hardening`, `protection-crypto-license`, `protection-encrypted-state`, `protection-fuzzy-extractor`, `protection-obfuscation`, and `protection-remote-attestation` and 7 more
+   = help: consider adding `http-simd` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unused import: `std::sync::atomic::Ordering`
+  --> kindly_dedup/src/protection/dedup_audit.rs:21:5
+   |
+21 | use std::sync::atomic::Ordering;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unexpected `cfg` condition value: `audit-log`
+   --> kindly_dedup/src/protection/license.rs:594:7
+    |
+594 | #[cfg(feature = "audit-log")]
+    |       ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `anomaly-detector`, `audit-trail`, `benchmarking`, `binary-protection`, `chrono`, `client-demo`, `compound-ground-truth`, `default`, `download-tools`, `flate2`, `full`, `futures-util`, `http-body-util`, `http-server`, `hyper`, `hyper-util`, `interactive`, `kernel-protection`, `memory-encryption`, `meta-capsule`, `meta-capsule-full`, `meta-capsule-p0`, `meta-capsule-p1`, `nightly`, `orchestrator`, `parallel-dedup`, `parallel-ground-truth`, `parking_lot`, `persistent-dedup`, `protection-build-hardening`, `protection-crypto-license`, `protection-encrypted-state`, `protection-fuzzy-extractor`, `protection-obfuscation`, and `protection-remote-attestation` and 7 more
+    = help: consider adding `audit-log` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `audit-log`
+   --> kindly_dedup/src/protection/license.rs:602:7
+    |
+602 | #[cfg(feature = "audit-log")]
+    |       ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `anomaly-detector`, `audit-trail`, `benchmarking`, `binary-protection`, `chrono`, `client-demo`, `compound-ground-truth`, `default`, `download-tools`, `flate2`, `full`, `futures-util`, `http-body-util`, `http-server`, `hyper`, `hyper-util`, `interactive`, `kernel-protection`, `memory-encryption`, `meta-capsule`, `meta-capsule-full`, `meta-capsule-p0`, `meta-capsule-p1`, `nightly`, `orchestrator`, `parallel-dedup`, `parallel-ground-truth`, `parking_lot`, `persistent-dedup`, `protection-build-hardening`, `protection-crypto-license`, `protection-encrypted-state`, `protection-fuzzy-extractor`, `protection-obfuscation`, and `protection-remote-attestation` and 7 more
+    = help: consider adding `audit-log` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `audit-log`
+   --> kindly_dedup/src/protection/license.rs:614:7
+    |
+614 | #[cfg(feature = "audit-log")]
+    |       ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `anomaly-detector`, `audit-trail`, `benchmarking`, `binary-protection`, `chrono`, `client-demo`, `compound-ground-truth`, `default`, `download-tools`, `flate2`, `full`, `futures-util`, `http-body-util`, `http-server`, `hyper`, `hyper-util`, `interactive`, `kernel-protection`, `memory-encryption`, `meta-capsule`, `meta-capsule-full`, `meta-capsule-p0`, `meta-capsule-p1`, `nightly`, `orchestrator`, `parallel-dedup`, `parallel-ground-truth`, `parking_lot`, `persistent-dedup`, `protection-build-hardening`, `protection-crypto-license`, `protection-encrypted-state`, `protection-fuzzy-extractor`, `protection-obfuscation`, and `protection-remote-attestation` and 7 more
+    = help: consider adding `audit-log` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `audit-log`
+   --> kindly_dedup/src/protection/license.rs:619:7
+    |
+619 | #[cfg(feature = "audit-log")]
+    |       ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `anomaly-detector`, `audit-trail`, `benchmarking`, `binary-protection`, `chrono`, `client-demo`, `compound-ground-truth`, `default`, `download-tools`, `flate2`, `full`, `futures-util`, `http-body-util`, `http-server`, `hyper`, `hyper-util`, `interactive`, `kernel-protection`, `memory-encryption`, `meta-capsule`, `meta-capsule-full`, `meta-capsule-p0`, `meta-capsule-p1`, `nightly`, `orchestrator`, `parallel-dedup`, `parallel-ground-truth`, `parking_lot`, `persistent-dedup`, `protection-build-hardening`, `protection-crypto-license`, `protection-encrypted-state`, `protection-fuzzy-extractor`, `protection-obfuscation`, and `protection-remote-attestation` and 7 more
+    = help: consider adding `audit-log` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `audit-log`
+   --> kindly_dedup/src/protection/license.rs:629:7
+    |
+629 | #[cfg(feature = "audit-log")]
+    |       ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `anomaly-detector`, `audit-trail`, `benchmarking`, `binary-protection`, `chrono`, `client-demo`, `compound-ground-truth`, `default`, `download-tools`, `flate2`, `full`, `futures-util`, `http-body-util`, `http-server`, `hyper`, `hyper-util`, `interactive`, `kernel-protection`, `memory-encryption`, `meta-capsule`, `meta-capsule-full`, `meta-capsule-p0`, `meta-capsule-p1`, `nightly`, `orchestrator`, `parallel-dedup`, `parallel-ground-truth`, `parking_lot`, `persistent-dedup`, `protection-build-hardening`, `protection-crypto-license`, `protection-encrypted-state`, `protection-fuzzy-extractor`, `protection-obfuscation`, and `protection-remote-attestation` and 7 more
+    = help: consider adding `audit-log` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `audit-log`
+   --> kindly_dedup/src/protection/license.rs:273:19
+    |
+273 |             #[cfg(feature = "audit-log")]
+    |                   ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `anomaly-detector`, `audit-trail`, `benchmarking`, `binary-protection`, `chrono`, `client-demo`, `compound-ground-truth`, `default`, `download-tools`, `flate2`, `full`, `futures-util`, `http-body-util`, `http-server`, `hyper`, `hyper-util`, `interactive`, `kernel-protection`, `memory-encryption`, `meta-capsule`, `meta-capsule-full`, `meta-capsule-p0`, `meta-capsule-p1`, `nightly`, `orchestrator`, `parallel-dedup`, `parallel-ground-truth`, `parking_lot`, `persistent-dedup`, `protection-build-hardening`, `protection-crypto-license`, `protection-encrypted-state`, `protection-fuzzy-extractor`, `protection-obfuscation`, and `protection-remote-attestation` and 7 more
+    = help: consider adding `audit-log` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `audit-log`
+   --> kindly_dedup/src/protection/license.rs:287:19
+    |
+287 |             #[cfg(feature = "audit-log")]
+    |                   ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `anomaly-detector`, `audit-trail`, `benchmarking`, `binary-protection`, `chrono`, `client-demo`, `compound-ground-truth`, `default`, `download-tools`, `flate2`, `full`, `futures-util`, `http-body-util`, `http-server`, `hyper`, `hyper-util`, `interactive`, `kernel-protection`, `memory-encryption`, `meta-capsule`, `meta-capsule-full`, `meta-capsule-p0`, `meta-capsule-p1`, `nightly`, `orchestrator`, `parallel-dedup`, `parallel-ground-truth`, `parking_lot`, `persistent-dedup`, `protection-build-hardening`, `protection-crypto-license`, `protection-encrypted-state`, `protection-fuzzy-extractor`, `protection-obfuscation`, and `protection-remote-attestation` and 7 more
+    = help: consider adding `audit-log` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `audit-log`
+   --> kindly_dedup/src/protection/license.rs:308:23
+    |
+308 |                 #[cfg(feature = "audit-log")]
+    |                       ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `anomaly-detector`, `audit-trail`, `benchmarking`, `binary-protection`, `chrono`, `client-demo`, `compound-ground-truth`, `default`, `download-tools`, `flate2`, `full`, `futures-util`, `http-body-util`, `http-server`, `hyper`, `hyper-util`, `interactive`, `kernel-protection`, `memory-encryption`, `meta-capsule`, `meta-capsule-full`, `meta-capsule-p0`, `meta-capsule-p1`, `nightly`, `orchestrator`, `parallel-dedup`, `parallel-ground-truth`, `parking_lot`, `persistent-dedup`, `protection-build-hardening`, `protection-crypto-license`, `protection-encrypted-state`, `protection-fuzzy-extractor`, `protection-obfuscation`, and `protection-remote-attestation` and 7 more
+    = help: consider adding `audit-log` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `audit-log`
+   --> kindly_dedup/src/protection/license.rs:338:23
+    |
+338 |                 #[cfg(feature = "audit-log")]
+    |                       ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `anomaly-detector`, `audit-trail`, `benchmarking`, `binary-protection`, `chrono`, `client-demo`, `compound-ground-truth`, `default`, `download-tools`, `flate2`, `full`, `futures-util`, `http-body-util`, `http-server`, `hyper`, `hyper-util`, `interactive`, `kernel-protection`, `memory-encryption`, `meta-capsule`, `meta-capsule-full`, `meta-capsule-p0`, `meta-capsule-p1`, `nightly`, `orchestrator`, `parallel-dedup`, `parallel-ground-truth`, `parking_lot`, `persistent-dedup`, `protection-build-hardening`, `protection-crypto-license`, `protection-encrypted-state`, `protection-fuzzy-extractor`, `protection-obfuscation`, and `protection-remote-attestation` and 7 more
+    = help: consider adding `audit-log` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `audit-log`
+   --> kindly_dedup/src/protection/license.rs:323:27
+    |
+323 |                     #[cfg(feature = "audit-log")]
+    |                           ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `anomaly-detector`, `audit-trail`, `benchmarking`, `binary-protection`, `chrono`, `client-demo`, `compound-ground-truth`, `default`, `download-tools`, `flate2`, `full`, `futures-util`, `http-body-util`, `http-server`, `hyper`, `hyper-util`, `interactive`, `kernel-protection`, `memory-encryption`, `meta-capsule`, `meta-capsule-full`, `meta-capsule-p0`, `meta-capsule-p1`, `nightly`, `orchestrator`, `parallel-dedup`, `parallel-ground-truth`, `parking_lot`, `persistent-dedup`, `protection-build-hardening`, `protection-crypto-license`, `protection-encrypted-state`, `protection-fuzzy-extractor`, `protection-obfuscation`, and `protection-remote-attestation` and 7 more
+    = help: consider adding `audit-log` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unused import: `std::thread`
+  --> kindly_dedup/src/thread_local_batch.rs:66:5
+   |
+66 | use std::thread;
+   |     ^^^^^^^^^^^
+
+warning: implementation of an `unsafe` trait
+   --> kindly_dedup/src/thread_local_batch.rs:126:1
+    |
+126 | unsafe impl<T: Send + 'static> Send for ThreadLocalBatchBufferCapsule<T> {}
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: the lint level is defined here
+   --> kindly_dedup/src/lib.rs:58:9
+    |
+ 58 | #![warn(unsafe_code)]
+    |         ^^^^^^^^^^^
+
+warning: implementation of an `unsafe` trait
+   --> kindly_dedup/src/thread_local_batch.rs:134:1
+    |
+134 | unsafe impl<T: Send + 'static> Sync for ThreadLocalBatchBufferCapsule<T> {}
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `DocId` and `JaccardThreshold`
+  --> kindly_dedup/src/phase6_3_integration.rs:81:23
+   |
+81 | use crate::pipeline::{DocId, JaccardThreshold, PipelineError};
+   |                       ^^^^^  ^^^^^^^^^^^^^^^^
+
+warning: unused import: `atomic_capsule::probabilistic::UnionFind`
+  --> kindly_dedup/src/phase6_3_integration.rs:82:5
+   |
+82 | use atomic_capsule::probabilistic::UnionFind;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+  --> kindly_dedup/src/phase6_3_integration.rs:83:5
+   |
+83 | use std::sync::Arc;
+   |     ^^^^^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> kindly_dedup/src/protection/demo_limiter.rs:144:28
+    |
+144 |         let nonce = Nonce::from_slice(&nonce_bytes);
+    |                            ^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> kindly_dedup/src/protection/demo_limiter.rs:147:55
+    |
+147 |         let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key));
+    |                                                       ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> kindly_dedup/src/protection/demo_limiter.rs:331:28
+    |
+331 |         let nonce = Nonce::from_slice(&nonce_bytes);
+    |                            ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> kindly_dedup/src/protection/demo_limiter.rs:334:55
+    |
+334 |         let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key));
+    |                                                       ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> kindly_dedup/src/protection/encryption.rs:162:55
+    |
+162 |         let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
+    |                                                       ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> kindly_dedup/src/protection/encryption.rs:164:29
+    |
+164 |             .encrypt(Nonce::from_slice(&nonce), plaintext.as_ref())
+    |                             ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> kindly_dedup/src/protection/encryption.rs:206:55
+    |
+206 |         let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key));
+    |                                                       ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> kindly_dedup/src/protection/encryption.rs:208:29
+    |
+208 |             .decrypt(Nonce::from_slice(&self.nonce), ciphertext_with_tag.as_ref())
+    |                             ^^^^^^^^^^
+
+warning: value assigned to `eax` is never read
+   --> kindly_dedup/src/protection/tamper_detection.rs:608:30
+    |
+608 |                 inout("eax") eax,
+    |                              ^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `eax` is never read
+   --> kindly_dedup/src/protection/tamper_detection.rs:633:30
+    |
+633 |                 inout("eax") eax,
+    |                              ^^^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: unused variable: `e`
+   --> kindly_dedup/src/parallel_pipeline.rs:140:58
+    |
+140 |         let pool = ThreadPool::new(num_threads).map_err(|e| {
+    |                                                          ^ help: if this is intentional, prefix it with an underscore: `_e`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `f`
+   --> kindly_dedup/src/thread_local_batch.rs:176:33
+    |
+176 |     fn with_buffer<F, R>(&self, f: F) -> R
+    |                                 ^ help: if this is intentional, prefix it with an underscore: `_f`
+
+warning: field `maintain_threshold` is never read
+   --> kindly_dedup/src/adaptive_thread_pool.rs:101:5
+    |
+ 76 | pub struct AdaptiveThreadPoolCapsule {
+    |            ------------------------- field in this struct
+...
+101 |     maintain_threshold: f64,  // Load in [reduce_threshold, this]: maintain
+    |     ^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `cpu_caps` is never read
+   --> kindly_dedup/src/pipeline.rs:145:5
+    |
+115 | pub struct DedupPipeline<'a> {
+    |            ------------- field in this struct
+...
+145 |     cpu_caps: &'a atomic_capsule::CpuCapabilityCapsule,
+    |     ^^^^^^^^
+
+warning: constant `SLOWDOWN_THRESHOLD` is never used
+  --> kindly_dedup/src/protection/tamper_detection.rs:79:7
+   |
+79 | const SLOWDOWN_THRESHOLD: f64 = 2.0;
+   |       ^^^^^^^^^^^^^^^^^^
+
+warning: constant `BATCH_SIZE` is never used
+  --> kindly_dedup/src/thread_local_batch.rs:71:7
+   |
+71 | const BATCH_SIZE: usize = 1024;
+   |       ^^^^^^^^^^
+
+warning: field `callback` is never read
+   --> kindly_dedup/src/thread_local_batch.rs:112:5
+    |
+105 | pub struct ThreadLocalBatchBufferCapsule<T: Send + 'static> {
+    |            ----------------------------- field in this struct
+...
+112 |     callback: Arc<dyn Fn(&[T]) -> Result<(), ThreadLocalBatchError> + Send + Sync>,
+    |     ^^^^^^^^
+
+warning: method `with_buffer` is never used
+   --> kindly_dedup/src/thread_local_batch.rs:176:8
+    |
+136 | impl<T: Send + 'static> ThreadLocalBatchBufferCapsule<T> {
+    | -------------------------------------------------------- method in this implementation
+...
+176 |     fn with_buffer<F, R>(&self, f: F) -> R
+    |        ^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> kindly_dedup/src/pipeline.rs:40:29
+   |
+40 |     DocumentIdOutOfBounds { doc_id: usize, capacity: usize },
+   |                             ^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> kindly_dedup/src/lib.rs:54:9
+   |
+54 | #![warn(missing_docs)]
+   |         ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> kindly_dedup/src/pipeline.rs:40:44
+   |
+40 |     DocumentIdOutOfBounds { doc_id: usize, capacity: usize },
+   |                                            ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> kindly_dedup/src/protection/demo_limiter.rs:401:20
+    |
+401 |     LimitReached { current: u64, limit: u64 },
+    |                    ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> kindly_dedup/src/protection/demo_limiter.rs:401:34
+    |
+401 |     LimitReached { current: u64, limit: u64 },
+    |                                  ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> kindly_dedup/src/protection/demo_limiter.rs:405:9
+    |
+405 |         expected: [u8; 32],
+    |         ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> kindly_dedup/src/protection/demo_limiter.rs:406:9
+    |
+406 |         actual: [u8; 32],
+    |         ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> kindly_dedup/src/protection/hardware_id.rs:135:9
+    |
+135 |         expected: [u8; 32],
+    |         ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> kindly_dedup/src/protection/hardware_id.rs:136:9
+    |
+136 |         actual: [u8; 32],
+    |         ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> kindly_dedup/src/protection/license.rs:81:5
+   |
+81 |     Valid = 0,
+   |     ^^^^^
+
+warning: missing documentation for a variant
+  --> kindly_dedup/src/protection/license.rs:82:5
+   |
+82 |     GracePeriod = 1,
+   |     ^^^^^^^^^^^
+
+warning: missing documentation for a variant
+  --> kindly_dedup/src/protection/license.rs:83:5
+   |
+83 |     Expired = 2,
+   |     ^^^^^^^
+
+warning: missing documentation for a variant
+  --> kindly_dedup/src/protection/license.rs:84:5
+   |
+84 |     HardwareMismatch = 3,
+   |     ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> kindly_dedup/src/protection/tamper_detection.rs:121:9
+    |
+121 |         tamper_type: TamperType,
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> kindly_dedup/src/protection/tamper_detection.rs:122:9
+    |
+122 |         cooldown_days: u64,
+    |         ^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> kindly_dedup/src/protection/tamper_detection.rs:127:9
+    |
+127 |         tamper_type: TamperType,
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> kindly_dedup/src/protection/tamper_detection.rs:128:9
+    |
+128 |         days_until_permanent: u64,
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> kindly_dedup/src/protection/tamper_detection.rs:133:9
+    |
+133 |         tamper_type: TamperType,
+    |         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> kindly_dedup/src/protection/tamper_detection.rs:141:20
+    |
+141 |     LayersFailed { count: usize },
+    |                    ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> kindly_dedup/src/protection/tamper_detection.rs:144:27
+    |
+144 |     CriticalLayerFailed { layer: usize },
+    |                           ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> kindly_dedup/src/protection/tamper_detection.rs:147:20
+    |
+147 |     InvalidLayer { layer: usize },
+    |                    ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> kindly_dedup/src/protection/tamper_detection.rs:156:35
+    |
+156 |     InsufficientBaselineSamples { required: usize, provided: usize },
+    |                                   ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> kindly_dedup/src/protection/tamper_detection.rs:156:52
+    |
+156 |     InsufficientBaselineSamples { required: usize, provided: usize },
+    |                                                    ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> kindly_dedup/src/protection/protection_system.rs:155:1
+    |
+155 | pub const LAYER_CRYPTO_LICENSE: usize = 1; // P0
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> kindly_dedup/src/protection/protection_system.rs:156:1
+    |
+156 | pub const LAYER_ENCRYPTED_STATE: usize = 2; // P0
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> kindly_dedup/src/protection/protection_system.rs:157:1
+    |
+157 | pub const LAYER_REMOTE_ATTESTATION: usize = 3; // P1
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> kindly_dedup/src/protection/protection_system.rs:158:1
+    |
+158 | pub const LAYER_TPM_BINDING: usize = 4; // P1
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> kindly_dedup/src/protection/protection_system.rs:159:1
+    |
+159 | pub const LAYER_OBFUSCATION: usize = 5; // P1
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> kindly_dedup/src/protection/protection_system.rs:160:1
+    |
+160 | pub const LAYER_FUZZY_EXTRACTOR: usize = 6; // P1
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> kindly_dedup/src/protection/protection_system.rs:161:1
+    |
+161 | pub const LAYER_ANOMALY_DETECTOR: usize = 7; // P2 (NEW)
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> kindly_dedup/src/protection/protection_system.rs:162:1
+    |
+162 | pub const LAYER_MEMORY_ENCRYPTION: usize = 8; // P2 (NEW)
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> kindly_dedup/src/protection/protection_system.rs:163:1
+    |
+163 | pub const LAYER_KERNEL_PROTECTION: usize = 9; // P2 (NEW)
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> kindly_dedup/src/protection/protection_system.rs:164:1
+    |
+164 | pub const LAYER_OBSERVABILITY: usize = 10; // P2 (NEW)
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> kindly_dedup/src/numa_allocation.rs:90:24
+   |
+90 |     AllocationFailed { requested: usize, reason: String },
+   |                        ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> kindly_dedup/src/numa_allocation.rs:90:42
+   |
+90 |     AllocationFailed { requested: usize, reason: String },
+   |                                          ^^^^^^^^^^^^^^
+
+warning: `kindly_dedup` (lib) generated 70 warnings (run `cargo fix --lib -p kindly_dedup` to apply 5 suggestions)
+warning: unused import: `std::fs`
+  --> kindly_dedup/src/bin/deploy_validate_6900hx.rs:45:5
+   |
+45 | use std::fs;
+   |     ^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `output` is never read
+   --> kindly_dedup/src/bin/deploy_validate_6900hx.rs:141:5
+    |
+112 | struct ValidationResults {
+    |        ----------------- field in this struct
+...
+141 |     output: String,
+    |     ^^^^^^
+    |
+    = note: `ValidationResults` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `self`
+  --> kindly_dedup/src/bin/audit_viewer.rs:60:15
+   |
+60 | use std::fs::{self, File};
+   |               ^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated constants `RED`, `GREEN`, `YELLOW`, `BLUE`, `MAGENTA`, and `WHITE` are never used
+  --> kindly_dedup/src/bin/audit_viewer.rs:78:11
+   |
+72 | impl Colors {
+   | ----------- associated constants in this implementation
+...
+78 |     const RED: &'static str = "\x1b[31m";
+   |           ^^^
+79 |     const GREEN: &'static str = "\x1b[32m";
+   |           ^^^^^
+80 |     const YELLOW: &'static str = "\x1b[33m";
+   |           ^^^^^^
+81 |     const BLUE: &'static str = "\x1b[34m";
+   |           ^^^^
+82 |     const MAGENTA: &'static str = "\x1b[35m";
+   |           ^^^^^^^
+83 |     const CYAN: &'static str = "\x1b[36m";
+84 |     const WHITE: &'static str = "\x1b[37m";
+   |           ^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `kindly_dedup` (bin "deploy_validate_6900hx") generated 2 warnings (run `cargo fix --bin "deploy_validate_6900hx"` to apply 1 suggestion)
+warning: `kindly_dedup` (bin "audit_viewer") generated 2 warnings (run `cargo fix --bin "audit_viewer"` to apply 1 suggestion)
+warning: unused import: `IntoParallelIterator`
+   --> kindly_dedup/benches/compound_moat_20m.rs:114:42
+    |
+114 |     use atomic_capsule::parallel::iter::{IntoParallelIterator, ParallelIterator};
+    |                                          ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `ParallelIterator`
+   --> kindly_dedup/benches/compound_moat_20m.rs:114:64
+    |
+114 |     use atomic_capsule::parallel::iter::{IntoParallelIterator, ParallelIterator};
+    |                                                                ^^^^^^^^^^^^^^^^
+
+warning: `kindly_dedup` (bench "compound_moat_20m") generated 2 warnings (run `cargo fix --bench "compound_moat_20m"` to apply 1 suggestion)
+    Finished `bench` profile [optimized] target(s) in 0.14s
+     Running benches/compound_moat_20m.rs (/home/samuel/Primitives/target/release/deps/compound_moat_20m-7286246a76d0eac7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

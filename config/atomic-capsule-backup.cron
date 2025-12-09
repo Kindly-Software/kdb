@@ -1,0 +1,15 @@
+# Automated backup and verification for atomic_capsule SaaS
+# UCE34 Q33 (Verification) + Q34 (Auditability for SOX/SOC2/GDPR/HIPAA)
+# 3-2-1 Rule: 3 copies (original + 2 backups), 2 media types (local + network), 1 offsite
+
+# Daily backup at 2 AM UTC (low traffic time, ~22:00 PT / 23:00 MT / 21:00 CT)
+# This gives enough time to complete before business hours
+0 2 * * * samuel /home/samuel/Primitives/scripts/backup.sh >> /home/samuel/Primitives/logs/backup.log 2>&1
+
+# Verify backup integrity every morning at 8 AM UTC
+# Ensures backups are valid and accessible before relying on them
+0 8 * * * samuel /home/samuel/Primitives/scripts/verify_backup.sh >> /home/samuel/Primitives/logs/backup_verify.log 2>&1
+
+# Weekly health check (every Sunday at 3 AM UTC)
+# Comprehensive check of entire backup system
+0 3 * * 0 samuel /home/samuel/Primitives/scripts/verify_backup.sh >> /home/samuel/Primitives/logs/backup_weekly_check.log 2>&1

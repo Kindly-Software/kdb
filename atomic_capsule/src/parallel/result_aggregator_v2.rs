@@ -1,12 +1,12 @@
-//! # LockfreeResultAggregatorV2 - 100% COCA Compliant Result Collection (T6 Mixed: T1+T4)
+//! # LockfreeResultAggregatorV2 - 100% Chaos Compliant Result Collection (T6 Mixed: T1+T4)
 //!
 //! **BREAKTHROUGH: 100% lockfree result aggregation (ZERO mutex).**
 //!
 //! ## UCE34 Framework Applied
 //!
 //! ### Q1-Q9: Problem Definition
-//! - **Q1 (What)**: 100% COCA compliant result aggregator (zero mutex)
-//! - **Q2 (Why)**: Phase 4.4 achieved 100% lockfree dedup, V1 aggregator breaks COCA
+//! - **Q1 (What)**: 100% Chaos compliant result aggregator (zero mutex)
+//! - **Q2 (Why)**: Phase 4.4 achieved 100% lockfree dedup, V1 aggregator breaks Chaos
 //! - **Q3 (Performance)**: <50ns insert, <5ms merge @ 100K results
 //! - **Q4 (How)**: AtomicPtr-based hash table with linear probing + hybrid probing
 //! - **Q5 (Interface)**: `insert(key, value) -> Result<(), CapacityError>`, `merge() -> HashMap<K, Vec<V>>`
@@ -318,7 +318,7 @@ impl<K, V> Drop for ResultSlot<K, V> {
     }
 }
 
-/// LockfreeResultAggregatorV2 - 100% COCA Compliant Result Aggregator (T6 Mixed: T1+T4)
+/// LockfreeResultAggregatorV2 - 100% Chaos Compliant Result Aggregator (T6 Mixed: T1+T4)
 ///
 /// **BREAKTHROUGH: Zero mutex, 100% lockfree result aggregation.**
 ///
@@ -346,7 +346,7 @@ impl<K, V> Drop for ResultSlot<K, V> {
 /// let results = agg.merge();
 /// ```
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 /// - ✅ 100% lockfree (ZERO mutex, ZERO RwLock)
 /// - ✅ Atomic-only coordination
 /// - ✅ Generation counters (TOCTOU prevention)

@@ -31,7 +31,7 @@
 - Attack vector examples
 - Production-ready Rust code fixes
 - Test cases (unit/property/integration/production)
-- Framework compliance (UCE34, ASSUM, COCA)
+- Framework compliance (UCE34, ASSUM, Chaos)
 - Verification checklist
 
 ---

@@ -76,12 +76,11 @@
 //! - **B32**: Fair baselines (sequential MinHash computation, 185K-200K validated throughput)
 //! - **T28**: 25 comprehensive tests (8 unit + 9 property + 8 integration)
 //! - **I20**: Zero breaking changes (drop-in parallel component for ParallelDedupOrchestrator)
-//! - **COCA**: 100% lockfree (ScalableHashMapCapsule only, no Mutex/RwLock)
+//! - **Chaos**: 100% lockfree (ScalableHashMapCapsule only, no Mutex/RwLock)
 
 use atomic_capsule::parallel::ThreadPool;
 use crate::universal::{MinHashSignature, BandHash};
 use std::sync::Arc;
-use std::time::Instant;
 use thiserror::Error;
 use std::sync::Barrier;
 
@@ -375,6 +374,7 @@ fn compute_band_hash(sig: &MinHashSignature, band_idx: usize) -> BandHash {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::Instant;
 
     // ========== UNIT TESTS (8 tests) ==========
 

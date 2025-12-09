@@ -1,0 +1,236 @@
+# Prometheus Alert Rules for clapi_core (P3-E11)
+#
+# Circuit breaker, latency, and health alert rules
+#
+# Usage:
+#   Add to prometheus.yml:
+#   rule_files:
+#     - 'alert_rules.yml'
+#
+# Documentation: https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/
+
+groups:
+  # ============================================================================
+  # Circuit Breaker Alerts
+  # ============================================================================
+  - name: circuit_breaker_alerts
+    interval: 15s
+    rules:
+      # Circuit breaker open (critical)
+      - alert: CircuitBreakerOpen
+        expr: clapi_circuit_breaker_state == 2
+        for: 1m
+        labels:
+          severity: critical
+          component: circuit_breaker
+        annotations:
+          summary: "Circuit breaker is OPEN"
+          description: "Circuit breaker has been open for 1 minute. Provider is unhealthy."
+          runbook_url: "https://docs.clapi.dev/runbooks/circuit-breaker-open"
+
+      # Circuit breaker failure rate high (warning)
+      - alert: CircuitBreakerFailureRateHigh
+        expr: clapi_circuit_breaker_failure_rate_bp > 500
+        for: 2m
+        labels:
+          severity: warning
+          component: circuit_breaker
+        annotations:
+          summary: "Circuit breaker failure rate high (>5%)"
+          description: "Failure rate is {{ $value }} basis points ({{ humanize $value | div 100 }}%)"
+          runbook_url: "https://docs.clapi.dev/runbooks/high-failure-rate"
+
+      # Circuit breaker failure rate critical (critical)
+      - alert: CircuitBreakerFailureRateCritical
+        expr: clapi_circuit_breaker_failure_rate_bp > 1000
+        for: 1m
+        labels:
+          severity: critical
+          component: circuit_breaker
+        annotations:
+          summary: "Circuit breaker failure rate critical (>10%)"
+          description: "Failure rate is {{ $value }} basis points ({{ humanize $value | div 100 }}%)"
+          runbook_url: "https://docs.clapi.dev/runbooks/critical-failure-rate"
+
+  # ============================================================================
+  # Latency Alerts
+  # ============================================================================
+  - name: latency_alerts
+    interval: 15s
+    rules:
+      # P99 latency high (warning)
+      - alert: LatencyP99High
+        expr: clapi_latency_p99_ns > 1000000000
+        for: 5m
+        labels:
+          severity: warning
+          component: latency
+        annotations:
+          summary: "P99 latency high (>1s)"
+          description: "P99 latency is {{ humanize $value }} nanoseconds ({{ humanizeDuration $value }})"
+          runbook_url: "https://docs.clapi.dev/runbooks/high-latency"
+
+      # P99 latency critical (critical)
+      - alert: LatencyP99Critical
+        expr: clapi_latency_p99_ns > 5000000000
+        for: 2m
+        labels:
+          severity: critical
+          component: latency
+        annotations:
+          summary: "P99 latency critical (>5s)"
+          description: "P99 latency is {{ humanize $value }} nanoseconds ({{ humanizeDuration $value }})"
+          runbook_url: "https://docs.clapi.dev/runbooks/critical-latency"
+
+      # P999 latency critical (critical)
+      - alert: LatencyP999Critical
+        expr: clapi_latency_p999_ns > 10000000000
+        for: 1m
+        labels:
+          severity: critical
+          component: latency
+        annotations:
+          summary: "P999 latency critical (>10s)"
+          description: "P999 latency is {{ humanize $value }} nanoseconds ({{ humanizeDuration $value }})"
+          runbook_url: "https://docs.clapi.dev/runbooks/critical-p999-latency"
+
+  # ============================================================================
+  # Health Alerts
+  # ============================================================================
+  - name: health_alerts
+    interval: 15s
+    rules:
+      # Service unhealthy (critical)
+      - alert: ServiceUnhealthy
+        expr: clapi_health_status == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: health
+        annotations:
+          summary: "Service is unhealthy"
+          description: "Health check has been failing for 1 minute"
+          runbook_url: "https://docs.clapi.dev/runbooks/service-unhealthy"
+
+      # Health check components down (warning)
+      - alert: HealthComponentsDown
+        expr: clapi_health_components_total < 5
+        for: 2m
+        labels:
+          severity: warning
+          component: health
+        annotations:
+          summary: "Health check components reduced"
+          description: "Only {{ $value }} health check components are available (expected 5)"
+          runbook_url: "https://docs.clapi.dev/runbooks/components-down"
+
+  # ============================================================================
+  # Cache Alerts
+  # ============================================================================
+  - name: cache_alerts
+    interval: 30s
+    rules:
+      # Cache hit rate low (warning)
+      - alert: CacheHitRateLow
+        expr: clapi_response_cache_hit_rate_percent < 50
+        for: 10m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "Response cache hit rate low (<50%)"
+          description: "Cache hit rate is {{ humanizePercentage $value }}%"
+          runbook_url: "https://docs.clapi.dev/runbooks/low-cache-hit-rate"
+
+      # Cache hit rate very low (critical)
+      - alert: CacheHitRateCritical
+        expr: clapi_response_cache_hit_rate_percent < 20
+        for: 5m
+        labels:
+          severity: critical
+          component: cache
+        annotations:
+          summary: "Response cache hit rate critical (<20%)"
+          description: "Cache hit rate is {{ humanizePercentage $value }}%"
+          runbook_url: "https://docs.clapi.dev/runbooks/critical-cache-hit-rate"
+
+  # ============================================================================
+  # Deduplication Alerts
+  # ============================================================================
+  - name: deduplication_alerts
+    interval: 30s
+    rules:
+      # Deduplication effectiveness low (info)
+      - alert: DeduplicationEffectivenessLow
+        expr: clapi_deduplication_rate_percent < 5
+        for: 30m
+        labels:
+          severity: info
+          component: deduplication
+        annotations:
+          summary: "Deduplication effectiveness low (<5%)"
+          description: "Only {{ humanizePercentage $value }}% of requests are being deduplicated"
+          runbook_url: "https://docs.clapi.dev/runbooks/low-dedup-rate"
+
+  # ============================================================================
+  # Service Availability Alerts
+  # ============================================================================
+  - name: availability_alerts
+    interval: 15s
+    rules:
+      # Service down (critical)
+      - alert: ServiceDown
+        expr: up{job="clapi"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: availability
+        annotations:
+          summary: "clapi_core service is down"
+          description: "Prometheus cannot scrape clapi_core metrics endpoint"
+          runbook_url: "https://docs.clapi.dev/runbooks/service-down"
+
+      # Prometheus scrape failures (warning)
+      - alert: PrometheusScrapeFailures
+        expr: up{job="clapi"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: prometheus
+        annotations:
+          summary: "Prometheus scrape failures"
+          description: "Prometheus has failed to scrape clapi_core for 5 minutes"
+          runbook_url: "https://docs.clapi.dev/runbooks/scrape-failures"
+
+# ============================================================================
+# Alert Routing (for Alertmanager)
+# ============================================================================
+# Configure Alertmanager to route alerts to PagerDuty, Slack, etc.
+#
+# Example alertmanager.yml:
+# route:
+#   group_by: ['alertname', 'component']
+#   group_wait: 10s
+#   group_interval: 10s
+#   repeat_interval: 1h
+#   receiver: 'pagerduty'
+#
+#   routes:
+#     - match:
+#         severity: critical
+#       receiver: pagerduty
+#     - match:
+#         severity: warning
+#       receiver: slack
+#     - match:
+#         severity: info
+#       receiver: slack
+#
+# receivers:
+#   - name: 'pagerduty'
+#     pagerduty_configs:
+#       - service_key: '<YOUR_PAGERDUTY_KEY>'
+#   - name: 'slack'
+#     slack_configs:
+#       - api_url: '<YOUR_SLACK_WEBHOOK>'
+#         channel: '#alerts'

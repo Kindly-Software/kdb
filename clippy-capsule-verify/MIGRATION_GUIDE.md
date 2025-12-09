@@ -1,6 +1,6 @@
 # Migration Guide: Adopting clippy-capsule-verify
 
-**Safe, gradual adoption of COCA compliance lints for existing codebases.**
+**Safe, gradual adoption of Chaos compliance lints for existing codebases.**
 
 ## Overview
 
@@ -181,7 +181,7 @@ struct GoodCapsule {
 
 ```yaml
 # .github/workflows/coca-compliance.yml
-- name: COCA P0 Critical Checks
+- name: Chaos P0 Critical Checks
   run: |
     cargo +nightly clippy --all-features --all-targets -- \
       -D clippy::capsule_mutex_violation \
@@ -198,7 +198,7 @@ struct GoodCapsule {
 ### Step 2: Add P1 Warnings (Non-blocking)
 
 ```yaml
-- name: COCA P1 Best Practices
+- name: Chaos P1 Best Practices
   run: |
     cargo +nightly clippy --all-features --all-targets -- \
       -W clippy::missing_capsule_verification \
@@ -533,7 +533,7 @@ echo "4,0,30,30" >> migration-progress.csv
 1. **Start with P0 Critical**: Fix lockfree/alignment violations first
 2. **Weekly reviews**: Track violation count, celebrate reductions
 3. **Pre-commit hooks**: Instant feedback (prevent new violations)
-4. **Documentation**: Update COCA patterns as you fix violations
+4. **Documentation**: Update Chaos patterns as you fix violations
 5. **Team training**: Share learnings, common patterns
 6. **Gradual enforcement**: Warnings → Deny over 4-8 weeks
 
@@ -551,7 +551,7 @@ echo "4,0,30,30" >> migration-progress.csv
 | 1 | Assessment | Run lints, categorize violations | Violation count baseline |
 | 2-3 | Critical Fixes | Fix P0 (Mutex, alignment, generation) | Zero P0 violations |
 | 4 | CI/CD | Enable deny level for P0 | Automated enforcement |
-| 5-8 | Cleanup | Fix P1, remove suppressions | 100% COCA compliant |
+| 5-8 | Cleanup | Fix P1, remove suppressions | 100% Chaos compliant |
 | Ongoing | Maintenance | Review suppressions, track metrics | Zero tech debt |
 
 **Total Time**: 4-8 weeks for full migration (varies by codebase size).

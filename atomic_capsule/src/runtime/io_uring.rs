@@ -19,7 +19,7 @@
 //! - **SQPOLL Mode**: 0μs amortized (kernel polling, syscall-free)
 //! - **Completion Harvesting**: <500ns per 10 CQEs
 //!
-//! # Framework Compliance (UCE34 + COCA)
+//! # Framework Compliance (UCE34 + Chaos)
 //!
 //! - **Tier**: T1 (Atomic <100ns) + T5 (Streaming O(1))
 //! - **Lockfree**: 100% atomic coordination, zero mutexes
@@ -332,7 +332,7 @@ struct CqRing {
 
 impl IoUringCapsule {
     /// Create uninitialized capsule
-    const fn new_uninit() -> Self {
+    pub(crate) const fn new_uninit() -> Self {
         Self {
             state: AtomicU64::new(0),
             ring_fd: AtomicI32::new(-1),

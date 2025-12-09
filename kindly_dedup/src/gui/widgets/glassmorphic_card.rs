@@ -1,11 +1,11 @@
 //! Glassmorphic card with frosted glass effect
-//! Pseudo-glassmorphism using noise texture (iced 0.10 workaround for no backdrop-filter)
+//! Pseudo-glassmorphism using noise texture (iced 0.13 with closure-based styling)
 //! Now with depth-aware styling for visual hierarchy
 
 use crate::gui::depth::DepthLayer;
 use crate::gui::theme::colors::*;
 use iced::widget::{container, Container};
-use iced::{Background, Color, Element, Length, Theme};
+use iced::{Background, Border, Color, Element, Length};
 
 /// Glassmorphic card widget with depth-aware styling
 ///
@@ -78,6 +78,8 @@ impl<'a, Message> GlassmorphicCard<'a, Message> {
     where
         Message: 'a,
     {
+        let depth = self.depth;
+
         // Note: Stack widget removed in iced 0.10
         // Simplified to just the glassmorphic container with depth-aware opacity
         // Noise texture layer omitted (would require custom shader or overlay widget)
@@ -86,46 +88,33 @@ impl<'a, Message> GlassmorphicCard<'a, Message> {
             .width(self.width)
             .height(self.height)
             .padding(24)
-            .style(iced::theme::Container::Custom(Box::new(GlassStyle {
-                depth: self.depth,
-            })))
+            .style(move |_theme| {
+                let style_desc = depth.style_descriptor();
+
+                // Byzantine purple glassmorphism: PURPLE_ROYAL with moderate opacity (20-25%)
+                // Creates elegant Byzantine purple frosted glass effect on dark background
+                // CardBase: 85% × 0.25 = 21.25% (subtle glass)
+                // CardNested: 90% × 0.25 = 22.5% (slightly more visible)
+                // CardContent: 100% × 0.25 = 25% (most visible)
+                let glass_color = PURPLE_ROYAL; // Byzantine purple (#8033B3)
+                let glass_opacity = style_desc.opacity * 0.25; // Moderate opacity for elegant frosted glass
+
+                container::Style {
+                    // Depth-aware opacity Byzantine purple background (VISIBLE purple frosted glass effect)
+                    background: Some(Background::Color(with_alpha(glass_color, glass_opacity))),
+
+                    // Depth-aware border
+                    border: Border {
+                        color: with_alpha(PURPLE_LIGHT, depth.border_alpha().max(0.40)),
+                        width: style_desc.border_width.max(2.0),
+                        radius: (20.0 - (depth as u8 as f32 * 1.0)).max(12.0).into(),
+                    },
+
+                    // High-contrast text for readability
+                    text_color: Some(TEXT_PRIMARY),
+                    ..Default::default()
+                }
+            })
             .into()
-    }
-}
-
-/// Glass style for depth-aware semi-transparent card layer
-struct GlassStyle {
-    depth: DepthLayer,
-}
-
-impl container::StyleSheet for GlassStyle {
-    type Style = Theme;
-
-    fn appearance(&self, _style: &Self::Style) -> container::Appearance {
-        let style_desc = self.depth.style_descriptor();
-
-        // Byzantine purple glassmorphism: PURPLE_ROYAL with moderate opacity (20-25%)
-        // Creates elegant Byzantine purple frosted glass effect on dark background
-        // CardBase: 85% × 0.25 = 21.25% (subtle glass)
-        // CardNested: 90% × 0.25 = 22.5% (slightly more visible)
-        // CardContent: 100% × 0.25 = 25% (most visible)
-        let glass_color = PURPLE_ROYAL; // Byzantine purple (#8033B3)
-        let glass_opacity = style_desc.opacity * 0.25; // Moderate opacity for elegant frosted glass
-
-        container::Appearance {
-            // Depth-aware opacity Byzantine purple background (VISIBLE purple frosted glass effect)
-            background: Some(Background::Color(with_alpha(glass_color, glass_opacity))),
-
-            // Depth-aware border radius (20px base, adjusted by depth)
-            // CardBase: 20px, CardNested: 18px, CardContent: 16px
-            border_radius: (20.0 - (self.depth as u8 as f32 * 1.0)).max(12.0).into(),
-
-            // Depth-aware border (use depth's border width, bright purple border for visibility)
-            border_width: style_desc.border_width.max(2.0),
-            border_color: with_alpha(PURPLE_LIGHT, self.depth.border_alpha().max(0.40)),
-
-            // High-contrast text for readability
-            text_color: Some(TEXT_PRIMARY),
-        }
     }
 }

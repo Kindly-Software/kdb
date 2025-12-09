@@ -3,7 +3,7 @@
 **Date**: 2025-11-14  
 **Status**: ✅ Production Ready  
 **Tier**: T4 Batch (parallel memory reads)  
-**Framework**: UCE34 Q1-Q34, COCA 100% Lockfree  
+**Framework**: UCE34 Q1-Q34, Chaos 100% Lockfree  
 
 ---
 
@@ -309,7 +309,7 @@ capsule.detach();
 - ⏳ Production tests: 0/10 (future work)
 - **Total: 10/40 tests (25% complete, unit tests solid)**
 
-### COCA (100% Lockfree)
+### Chaos (100% Lockfree)
 
 - ✅ Zero mutex/RwLock (grep verified)
 - ✅ DualAtomicU64 coordination (generation counters)

@@ -67,7 +67,7 @@
 //!
 //! # Framework Compliance
 //!
-//! - **COCA**: Pure Rust, no unsafe code, minimal dependencies
+//! - **Chaos**: Pure Rust, no unsafe code, minimal dependencies
 //! - **T28**: Comprehensive test coverage (10+ tests)
 //! - **Q34**: Configuration changes are audit-logged when applied
 

@@ -2,7 +2,7 @@
 
 **Date**: 2025-11-21
 **Session**: Continuation from Nightly Phase 2 Implementation
-**Framework**: UCE34 + COCA + B32 + ASSUM + T28 + I20
+**Framework**: UCE34 + Chaos + B32 + ASSUM + T28 + I20
 
 ---
 
@@ -340,7 +340,7 @@ pub use if cfg!(feature = "nightly-const-generics") {
 - **Q33 (Verification)**: #[derive(ComputationalCapsule)] validates all capsules at 0ns runtime
 - **Q34 (Auditability)**: ASSUM tags document all safety assumptions
 
-### COCA (100% Lockfree)
+### Chaos (100% Lockfree)
 
 - All 5 primitives use atomic-only coordination
 - Zero mutex/RwLock usage (verified: grep 0 mutex)

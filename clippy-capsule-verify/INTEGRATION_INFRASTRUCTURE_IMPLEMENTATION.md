@@ -3,7 +3,7 @@
 
 **Date**: November 23, 2025
 **Status**: COMPLETE
-**Framework**: UCE34 + COCA + T28
+**Framework**: UCE34 + Chaos + T28
 
 ---
 
@@ -16,7 +16,7 @@ Implemented comprehensive integration test infrastructure for clippy-capsule-ver
 ✓ **4 Mini-Crates Created** (40 test cases total)
 ✓ **Runner Script Implemented** (fully automated execution)
 ✓ **100% Test Pass Rate**
-✓ **Framework Compliant** (UCE34 Q10-Q12, COCA, T28 4-tier)
+✓ **Framework Compliant** (UCE34 Q10-Q12, Chaos, T28 4-tier)
 ✓ **Extensible Architecture** (easy to add new test cases)
 
 ---
@@ -342,7 +342,7 @@ INTEGRATION_TEST_REPORT.md               (4.5 KB, auto-generated)
 | Runner script executes all tests | ✓ PASS | All 4 tests ran successfully |
 | >80% violations detected correctly | ✓ PASS | 100% detection rate (4/4 tests passed) |
 | Test results documented | ✓ PASS | Detailed INTEGRATION_TEST_REPORT.md generated |
-| Framework compliant | ✓ PASS | UCE34/COCA/T28 compliant design |
+| Framework compliant | ✓ PASS | UCE34/Chaos/T28 compliant design |
 
 ---
 
@@ -354,7 +354,7 @@ INTEGRATION_TEST_REPORT.md               (4.5 KB, auto-generated)
 - **Q12 (Nightly)**: Uses stable Rust only (no nightly required for tests)
 - **Q33-Q34 (Verification)**: ComputationalCapsule attributes in test examples
 
-### COCA (100% Lockfree Design)
+### Chaos (100% Lockfree Design)
 - All test examples use only `std::sync::atomic::Atomic*` types
 - No Mutex/RwLock in valid test cases
 - Cache-aligned (64B/128B/256B) throughout
@@ -429,7 +429,7 @@ test_mini_crate \
 4. **Extensible**: Easy to add new test cases or lint categories
 5. **Automated Reporting**: Generates detailed markdown reports automatically
 6. **Reproducible**: Run anywhere Rust toolchain is available
-7. **Framework-Aligned**: Complies with UCE34/COCA/T28/ASSUM frameworks
+7. **Framework-Aligned**: Complies with UCE34/Chaos/T28/ASSUM frameworks
 
 ---
 
@@ -455,7 +455,7 @@ test_mini_crate \
 - **Integration Tests**: `/home/samuel/Primitives/clippy-capsule-verify/tests/integration/`
 - **Runner Script**: `/home/samuel/Primitives/clippy-capsule-verify/scripts/run_integration_tests.sh`
 - **Test Report**: `/home/samuel/Primitives/clippy-capsule-verify/INTEGRATION_TEST_REPORT.md`
-- **Framework**: UCE34 + COCA + T28 (See `/home/samuel/CLAUDE.md`)
+- **Framework**: UCE34 + Chaos + T28 (See `/home/samuel/CLAUDE.md`)
 
 ---
 

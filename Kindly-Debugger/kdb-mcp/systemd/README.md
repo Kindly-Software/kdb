@@ -83,7 +83,7 @@ For detailed instructions, see [SYSTEMD_SERVICE.md - Installation Guide](SYSTEMD
 | Framework | Status | Details |
 |-----------|--------|---------|
 | **UCE34** | ✓ 100% | Q10-Q34 (T6 tier, verification, audit trail) |
-| **COCA** | ✓ 100% | Lockfree, kernel-enforced, cgroup-based |
+| **Chaos** | ✓ 100% | Lockfree, kernel-enforced, cgroup-based |
 | **ASSUM** | ✓ 99.99% | 15/15 assumptions verified |
 | **B32** | ✓ 100% | Fair baseline, 95% CI, targets documented |
 | **T28** | ✓ 100% | 24 tests pass, 5 skipped (expected) |

@@ -1,0 +1,16 @@
+[build]
+target = "index.html"
+dist = "dist"
+public_url = "/"
+
+[watch]
+ignore = ["target"]
+
+[serve]
+port = 8080
+address = "127.0.0.1"
+ws_protocol = "ws"
+
+[profile.release]
+opt = "z"
+lto = true

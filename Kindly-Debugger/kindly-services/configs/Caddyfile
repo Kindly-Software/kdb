@@ -1,6 +1,6 @@
 # Kindly Services - Main website
 # Phase 2.3: Enhanced Security Headers with CSP for WASM/Leptos
-kindly.services {
+kindly.software {
     reverse_proxy localhost:8082
     encode gzip zstd
 
@@ -43,7 +43,7 @@ kindly.services {
 }
 
 # KDB API - Debugger API
-api.kindly.services {
+api.kindly.software {
     reverse_proxy localhost:8090
     encode gzip
 

@@ -126,7 +126,7 @@ pub fn parse_all(&mut self) -> CsvResult<Vec<Vec<String>>>  // Parse all rows
 - **Q21-Q28**: Implementation (20 tests, B32 performance targets)
 - **Q29-Q34**: Validation & Auditability (ASSUM safety tags documented)
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 - ✅ 100% lockfree (uses AtomicBufferCapsule for coordination)
 - ✅ Cache-aligned coordination (64B header in AtomicBufferCapsule)
 - ✅ TOCTOU prevention (atomic position with generation counter in buffer)
@@ -274,7 +274,7 @@ let tsv = writer.finalize()?;  // Semicolon-separated, LF-only
 - [x] Performance targets documented (<50ns per field)
 - [x] Zero unsafe code in fast paths
 - [x] ASSUM safety tags documented (99.99% safe)
-- [x] Framework compliance (UCE34, COCA, ASSUM, B32, T28, I20)
+- [x] Framework compliance (UCE34, Chaos, ASSUM, B32, T28, I20)
 - [x] Feature gates (`std` required)
 - [x] Examples provided (5 demonstrations)
 - [x] Documentation complete (module + inline comments)
@@ -286,7 +286,7 @@ let tsv = writer.finalize()?;  // Semicolon-separated, LF-only
 
 - **RFC 4180**: Common Format and MIME Type for Comma-Separated Values (CSV)
 - **UCE34**: `/home/samuel/CLAUDE.md` (systematic discovery framework)
-- **COCA**: `/home/samuel/Docs/The Computational Capsule.md` (architecture)
+- **Chaos**: `/home/samuel/Docs/The Computational Capsule.md` (architecture)
 - **B32**: `/home/samuel/CLAUDE.md` (fair benchmarking standards)
 - **T28**: Test framework with 4 tiers (unit/property/integration/production)
 - **I20**: Integration validation (20 questions per component)
@@ -305,6 +305,6 @@ let tsv = writer.finalize()?;  // Semicolon-separated, LF-only
 
 ## Conclusion
 
-CsvWriterCapsule and CsvReaderCapsule provide production-ready, RFC 4180-compliant CSV serialization with <50ns per field performance. Both capsules follow the computational capsule architecture (100% lockfree) and are validated against all 7 frameworks (UCE34, COCA, ASSUM, B32, T28, I20, IMPL-2).
+CsvWriterCapsule and CsvReaderCapsule provide production-ready, RFC 4180-compliant CSV serialization with <50ns per field performance. Both capsules follow the computational capsule architecture (100% lockfree) and are validated against all 7 frameworks (UCE34, Chaos, ASSUM, B32, T28, I20, IMPL-2).
 
 The implementation is minimal (400 lines), well-tested (20 tests), and ready for integration into kindly_dedup, benchmarking tools, and analytics pipelines.

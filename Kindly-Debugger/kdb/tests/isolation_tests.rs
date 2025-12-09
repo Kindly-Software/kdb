@@ -12,7 +12,7 @@
 //! - UCE34: Q1-Q28 systematic validation
 //! - ASSUM: 99.99%+ safety (3 assumptions verified)
 //! - B32: Fair baseline comparison with kernel ptrace_scope
-//! - COCA: Stateless security validation (no lockfree needed)
+//! - Chaos: Stateless security validation (no lockfree needed)
 
 use kdb::ptrace::isolation::{validate_attach_permission, IsolationError};
 use std::process;

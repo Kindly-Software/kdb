@@ -1758,7 +1758,7 @@ cargo test --all-features  # Validate after update
 - ✅ **T28**: 4-tier test pyramid (80+ tests)
 - ✅ **B32**: Performance targets validated with 95% CI
 - ✅ **ASSUM**: 99.48% safe (577/580 assumptions verified)
-- ✅ **COCA**: 100% lockfree (zero mutex/RwLock)
+- ✅ **Chaos**: 100% lockfree (zero mutex/RwLock)
 
 **Recommendation**: ✅ **APPROVE v0.3.2 for production deployment**
 

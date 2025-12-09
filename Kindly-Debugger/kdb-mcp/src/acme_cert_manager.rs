@@ -55,7 +55,7 @@
 //! ## Compliance & Frameworks
 //!
 //! - **UCE34**: Full Q1-Q34 application (Q10a/b/c tier selection, Q34 auditability)
-//! - **COCA**: 100% computational capsule (T1+T8 mixed tier, all fields atomic)
+//! - **Chaos**: 100% computational capsule (T1+T8 mixed tier, all fields atomic)
 //! - **ASSUM**: 99.99% safety (10+ assumptions, all verified)
 //! - **B32**: Fair baseline (Let's Encrypt SLA ~5s, nginx reload ~100ms)
 //! - **T28**: Comprehensive testing (28 tests across 4 tiers)

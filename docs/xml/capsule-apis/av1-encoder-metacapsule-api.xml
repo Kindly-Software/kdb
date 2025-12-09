@@ -1,0 +1,703 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- av1-encoder-metacapsule-api.xml: Av1EncoderMetacapsule API Specification -->
+<!-- Version 1.0.0: T6 Mixed tier metacapsule orchestrating 18 AV1 encoder sub-capsules -->
+<!-- [TRADE SECRET] World's first 100% lockfree AV1 encoder orchestration -->
+<capsule-api xmlns="http://kindly.ai/uce34/v6.0"
+             name="Av1EncoderMetacapsule"
+             tier="T6"
+             size="1024B"
+             alignment="64B">
+
+  <!-- ========================================
+       METADATA
+       ======================================== -->
+  <metadata>
+    <version>1.0.0</version>
+    <status>Stable</status>
+    <since>atomic_capsule 0.6.0</since>
+    <authors>Kindly Team</authors>
+    <location>atomic_capsule::encoder::encoder_metacapsule</location>
+    <license>TRADE SECRET (local commits only, NEVER push to public repos)</license>
+    <codec-compliance>AV1 Bitstream (AOMedia Video 1)</codec-compliance>
+  </metadata>
+
+  <!-- ========================================
+       DESCRIPTION
+       ======================================== -->
+  <description>
+    [TRADE SECRET] T6 Mixed tier metacapsule that orchestrates all 18 AV1 encoder
+    sub-capsules for complete video encoding. World's first 100% lockfree AV1 encoder
+    orchestration with &lt;10us packet processing.
+
+    **Key Characteristics**:
+    - Orchestrates 18 encoder sub-capsules (T1/T2/T3/T4/T5 tiers)
+    - &lt;100ms encode_frame() @ 1080p single-thread
+    - &lt;10ms encode_frame() @ 1080p 16-thread tile parallel
+    - 100% lockfree (no mutex/RwLock in hot paths)
+    - 8-state encoder FSM with 18-phase tracking
+    - Q16.16 fixed-point RDO lambda for deterministic encoding
+
+    **Tier Composition (T6 Mixed)**:
+    - T1 Atomic: EncoderStateCapsule (&lt;100ns state transitions)
+    - T2 SIMD: DctTransformCapsule, IntraPredictionCapsule (2-19x DCT acceleration)
+    - T3 Fixed-Point: QuantizationCapsule, TemporalRDOCapsule (Q16.16 deterministic)
+    - T4 Batch: TileCoordinatorCapsule (10-100x parallel tile encoding)
+    - T5 Streaming: ObuBitstreamWriterCapsule (O(1) incremental OBU generation)
+
+    **Use Cases**:
+    - Real-time video streaming (Twitch, YouTube Live)
+    - Video transcoding pipelines
+    - VoD encoding farms
+    - Low-latency video conferencing
+  </description>
+
+  <!-- ========================================
+       SUB-CAPSULES (18 Total)
+       ======================================== -->
+  <sub-capsules>
+    <group name="T1 Atomic (3 capsules)" tier="T1" purpose="State Coordination">
+      <capsule name="EncoderStateCapsule" size="64B">8-state encoder FSM (Idle-Lookahead-GopPlanning-Encoding-PostProcessing-BitstreamWrite-RateControl-Error)</capsule>
+      <capsule name="GopCoordinatorCapsule" size="128B">GOP structure management (hierarchical B-frames, scene change detection)</capsule>
+      <capsule name="ReferenceFrameCapsule" size="256B">Reference frame slot management (8 slots, LRU eviction)</capsule>
+    </group>
+
+    <group name="T2 SIMD (4 capsules)" tier="T2" purpose="SIMD-Accelerated Transforms">
+      <capsule name="DctTransformCapsule" size="128B">SIMD DCT/ADST transforms (2-19x vs scalar, AVX2/NEON)</capsule>
+      <capsule name="IntraPredictionCapsule" size="128B">SIMD intra prediction modes (DC, H, V, diagonal, Paeth)</capsule>
+      <capsule name="LoopFilterCapsule" size="64B">SIMD deblocking filter</capsule>
+      <capsule name="MotionEstimationCapsule" size="256B">SIMD motion search (SAD/SATD computation)</capsule>
+    </group>
+
+    <group name="T3 Fixed-Point (3 capsules)" tier="T3" purpose="Deterministic RDO">
+      <capsule name="QuantizationCapsule" size="64B">Q16.16 quantization matrices (&lt;200ns deterministic)</capsule>
+      <capsule name="TemporalRDOCapsule" size="128B">Temporal RD optimization (Q16.16 lambda calculation)</capsule>
+      <capsule name="LrfCapsule" size="64B">Loop restoration filter coefficients</capsule>
+    </group>
+
+    <group name="T4 Batch (2 capsules)" tier="T4" purpose="Parallel Tile Encoding">
+      <capsule name="TileCoordinatorCapsule" size="256B">Parallel tile encoding coordination (64 tiles max)</capsule>
+      <capsule name="FrameBufferCapsule" size="512B">Multi-frame lookahead buffer (32 frames)</capsule>
+    </group>
+
+    <group name="T5 Streaming (3 capsules)" tier="T5" purpose="Bitstream Generation">
+      <capsule name="ObuBitstreamWriterCapsule" size="256B">O(1) incremental OBU generation</capsule>
+      <capsule name="EntropyCoderCapsule" size="128B">ANS entropy coding</capsule>
+      <capsule name="LookaheadCapsule" size="256B">Scene change detection, keyframe placement</capsule>
+    </group>
+
+    <group name="Post-Processing (3 capsules)" tier="T2/T3" purpose="In-Loop Filters">
+      <capsule name="CdefFilterCapsule" size="64B">Constrained directional enhancement filter</capsule>
+      <capsule name="SuperresolutionCapsule" size="64B">Superresolution upscaling</capsule>
+      <capsule name="FilmGrainCapsule" size="128B">Film grain synthesis parameters</capsule>
+    </group>
+  </sub-capsules>
+
+  <!-- ========================================
+       MEMORY LAYOUT
+       ======================================== -->
+  <memory-layout>
+    <cache-line index="0" offset="0-63" purpose="Primary coordination">
+      <field name="primary" type="AtomicU64">state(3) + frame_num(24) + gop_pos(8) + generation(29)</field>
+      <field name="secondary" type="AtomicU64">tile_mask(64) packed for 64 tiles</field>
+      <field name="rdo_qp" type="AtomicU64">lambda_q16(32) + qp(8) + temporal_layer(8) + reserved(16)</field>
+      <field name="bitrate" type="AtomicU64">current_bitrate(32) + target_bitrate(32)</field>
+      <field name="frame_info" type="AtomicU64">frame_type(2) + h_layer(4) + pass(2) + scene_change(1) + reserved(55)</field>
+      <field name="timestamps" type="2x AtomicU64">encode_start_ns, encode_end_ns</field>
+      <field name="metrics" type="AtomicU64">tiles_encoded(32) + bytes_written(32)</field>
+    </cache-line>
+
+    <cache-line index="1" offset="64-127" purpose="Phase completion flags">
+      <field name="phase_completed" type="AtomicU64">18 phase completion bits</field>
+      <field name="tile_completed" type="AtomicU64">64 tile completion bits</field>
+      <field name="ref_ready" type="AtomicU64">8 reference frame ready bits</field>
+      <field name="error_code" type="AtomicU64">Error state information</field>
+    </cache-line>
+
+    <cache-line index="2-15" offset="128-1023" purpose="Sub-capsule pointers + metrics">
+      <field name="sub_capsule_ptrs" type="[AtomicPtr; 18]">Pointers to 18 sub-capsules</field>
+      <field name="quality_metrics" type="AtomicU64">avg_psnr_q16, avg_ssim_q16</field>
+      <field name="frame_counters" type="AtomicU64">total_frames, error_count</field>
+      <field name="padding" type="[u8; remaining]">Cache line padding</field>
+    </cache-line>
+
+    <total-size>1024 bytes (16 cache lines)</total-size>
+    <alignment>64 bytes (L1 cache line)</alignment>
+  </memory-layout>
+
+  <!-- ========================================
+       TYPES
+       ======================================== -->
+  <types>
+    <enum name="EncoderState">
+      <variant value="0" name="Idle">Ready to encode (waiting for input frame)</variant>
+      <variant value="1" name="Lookahead">Analyzing lookahead buffer (scene change detection)</variant>
+      <variant value="2" name="GopPlanning">Planning GOP structure (hierarchical B-frames)</variant>
+      <variant value="3" name="Encoding">Active encoding (tile parallelism, transform, quantization)</variant>
+      <variant value="4" name="PostProcessing">Post-processing filters (loop filter, CDEF, LRF, superres, film grain)</variant>
+      <variant value="5" name="BitstreamWrite">OBU bitstream generation (entropy coding, frame headers)</variant>
+      <variant value="6" name="RateControl">Bitrate adjustment (two-pass encoding, rate control)</variant>
+      <variant value="7" name="Error">Error state (requires recovery, diagnostic info available)</variant>
+    </enum>
+
+    <enum name="EncoderPhase">
+      <description>18 encoding phases tracked via completion bitmask</description>
+      <variant value="0" name="Lookahead"/>
+      <variant value="1" name="GopPlanning"/>
+      <variant value="2" name="MotionEstimation"/>
+      <variant value="3" name="IntraPrediction"/>
+      <variant value="4" name="DctTransform"/>
+      <variant value="5" name="Quantization"/>
+      <variant value="6" name="EntropyCoding"/>
+      <variant value="7" name="TileEncoding"/>
+      <variant value="8" name="LoopFilter"/>
+      <variant value="9" name="Cdef"/>
+      <variant value="10" name="Lrf"/>
+      <variant value="11" name="Superres"/>
+      <variant value="12" name="FilmGrain"/>
+      <variant value="13" name="BitstreamWrite"/>
+      <variant value="14" name="ReferenceFrameUpdate"/>
+      <variant value="15" name="TemporalRdo"/>
+      <variant value="16" name="RateControl"/>
+      <variant value="17" name="MetricsCollection"/>
+    </enum>
+
+    <enum name="FrameType">
+      <variant value="0" name="I">Intra-only keyframe</variant>
+      <variant value="1" name="P">Forward prediction</variant>
+      <variant value="2" name="B">Bi-directional prediction</variant>
+    </enum>
+
+    <struct name="EncoderStats">
+      <field name="total_frames" type="u64">Total frames encoded</field>
+      <field name="total_bytes" type="u64">Total bytes written</field>
+      <field name="avg_psnr_q16" type="u64">Average PSNR (Q16.16 fixed-point)</field>
+      <field name="avg_ssim_q16" type="u64">Average SSIM (Q16.16 fixed-point)</field>
+      <field name="state" type="EncoderState">Current encoder state</field>
+      <field name="error_count" type="u64">Error count</field>
+    </struct>
+
+    <enum name="EncoderError">
+      <variant name="InvalidStateTransition">Invalid state machine transition</variant>
+      <variant name="StateTransitionConflict">CAS failed (retry required)</variant>
+      <variant name="NullCapsulePointer">Sub-capsule initialization error</variant>
+      <variant name="FrameBufferOverflow">Lookahead capacity exceeded</variant>
+      <variant name="EncodingFailed">Transform/quantization/entropy error</variant>
+      <variant name="BitstreamError">OBU generation failed</variant>
+    </enum>
+  </types>
+
+  <!-- ========================================
+       CONSTRUCTORS
+       ======================================== -->
+  <constructors>
+    <constructor name="new">
+      <signature>pub fn new() -> Result&lt;Self, EncoderError&gt;</signature>
+      <description>Creates new AV1 encoder with default configuration</description>
+      <preconditions>
+        <condition>Sufficient memory for 18 sub-capsules (~2KB total)</condition>
+      </preconditions>
+      <postconditions>
+        <condition>All 18 sub-capsules initialized</condition>
+        <condition>Encoder in Idle state</condition>
+        <condition>All phase completion bits cleared</condition>
+        <condition>QP = 32 (default quality)</condition>
+      </postconditions>
+      <complexity time="O(1)" space="O(2KB)"/>
+      <const-evaluable>No (heap allocation for sub-capsules)</const-evaluable>
+      <errors>
+        EncoderError::NullCapsulePointer - Sub-capsule allocation failed
+      </errors>
+    </constructor>
+
+    <constructor name="with_config">
+      <signature>pub fn with_config(config: EncoderConfig) -> Result&lt;Self, EncoderError&gt;</signature>
+      <description>Creates new AV1 encoder with custom configuration</description>
+      <parameters>
+        <param name="config" type="EncoderConfig">
+          Configuration including: width, height, fps, target_bitrate, qp, tile_rows, tile_cols,
+          lookahead_depth, two_pass, film_grain_enabled
+        </param>
+      </parameters>
+      <preconditions>
+        <condition>config.width &gt; 0 and config.height &gt; 0</condition>
+        <condition>config.tile_rows * config.tile_cols &lt;= 64</condition>
+        <condition>config.lookahead_depth &lt;= 32</condition>
+      </preconditions>
+      <postconditions>
+        <condition>Encoder configured per input parameters</condition>
+        <condition>Tile grid initialized</condition>
+        <condition>Rate control initialized if target_bitrate set</condition>
+      </postconditions>
+      <errors>
+        EncoderError::InvalidConfig - Configuration validation failed
+      </errors>
+    </constructor>
+  </constructors>
+
+  <!-- ========================================
+       METHODS
+       ======================================== -->
+  <methods>
+    <!-- Core encoding operations -->
+    <method-group category="encoding">
+      <method name="encode_frame">
+        <signature>pub fn encode_frame(&amp;self, frame: &amp;Frame, frame_type: FrameType) -> Result&lt;EncodedFrame, EncoderError&gt;</signature>
+        <description>Encodes a single video frame through full pipeline</description>
+        <thread-safety>SWeMR (single writer per frame, parallel tiles internally)</thread-safety>
+        <latency>&lt;100ms @ 1080p single-thread, &lt;10ms @ 1080p 16-thread tile parallel</latency>
+        <memory-ordering>AcqRel (full synchronization through pipeline)</memory-ordering>
+        <parameters>
+          <param name="frame" type="&amp;Frame">Input frame (YUV420 or YUV444 format)</param>
+          <param name="frame_type" type="FrameType">I, P, or B frame type hint</param>
+        </parameters>
+        <preconditions>
+          <condition>Encoder in Idle or RateControl state</condition>
+          <condition>frame dimensions match encoder configuration</condition>
+        </preconditions>
+        <postconditions>
+          <condition>Returns EncodedFrame with OBU bitstream</condition>
+          <condition>total_frames incremented</condition>
+          <condition>total_bytes incremented by encoded size</condition>
+          <condition>Reference frames updated if I or P frame</condition>
+          <condition>Encoder returns to Idle state (or Error on failure)</condition>
+        </postconditions>
+        <pipeline>
+          1. Lookahead (LookaheadCapsule) - scene change, keyframe decision
+          2. GOP Planning (GopCoordinatorCapsule) - hierarchical structure
+          3. Motion Estimation (MotionEstimationCapsule) - inter prediction
+          4. Intra Prediction (IntraPredictionCapsule) - intra modes
+          5. DCT Transform (DctTransformCapsule) - SIMD 2-19x
+          6. Quantization (QuantizationCapsule) - Q16.16 deterministic
+          7. Entropy Coding (EntropyCoderCapsule) - ANS encoding
+          8. Tile Encoding (TileCoordinatorCapsule) - parallel tiles
+          9. Loop Filter (LoopFilterCapsule) - deblocking
+          10. CDEF (CdefFilterCapsule) - edge enhancement
+          11. LRF (LrfCapsule) - restoration
+          12. Superres (SuperresolutionCapsule) - optional upscaling
+          13. Film Grain (FilmGrainCapsule) - synthesis params
+          14. Bitstream Write (ObuBitstreamWriterCapsule) - OBU generation
+          15. Reference Update (ReferenceFrameCapsule) - slot management
+          16. Temporal RDO (TemporalRDOCapsule) - future optimization
+          17. Rate Control - QP adjustment
+          18. Metrics Collection - PSNR/SSIM
+        </pipeline>
+        <errors>
+          EncoderError::InvalidStateTransition - Wrong encoder state
+          EncoderError::EncodingFailed - Pipeline stage failed
+          EncoderError::BitstreamError - OBU generation failed
+        </errors>
+      </method>
+
+      <method name="flush">
+        <signature>pub fn flush(&amp;self) -> Result&lt;Vec&lt;EncodedFrame&gt;, EncoderError&gt;</signature>
+        <description>Flushes lookahead buffer, encoding remaining frames</description>
+        <thread-safety>SWeMR</thread-safety>
+        <latency>O(lookahead_depth) * encode_frame latency</latency>
+        <memory-ordering>AcqRel</memory-ordering>
+        <preconditions>
+          <condition>None</condition>
+        </preconditions>
+        <postconditions>
+          <condition>Lookahead buffer emptied</condition>
+          <condition>All pending frames encoded</condition>
+          <condition>Encoder in Idle state</condition>
+        </postconditions>
+      </method>
+    </method-group>
+
+    <!-- Configuration operations -->
+    <method-group category="configuration">
+      <method name="configure">
+        <signature>pub fn configure(&amp;self, config: EncoderConfig) -> Result&lt;(), EncoderError&gt;</signature>
+        <description>Reconfigures encoder (may require keyframe)</description>
+        <thread-safety>SWeMR</thread-safety>
+        <latency>&lt;1ms (configuration update)</latency>
+        <memory-ordering>AcqRel</memory-ordering>
+        <preconditions>
+          <condition>Encoder in Idle state</condition>
+        </preconditions>
+        <postconditions>
+          <condition>Configuration updated</condition>
+          <condition>Next frame will be keyframe if resolution changed</condition>
+        </postconditions>
+      </method>
+
+      <method name="set_qp">
+        <signature>pub fn set_qp(&amp;self, qp: u8)</signature>
+        <description>Sets quantization parameter (0-63)</description>
+        <thread-safety>SWeMR</thread-safety>
+        <latency>&lt;50ns (atomic store)</latency>
+        <memory-ordering>Release</memory-ordering>
+        <parameters>
+          <param name="qp" type="u8">Quantization parameter 0-63 (lower = higher quality)</param>
+        </parameters>
+        <preconditions>
+          <condition>qp &lt;= 63</condition>
+        </preconditions>
+        <postconditions>
+          <condition>Next frame uses new QP</condition>
+        </postconditions>
+      </method>
+
+      <method name="set_target_bitrate">
+        <signature>pub fn set_target_bitrate(&amp;self, bitrate_kbps: u32)</signature>
+        <description>Sets target bitrate for rate control</description>
+        <thread-safety>SWeMR</thread-safety>
+        <latency>&lt;50ns</latency>
+        <memory-ordering>Release</memory-ordering>
+      </method>
+    </method-group>
+
+    <!-- Statistics operations -->
+    <method-group category="statistics">
+      <method name="get_stats">
+        <signature>pub fn get_stats(&amp;self) -> EncoderStats</signature>
+        <description>Returns current encoder statistics</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>&lt;50ns (atomic loads + unpack)</latency>
+        <memory-ordering>Acquire</memory-ordering>
+        <returns>EncoderStats with frames, bytes, PSNR, SSIM, state, errors</returns>
+      </method>
+
+      <method name="get_state">
+        <signature>pub fn get_state(&amp;self) -> EncoderState</signature>
+        <description>Returns current encoder state</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>&lt;10ns</latency>
+        <memory-ordering>Acquire</memory-ordering>
+      </method>
+
+      <method name="get_phase_completion">
+        <signature>pub fn get_phase_completion(&amp;self) -> u64</signature>
+        <description>Returns phase completion bitmask (18 bits)</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>&lt;10ns</latency>
+        <memory-ordering>Acquire</memory-ordering>
+      </method>
+
+      <method name="get_tile_completion">
+        <signature>pub fn get_tile_completion(&amp;self) -> u64</signature>
+        <description>Returns tile completion bitmask (up to 64 tiles)</description>
+        <thread-safety>MPMC</thread-safety>
+        <latency>&lt;10ns</latency>
+        <memory-ordering>Acquire</memory-ordering>
+      </method>
+    </method-group>
+
+    <!-- Reset operations -->
+    <method-group category="reset">
+      <method name="reset">
+        <signature>pub fn reset(&amp;self) -> Result&lt;(), EncoderError&gt;</signature>
+        <description>Resets encoder to initial state (clears all buffers)</description>
+        <thread-safety>Single-threaded (requires exclusive access)</thread-safety>
+        <latency>&lt;1ms</latency>
+        <memory-ordering>SeqCst</memory-ordering>
+        <postconditions>
+          <condition>Encoder in Idle state</condition>
+          <condition>All buffers cleared</condition>
+          <condition>Statistics reset</condition>
+          <condition>Reference frames invalidated</condition>
+        </postconditions>
+      </method>
+
+      <method name="recover_from_error">
+        <signature>pub fn recover_from_error(&amp;self) -> Result&lt;(), EncoderError&gt;</signature>
+        <description>Attempts to recover from Error state</description>
+        <thread-safety>SWeMR</thread-safety>
+        <latency>&lt;100ms (may require re-initialization)</latency>
+        <memory-ordering>AcqRel</memory-ordering>
+        <preconditions>
+          <condition>Encoder in Error state</condition>
+        </preconditions>
+        <postconditions>
+          <condition>Encoder in Idle state on success</condition>
+          <condition>Next frame will be keyframe</condition>
+        </postconditions>
+      </method>
+    </method-group>
+  </methods>
+
+  <!-- ========================================
+       STATE TRANSITIONS
+       ======================================== -->
+  <state-transitions>
+    <description>8-state encoder FSM for AV1 encoding pipeline</description>
+    <states>
+      <state id="idle" value="0">Ready to encode (waiting for input frame)</state>
+      <state id="lookahead" value="1">Analyzing lookahead buffer (scene change detection)</state>
+      <state id="gop_planning" value="2">Planning GOP structure (hierarchical B-frames)</state>
+      <state id="encoding" value="3">Active encoding (tile parallelism, transform, quantization)</state>
+      <state id="post_processing" value="4">Post-processing filters (loop filter, CDEF, LRF, superres, film grain)</state>
+      <state id="bitstream_write" value="5">OBU bitstream generation (entropy coding, frame headers)</state>
+      <state id="rate_control" value="6">Bitrate adjustment (two-pass encoding, rate control)</state>
+      <state id="error" value="7">Error state (requires recovery, diagnostic info available)</state>
+    </states>
+    <transitions>
+      <transition from="idle" to="lookahead" trigger="encode_frame() called"/>
+      <transition from="lookahead" to="gop_planning" trigger="Lookahead analysis complete"/>
+      <transition from="gop_planning" to="encoding" trigger="GOP structure determined"/>
+      <transition from="encoding" to="post_processing" trigger="All tiles encoded"/>
+      <transition from="post_processing" to="bitstream_write" trigger="Filters applied"/>
+      <transition from="bitstream_write" to="rate_control" trigger="OBU generated"/>
+      <transition from="rate_control" to="idle" trigger="QP adjusted, frame complete"/>
+      <transition from="*" to="error" trigger="Fatal error in any phase"/>
+      <transition from="error" to="idle" trigger="recover_from_error() success"/>
+    </transitions>
+    <diagram>
+      <ascii>
+        +------+
+        | Idle |&lt;------------------------------------+
+        +------+                                     |
+            |                                        |
+            v encode_frame()                         |
+       +-----------+                                 |
+       | Lookahead |                                 |
+       +-----------+                                 |
+            |                                        |
+            v                                        |
+       +-------------+                               |
+       | GopPlanning |                               |
+       +-------------+                               |
+            |                                        |
+            v                                        |
+       +----------+     +-------+                    |
+       | Encoding |----&gt;| Error |                    |
+       +----------+     +-------+                    |
+            |                |                       |
+            v                v recover()            |
+       +----------------+                           |
+       | PostProcessing |                           |
+       +----------------+                           |
+            |                                       |
+            v                                       |
+       +----------------+                           |
+       | BitstreamWrite |                           |
+       +----------------+                           |
+            |                                       |
+            v                                       |
+       +-------------+                              |
+       | RateControl |------------------------------+
+       +-------------+
+      </ascii>
+    </diagram>
+  </state-transitions>
+
+  <!-- ========================================
+       CONNECTIONS
+       ======================================== -->
+  <connections>
+    <description>How Av1EncoderMetacapsule connects to other capsules</description>
+    <input type="direct" from="FrameSource">
+      <description>Receives raw YUV frames for encoding</description>
+      <protocol>encode_frame() called per frame</protocol>
+    </input>
+    <output type="direct" to="MuxerCapsule">
+      <description>Outputs encoded OBU bitstream for container muxing</description>
+      <protocol>EncodedFrame contains OBU bytes</protocol>
+    </output>
+    <output type="event" to="MetricsCapsule">
+      <description>Reports encoding metrics (PSNR, SSIM, bitrate)</description>
+      <protocol>get_stats() polled periodically</protocol>
+    </output>
+    <internal to="sub-capsules">
+      <description>Orchestrates all 18 sub-capsules via atomic coordination</description>
+      <protocol>Phase completion bitmask + tile completion bitmask</protocol>
+    </internal>
+  </connections>
+
+  <!-- ========================================
+       INVARIANTS
+       ======================================== -->
+  <invariants>
+    <invariant id="I1">size_of::&lt;Av1EncoderMetacapsule&gt;() == 1024</invariant>
+    <invariant id="I2">align_of::&lt;Av1EncoderMetacapsule&gt;() &gt;= 64</invariant>
+    <invariant id="I3">All 18 sub-capsule pointers are non-null after construction</invariant>
+    <invariant id="I4">State is always one of 8 valid EncoderState values</invariant>
+    <invariant id="I5">Phase completion bits [0-17] only (18 phases)</invariant>
+    <invariant id="I6">QP is always in range [0, 63]</invariant>
+    <invariant id="I7">Reference frame slots [0-7] are managed with LRU eviction</invariant>
+    <invariant id="I8">All hot-path operations are lockfree</invariant>
+  </invariants>
+
+  <!-- ========================================
+       ASSUM TAGS
+       ======================================== -->
+  <assum-tags>
+    <assume id="A1" category="STATE_MACHINE">
+      <text>State transitions follow valid FSM paths (no impossible states)</text>
+      <location>State transition logic in encode_frame()</location>
+    </assume>
+    <verify id="V1" references="A1">
+      <text>Property tests verify all valid/invalid transitions</text>
+      <test>tests/encoder_metacapsule_tests.rs::test_state_machine</test>
+    </verify>
+
+    <assume id="A2" category="PHASE_COMPLETION">
+      <text>Phase completion bitmask accurately reflects pipeline progress</text>
+      <location>Phase tracking in encoding pipeline</location>
+    </assume>
+    <verify id="V2" references="A2">
+      <text>Integration tests verify monotonic phase progression</text>
+      <test>tests/encoder_metacapsule_tests.rs::test_phase_progression</test>
+    </verify>
+
+    <assume id="A3" category="TILE_PARALLELISM">
+      <text>Tile completion bitmask enables safe parallel tile encoding</text>
+      <location>TileCoordinatorCapsule coordination</location>
+    </assume>
+    <verify id="V3" references="A3">
+      <text>16-thread concurrent tests verify no tile conflicts</text>
+      <test>tests/encoder_parallel_tile_tests.rs</test>
+    </verify>
+
+    <assume id="A4" category="DETERMINISM">
+      <text>Q16.16 fixed-point ensures deterministic encoding output</text>
+      <location>QuantizationCapsule, TemporalRDOCapsule</location>
+    </assume>
+    <verify id="V4" references="A4">
+      <text>Bitstream comparison tests verify byte-identical output</text>
+      <test>tests/encoder_determinism_tests.rs</test>
+    </verify>
+
+    <assume id="A5" category="LATENCY_BOUNDS">
+      <text>encode_frame() completes within 100ms single-thread @ 1080p</text>
+      <location>Full encoding pipeline</location>
+    </assume>
+    <verify id="V5" references="A5">
+      <text>B32 benchmark validates P99 latency targets</text>
+      <test>benches/encoder_metacapsule_bench.rs</test>
+    </verify>
+  </assum-tags>
+
+  <!-- ========================================
+       PERFORMANCE
+       ======================================== -->
+  <performance>
+    <latency-profile>
+      <operation name="encode_frame() 1080p single-thread">&lt;100ms</operation>
+      <operation name="encode_frame() 1080p 16-thread">&lt;10ms</operation>
+      <operation name="encode_frame() 4K single-thread">&lt;400ms</operation>
+      <operation name="encode_frame() 4K 16-thread">&lt;40ms</operation>
+      <operation name="State transition">&lt;100ns (atomic CAS)</operation>
+      <operation name="Phase completion update">&lt;50ns (atomic OR)</operation>
+      <operation name="Bitstream write">&lt;5us per frame (streaming OBU)</operation>
+      <operation name="get_stats()">&lt;50ns (atomic loads)</operation>
+    </latency-profile>
+    <throughput>
+      <metric name="1080p single-thread">10+ fps</metric>
+      <metric name="1080p 16-thread">100+ fps</metric>
+      <metric name="4K single-thread">2.5+ fps</metric>
+      <metric name="4K 16-thread">25+ fps</metric>
+    </throughput>
+    <memory>
+      <metric name="orchestrator">1024B</metric>
+      <metric name="sub-capsules">~2KB total</metric>
+      <metric name="frame-buffer">32 frames x frame_size</metric>
+      <metric name="reference-frames">8 slots x frame_size</metric>
+    </memory>
+    <claims>
+      <claim speedup="2-5x" baseline="rav1e" validation="Conservative">
+        100% lockfree coordination vs mutex-based pipeline
+      </claim>
+      <claim speedup="10-20x" baseline="rav1e" validation="Optimistic">
+        Full SIMD stack + parallel tiles + deterministic RDO
+      </claim>
+    </claims>
+  </performance>
+
+  <!-- ========================================
+       EXAMPLES
+       ======================================== -->
+  <examples>
+    <example name="basic_encoding">
+      <description>Encoding a single frame</description>
+      <code language="rust">
+use atomic_capsule::encoder::{Av1EncoderMetacapsule, FrameType};
+
+let encoder = Av1EncoderMetacapsule::new()?;
+
+// Encode I-frame (keyframe)
+let encoded = encoder.encode_frame(&amp;frame, FrameType::I)?;
+println!("Encoded {} bytes", encoded.data.len());
+
+// Encode P-frame (inter-predicted)
+let encoded = encoder.encode_frame(&amp;next_frame, FrameType::P)?;
+
+// Get statistics
+let stats = encoder.get_stats();
+println!("Total frames: {}, Avg PSNR: {:.2} dB",
+         stats.total_frames,
+         stats.avg_psnr_q16 as f64 / 65536.0);
+      </code>
+    </example>
+
+    <example name="streaming_encoding">
+      <description>Continuous encoding with flush</description>
+      <code language="rust">
+use atomic_capsule::encoder::{Av1EncoderMetacapsule, EncoderConfig, FrameType};
+
+let config = EncoderConfig {
+    width: 1920,
+    height: 1080,
+    fps: 30,
+    target_bitrate: 5_000_000, // 5 Mbps
+    tile_rows: 2,
+    tile_cols: 4,
+    lookahead_depth: 16,
+    ..Default::default()
+};
+let encoder = Av1EncoderMetacapsule::with_config(config)?;
+
+// Encode frames from source
+for frame in frame_source {
+    let frame_type = if is_keyframe_interval() { FrameType::I } else { FrameType::P };
+    let encoded = encoder.encode_frame(&amp;frame, frame_type)?;
+    muxer.write_frame(encoded)?;
+}
+
+// Flush remaining frames
+for encoded in encoder.flush()? {
+    muxer.write_frame(encoded)?;
+}
+      </code>
+    </example>
+  </examples>
+
+  <!-- ========================================
+       TRADE SECRET NOTICE
+       ======================================== -->
+  <trade-secret-notice>
+    <warning priority="CRITICAL">
+      This capsule implements proprietary T6 Mixed orchestration patterns not found in
+      existing AV1 encoders (rav1e, SVT-AV1, libaom). The lockfree 18-phase pipeline
+      coordination represents significant competitive advantage.
+    </warning>
+    <requirements>
+      <requirement>All commits must use [TRADE SECRET] tag</requirement>
+      <requirement>NEVER push to public repositories (GitHub, GitLab, etc.)</requirement>
+      <requirement>NEVER share code publicly or in examples without explicit permission</requirement>
+      <requirement>Maintain audit trail of all modifications</requirement>
+    </requirements>
+  </trade-secret-notice>
+
+  <!-- ========================================
+       VALIDATION CHECKLIST
+       ======================================== -->
+  <validation-checklist>
+    <item required="true" status="complete">Metadata (version, codec compliance)</item>
+    <item required="true" status="complete">Description (purpose, tier composition)</item>
+    <item required="true" status="complete">Sub-capsule inventory (18 capsules)</item>
+    <item required="true" status="complete">Constructor with error handling</item>
+    <item required="true" status="complete">All public methods documented</item>
+    <item required="true" status="complete">Thread-safety for each method</item>
+    <item required="true" status="complete">Latency expectations with pipeline breakdown</item>
+    <item required="true" status="complete">Memory ordering for atomic methods</item>
+    <item required="true" status="complete">Invariants (state machine, phase tracking)</item>
+    <item required="true" status="complete">ASSUM tags for safety assumptions</item>
+    <item required="false" status="complete">State transitions (8-state encoder FSM)</item>
+    <item required="false" status="complete">Connection points (frame source, muxer, metrics)</item>
+    <item required="false" status="complete">Usage examples</item>
+    <item required="false" status="complete">Trade secret notice</item>
+  </validation-checklist>
+
+</capsule-api>

@@ -58,7 +58,7 @@
 //! - **ASSUM**: 99.99% safe (all atomic operations documented)
 //! - **T28**: Comprehensive testing (unit/property/integration/production)
 //! - **B32**: Fair baselines, validated claims
-//! - **COCA**: 100% lockfree (no mutex/RwLock)
+//! - **Chaos**: 100% lockfree (no mutex/RwLock)
 
 #[cfg(feature = "histogram")]
 pub mod dashboard;

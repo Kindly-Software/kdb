@@ -51,7 +51,7 @@ quota.lock()?;  // Revocation
 - ASSUM: 99.5%+ safe (10 assumptions verified)
 - B32: <10ns quota check (validated)
 - T28: 24/24 tests passing
-- COCA: 100% computational capsule architecture
+- Chaos: 100% computational capsule architecture
 
 ---
 

@@ -5,7 +5,7 @@
 **Tier**: T5 Streaming - Incremental message assembly
 **Size**: 256 bytes (cache-aligned)
 **Performance**: <10ns per fragment coordination overhead
-**Framework Compliance**: UCE34, COCA, ASSUM (99.99%), B32, T28, I20
+**Framework Compliance**: UCE34, Chaos, ASSUM (99.99%), B32, T28, I20
 
 The `WebSocketMessageAssemblerCapsule` implements RFC 6455 WebSocket message fragmentation and reassembly with zero-copy coordination and lockfree design.
 
@@ -44,7 +44,7 @@ TOTAL                        256 bytes
 
 ### Lockfree Design
 
-- **100% atomic operations** - No mutex/RwLock (COCA compliant)
+- **100% atomic operations** - No mutex/RwLock (Chaos compliant)
 - **Single-writer semantics** - One thread adds fragments
 - **Multi-reader safe** - Other threads can read state
 - **Ordering**: Release/Acquire for happens-before guarantees

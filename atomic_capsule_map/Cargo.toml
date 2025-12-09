@@ -1,0 +1,83 @@
+[package]
+name = "atomic_capsule_map"
+version = "0.1.1"
+edition = "2021"
+authors = ["Samuel <noreply@localhost>"]
+description = "[DEPRECATED] Use atomic_capsule::collections instead. Lockfree concurrent hashmap built on atomic capsule architecture."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/atomic_capsule_map"
+readme = "README.md"
+keywords = ["lockfree", "concurrent", "hashmap", "atomic", "capsule"]
+categories = ["concurrency", "data-structures", "no-std"]
+
+# Deprecation metadata
+[package.metadata.docs.rs]
+rustdoc-args = ["--html-in-header", "deprecation-header.html"]
+
+[package.metadata]
+deprecated = true
+deprecation-notice = "This crate is deprecated. Please migrate to atomic_capsule::collections::ConcurrentMapCapsule for better performance and features."
+replacement = "atomic_capsule"
+deprecation-date = "2025-10-22"
+lts-period = "12 months (until 2026-10-22)"
+
+[features]
+default = ["std"]
+std = []
+serde = ["dep:serde"]
+
+# BLOCKED: Arc<T> support requires major architectural changes
+# Current implementation requires K: Copy and V: Copy for inline storage
+# Arc<T> is Clone-only, incompatible with current design
+# Tests/benchmarks feature-gated to prevent compilation errors
+# To enable Arc support, need to:
+#   1. Remove Copy bounds from all trait impls
+#   2. Change inline storage to handle Clone types
+#   3. Update serialization layer for non-Copy values
+# For now: Use Arc<Mutex<T>> as workaround or wait for v0.4.0
+arc_support = []
+
+[dependencies]
+portable-atomic = "1.9"
+ahash = { version = "0.8", default-features = false }
+parking_lot = "0.12"
+serde = { version = "1.0", optional = true, default-features = false, features = ["derive"] }
+
+[dev-dependencies]
+criterion = "0.5"
+dashmap = "6.1"
+rayon = "1.10"
+serde_json = "1.0"
+proptest = "1.4"
+
+[[bench]]
+name = "basic_ops"
+harness = false
+
+[[bench]]
+name = "vs_dashmap"
+harness = false
+
+[[bench]]
+name = "arc_ops"
+harness = false
+
+[[bench]]
+name = "arc_performance"
+harness = false
+
+[[bench]]
+name = "v1_comprehensive"
+harness = false
+
+[[example]]
+name = "basic_usage"
+
+[[example]]
+name = "dashmap_migration"
+
+[[example]]
+name = "atomic_operations"
+
+[[example]]
+name = "circuit_breaker"

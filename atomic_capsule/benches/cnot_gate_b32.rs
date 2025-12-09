@@ -58,17 +58,13 @@ fn bench_scalar_vs_avx2_hadamard(c: &mut Criterion) {
 
     for n_qubits in [8, 12, 16].iter() {
         // AVX2 path (feature-gated)
-        group.bench_with_input(
-            BenchmarkId::new("avx2", n_qubits),
-            n_qubits,
-            |b, &n| {
-                let gate = CNOTGateCapsule::new(0, 1).unwrap();
-                let mut amplitudes = create_state(n, 1 << (n - 1)); // |10...0⟩ state
-                b.iter(|| {
-                    gate.apply(black_box(&mut amplitudes), n).unwrap();
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("avx2", n_qubits), n_qubits, |b, &n| {
+            let gate = CNOTGateCapsule::new(0, 1).unwrap();
+            let mut amplitudes = create_state(n, 1 << (n - 1)); // |10...0⟩ state
+            b.iter(|| {
+                gate.apply(black_box(&mut amplitudes), n).unwrap();
+            });
+        });
 
         // Scalar baseline (disable AVX2 via feature flag in practice)
         // For now, we benchmark the same path but document expected scalar perf
@@ -96,17 +92,13 @@ fn bench_scalar_vs_avx2_hadamard(c: &mut Criterion) {
     let mut group = c.benchmark_group("cnot/scalar_only");
 
     for n_qubits in [8, 12, 16].iter() {
-        group.bench_with_input(
-            BenchmarkId::new("scalar", n_qubits),
-            n_qubits,
-            |b, &n| {
-                let gate = CNOTGateCapsule::new(0, 1).unwrap();
-                let mut amplitudes = create_state(n, 1 << (n - 1));
-                b.iter(|| {
-                    gate.apply(black_box(&mut amplitudes), n).unwrap();
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("scalar", n_qubits), n_qubits, |b, &n| {
+            let gate = CNOTGateCapsule::new(0, 1).unwrap();
+            let mut amplitudes = create_state(n, 1 << (n - 1));
+            b.iter(|| {
+                gate.apply(black_box(&mut amplitudes), n).unwrap();
+            });
+        });
     }
 
     group.finish();
@@ -120,17 +112,13 @@ fn bench_cnot_scaling(c: &mut Criterion) {
     let mut group = c.benchmark_group("cnot/scaling");
 
     for n_qubits in [4, 8, 12, 16, 20].iter() {
-        group.bench_with_input(
-            BenchmarkId::from_parameter(n_qubits),
-            n_qubits,
-            |b, &n| {
-                let gate = CNOTGateCapsule::new(0, 1).unwrap();
-                let mut amplitudes = create_state(n, 1 << (n - 1)); // |10...0⟩
-                b.iter(|| {
-                    gate.apply(black_box(&mut amplitudes), n).unwrap();
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::from_parameter(n_qubits), n_qubits, |b, &n| {
+            let gate = CNOTGateCapsule::new(0, 1).unwrap();
+            let mut amplitudes = create_state(n, 1 << (n - 1)); // |10...0⟩
+            b.iter(|| {
+                gate.apply(black_box(&mut amplitudes), n).unwrap();
+            });
+        });
     }
 
     group.finish();
@@ -144,17 +132,13 @@ fn bench_cnot_bell_states(c: &mut Criterion) {
     let mut group = c.benchmark_group("cnot/bell_states");
 
     for n_qubits in [2, 4, 8, 12].iter() {
-        group.bench_with_input(
-            BenchmarkId::from_parameter(n_qubits),
-            n_qubits,
-            |b, &n| {
-                let gate = CNOTGateCapsule::new(0, 1).unwrap();
-                let mut amplitudes = create_bell_state_input(n);
-                b.iter(|| {
-                    gate.apply(black_box(&mut amplitudes), n).unwrap();
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::from_parameter(n_qubits), n_qubits, |b, &n| {
+            let gate = CNOTGateCapsule::new(0, 1).unwrap();
+            let mut amplitudes = create_bell_state_input(n);
+            b.iter(|| {
+                gate.apply(black_box(&mut amplitudes), n).unwrap();
+            });
+        });
     }
 
     group.finish();
@@ -273,17 +257,13 @@ fn bench_cnot_vs_general_gate(c: &mut Criterion) {
         );
 
         // General TwoQubitGate CNOT
-        group.bench_with_input(
-            BenchmarkId::new("general", n_qubits),
-            n_qubits,
-            |b, &n| {
-                let gate = TwoQubitGateCapsule::cnot(0, 1).unwrap();
-                let mut state = QuantumState::new(n).unwrap();
-                b.iter(|| {
-                    state.apply_two_qubit_gate(black_box(&gate)).unwrap();
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("general", n_qubits), n_qubits, |b, &n| {
+            let gate = TwoQubitGateCapsule::cnot(0, 1).unwrap();
+            let mut state = QuantumState::new(n).unwrap();
+            b.iter(|| {
+                state.apply_two_qubit_gate(black_box(&gate)).unwrap();
+            });
+        });
     }
 
     group.finish();

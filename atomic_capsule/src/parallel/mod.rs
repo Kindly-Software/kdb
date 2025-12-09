@@ -147,7 +147,7 @@ pub mod queue;
 pub mod queue_const; // Const generics SPSC/MPMC queue (Tier 1 Atomic + Tier 4 Batch, nightly Rust, 99.996% allocation speedup)
 pub mod segmented_mpmc; // Segmented MPMC queue (Tier 4 Batch + Tier 1 Atomic, Phase AGENT3, stable Rust)
 pub mod result_aggregator; // Lockfree result aggregation (Tier 4 Batch, Phase 4-Parallel, stable Rust) - DEPRECATED: Use result_aggregator_v2
-pub mod result_aggregator_v2; // Lockfree result aggregation V2 (Tier 6 Mixed: T1+T4, 100% COCA, Phase 4.5, stable Rust)
+pub mod result_aggregator_v2; // Lockfree result aggregation V2 (Tier 6 Mixed: T1+T4, 100% Chaos, Phase 4.5, stable Rust)
                               // TODO Phase 15 V3: Re-enable after type signature + merge() + Fn/FnMut fixes
                               // pub mod result_aggregator_v3; // Lockfree result aggregation V3 (Tier 6 Mixed: T1+T4, thread-local batch buffered, Phase 15 V3, stable Rust)
 pub mod scoped;

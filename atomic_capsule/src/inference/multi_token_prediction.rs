@@ -48,7 +48,7 @@
 //! - Calibration: Converges in <1000 samples
 //!
 //! # Framework Compliance
-//! - **COCA**: 100% lockfree, cache-aligned, generation counter
+//! - **Chaos**: 100% lockfree, cache-aligned, generation counter
 //! - **UCE34 Q10**: T5 Streaming tier (incremental ring buffer output)
 //! - **ASSUM**: Document head weight safety, Q16.16 threshold bounds
 //! - **T28**: 12 unit tests (creation, prediction, acceptance, calibration)

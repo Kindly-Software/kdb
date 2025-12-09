@@ -41,7 +41,7 @@
 //! - **UCE34**: Q1-Q34 (Q10 T2+T5 selection, Q33 verified, Q34 audit)
 //! - **ASSUM**: 99.99% safe (no unsafe, all assumptions documented)
 //! - **B32**: Fair baselines, 1000+ iterations, 95% CI, honest measurement
-//! - **COCA**: 100% lockfree (atomic buffer pool, no mutex)
+//! - **Chaos**: 100% lockfree (atomic buffer pool, no mutex)
 //! - **T28**: Unit + Property + Integration + Production tests
 //! - **I20**: Zero breaking changes, full integration validated
 

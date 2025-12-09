@@ -8,7 +8,7 @@
 **Version**: 1.0.0
 **Date**: 2025-10-24
 **Author**: atomic_capsule Research Team
-**Framework Compliance**: UCE34 (Q16-Q27), COCA (Implementation Patterns)
+**Framework Compliance**: UCE34 (Q16-Q27), Chaos (Implementation Patterns)
 **Status**: Production-Ready Implementation
 
 ---
@@ -25,7 +25,7 @@
 7. [Performance Validation (B32)](#performance-validation-b32)
 
 ### Cross-Document Navigation
-- **Part 1**: Foundation & UCE34 Q1-Q15, COCA Patterns, Circular Dependency Trap
+- **Part 1**: Foundation & UCE34 Q1-Q15, Chaos Patterns, Circular Dependency Trap
 - **Part 3**: Integration, Deployment, UCE34 Q28-Q34 (Legal, Trust, Audit)
 
 ---
@@ -56,7 +56,7 @@ use std::sync::atomic::{AtomicU64, AtomicU8, AtomicBool, Ordering};
 /// - #VERIFY: Static assertions at compile-time
 ///
 /// PERFORMANCE: 9.8ns legitimate checks, 12ns with tamper detection
-/// FRAMEWORK: UCE34 Q1-Q34, T1 (Atomic) tier, COCA compliant
+/// FRAMEWORK: UCE34 Q1-Q34, T1 (Atomic) tier, Chaos compliant
 #[repr(C, align(128))]
 pub struct WeaponizedCircuitBreaker {
     // === PRIMARY STATE (Cache line 0, 64B) ===

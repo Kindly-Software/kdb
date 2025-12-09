@@ -86,6 +86,9 @@ pub mod ring_broadcast;
 pub mod ring_trace;
 pub mod stats_capsule;
 
+// Robin Hood hash map (T1 Atomic, linear probing with robin hood heuristic)
+pub mod robin_hood_hash;
+
 // Temporarily commented out - requires tokio dependency
 pub mod async_log;
 
@@ -199,6 +202,9 @@ pub use ring_buffer_const::RingBufferCapsuleConst;
 
 pub use serializable::BitwiseSerializable;
 pub use stats_capsule::{StatsCapsule64, StatsSnapshot};
+
+// Robin Hood hash map (T1 Atomic, linear probing)
+pub use robin_hood_hash::RobinHoodHashCapsule;
 
 #[cfg(feature = "async-log")]
 pub use async_log::{AsyncLogCapsule, LogEntry};

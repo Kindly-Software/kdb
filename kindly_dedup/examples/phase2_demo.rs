@@ -1,29 +1,20 @@
-//! Phase 2 Integration Demo - Mmap LSH Bucketer
+//! Phase 2 Integration Demo - Facade API with CpuStreaming Mode
 //!
-//! Demonstrates TRUE 93% memory reduction via mmap-backed LSH buckets
+//! Demonstrates using the Facade API with CpuStreaming mode for memory efficiency
 //!
-//! Run with: cargo run --example phase2_demo --features persistent-dedup --release
+//! Run with: cargo run --example phase2_demo --release
 
-#[cfg(feature = "persistent-dedup")]
-fn main() {
-    use kindly_dedup::PersistentDedupPipeline;
-    use atomic_capsule::CpuCapabilityCapsule;
-
-    let temp_path = "/tmp/phase2_demo.bin";
-    let _ = std::fs::remove_file(temp_path); // Clean up
-
-    let cpu_caps = CpuCapabilityCapsule::detect();
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    use kindly_dedup::{Dedup, DedupMode};
 
     println!("=== Phase 2 Integration Demo ===");
-    println!("Testing mmap-backed LSH buckets for 93% memory reduction\n");
+    println!("Testing Facade API with CpuStreaming mode for memory efficiency\n");
 
-    // Create pipeline with 1000 document capacity
+    // Create dedup instance with CpuStreaming mode for memory efficiency
     let capacity = 1000;
-    let num_threads = 1;
-    let mut pipeline = PersistentDedupPipeline::create(temp_path, capacity, num_threads, &cpu_caps)
-        .expect("Failed to create persistent pipeline");
+    let mut dedup = Dedup::with_mode(DedupMode::CpuStreaming, capacity)?;
 
-    println!("Created persistent pipeline (capacity: {})", capacity);
+    println!("Created dedup instance (mode: {:?}, capacity: {})", dedup.current_mode(), capacity);
 
     // Add test documents (5 unique, 5 duplicates)
     let docs = vec![
@@ -41,16 +32,14 @@ fn main() {
 
     println!("Adding {} documents...", docs.len());
     for (doc_id, text) in docs.iter().enumerate() {
-        pipeline.add_document(doc_id, text).expect("Failed to add document");
+        dedup.add_document(doc_id as u64, text)?;
     }
 
-    // Flush to ensure mmap is synced
-    pipeline.flush().expect("Failed to flush");
-    println!("Documents flushed to disk");
+    println!("Documents added successfully");
 
     // Find duplicates (Jaccard threshold 0.85)
     println!("\nFinding duplicates (threshold: 0.85)...");
-    let clusters = pipeline.find_duplicates(0.85).expect("Failed to find duplicates");
+    let clusters = dedup.find_duplicates(0.85)?;
 
     println!("\n=== Results ===");
     println!("Found {} duplicate clusters:", clusters.len());
@@ -58,21 +47,20 @@ fn main() {
         println!("  Cluster {}: {:?} ({} documents)", i + 1, cluster, cluster.len());
     }
 
+    // Show statistics
+    let stats = dedup.stats();
+    println!("\n=== Statistics ===");
+    println!("Mode:                {:?}", stats.mode);
+    println!("Documents processed: {}", stats.documents_processed);
+    println!("Total time:          {:?}", stats.total_time);
+    println!("Avg time per doc:    {:?}", stats.avg_time_per_doc);
+
     // Verify results
     if clusters.is_empty() {
         println!("\n⚠️  Warning: No clusters found (expected at least 1)");
     } else {
-        println!("\n✅ Success: Phase 2 integration working correctly!");
+        println!("\n✅ Success: Phase 2 demo completed successfully!");
     }
 
-    // Clean up
-    let _ = std::fs::remove_file(temp_path);
-    println!("\nCleaned up temporary file");
-}
-
-#[cfg(not(feature = "persistent-dedup"))]
-fn main() {
-    eprintln!("Error: This example requires the 'persistent-dedup' feature");
-    eprintln!("Run with: cargo run --example phase2_demo --features persistent-dedup");
-    std::process::exit(1);
+    Ok(())
 }

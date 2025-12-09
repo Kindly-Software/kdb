@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metacapsule-architecture version="2.0" date="2025-11-24">
+
+<!--
+  METACAPSULE ARCHITECTURE v2.0
+  Enhanced with topologies, lifecycle states, coordination protocols, and connection types.
+
+  Related Documentation:
+  - xml/metacapsule-patterns.xml (851 lines) - Detailed pattern catalog
+  - xml/capsule-connections.xml (373 lines) - Connection types and APIs
+  - xml/capsule-api-template.xml (538 lines) - API specification format
+  - xml/origin/computational-capsule-philosophy.xml - Core philosophy
+-->
+
+<definition>
+  <concept>Single orchestrating capsule containing multiple specialized sub-capsules</concept>
+  <purpose>Hierarchical state coordination for multi-stage pipelines (encoders, transports, etc)</purpose>
+  <key-difference>
+    <vs type="Component Capsule">Single-purpose primitive (DCT, Quantization); flat no hierarchy</vs>
+    <vs type="Container Capsule">Large collections (≥100K objects); array-based management</vs>
+    <vs type="Metacapsule">Multi-stage orchestration; single atomic snapshot</vs>
+  </key-difference>
+  <core-principle>Impossible states prevented via lockfree coordination of embedded sub-capsules</core-principle>
+</definition>
+
+<architecture>
+  <pattern>Single 256B-1024B orchestrating capsule with 4-18 embedded sub-capsules</pattern>
+  <coordination-mechanism>DualAtomicU64 (primary + secondary) with phase bitmasks for hierarchical FSM</coordination-mechanism>
+  <memory-layout>Cache-aligned contiguous block (64B/256B/512B/1024B alignment)</memory-layout>
+  <state-model>Hierarchical (top-level FSM coordinate + per-sub-capsule state)</state-model>
+  <lockfree-guarantee>100% atomic operations; zero mutex/RwLock; O(&lt;50ns) state transitions</lockfree-guarantee>
+
+  <reference-example name="Av1EncoderMetacapsule" tier="T6" size="1024B">
+    <description>Video codec orchestrator with 18 sub-capsules</description>
+    <coordination>
+      <primary>State(8) | Phase(8) | FrameCount(16) | Generation(32)</primary>
+      <secondary>TileID(16) | QIndex(8) | LoopFilterLevel(8) | Gen(32)</secondary>
+    </coordination>
+    <sub-capsules count="18">
+      <capsule tier="T1" name="EncoderStateCapsule" size="64B">Tracks encode state (Idle→Transform→Quantize→Entropy→Done)</capsule>
+      <capsule tier="T2" name="DctTransformCapsule" size="256B">SIMD 8×8 DCT (AVX2, 19× baseline)</capsule>
+      <capsule tier="T3" name="QuantizationCapsule" size="128B">Fixed-point Q index + deadzone (Q8.8)</capsule>
+      <capsule tier="T5" name="EntropyCapsule" size="96B">Huffman/arithmetic bitstream (streaming)</capsule>
+      <capsule tier="T1" name="TileCapsule" size="64B">Tile state + dependency tracking</capsule>
+      <capsule tier="T5" name="FrameBufferCapsule" size="512B">Input/output frame management</capsule>
+    </sub-capsules>
+    <speedup>2-20× vs traditional encoder (compound T2+T3+T5 effects)</speedup>
+  </reference-example>
+</architecture>
+
+<when-to-use>
+  <use-case priority="MANDATORY">Multi-stage pipeline (3+ independent stages) with deterministic ordering</use-case>
+  <use-case priority="MANDATORY">Atomic snapshot required (monitoring, checkpointing, migration)</use-case>
+  <use-case priority="MANDATORY">State machine complexity (8+ states, transitions impossible to violate)</use-case>
+  <use-case priority="MANDATORY">Real-time constraints (&lt;100ms latency SLA, no GC pauses)</use-case>
+  <use-case priority="HIGH">Tier composition needed (T6 Mixed orchestrating T1-T5 sub-capsules)</use-case>
+
+  <anti-pattern>Simple sequential processing → Use T5 Streaming Pipeline instead</anti-pattern>
+  <anti-pattern>Embedded systems &lt;512B total memory → Use Component Capsules (flat)</anti-pattern>
+  <anti-pattern>Loose coupling between stages → Use message-passing, not metacapsule</anti-pattern>
+</when-to-use>
+
+<pattern-comparison>
+  <metacapsule>
+    <use>Multi-stage orchestration: codecs, transports, state machines</use>
+    <size>256B-1024B</size>
+    <alignment>64B/256B/512B/1024B cache-aligned</alignment>
+    <coordination>DualAtomicU64 with phase bitmasks</coordination>
+    <speedup>2-20× (compound tier effects)</speedup>
+    <snapshot-latency>&lt;50ns atomic read</snapshot-latency>
+    <examples>AV1/PNG/JPEG encoders (11/12 = 84.6%), QuicEndpointMetacapsule, UniversalApiMetaCapsule</examples>
+  </metacapsule>
+
+  <component-capsule>
+    <use>Single-purpose primitive: DCT, quantization, hash, filter</use>
+    <size>64B-256B</size>
+    <alignment>64B cache-aligned</alignment>
+    <coordination>AtomicU64 (single field)</coordination>
+    <speedup>2-19× (single tier)</speedup>
+    <snapshot-latency>&lt;10ns atomic read</snapshot-latency>
+    <examples>DctCapsule, QuantizationCapsule, CircuitBreaker, HistogramCapsule</examples>
+  </component-capsule>
+
+  <container-capsule>
+    <use>Large collection management: ≥100K objects</use>
+    <size>Variable (array + header)</size>
+    <alignment>64B header + element stride</alignment>
+    <coordination>Batch CAS loops</coordination>
+    <speedup>10-100× (T4 Batch parallelism)</speedup>
+    <snapshot-latency>&lt;1μs (O(n) iteration)</snapshot-latency>
+    <examples>LockfreeHashTable, ConcurrentMapCapsule, RingBufferBroadcast</examples>
+  </container-capsule>
+</pattern-comparison>
+
+<metacapsule-advantages>
+  <advantage id="1">Lockfree snapshot: Single atomic read captures entire orchestrator state (~50ns)</advantage>
+  <advantage id="2">Chaos compliance: 100% atomic, zero mutex/RwLock, nested sub-capsules allowed</advantage>
+  <advantage id="3">Deterministic latency: &lt;100ns state transitions via Acquire/Release ordering (SWeMR)</advantage>
+  <advantage id="4">Cache efficiency: 256B-1024B aligned prevents false sharing; sub-capsules co-located</advantage>
+  <advantage id="5">Type safety: Impossible states prevented at compile time (#[derive(ComputationalCapsule)])</advantage>
+  <advantage id="6">Hierarchical testing: T28 validates full FSM; sub-capsules tested independently</advantage>
+</metacapsule-advantages>
+
+<metacapsule-examples>
+  <example project="atomic_capsule" name="Av1EncoderMetacapsule" tier="T6" size="1024B">
+    <sub-capsules>18 (EncoderState, FrameBuffer, DCT, Quantization, Entropy, Tile, etc)</sub-capsules>
+    <coordination>DualAtomicU64: State(8)|Phase(8)|Count(16)|Gen(32) + Tile(16)|QIndex(8)|Loop(8)|Gen(32)</coordination>
+    <speedup>2-20× vs traditional video codec</speedup>
+    <status>Production (RFC 8130 AV1)</status>
+  </example>
+
+  <example project="atomic_capsule" name="QuicEndpointMetacapsule" tier="T6" size="512B">
+    <sub-capsules>22 (QuicConnection, Stream, Packet, Crypto, Flow, ACK, Congestion, etc)</sub-capsules>
+    <coordination>DualAtomicU64: ConnectionID(32)|State(8)|Gen(24) + StreamID(32)|Gen(32)</coordination>
+    <speedup>1.76× vs TLS 1.3 sync (RFC 9000 QUIC)</speedup>
+    <status>Production (RFC 9000/9114)</status>
+  </example>
+
+  <example project="atomic_capsule" name="UniversalApiMetaCapsule" tier="T6" size="512B">
+    <sub-capsules>6 implicit (REST, GraphQL, gRPC, WebSocket, JSON-RPC, SSE)</sub-capsules>
+    <coordination>TransportType enum (4 variants) + ALPN detection (&lt;12ns)</coordination>
+    <speedup>1.2× vs manual protocol switching</speedup>
+    <status>Production (multi-protocol router)</status>
+  </example>
+
+  <example project="kindly-verified" name="PNGEncoderCapsule" tier="T6" size="512B">
+    <sub-capsules>3 (SIMDFilterApplicator, DEFLATEEncoder, PNGChunkWriter)</sub-capsules>
+    <coordination>DualAtomicU64 simple state machine</coordination>
+    <speedup>2-5× vs libpng</speedup>
+    <status>Production (RFC 2083 PNG)</status>
+  </example>
+</metacapsule-examples>
+
+<best-practices>
+  <practice id="1">Keep orchestrator ≤1024B: Larger → split into component capsules</practice>
+  <practice id="2">Sub-capsule dependency graph acyclic: Impossible deadlock (encode→compress→output)</practice>
+  <practice id="3">Atomic snapshot before state transition: Prevents partial state exposure</practice>
+  <practice id="4">Phase bitmasks for FSM: Each sub-capsule owns bits; no field conflicts</practice>
+  <practice id="5">Test sub-capsules independently PLUS integration: T28 4-tier validation</practice>
+  <practice id="6">Generation counters on DualAtomicU64: TOCTOU detection between snapshot + write</practice>
+</best-practices>
+
+<!-- ============================================================================
+     TOPOLOGIES (v2.0 addition)
+     See xml/metacapsule-patterns.xml for detailed topology specifications
+     ============================================================================ -->
+<topologies>
+  <topology id="pipeline" primary="true">
+    <description>Linear chain of sub-capsules, data flows one direction</description>
+    <diagram>A → B → C → D</diagram>
+    <latency>O(stages × stage_latency)</latency>
+    <throughput>Limited by slowest stage</throughput>
+    <use-cases>
+      <use-case>Encoder pipelines (transform → quantize → entropy)</use-case>
+      <use-case>Data processing (parse → validate → transform → output)</use-case>
+    </use-cases>
+    <example>Av1EncoderMetacapsule, PNGEncoderCapsule</example>
+  </topology>
+
+  <topology id="mesh">
+    <description>Fully connected sub-capsules, bidirectional communication</description>
+    <diagram>A ↔ B ↔ C (all pairs connected)</diagram>
+    <latency>O(1) for direct, O(hops) for indirect</latency>
+    <throughput>Aggregate of all connections</throughput>
+    <use-cases>
+      <use-case>Transport protocols (connection ↔ stream ↔ frame ↔ crypto)</use-case>
+      <use-case>Distributed coordination (consensus, leader election)</use-case>
+    </use-cases>
+    <example>QuicEndpointMetacapsule</example>
+  </topology>
+
+  <topology id="fanout">
+    <description>Single source, multiple sinks (1:N dispatch)</description>
+    <diagram>A → [B, C, D, E]</diagram>
+    <latency>O(1) parallel dispatch</latency>
+    <throughput>Sum of all sink capacities</throughput>
+    <use-cases>
+      <use-case>API routing (router → [REST, GraphQL, gRPC, WebSocket])</use-case>
+      <use-case>Event broadcasting (source → subscribers)</use-case>
+    </use-cases>
+    <example>UniversalApiMetaCapsule</example>
+  </topology>
+
+  <topology id="hierarchical">
+    <description>Tree structure with parent-child relationships</description>
+    <diagram>A → [B → [D, E], C → [F, G]]</diagram>
+    <latency>O(depth)</latency>
+    <throughput>Aggregate of leaf nodes</throughput>
+    <use-cases>
+      <use-case>Domain decomposition (tile → blocks → pixels)</use-case>
+      <use-case>Organizational hierarchies (manager → workers)</use-case>
+    </use-cases>
+    <example>TileEncoderMetacapsule (video tile processing)</example>
+  </topology>
+</topologies>
+
+<!-- ============================================================================
+     LIFECYCLE STATES (v2.0 addition)
+     Atomic state machine for metacapsule coordination
+     ============================================================================ -->
+<lifecycle>
+  <states>
+    <state id="uninitialized" initial="true">Sub-capsules not yet created</state>
+    <state id="initializing">Sub-capsules being constructed in dependency order</state>
+    <state id="ready">All sub-capsules initialized, ready to accept work</state>
+    <state id="processing">Active work in progress, sub-capsules executing</state>
+    <state id="draining">Completing in-flight work, rejecting new submissions</state>
+    <state id="stopped">No active processing, can restart</state>
+    <state id="error">Recoverable error state, requires intervention</state>
+    <state id="failed" terminal="true">Unrecoverable, requires reconstruction</state>
+  </states>
+
+  <transitions>
+    <transition from="uninitialized" to="initializing" trigger="init()" atomic="true"/>
+    <transition from="initializing" to="ready" trigger="all_sub_capsules_ready" atomic="true"/>
+    <transition from="initializing" to="failed" trigger="sub_capsule_init_failed" atomic="true"/>
+    <transition from="ready" to="processing" trigger="submit_work()" atomic="true"/>
+    <transition from="processing" to="ready" trigger="work_complete" atomic="true"/>
+    <transition from="processing" to="draining" trigger="drain()" atomic="true"/>
+    <transition from="draining" to="stopped" trigger="all_work_drained" atomic="true"/>
+    <transition from="stopped" to="ready" trigger="restart()" atomic="true"/>
+    <transition from="ready,processing,draining" to="error" trigger="recoverable_error" atomic="true"/>
+    <transition from="error" to="ready" trigger="recover()" atomic="true"/>
+    <transition from="error" to="failed" trigger="recovery_failed" atomic="true"/>
+  </transitions>
+
+  <implementation-notes>
+    <note>All transitions use CAS on primary AtomicU64 with generation bump</note>
+    <note>State encoded in bits 0-7 of primary field (8 states = 3 bits, reserved to 8)</note>
+    <note>Snapshot state before transition to ensure atomic visibility</note>
+    <note>Failed state requires full reconstruction (new() call)</note>
+  </implementation-notes>
+</lifecycle>
+
+<!-- ============================================================================
+     COORDINATION PROTOCOLS (v2.0 addition)
+     How sub-capsules synchronize execution
+     ============================================================================ -->
+<coordination-protocols>
+  <protocol id="sequential" complexity="O(n)">
+    <description>Sub-capsules execute in strict order, each waits for previous</description>
+    <latency>Sum of all sub-capsule latencies</latency>
+    <use-case>Dependent transformations where output of A is input to B</use-case>
+    <implementation>Phase counter increments; each stage checks counter matches its turn</implementation>
+    <example>Encoder: Transform(1) → Quantize(2) → Entropy(3)</example>
+  </protocol>
+
+  <protocol id="parallel" complexity="O(1)">
+    <description>Independent sub-capsules execute concurrently</description>
+    <latency>Max of concurrent sub-capsule latencies</latency>
+    <use-case>Embarrassingly parallel workloads (independent tiles, shards)</use-case>
+    <implementation>Each sub-capsule owns generation counter; orchestrator waits for all</implementation>
+    <example>Tile processing: Tile0 || Tile1 || Tile2 || Tile3</example>
+  </protocol>
+
+  <protocol id="pipelined" complexity="O(1) after warmup">
+    <description>Overlapped execution with bounded queues between stages</description>
+    <latency>Latency of slowest stage (after N-stage warmup)</latency>
+    <throughput>Throughput of slowest stage</throughput>
+    <use-case>Streaming data, continuous processing</use-case>
+    <implementation>Ring buffers between stages; producer/consumer coordination</implementation>
+    <example>Video: Frame[n] decode || Frame[n-1] transform || Frame[n-2] output</example>
+  </protocol>
+
+  <protocol id="speculative" complexity="variable">
+    <description>Execute ahead optimistically, rollback on mispredict</description>
+    <latency>Best case: O(1); Worst case: O(n) + rollback</latency>
+    <use-case>Branch prediction, optimistic concurrency control</use-case>
+    <implementation>Snapshot state before speculative execution; restore on mispredict</implementation>
+    <overhead>Rollback cost = restore snapshot + retry</overhead>
+    <example>Optimistic MVCC: execute assuming no conflicts, rollback if detected</example>
+  </protocol>
+</coordination-protocols>
+
+<!-- ============================================================================
+     CONNECTION TYPES (v2.0 addition)
+     See xml/capsule-connections.xml for full specification
+     ============================================================================ -->
+<connection-summary>
+  <connection type="direct" latency="&lt;10ns">1:1 synchronous state propagation</connection>
+  <connection type="pipeline" latency="&lt;50ns/stage">N:1 streaming data flow</connection>
+  <connection type="broadcast" latency="&lt;100ns total">1:N event fanout</connection>
+  <connection type="mesh" latency="&lt;200ns/hop">N:N bidirectional coordination</connection>
+  <connection type="request-response" latency="&lt;1μs">Async query pattern</connection>
+
+  <inter-tier-rules>
+    <rule>T1→T2: Direct or Pipeline (Atomic feeds SIMD vectorization)</rule>
+    <rule>T2→T3: Pipeline (SIMD output to fixed-point accumulation)</rule>
+    <rule>T4→T5: Pipeline (Batch feeds streaming output)</rule>
+    <rule>T6→*: Any (metacapsule can orchestrate all connection types)</rule>
+    <rule>T8→T9: Request-Response (network to persistent storage)</rule>
+  </inter-tier-rules>
+
+  <detailed-spec>See xml/capsule-connections.xml for full API definitions</detailed-spec>
+</connection-summary>
+
+<!-- ============================================================================
+     DESIGN GUIDELINES (v2.0 addition)
+     ============================================================================ -->
+<design-guidelines>
+  <guideline category="sizing">
+    <rule>Total metacapsule ≤1024B (fits in L1 cache line set)</rule>
+    <rule>Sub-capsule count: 4-18 (avoid overhead &gt; coordination benefit)</rule>
+    <rule>Prefer fewer larger sub-capsules over many tiny ones</rule>
+  </guideline>
+
+  <guideline category="coordination">
+    <rule>Use DualAtomicU64 for 2+ independent state dimensions</rule>
+    <rule>Phase bitmasks: Allocate 4-8 bits per major sub-capsule group</rule>
+    <rule>Generation counter in high 32 bits for TOCTOU detection</rule>
+  </guideline>
+
+  <guideline category="error-handling">
+    <rule>Sub-capsule failures propagate to metacapsule error state</rule>
+    <rule>Implement graceful degradation (disable failed sub-capsules)</rule>
+    <rule>Log error context before state transition for debugging</rule>
+  </guideline>
+
+  <guideline category="testing">
+    <rule>T28 Q1-Q7: Unit test each sub-capsule independently</rule>
+    <rule>T28 Q8-Q14: Property test state machine transitions</rule>
+    <rule>T28 Q15-Q21: Integration test full metacapsule workflows</rule>
+    <rule>T28 Q22-Q28: Production stress test with realistic load</rule>
+    <rule>T28 Q29-Q35: Determinism test for reproducible behavior</rule>
+  </guideline>
+</design-guidelines>
+
+<!-- ============================================================================
+     ANTI-PATTERNS (v2.0 expansion)
+     ============================================================================ -->
+<anti-patterns>
+  <anti-pattern severity="critical">
+    <name>Mutex in metacapsule coordination</name>
+    <problem>100× latency increase (1-10μs vs &lt;100ns)</problem>
+    <solution>Use DualAtomicU64 with generation counters</solution>
+  </anti-pattern>
+
+  <anti-pattern severity="critical">
+    <name>Shared mutable state between sub-capsules</name>
+    <problem>Data races, undefined behavior</problem>
+    <solution>Each sub-capsule owns its state; communicate via connections</solution>
+  </anti-pattern>
+
+  <anti-pattern severity="high">
+    <name>Cyclic dependencies between sub-capsules</name>
+    <problem>Deadlock potential, reasoning difficulty</problem>
+    <solution>Enforce acyclic dependency graph at design time</solution>
+  </anti-pattern>
+
+  <anti-pattern severity="high">
+    <name>Unbounded queues between pipeline stages</name>
+    <problem>Memory exhaustion under load</problem>
+    <solution>Use bounded ring buffers with backpressure</solution>
+  </anti-pattern>
+
+  <anti-pattern severity="medium">
+    <name>Fine-grained sub-capsules (&lt;64B each)</name>
+    <problem>Coordination overhead exceeds computation</problem>
+    <solution>Merge related logic into larger sub-capsules</solution>
+  </anti-pattern>
+
+  <anti-pattern severity="medium">
+    <name>Ignoring sub-capsule initialization order</name>
+    <problem>Use-before-init, null pointer dereference</problem>
+    <solution>Topological sort of dependency graph in init()</solution>
+  </anti-pattern>
+</anti-patterns>
+
+</metacapsule-architecture>

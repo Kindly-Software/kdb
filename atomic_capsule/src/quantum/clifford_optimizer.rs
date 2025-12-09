@@ -14,7 +14,7 @@
 //! - **5-10× depth reduction**: Validated on surface code syndrome circuits (distance 3-10)
 //! - **<100μs optimization latency**: Real-time compilation for 1-10 kHz syndrome extraction
 //! - **100% correctness**: Stabilizer equivalence guaranteed via property tests
-//! - **Lockfree coordination**: COCA-compliant (no mutex/RwLock)
+//! - **Lockfree coordination**: Chaos-compliant (no mutex/RwLock)
 //! - **SIMD-accelerated**: 2-4× speedup for gate matrix operations (T2)
 //! - **Batch parallelism**: 4-8× speedup for independent gate analysis (T4)
 //!
@@ -45,7 +45,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 T6 Mixed tier, Q33 verification, Q34 audit trails
-//! - **COCA**: 100% computational capsule, lockfree atomics, cache-aligned
+//! - **Chaos**: 100% computational capsule, lockfree atomics, cache-aligned
 //! - **B32**: Fair baselines (no fusion, scalar operations), 95% CI, 1000+ iterations
 //! - **T28**: 28 comprehensive tests (unit/property/integration/production)
 //! - **ASSUM**: 99.99% safe (all assumptions documented, zero unsafe in fast path)

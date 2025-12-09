@@ -22,7 +22,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 T6 Mixed tier (T1+T2+T5 composition)
-//! - **COCA**: 100% computational capsules
+//! - **Chaos**: 100% computational capsules
 //! - **ASSUM**: 99.5%+ safety, all quantum errors documented
 //! - **B32**: Fair baselines (vs linear search)
 //! - **T28**: Integration test example

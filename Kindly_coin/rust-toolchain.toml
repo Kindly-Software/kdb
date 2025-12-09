@@ -1,0 +1,9 @@
+[toolchain]
+# Use current nightly for UCE32 features
+# Q32: portable_simd, const_fn_floating_point, atomic_from_mut, generic_const_exprs
+channel = "nightly"
+components = ["rustfmt", "clippy", "rust-src", "rust-analyzer"]
+profile = "minimal"
+
+# Target specific optimizations
+targets = ["x86_64-unknown-linux-gnu"]

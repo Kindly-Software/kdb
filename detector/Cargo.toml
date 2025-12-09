@@ -1,0 +1,15 @@
+[package]
+name = "detector"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+
+[dependencies]
+atomic_capsule = { path = "../atomic_capsule", version = "0.4.0" }
+
+[lib]
+name = "detector"
+path = "src/lib.rs"
+
+[features]
+default = []

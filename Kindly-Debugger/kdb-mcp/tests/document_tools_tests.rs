@@ -1,6 +1,6 @@
 //! Integration tests for document processing MCP tools
 //!
-//! Tests all 4 document tools with focus on COCA compliance, lockfree coordination,
+//! Tests all 4 document tools with focus on Chaos compliance, lockfree coordination,
 //! and latency constraints.
 
 #[cfg(all(feature = "std", feature = "tool-executor"))]
@@ -434,7 +434,7 @@ mod tests {
     }
 
     // ========================================================================
-    // COCA Compliance Tests
+    // Chaos Compliance Tests
     // ========================================================================
 
     #[test]

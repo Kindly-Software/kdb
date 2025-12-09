@@ -529,7 +529,7 @@ fn stress_test_summary() {
     println!("║ FRAMEWORKS APPLIED:                                                      ║");
     println!("║   ✓ B32: Fair baseline comparison, 95% CI, 1000+ iterations            ║");
     println!("║   ✓ T28: 7 production stress tests (Q22-Q28)                            ║");
-    println!("║   ✓ COCA: Lockfree coordination (no mutex/RwLock in test latency)       ║");
+    println!("║   ✓ Chaos: Lockfree coordination (no mutex/RwLock in test latency)       ║");
     println!("║   ✓ Performance Target: 10,000+ req/sec @ <10μs P99 latency             ║");
     println!("║   ✓ Concurrency: Tested up to 16 concurrent threads                     ║");
     println!("║   ✓ Robustness: Tool diversity, burst traffic, edge cases               ║");

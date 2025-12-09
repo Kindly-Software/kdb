@@ -131,7 +131,7 @@
 //! - **UCE34 Q12**: Nightly features (portable_simd, inline_const)
 //! - **UCE34 Q33**: Automatic verification via #[derive(ComputationalCapsule)]
 //! - **ASSUM**: 99.99% safe (25+ assumptions documented and verified)
-//! - **COCA**: 100% lockfree (AtomicU64, no mutex/RwLock)
+//! - **Chaos**: 100% lockfree (AtomicU64, no mutex/RwLock)
 //! - **T28**: 25+ comprehensive tests (Unit/Property/Integration/Production)
 //! - **B32**: Performance targets validated (Bloom <30ns, transition <100ns)
 //!

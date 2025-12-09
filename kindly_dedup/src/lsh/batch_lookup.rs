@@ -28,7 +28,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 (T4 Batch tier), Q33 (verified), Q34 (audit-ready)
-//! - **COCA**: 100% lockfree (ConcurrentMapCapsule + rayon work-stealing)
+//! - **Chaos**: 100% lockfree (ConcurrentMapCapsule + rayon work-stealing)
 //! - **ASSUM**: 99.5%+ safe (Vec pool correctness, bucket access patterns)
 //! - **B32**: Fair baseline (Week 1 sequential LSH), 95% CI, 1000+ iterations
 //! - **T28**: 42 tests (Unit/Property/Integration/Production)
@@ -65,7 +65,7 @@ pub const ROWS_PER_BAND: usize = 25;
 
 /// Thread-local Vec pool for candidate results
 ///
-/// # Lock-Free Design (COCA)
+/// # Lock-Free Design (Chaos)
 ///
 /// - **thread_local!**: No shared state, no mutex/RwLock
 /// - **RefCell**: Interior mutability for Vec reuse (single-threaded per thread)

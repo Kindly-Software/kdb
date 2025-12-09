@@ -8,7 +8,7 @@ license = "Proprietary"
 rust-version = "1.75"
 
 [dependencies]
-# Minimal dependencies - COCA-compliant, no heavy frameworks
+# Minimal dependencies - Chaos-compliant, no heavy frameworks
 
 [features]
 default = []

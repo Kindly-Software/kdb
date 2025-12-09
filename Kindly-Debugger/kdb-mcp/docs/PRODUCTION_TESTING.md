@@ -2,7 +2,7 @@
 
 **Version**: 1.0.0
 **Status**: Production Ready
-**Compliance**: UCE34, T28, COCA, ASSUM, B32, I20
+**Compliance**: UCE34, T28, Chaos, ASSUM, B32, I20
 
 ## Overview
 
@@ -328,7 +328,7 @@ cargo test --test production_tests --all-features load_framework::
 - **Q15-Q21**: Integration tests (comprehensive_tests.rs)
 - **Q22-Q28**: Production tests (THIS SUITE - 60+ tests)
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 - **100% Lockfree**: All coordination via atomics (zero mutex)
 - **Cache-Aligned**: 64B/128B/256B alignment verified
 - **Generation Counters**: TOCTOU prevention validated under stress

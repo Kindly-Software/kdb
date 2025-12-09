@@ -1,0 +1,28 @@
+# Rust toolchain configuration for kindly_compression_pro
+# IMPL-2 v3.1: Nightly-first mandate (portable_simd, const_fn_floating_point required)
+
+[toolchain]
+channel = "nightly"
+# Pin to specific nightly for reproducibility (update monthly)
+# Uncomment and update after validating new nightly versions
+# channel = "nightly-2025-10-26"
+
+# Components required for development
+components = [
+    "rustfmt",                    # Code formatting
+    "clippy",                     # Linting
+    "rust-src",                   # Source code (for IDE support)
+    "rust-analyzer",              # LSP server
+]
+
+# Target platforms
+targets = [
+    "x86_64-unknown-linux-gnu",   # Linux (primary development target)
+    "x86_64-pc-windows-msvc",     # Windows
+    "x86_64-apple-darwin",        # macOS Intel
+    "aarch64-apple-darwin",       # macOS Apple Silicon
+    "aarch64-unknown-linux-gnu",  # ARM64 Linux (servers)
+]
+
+# Profile for reproducible builds
+profile = "default"

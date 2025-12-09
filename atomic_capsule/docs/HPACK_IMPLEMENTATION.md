@@ -3,7 +3,7 @@
 **Status**: Production Ready (v0.8.0+)
 **Tier**: T1 (Atomic) + T2 (SIMD)
 **Performance**: <2μs encode, <3μs decode, 30-50% compression ratio
-**Framework**: UCE34, COCA, ASSUM, B32, T28, I20
+**Framework**: UCE34, Chaos, ASSUM, B32, T28, I20
 
 ## Overview
 
@@ -145,7 +145,7 @@ Custom headers            0.80        20% (mostly literal)
 With Huffman              0.25-0.40   25-40% additional
 ```
 
-## Thread Safety (COCA Framework)
+## Thread Safety (Chaos Framework)
 
 ### Guarantees
 - **100% lockfree**: Zero mutex/RwLock anywhere
@@ -247,7 +247,7 @@ encoder.encode_header(b"cookie", b"session=abc123", true)?;
 - **Q33**: Verification via #[derive(ComputationalCapsule)]
 - **Q34**: Audit trails for header modifications (optional Q34 feature)
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 - **100% lockfree**: All state via atomics
 - **Cache-aligned**: 256-byte capsules, false-sharing prevention
 - **Generation counters**: TOCTOU prevention via versioning

@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "docker": {
+      "command": "docker-mcp"
+    }
+  }
+}

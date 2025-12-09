@@ -1,0 +1,1084 @@
+warning: `panic` setting is ignored for `bench` profile
+warning: `panic` setting is ignored for `bench` profile
+warning: unexpected `cfg` condition value: `std`
+  --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:34:7
+   |
+34 | #[cfg(feature = "std")]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+   = help: consider adding `std` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unexpected `cfg` condition value: `std`
+  --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:84:7
+   |
+84 | #[cfg(feature = "std")]
+   |       ^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+   = help: consider adding `std` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:418:7
+    |
+418 | #[cfg(feature = "std")]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:424:7
+    |
+424 | #[cfg(feature = "std")]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:639:7
+    |
+639 | #[cfg(feature = "std")]
+    |       ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:386:11
+    |
+386 |     #[cfg(feature = "std")]
+    |           ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `std`
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:394:15
+    |
+394 |     #[cfg(not(feature = "std"))]
+    |               ^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `default`, `nightly-all`, `nightly-const-fn`, `nightly-const-traits`, `nightly-specialization`, `parallel`, and `rayon`
+    = help: consider adding `std` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: enum `AuditError` is never used
+  --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:39:10
+   |
+39 | pub enum AuditError {
+   |          ^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: enum `MigrationStatus` is never used
+  --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:96:10
+   |
+96 | pub enum MigrationStatus {
+   |          ^^^^^^^^^^^^^^^
+
+warning: associated function `from_u8` is never used
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:109:12
+    |
+107 | impl MigrationStatus {
+    | -------------------- associated function in this implementation
+108 |     /// Parse u8 into MigrationStatus
+109 |     pub fn from_u8(value: u8) -> Option<Self> {
+    |            ^^^^^^^
+
+warning: multiple associated items are never used
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:202:12
+    |
+178 | impl MigrationLogEntry {
+    | ---------------------- associated items in this implementation
+...
+202 |     pub fn record(
+    |            ^^^^^^
+...
+261 |     pub fn fast_hash(&self) -> u64 {
+    |            ^^^^^^^^^
+...
+266 |     pub fn prev_fast_hash(&self) -> u64 {
+    |            ^^^^^^^^^^^^^^
+...
+271 |     pub fn generation(&self) -> u64 {
+    |            ^^^^^^^^^^
+...
+276 |     pub fn timestamp_ns(&self) -> u64 {
+    |            ^^^^^^^^^^^^
+...
+281 |     pub fn status(&self) -> MigrationStatus {
+    |            ^^^^^^
+...
+291 |     pub fn capsule_name(&self) -> Result<&str, AuditError> {
+    |            ^^^^^^^^^^^^
+...
+311 |     pub fn verify_integrity(&self) -> Result<(), AuditError> {
+    |            ^^^^^^^^^^^^^^^^
+...
+348 |     fn compute_entry_hash(prev: u64, ts: u64, name: &[u8; 64], status: u8) -> u64 {
+    |        ^^^^^^^^^^^^^^^^^^
+...
+395 |     fn current_timestamp_ns() -> u64 {
+    |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `MigrationStats` is never constructed
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:648:12
+    |
+648 | pub struct MigrationStats {
+    |            ^^^^^^^^^^^^^^
+
+warning: methods `success_rate` and `failure_rate` are never used
+   --> /home/samuel/Primitives/atomic_capsule_derive/src/audit.rs:664:12
+    |
+662 | impl MigrationStats {
+    | ------------------- methods in this implementation
+663 |     /// Calculate success rate (0.0 - 100.0)
+664 |     pub fn success_rate(&self) -> f64 {
+    |            ^^^^^^^^^^^^
+...
+672 |     pub fn failure_rate(&self) -> f64 {
+    |            ^^^^^^^^^^^^
+
+warning: associated function `with_source` is never used
+  --> /home/samuel/Primitives/atomic_capsule_derive/src/field_size.rs:73:12
+   |
+61 | impl FieldSizeCalculator {
+   | ------------------------ associated function in this implementation
+...
+73 |     pub fn with_source(source: String) -> Self {
+   |            ^^^^^^^^^^^
+
+warning: field `skip_send_sync` is never read
+  --> /home/samuel/Primitives/atomic_capsule_derive/src/parser.rs:33:9
+   |
+13 | pub struct CapsuleAttributes {
+   |            ----------------- field in this struct
+...
+33 |     pub skip_send_sync: bool,
+   |         ^^^^^^^^^^^^^^
+   |
+   = note: `CapsuleAttributes` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: `atomic_capsule_derive` (lib) generated 15 warnings
+warning: unused import: `core::time::Duration`
+  --> /home/samuel/Primitives/atomic_capsule/src/install/installer_state.rs:74:5
+   |
+74 | use core::time::Duration;
+   |     ^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `ed25519_dalek::Verifier`
+  --> /home/samuel/Primitives/atomic_capsule/src/install/signature_verifier.rs:55:5
+   |
+55 | use ed25519_dalek::Verifier;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Barrier` and `Mutex`
+  --> /home/samuel/Primitives/atomic_capsule/src/parallel/hybrid_batch_pool.rs:37:22
+   |
+37 | use std::sync::{Arc, Barrier, Mutex};
+   |                      ^^^^^^^  ^^^^^
+
+warning: unused import: `MmapManager`
+  --> /home/samuel/Primitives/atomic_capsule/src/persistence/persistent_atomic.rs:22:38
+   |
+22 | use super::mmap_manager::{MmapError, MmapManager};
+   |                                      ^^^^^^^^^^^
+
+warning: unused import: `atomic_capsule_derive::ComputationalCapsule`
+  --> /home/samuel/Primitives/atomic_capsule/src/tui/audit_log.rs:80:5
+   |
+80 | use atomic_capsule_derive::ComputationalCapsule;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `atomic_capsule_derive::ComputationalCapsule`
+   --> /home/samuel/Primitives/atomic_capsule/src/protection/crypto_license.rs:131:5
+    |
+131 | use atomic_capsule_derive::ComputationalCapsule;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `atomic_capsule_derive::ComputationalCapsule`
+   --> /home/samuel/Primitives/atomic_capsule/src/protection/orchestrator.rs:174:5
+    |
+174 | use atomic_capsule_derive::ComputationalCapsule;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `atomic_capsule_derive::ComputationalCapsule`
+   --> /home/samuel/Primitives/atomic_capsule/src/protection/quota_tracker.rs:120:5
+    |
+120 | use atomic_capsule_derive::ComputationalCapsule;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `atomic_capsule_derive::ComputationalCapsule`
+   --> /home/samuel/Primitives/atomic_capsule/src/protection/license_validator.rs:149:5
+    |
+149 | use atomic_capsule_derive::ComputationalCapsule;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `core::time::Duration`
+   --> /home/samuel/Primitives/atomic_capsule/src/protection/license_validator.rs:155:5
+    |
+155 | use core::time::Duration;
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::hash::Hash`
+   --> /home/samuel/Primitives/atomic_capsule/src/protection/license_validator.rs:158:5
+    |
+158 | use std::hash::Hash;
+    |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+   --> /home/samuel/Primitives/atomic_capsule/src/protection/license_validator.rs:161:5
+    |
+161 | use std::sync::Arc;
+    |     ^^^^^^^^^^^^^^
+
+warning: hidden lifetime parameters in types are deprecated
+   --> /home/samuel/Primitives/atomic_capsule/src/daemon/lock.rs:63:47
+    |
+ 63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard> {
+    |                                               ^^^^^^^^^ expected lifetime parameter
+    |
+note: the lint level is defined here
+   --> /home/samuel/Primitives/atomic_capsule/src/lib.rs:124:23
+    |
+124 | #![warn(missing_docs, rust_2018_idioms)]
+    |                       ^^^^^^^^^^^^^^^^
+    = note: `#[warn(elided_lifetimes_in_paths)]` implied by `#[warn(rust_2018_idioms)]`
+help: indicate the anonymous lifetime
+    |
+ 63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard<'_>> {
+    |                                                        ++++
+
+warning: unnecessary parentheses around assigned value
+   --> /home/samuel/Primitives/atomic_capsule/src/daemon/lock.rs:163:29
+    |
+163 |             let new_state = ((gen as u64 + 1) << 32);
+    |                             ^                      ^
+    |
+    = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+    |
+163 -             let new_state = ((gen as u64 + 1) << 32);
+163 +             let new_state = (gen as u64 + 1) << 32;
+    |
+
+warning: unused import: `atomic_capsule_derive::ComputationalCapsule`
+  --> /home/samuel/Primitives/atomic_capsule/src/daemon/coordinator.rs:41:5
+   |
+41 | use atomic_capsule_derive::ComputationalCapsule;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unexpected `cfg` condition value: `nightly-simd`
+  --> /home/samuel/Primitives/atomic_capsule/src/text/tokenization_batch.rs:67:7
+   |
+67 | #[cfg(feature = "nightly-simd")]
+   |       ^^^^^^^^^^--------------
+   |                 |
+   |                 help: there is a expected value with a similar name: `"nightly-all"`
+   |
+   = note: expected values for `feature` are: `DISABLED_PENDING_TRAIT_UPDATE`, `adaptive-parallel`, `alloc`, `anomaly-detection`, `async-broadcast`, `async-channels`, `async-log`, `async-mpsc`, `async-oneshot`, `async-watch`, `atomic-core`, `audit-q34`, `audit-trail`, `auto_tune`, `batch-native`, `batch-wasm`, `bloom-filter`, `bloom-filter-all`, `bloom-filter-persistent`, `bloom-filter-simd`, `btree-batch`, `btree-cow`, `btree-cow-simd`, `btree-simd`, `cache`, `cache-encryption`, `cache-hmac`, `cache-multi-tenant`, `cache-security-full`, `capsule-mmap`, `capsule-os`, `capsule-serialize`, `circuit-breaker-adaptive`, `circuit-breaker-auto-tune`, and `circuit-breaker-compact48` and 139 more
+   = help: consider adding `nightly-simd` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: requested on the command line with `-W unexpected-cfgs`
+
+warning: unexpected `cfg` condition value: `nightly-simd`
+   --> /home/samuel/Primitives/atomic_capsule/src/text/tokenization_batch.rs:265:11
+    |
+265 |     #[cfg(feature = "nightly-simd")]
+    |           ^^^^^^^^^^--------------
+    |                     |
+    |                     help: there is a expected value with a similar name: `"nightly-all"`
+    |
+    = note: expected values for `feature` are: `DISABLED_PENDING_TRAIT_UPDATE`, `adaptive-parallel`, `alloc`, `anomaly-detection`, `async-broadcast`, `async-channels`, `async-log`, `async-mpsc`, `async-oneshot`, `async-watch`, `atomic-core`, `audit-q34`, `audit-trail`, `auto_tune`, `batch-native`, `batch-wasm`, `bloom-filter`, `bloom-filter-all`, `bloom-filter-persistent`, `bloom-filter-simd`, `btree-batch`, `btree-cow`, `btree-cow-simd`, `btree-simd`, `cache`, `cache-encryption`, `cache-hmac`, `cache-multi-tenant`, `cache-security-full`, `capsule-mmap`, `capsule-os`, `capsule-serialize`, `circuit-breaker-adaptive`, `circuit-breaker-auto-tune`, and `circuit-breaker-compact48` and 139 more
+    = help: consider adding `nightly-simd` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `nightly-simd`
+   --> /home/samuel/Primitives/atomic_capsule/src/text/tokenization_batch.rs:199:15
+    |
+199 |         #[cfg(feature = "nightly-simd")]
+    |               ^^^^^^^^^^--------------
+    |                         |
+    |                         help: there is a expected value with a similar name: `"nightly-all"`
+    |
+    = note: expected values for `feature` are: `DISABLED_PENDING_TRAIT_UPDATE`, `adaptive-parallel`, `alloc`, `anomaly-detection`, `async-broadcast`, `async-channels`, `async-log`, `async-mpsc`, `async-oneshot`, `async-watch`, `atomic-core`, `audit-q34`, `audit-trail`, `auto_tune`, `batch-native`, `batch-wasm`, `bloom-filter`, `bloom-filter-all`, `bloom-filter-persistent`, `bloom-filter-simd`, `btree-batch`, `btree-cow`, `btree-cow-simd`, `btree-simd`, `cache`, `cache-encryption`, `cache-hmac`, `cache-multi-tenant`, `cache-security-full`, `capsule-mmap`, `capsule-os`, `capsule-serialize`, `circuit-breaker-adaptive`, `circuit-breaker-auto-tune`, and `circuit-breaker-compact48` and 139 more
+    = help: consider adding `nightly-simd` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `nightly-simd`
+   --> /home/samuel/Primitives/atomic_capsule/src/text/tokenization_batch.rs:204:19
+    |
+204 |         #[cfg(not(feature = "nightly-simd"))]
+    |                   ^^^^^^^^^^--------------
+    |                             |
+    |                             help: there is a expected value with a similar name: `"nightly-all"`
+    |
+    = note: expected values for `feature` are: `DISABLED_PENDING_TRAIT_UPDATE`, `adaptive-parallel`, `alloc`, `anomaly-detection`, `async-broadcast`, `async-channels`, `async-log`, `async-mpsc`, `async-oneshot`, `async-watch`, `atomic-core`, `audit-q34`, `audit-trail`, `auto_tune`, `batch-native`, `batch-wasm`, `bloom-filter`, `bloom-filter-all`, `bloom-filter-persistent`, `bloom-filter-simd`, `btree-batch`, `btree-cow`, `btree-cow-simd`, `btree-simd`, `cache`, `cache-encryption`, `cache-hmac`, `cache-multi-tenant`, `cache-security-full`, `capsule-mmap`, `capsule-os`, `capsule-serialize`, `circuit-breaker-adaptive`, `circuit-breaker-auto-tune`, and `circuit-breaker-compact48` and 139 more
+    = help: consider adding `nightly-simd` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: use of deprecated struct `probabilistic::minhash::migration::LegacyMinHashSignature`: Use MinHashSignatureCapsule (Q8.8) instead
+   --> /home/samuel/Primitives/atomic_capsule/src/probabilistic/minhash.rs:451:10
+    |
+451 |     impl LegacyMinHashSignature {
+    |          ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated struct `probabilistic::minhash::migration::LegacyMinHashSignature`: Use MinHashSignatureCapsule (Q8.8) instead
+   --> /home/samuel/Primitives/atomic_capsule/src/probabilistic/minhash.rs:486:65
+    |
+486 |     pub fn q8_8_to_legacy(capsule: &MinHashSignatureCapsule) -> LegacyMinHashSignature {
+    |                                                                 ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated struct `probabilistic::minhash::migration::LegacyMinHashSignature`: Use MinHashSignatureCapsule (Q8.8) instead
+   --> /home/samuel/Primitives/atomic_capsule/src/probabilistic/minhash.rs:491:9
+    |
+491 |         LegacyMinHashSignature {
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated field `probabilistic::minhash::migration::LegacyMinHashSignature::signature`: Use MinHashSignatureCapsule (Q8.8) instead
+   --> /home/samuel/Primitives/atomic_capsule/src/probabilistic/minhash.rs:464:37
+    |
+464 |                 new_signature[i] = (self.signature[i] & 0xFFFF) as u16;
+    |                                     ^^^^^^^^^^^^^^
+
+warning: use of deprecated field `probabilistic::minhash::migration::LegacyMinHashSignature::signature`: Use MinHashSignatureCapsule (Q8.8) instead
+   --> /home/samuel/Primitives/atomic_capsule/src/probabilistic/minhash.rs:473:20
+    |
+473 |             Self { signature }
+    |                    ^^^^^^^^^
+
+warning: use of deprecated field `probabilistic::minhash::migration::LegacyMinHashSignature::signature`: Use MinHashSignatureCapsule (Q8.8) instead
+   --> /home/samuel/Primitives/atomic_capsule/src/probabilistic/minhash.rs:492:13
+    |
+492 |             signature: legacy_signature,
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated associated function `sha2::digest::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> /home/samuel/Primitives/atomic_capsule/src/protection/encrypted_state.rs:284:32
+    |
+284 |         let nonce_obj = Nonce::from_slice(&nonce);
+    |                                ^^^^^^^^^^
+
+warning: use of deprecated associated function `sha2::digest::generic_array::GenericArray::<T, N>::from_slice`: please upgrade to generic-array 1.x
+   --> /home/samuel/Primitives/atomic_capsule/src/protection/encrypted_state.rs:382:32
+    |
+382 |         let nonce_obj = Nonce::from_slice(&nonce);
+    |                                ^^^^^^^^^^
+
+warning: value assigned to `failed_task` is never read
+   --> /home/samuel/Primitives/atomic_capsule/src/parallel/migration_batch.rs:177:21
+    |
+177 |                     failed_task = None;
+    |                     ^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> /home/samuel/Primitives/atomic_capsule/src/probabilistic/bloom_filter_sharded.rs:465:13
+    |
+465 |         let mut new = Box::new(Self::new());
+    |             ----^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `ciphertext_len`
+   --> /home/samuel/Primitives/atomic_capsule/src/protection/encrypted_state.rs:361:14
+    |
+361 |         let (ciphertext_len, nonce, tag, ciphertext) = unsafe {
+    |              ^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+help: if this is intentional, prefix it with an underscore
+    |
+361 |         let (_ciphertext_len, nonce, tag, ciphertext) = unsafe {
+    |              +
+help: you might have meant to pattern match on the similarly named constant `MIN_ALIGNMENT`
+    |
+361 -         let (ciphertext_len, nonce, tag, ciphertext) = unsafe {
+361 +         let (MIN_ALIGNMENT, nonce, tag, ciphertext) = unsafe {
+    |
+
+warning: unused variable: `queue_capacity`
+   --> /home/samuel/Primitives/atomic_capsule/src/daemon/coordinator.rs:101:33
+    |
+101 |     pub fn new(timeout_ns: u64, queue_capacity: usize) -> DaemonResult<Self> {
+    |                                 ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_queue_capacity`
+
+warning: constant `SECONDS_PER_MONTH` is never used
+  --> /home/samuel/Primitives/atomic_capsule/src/patterns/quota_tracker.rs:80:7
+   |
+80 | const SECONDS_PER_MONTH: u64 = 30 * 24 * 60 * 60;
+   |       ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `PHASE_BITS` is never used
+  --> /home/samuel/Primitives/atomic_capsule/src/install/installer_state.rs:80:7
+   |
+80 | const PHASE_BITS: u32 = 4;
+   |       ^^^^^^^^^^
+
+warning: method `free_slot` is never used
+   --> /home/samuel/Primitives/atomic_capsule/src/parallel/atomic_slot_pool.rs:331:8
+    |
+112 | impl AtomicSlotPool {
+    | ------------------- method in this implementation
+...
+331 |     fn free_slot(&self, slot_idx: usize) {
+    |        ^^^^^^^^^
+
+warning: field `expected_len` is never read
+   --> /home/samuel/Primitives/atomic_capsule/src/parallel/lockfree_list.rs:430:5
+    |
+428 | pub struct LockfreeListIter<'a, T> {
+    |            ---------------- field in this struct
+429 |     current: *mut Node<T>,
+430 |     expected_len: usize,
+    |     ^^^^^^^^^^^^
+
+warning: method `is_occupied` is never used
+   --> /home/samuel/Primitives/atomic_capsule/src/collections/append_only_map_optimized.rs:100:8
+    |
+ 88 | impl<K, V> MapEntry<K, V> {
+    | ------------------------- method in this implementation
+...
+100 |     fn is_occupied(&self) -> bool {
+    |        ^^^^^^^^^^^
+
+warning: method `try_claim` is never used
+   --> /home/samuel/Primitives/atomic_capsule/src/collections/concurrent_map.rs:216:8
+    |
+168 | impl<K, V> MapEntry<K, V> {
+    | ------------------------- method in this implementation
+...
+216 |     fn try_claim(&self, hash: u64, value: *mut V) -> Result<(), u64> {
+    |        ^^^^^^^^^
+
+warning: method `try_get` is never used
+   --> /home/samuel/Primitives/atomic_capsule/src/collections/entry.rs:453:19
+    |
+348 | / impl<'a, K, V> OccupiedEntry<'a, K, V>
+349 | | where
+350 | |     K: Hash + Eq + Clone + Send + Sync,
+351 | |     V: Send + Sync,
+    | |___________________- method in this implementation
+...
+453 |       pub(crate) fn try_get(&self) -> Option<&V> {
+    |                     ^^^^^^^
+
+warning: fields `lsh_tables` and `similarity_threshold` are never read
+   --> /home/samuel/Primitives/atomic_capsule/src/collections/persistent_dedup.rs:273:5
+    |
+264 | pub struct PersistentDedupImpl {
+    |            ------------------- fields in this struct
+...
+273 |     lsh_tables: MultiTableLshCapsule,
+    |     ^^^^^^^^^^
+...
+286 |     similarity_threshold: f32,
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `assert_alignment` is never used
+   --> /home/samuel/Primitives/atomic_capsule/src/mcp/tool_registry.rs:205:14
+    |
+205 |     const fn assert_alignment() {
+    |              ^^^^^^^^^^^^^^^^
+
+warning: constant `ASSERT` is never used
+   --> /home/samuel/Primitives/atomic_capsule/src/tui/file_navigator.rs:137:11
+    |
+137 |     const ASSERT: () = assert!(
+    |           ^^^^^^
+
+warning: constant `ASSERT_ALIGN` is never used
+   --> /home/samuel/Primitives/atomic_capsule/src/tui/file_navigator.rs:141:11
+    |
+141 |     const ASSERT_ALIGN: () = assert!(
+    |           ^^^^^^^^^^^^
+
+warning: constant `CACHE_TTL_SECONDS` is never used
+   --> /home/samuel/Primitives/atomic_capsule/src/protection/license_validator.rs:170:7
+    |
+170 | const CACHE_TTL_SECONDS: u64 = 300;
+    |       ^^^^^^^^^^^^^^^^^
+
+warning: field `tier` is never read
+   --> /home/samuel/Primitives/atomic_capsule/src/protection/license_validator.rs:267:5
+    |
+265 | struct CachedLicenseResult {
+    |        ------------------- field in this struct
+266 |     /// License tier
+267 |     tier: LicenseTier,
+    |     ^^^^
+    |
+    = note: `CachedLicenseResult` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: missing documentation for a module
+   --> /home/samuel/Primitives/atomic_capsule/src/primitives/mod.rs:54:1
+    |
+ 54 | pub mod cpu_capabilities;
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: the lint level is defined here
+   --> /home/samuel/Primitives/atomic_capsule/src/lib.rs:124:9
+    |
+124 | #![warn(missing_docs, rust_2018_idioms)]
+    |         ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> /home/samuel/Primitives/atomic_capsule/src/error.rs:143:23
+    |
+143 |     InvalidFileSize { expected: usize, actual: usize },
+    |                       ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> /home/samuel/Primitives/atomic_capsule/src/error.rs:143:40
+    |
+143 |     InvalidFileSize { expected: usize, actual: usize },
+    |                                        ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> /home/samuel/Primitives/atomic_capsule/src/error.rs:146:20
+    |
+146 |     InvalidMagic { expected: u64, actual: u64 },
+    |                    ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> /home/samuel/Primitives/atomic_capsule/src/error.rs:146:35
+    |
+146 |     InvalidMagic { expected: u64, actual: u64 },
+    |                                   ^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> /home/samuel/Primitives/atomic_capsule/src/error.rs:161:25
+    |
+161 |     InsufficientSpace { required: usize, available: usize },
+    |                         ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> /home/samuel/Primitives/atomic_capsule/src/error.rs:161:42
+    |
+161 |     InsufficientSpace { required: usize, available: usize },
+    |                                          ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> /home/samuel/Primitives/atomic_capsule/src/install/install_audit.rs:167:22
+    |
+167 |     TamperDetected { event: u64, reason: String },
+    |                      ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+   --> /home/samuel/Primitives/atomic_capsule/src/install/install_audit.rs:167:34
+    |
+167 |     TamperDetected { event: u64, reason: String },
+    |                                  ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/persistence/mmap_manager.rs:34:24
+   |
+34 |     InvalidAlignment { offset: u64, required: u64 },
+   |                        ^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/persistence/mmap_manager.rs:34:37
+   |
+34 |     InvalidAlignment { offset: u64, required: u64 },
+   |                                     ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/persistence/mmap_manager.rs:37:24
+   |
+37 |     CapacityExceeded { requested: usize, available: usize },
+   |                        ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/persistence/mmap_manager.rs:37:42
+   |
+37 |     CapacityExceeded { requested: usize, available: usize },
+   |                                          ^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/persistence/mmap_manager.rs:49:26
+   |
+49 |     InvalidRegionIndex { index: usize, max: usize },
+   |                          ^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/persistence/mmap_manager.rs:49:40
+   |
+49 |     InvalidRegionIndex { index: usize, max: usize },
+   |                                        ^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/persistence/mmap_manager.rs:52:26
+   |
+52 |     GenerationMismatch { expected: u64, actual: u64 },
+   |                          ^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/persistence/mmap_manager.rs:52:41
+   |
+52 |     GenerationMismatch { expected: u64, actual: u64 },
+   |                                         ^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> /home/samuel/Primitives/atomic_capsule/src/tui/file_navigator.rs:149:5
+    |
+149 |     pub const HIDE_HIDDEN: u32 = 1 << 0;  // Hide files starting with .
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> /home/samuel/Primitives/atomic_capsule/src/tui/file_navigator.rs:150:5
+    |
+150 |     pub const HIDE_READONLY: u32 = 1 << 1; // Hide readonly files
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> /home/samuel/Primitives/atomic_capsule/src/tui/file_navigator.rs:151:5
+    |
+151 |     pub const HIDE_SYMLINKS: u32 = 1 << 2;  // Hide symbolic links
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a constant
+   --> /home/samuel/Primitives/atomic_capsule/src/tui/file_navigator.rs:152:5
+    |
+152 |     pub const RECURSIVE: u32 = 1 << 3;      // Enable recursive directory descent
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/daemon/error.rs:22:16
+   |
+22 |     LockHeld { holder_pid: u32 },
+   |                ^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/daemon/error.rs:27:19
+   |
+27 |     LockTimeout { waited_ns: u64 },
+   |                   ^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct field
+  --> /home/samuel/Primitives/atomic_capsule/src/daemon/error.rs:32:17
+   |
+32 |     QueueFull { capacity: usize },
+   |                 ^^^^^^^^^^^^^^^
+
+warning: missing documentation for an associated function
+  --> /home/samuel/Primitives/atomic_capsule/src/daemon/lock.rs:51:5
+   |
+51 |     pub const fn new(timeout_ns: u64) -> Self {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+  --> /home/samuel/Primitives/atomic_capsule/src/daemon/lock.rs:63:5
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> /home/samuel/Primitives/atomic_capsule/src/daemon/lock.rs:63:24
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard> {
+   |                        ^^^^^                  ^^^^^^^^^ the same lifetime is hidden here
+   |                        |
+   |                        the lifetime is elided here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+63 |     pub fn try_acquire(&self) -> DaemonResult<LockGuard<'_>> {
+   |                                                        ++++
+
+warning: missing documentation for a method
+   --> /home/samuel/Primitives/atomic_capsule/src/daemon/lock.rs:121:5
+    |
+121 |     pub fn is_locked(&self) -> bool {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> /home/samuel/Primitives/atomic_capsule/src/daemon/lock.rs:127:5
+    |
+127 |     pub fn holder(&self) -> Option<u32> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> /home/samuel/Primitives/atomic_capsule/src/daemon/lock.rs:137:5
+    |
+137 |     pub fn stats(&self) -> (u64, u64, u64) {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a method
+   --> /home/samuel/Primitives/atomic_capsule/src/daemon/lock.rs:146:5
+    |
+146 |     pub fn timeout_ns(&self) -> u64 {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: missing documentation for a struct
+   --> /home/samuel/Primitives/atomic_capsule/src/daemon/lock.rs:151:1
+    |
+151 | pub struct LockGuard<'a> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `atomic_capsule` (lib) generated 76 warnings (run `cargo fix --lib -p atomic_capsule` to apply 16 suggestions)
+   Compiling kindly_dedup v1.13.2 (/home/samuel/Primitives/kindly_dedup)
+error[E0432]: unresolved import `atomic_capsule::collections::MPMC`
+   --> src/streaming_dedup_pipeline.rs:44:59
+    |
+ 44 | use atomic_capsule::collections::{ConcurrentMapCapsuleV2, MPMC};
+    |                                                           ^^^^ no `MPMC` in `collections`
+    |
+note: found an item that was configured out
+   --> /home/samuel/Primitives/atomic_capsule/src/collections/mod.rs:225:60
+    |
+224 | #[cfg(feature = "queue-bounded")]
+    |       ------------------------- the item is gated behind the `queue-bounded` feature
+225 | pub use queue::{QueueCapsule, QueueError, PushError, SPSC, MPMC};
+    |                                                            ^^^^
+
+error[E0432]: unresolved import `atomic_capsule::collections::queue`
+   --> src/streaming_dedup_pipeline.rs:45:34
+    |
+ 45 | use atomic_capsule::collections::queue::{UnboundedQueueCapsule, QueueCapsule, PushError};
+    |                                  ^^^^^ could not find `queue` in `collections`
+    |
+note: found an item that was configured out
+   --> /home/samuel/Primitives/atomic_capsule/src/collections/mod.rs:114:9
+    |
+113 | #[cfg(feature = "queue-bounded")]
+    |       ------------------------- the item is gated behind the `queue-bounded` feature
+114 | pub mod queue;
+    |         ^^^^^
+
+error[E0432]: unresolved import `crate::pairs_iterator`
+  --> src/streaming_dedup_pipeline.rs:55:12
+   |
+55 | use crate::pairs_iterator::PairsIterator;
+   |            ^^^^^^^^^^^^^^ could not find `pairs_iterator` in the crate root
+
+error[E0432]: unresolved import `crate::hierarchical_lsh`
+  --> src/streaming_dedup_pipeline.rs:63:12
+   |
+63 | use crate::hierarchical_lsh::HierarchicalLshCapsule;
+   |            ^^^^^^^^^^^^^^^^ could not find `hierarchical_lsh` in the crate root
+
+error[E0432]: unresolved import `crate::coarse_bucket`
+  --> src/streaming_dedup_pipeline.rs:64:12
+   |
+64 | use crate::coarse_bucket::CoarseBucketCapsule;
+   |            ^^^^^^^^^^^^^ could not find `coarse_bucket` in the crate root
+
+error[E0432]: unresolved import `crate::hierarchical_pairs_iterator`
+  --> src/streaming_dedup_pipeline.rs:65:12
+   |
+65 | use crate::hierarchical_pairs_iterator::{HierarchicalPairsIterator, CoarseBucketLike};
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `hierarchical_pairs_iterator` in the crate root
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `crossbeam_utils`
+  --> src/streaming_dedup_pipeline.rs:53:5
+   |
+53 | use crossbeam_utils::atomic::AtomicCell;
+   |     ^^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `crossbeam_utils`
+   |
+   = help: if you wanted to use a crate named `crossbeam_utils`, use `cargo add crossbeam_utils` to add it to your `Cargo.toml`
+
+error[E0432]: unresolved import `crossbeam_channel`
+  --> src/streaming_dedup_pipeline.rs:52:5
+   |
+52 | use crossbeam_channel::bounded;
+   |     ^^^^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `crossbeam_channel`
+   |
+   = help: if you wanted to use a crate named `crossbeam_channel`, use `cargo add crossbeam_channel` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `hex`
+   --> src/protection/audit.rs:468:30
+    |
+468 |         writeln!(file, "{}", hex::encode(&event_bytes))
+    |                              ^^^ use of unresolved module or unlinked crate `hex`
+    |
+    = help: if you wanted to use a crate named `hex`, use `cargo add hex` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+ 85 + use atomic_capsule::auditable::hex;
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `hex`
+   --> src/protection/audit.rs:518:31
+    |
+518 |             let event_bytes = hex::decode(line)
+    |                               ^^^ use of unresolved module or unlinked crate `hex`
+    |
+    = help: if you wanted to use a crate named `hex`, use `cargo add hex` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+ 85 + use atomic_capsule::auditable::hex;
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `hex`
+   --> src/protection/audit.rs:631:31
+    |
+631 |             let event_bytes = hex::decode(line)
+    |                               ^^^ use of unresolved module or unlinked crate `hex`
+    |
+    = help: if you wanted to use a crate named `hex`, use `cargo add hex` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+ 85 + use atomic_capsule::auditable::hex;
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `hex`
+   --> src/protection/audit.rs:661:17
+    |
+661 |                 hex::encode(event.prev_hash),
+    |                 ^^^ use of unresolved module or unlinked crate `hex`
+    |
+    = help: if you wanted to use a crate named `hex`, use `cargo add hex` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+ 85 + use atomic_capsule::auditable::hex;
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `hex`
+   --> src/protection/audit.rs:708:31
+    |
+708 |             let event_bytes = hex::decode(line)
+    |                               ^^^ use of unresolved module or unlinked crate `hex`
+    |
+    = help: if you wanted to use a crate named `hex`, use `cargo add hex` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+ 85 + use atomic_capsule::auditable::hex;
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `hex`
+   --> src/protection/audit.rs:745:17
+    |
+745 |                 hex::encode(event.prev_hash),
+    |                 ^^^ use of unresolved module or unlinked crate `hex`
+    |
+    = help: if you wanted to use a crate named `hex`, use `cargo add hex` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+ 85 + use atomic_capsule::auditable::hex;
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `hex`
+   --> src/protection/audit.rs:783:13
+    |
+783 |             hex::encode(self.get_root_hash())
+    |             ^^^ use of unresolved module or unlinked crate `hex`
+    |
+    = help: if you wanted to use a crate named `hex`, use `cargo add hex` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+ 85 + use atomic_capsule::auditable::hex;
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `hex`
+   --> src/protection/audit.rs:815:37
+    |
+815 |             let event_bytes = match hex::decode(line) {
+    |                                     ^^^ use of unresolved module or unlinked crate `hex`
+    |
+    = help: if you wanted to use a crate named `hex`, use `cargo add hex` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+ 85 + use atomic_capsule::auditable::hex;
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `hex`
+   --> src/protection/audit.rs:926:31
+    |
+926 |             let event_bytes = hex::decode(line)
+    |                               ^^^ use of unresolved module or unlinked crate `hex`
+    |
+    = help: if you wanted to use a crate named `hex`, use `cargo add hex` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+ 85 + use atomic_capsule::auditable::hex;
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `hex`
+    --> src/protection/audit.rs:1150:21
+     |
+1150 |                     hex::encode(expected),
+     |                     ^^^ use of unresolved module or unlinked crate `hex`
+     |
+     = help: if you wanted to use a crate named `hex`, use `cargo add hex` to add it to your `Cargo.toml`
+help: consider importing this module
+     |
+  85 + use atomic_capsule::auditable::hex;
+     |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `hex`
+    --> src/protection/audit.rs:1151:21
+     |
+1151 |                     hex::encode(actual)
+     |                     ^^^ use of unresolved module or unlinked crate `hex`
+     |
+     = help: if you wanted to use a crate named `hex`, use `cargo add hex` to add it to your `Cargo.toml`
+help: consider importing this module
+     |
+  85 + use atomic_capsule::auditable::hex;
+     |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `hex`
+   --> src/benchmarking/audit_logger.rs:434:17
+    |
+434 |                 hex::encode(entry.audit_hash),
+    |                 ^^^ use of unresolved module or unlinked crate `hex`
+    |
+    = help: if you wanted to use a crate named `hex`, use `cargo add hex` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+ 47 + use atomic_capsule::auditable::hex;
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `hex`
+   --> src/benchmarking/audit_logger.rs:528:28
+    |
+528 |             let hash_str = hex::encode(&entry.audit_hash[0..4]);
+    |                            ^^^ use of unresolved module or unlinked crate `hex`
+    |
+    = help: if you wanted to use a crate named `hex`, use `cargo add hex` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+ 47 + use atomic_capsule::auditable::hex;
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `hex`
+   --> src/benchmarking/audit_logger.rs:608:35
+    |
+608 |         serializer.serialize_str(&hex::encode(bytes))
+    |                                   ^^^ use of unresolved module or unlinked crate `hex`
+    |
+    = help: if you wanted to use a crate named `hex`, use `cargo add hex` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+602 +     use atomic_capsule::auditable::hex;
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `hex`
+   --> src/benchmarking/audit_logger.rs:616:21
+    |
+616 |         let bytes = hex::decode(s).map_err(serde::de::Error::custom)?;
+    |                     ^^^ use of unresolved module or unlinked crate `hex`
+    |
+    = help: if you wanted to use a crate named `hex`, use `cargo add hex` to add it to your `Cargo.toml`
+help: consider importing this module
+    |
+602 +     use atomic_capsule::auditable::hex;
+    |
+
+warning: unused import: `UnionFind`
+  --> src/pipeline.rs:22:72
+   |
+22 | use atomic_capsule::probabilistic::{tokenize, MinHashSignatureCapsule, UnionFind};
+   |                                                                        ^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::sync::atomic::Ordering`
+  --> src/protection/dedup_audit.rs:21:5
+   |
+21 | use std::sync::atomic::Ordering;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `AtomicUsize` and `Ordering`
+  --> src/resource_limits.rs:28:25
+   |
+28 | use std::sync::atomic::{AtomicUsize, Ordering};
+   |                         ^^^^^^^^^^^  ^^^^^^^^
+
+warning: unused import: `std::io::IsTerminal`
+  --> src/utils/terminal.rs:30:5
+   |
+30 | use std::io::IsTerminal;
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::thread`
+  --> src/thread_local_batch.rs:66:5
+   |
+66 | use std::thread;
+   |     ^^^^^^^^^^^
+
+warning: implementation of an `unsafe` trait
+   --> src/thread_local_batch.rs:126:1
+    |
+126 | unsafe impl<T: Send + 'static> Send for ThreadLocalBatchBufferCapsule<T> {}
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+note: the lint level is defined here
+   --> src/lib.rs:58:9
+    |
+ 58 | #![warn(unsafe_code)]
+    |         ^^^^^^^^^^^
+
+warning: implementation of an `unsafe` trait
+   --> src/thread_local_batch.rs:134:1
+    |
+134 | unsafe impl<T: Send + 'static> Sync for ThreadLocalBatchBufferCapsule<T> {}
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `DocId` and `JaccardThreshold`
+  --> src/phase6_3_integration.rs:81:23
+   |
+81 | use crate::pipeline::{DocId, JaccardThreshold, PipelineError};
+   |                       ^^^^^  ^^^^^^^^^^^^^^^^
+
+warning: unused import: `atomic_capsule::probabilistic::UnionFind`
+  --> src/phase6_3_integration.rs:82:5
+   |
+82 | use atomic_capsule::probabilistic::UnionFind;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+  --> src/phase6_3_integration.rs:83:5
+   |
+83 | use std::sync::Arc;
+   |     ^^^^^^^^^^^^^^
+
+warning: unused import: `atomic_capsule_derive::ComputationalCapsule`
+  --> src/batch_minhash.rs:82:5
+   |
+82 | use atomic_capsule_derive::ComputationalCapsule;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `HybridBatchPool` and `LockfreeList`
+  --> src/streaming_dedup_pipeline.rs:46:44
+   |
+46 | use atomic_capsule::parallel::{ThreadPool, LockfreeList, HybridBatchPool};
+   |                                            ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^
+
+warning: unused import: `std::thread`
+  --> src/streaming_dedup_pipeline.rs:54:5
+   |
+54 | use std::thread;
+   |     ^^^^^^^^^^^
+
+warning: unused import: `std::thread::available_parallelism`
+  --> src/streaming_dedup_pipeline.rs:59:5
+   |
+59 | use std::thread::available_parallelism;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some errors have detailed explanations: E0432, E0433.
+For more information about an error, try `rustc --explain E0432`.
+warning: `kindly_dedup` (lib) generated 14 warnings
+error: could not compile `kindly_dedup` (lib) due to 23 previous errors; 14 warnings emitted

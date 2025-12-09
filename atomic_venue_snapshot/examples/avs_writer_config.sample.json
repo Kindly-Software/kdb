@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "vol_alpha": 0.08,
+  "bp_per_tick": 1.35,
+  "trend_window_ms": 250,
+  "sweep_mid_jump_ticks": 3,
+  "sweep_window_ms": 150,
+  "sweep_hold_ms": 220,
+  "sweep_collapse_ratio": 0.45,
+  "sweep_volume_factor": 1.6
+}

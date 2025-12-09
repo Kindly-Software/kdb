@@ -44,7 +44,7 @@ use std::sync::Arc;
 /// Allows HierarchicalPairsIterator to work with any bucket type
 /// that provides fine bucket mapping
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 /// - Must be Send + Sync (no blocking operations, lockfree only)
 /// - Returns Arc for zero-copy access
 pub trait CoarseBucketLike: Send + Sync {
@@ -73,7 +73,7 @@ pub trait CoarseBucketLike: Send + Sync {
 /// **Latency**: <100ns per pair
 ///
 /// **Tier**: T5 Streaming (lazy evaluation, O(1) memory per next())
-/// **Compliance**: COCA (100% lockfree, zero-copy Arc usage)
+/// **Compliance**: Chaos (100% lockfree, zero-copy Arc usage)
 pub struct HierarchicalPairsIterator<'a> {
     /// Sharded coarse buckets (16-way sharding for parallelism)
     /// Each shard contains: (band_id, hash) → Arc<CoarseBucketLike>
@@ -201,7 +201,7 @@ impl<'a> HierarchicalPairsIterator<'a> {
     /// - Memory: ~800 bytes (50 × 8 byte DocId), cloned from Arc<Vec>
     /// - Called ~200K times for full corpus
     ///
-    /// # COCA Compliance
+    /// # Chaos Compliance
     /// - Uses Arc::clone() for zero-copy reference (Relaxed ordering safe)
     /// - Clones inner Vec for locality (nested loop access pattern)
     fn load_next_fine(&mut self) {

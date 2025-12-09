@@ -37,7 +37,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 T1 Atomic tier
-//! - **COCA**: 128B cache-aligned, 100% lockfree
+//! - **Chaos**: 128B cache-aligned, 100% lockfree
 //! - **ASSUM**: File I/O documented (#ASSUME/#VERIFY)
 //! - **B32**: <1% CPU overhead validated
 

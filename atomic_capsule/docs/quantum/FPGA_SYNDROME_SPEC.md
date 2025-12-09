@@ -660,4 +660,4 @@ xbutil examine -d 0 -r dma
 
 **Risk**: Low (mature XRT drivers, CPU fallback, extensive validation)
 
-**Framework Compliance**: UCE34 (T7 Heterogeneous), COCA (100% lockfree host coordination), B32 (fair CPU baseline), T28 (comprehensive testing)
+**Framework Compliance**: UCE34 (T7 Heterogeneous), Chaos (100% lockfree host coordination), B32 (fair CPU baseline), T28 (comprehensive testing)

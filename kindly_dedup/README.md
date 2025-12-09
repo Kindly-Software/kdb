@@ -42,12 +42,29 @@
 
 ### Installation
 
+**Pre-built Binaries** (Recommended):
 ```bash
-# Download from our website (binaries for Linux/macOS/Windows)
-# https://dedup.kindly.software
+# Download from GitHub Releases
+# https://github.com/Kindly-Software/kindly_dedup/releases/latest
 
-# Or contact sales for source access
-# sales@kindly.software
+# Linux x86_64 (1.1 MB)
+wget https://github.com/Kindly-Software/kindly_dedup/releases/latest/download/kindly_dedup-linux-x86_64.tar.gz
+tar -xzf kindly_dedup-linux-x86_64.tar.gz
+./kindly_dedup --help
+
+# macOS Intel (1.2 MB)
+curl -LO https://github.com/Kindly-Software/kindly_dedup/releases/latest/download/kindly_dedup-macos-x86_64.tar.gz
+
+# macOS Apple Silicon (1.1 MB)
+curl -LO https://github.com/Kindly-Software/kindly_dedup/releases/latest/download/kindly_dedup-macos-aarch64.tar.gz
+```
+
+**Build from Source** (requires Rust nightly):
+```bash
+git clone https://github.com/Kindly-Software/kindly_dedup
+cd kindly_dedup
+cargo build --release --features interactive
+./target/release/kindly_dedup --help
 ```
 
 ### Basic Usage
@@ -245,18 +262,19 @@ Enterprise-grade security features:
 
 **Pre-built Binaries** (fastest):
 ```bash
-# Download from https://dedup.kindly.software
-wget https://dedup.kindly.software/releases/latest/kindly-dedup-linux-x86_64.tar.gz
-tar -xzf kindly-dedup-linux-x86_64.tar.gz
-./kindly-dedup --help
+# Download from GitHub Releases
+# https://github.com/Kindly-Software/kindly_dedup/releases/latest
+wget https://github.com/Kindly-Software/kindly_dedup/releases/latest/download/kindly_dedup-linux-x86_64.tar.gz
+tar -xzf kindly_dedup-linux-x86_64.tar.gz
+./kindly_dedup --help
 ```
 
-**Source Access** (requires license):
+**Build from Source**:
 ```bash
-# Contact sales@kindly.software for access token
-git clone https://github.com/Kindly-Software/Dedup
-cd dedup
-cargo build --release
+git clone https://github.com/Kindly-Software/kindly_dedup
+cd kindly_dedup
+cargo build --release --features interactive
+./target/release/kindly_dedup --help
 ```
 
 ### API Reference

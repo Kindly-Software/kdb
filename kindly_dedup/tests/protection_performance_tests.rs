@@ -15,7 +15,7 @@
 //! - **T28**: Integration tier (4/4 tests per requirement)
 //! - **B32**: Fair baselines, 95% CI validation
 //! - **ASSUM**: Protection assumptions verified
-//! - **COCA**: 100% lockfree coordination
+//! - **Chaos**: 100% lockfree coordination
 
 use kindly_dedup::{DedupPipeline, PipelineError};
 use atomic_capsule::CpuCapabilityCapsule;
@@ -681,7 +681,7 @@ fn test_summary_protection_performance() {
     println!("  ✓ Atomic safety >99.99%");
     println!("  ✓ Graceful error handling");
 
-    println!("\nCOCA Framework:");
+    println!("\nChaos Framework:");
     println!("  ✓ 100% lockfree coordination");
     println!("  ✓ No mutex/RwLock in protection path");
     println!("  ✓ Cache-aligned atomic operations");

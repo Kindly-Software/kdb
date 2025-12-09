@@ -3,7 +3,7 @@
 **Version**: 1.0
 **Date**: 2025-11-20
 **Status**: Specification Complete
-**Framework**: UCE34 Q1-Q34, COCA, ASSUM, B32, T28, I20
+**Framework**: UCE34 Q1-Q34, Chaos, ASSUM, B32, T28, I20
 
 ---
 
@@ -1104,7 +1104,7 @@ fn bench_concurrent_256_threads(b: &mut Bencher) {
 - **Q33**: Validation (ASSUM safety, T28 testing)
 - **Q34**: Auditability (false positive tracking, statistics API)
 
-### COCA Principles
+### Chaos Principles
 - **100% Lockfree**: All coordination via `AtomicU16` (no mutex/RwLock)
 - **Cache-Aligned**: 64B alignment prevents false sharing
 - **Generation Counters**: Not applicable (EMA is monotonic convergence, not TOCTOU-prone)
@@ -1559,7 +1559,7 @@ Total:                    ~22.7ns (rounded to <23ns)
 - **UCE34**: Universal Comprehensive Engineering framework (34 questions)
 - **T1 Atomic**: Tier 1 computational capsule (lockfree coordination)
 - **T3 Fixed-Point**: Tier 3 computational capsule (deterministic arithmetic)
-- **COCA**: Computational Capsule Architecture (lockfree, cache-aligned, generation counters)
+- **Chaos**: Computational Capsule Architecture (lockfree, cache-aligned, generation counters)
 
 ---
 

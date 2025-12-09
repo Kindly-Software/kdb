@@ -25,7 +25,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34 Q10**: T4 Batch tier (parallel cryptographic verification)
-//! - **COCA**: 256B aligned header, lockfree coordination
+//! - **Chaos**: 256B aligned header, lockfree coordination
 //! - **B32**: Sequential baseline, 8-16× validated, fair benchmarking
 //! - **T28**: 28 comprehensive tests (unit/property/integration/production)
 //! - **ASSUM**: 99.99% safe (all assumptions documented)

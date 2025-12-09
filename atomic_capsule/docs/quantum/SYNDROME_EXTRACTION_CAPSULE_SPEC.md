@@ -2,7 +2,7 @@
 
 **Version**: 1.0.0
 **Date**: 2025-11-21
-**Framework**: UCE34 (Q1-Q34) + COCA + T2 SIMD Tier
+**Framework**: UCE34 (Q1-Q34) + Chaos + T2 SIMD Tier
 **Target**: <25μs latency, 3-4× SIMD speedup, decoder integration
 
 ---
@@ -78,7 +78,7 @@ The **SyndromeExtractionCapsule** is a T2 SIMD computational capsule that measur
 - ✅ Correct syndrome parity (validated)
 - ✅ Integration with Union-Find/MWPM decoders
 - ✅ 3-4× SIMD speedup vs scalar baseline
-- ✅ 100% lockfree (COCA compliant)
+- ✅ 100% lockfree (Chaos compliant)
 
 ---
 
@@ -1438,7 +1438,7 @@ syndrome_extraction/scalar/7 time: [171.3 μs 176.8 μs 182.3 μs]
 - ✅ Q33: Verification (#[derive(ComputationalCapsule)], layout assertions)
 - ✅ Q34: Audit trail (AtomicU64 counters for compliance)
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 
 - ✅ 100% lockfree (atomic counters only, no mutex)
 - ✅ 256B cache-aligned (prevents false sharing)
@@ -1539,7 +1539,7 @@ The **SyndromeExtractionCapsule** is a production-ready T2 SIMD computational ca
 
 - ✅ Extracts syndrome bitstrings in <25μs (distance-5)
 - ✅ Achieves 3-4× SIMD speedup (AVX2 f64x4, validated)
-- ✅ Maintains 100% lockfree architecture (COCA compliant)
+- ✅ Maintains 100% lockfree architecture (Chaos compliant)
 - ✅ Validates syndrome parity (even parity constraint)
 - ✅ Integrates with decoders (zero-copy syndrome handoff)
 - ✅ Passes 28+ comprehensive tests (T28 compliant)
@@ -1547,7 +1547,7 @@ The **SyndromeExtractionCapsule** is a production-ready T2 SIMD computational ca
 - ✅ Achieves 99.99% safety (ASSUM compliant)
 - ✅ Supports Q34 audit trails (compliance-ready)
 
-**Framework Compliance**: UCE34 ✅ | COCA ✅ | B32 ✅ | T28 ✅ | ASSUM ✅ | I20 ✅
+**Framework Compliance**: UCE34 ✅ | Chaos ✅ | B32 ✅ | T28 ✅ | ASSUM ✅ | I20 ✅
 
 **Status**: Ready for implementation (Phase Q3.5)
 
@@ -1556,4 +1556,4 @@ The **SyndromeExtractionCapsule** is a production-ready T2 SIMD computational ca
 **Version**: 1.0.0
 **Date**: 2025-11-21
 **Author**: Samuel (via Claude Code)
-**Framework**: UCE34 + COCA + T2 SIMD Tier
+**Framework**: UCE34 + Chaos + T2 SIMD Tier

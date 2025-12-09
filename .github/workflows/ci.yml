@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Format
+        run: cargo fmt --all -- --check
+        working-directory: atomic_risk_envelope
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+        working-directory: atomic_risk_envelope
+      - name: Tests
+        run: cargo test --all-features
+        working-directory: atomic_risk_envelope
+      - name: Examples
+        run: cargo test --examples
+        working-directory: atomic_risk_envelope
+
+  aeb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Format (AEB)
+        run: cargo fmt -- --check
+        working-directory: atomic_execution_bundle
+      - name: Clippy (AEB default)
+        run: cargo clippy --all-targets -- -D warnings
+        working-directory: atomic_execution_bundle
+      - name: Tests (AEB default)
+        run: ./scripts/aeb-cargo.sh test
+        working-directory: atomic_execution_bundle
+      - name: Tests (AEB no-checksum profile)
+        run: AEB_DISABLE_CHECKSUM=1 ./scripts/aeb-cargo.sh test
+        working-directory: atomic_execution_bundle
+
+  apc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Format (APC)
+        run: cargo fmt -- --check
+        working-directory: atomic_position_capsule
+      - name: Clippy (APC default)
+        run: cargo clippy --all-targets -- -D warnings
+        working-directory: atomic_position_capsule
+      - name: Tests (APC default)
+        run: cargo test --all-features
+        working-directory: atomic_position_capsule
+      - name: Examples (APC)
+        run: cargo test --examples
+        working-directory: atomic_position_capsule
+      - name: Tests (APC no-checksum profile)
+        run: APC_DISABLE_CHECKSUM=1 ./scripts/apc-cargo.sh test
+        working-directory: atomic_position_capsule

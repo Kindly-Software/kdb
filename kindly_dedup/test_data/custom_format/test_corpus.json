@@ -1,0 +1,12 @@
+[
+  {"id": 0, "text": "Machine learning is a subset of artificial intelligence that focuses on the development of algorithms."},
+  {"id": 1, "text": "Deep learning neural networks have revolutionized computer vision and natural language processing tasks."},
+  {"id": 2, "text": "Machine learning is a subset of artificial intelligence that focuses on the development of algorithms."},
+  {"id": 3, "text": "Data science combines statistics programming and domain expertise to extract insights from data."},
+  {"id": 4, "text": "Deep learning neural networks have revolutionized computer vision and natural language processing tasks."},
+  {"id": 5, "text": "Reinforcement learning enables agents to learn optimal behaviors through trial and error interactions."},
+  {"id": 6, "text": "Natural language processing uses computational linguistics to enable computers to understand human language."},
+  {"id": 7, "text": "Computer vision algorithms can detect objects faces and scenes in images and videos."},
+  {"id": 8, "text": "Data science combines statistics programming and domain expertise to extract insights from data."},
+  {"id": 9, "text": "Transfer learning allows models trained on one task to be adapted for related tasks efficiently."}
+]

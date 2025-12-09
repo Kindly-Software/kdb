@@ -1,0 +1,22 @@
+# Build artifacts
+target/
+Cargo.lock
+
+# IDE files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Benchmark outputs
+criterion/
+*.html
+
+# Editor backups
+*.bak
+*.orig

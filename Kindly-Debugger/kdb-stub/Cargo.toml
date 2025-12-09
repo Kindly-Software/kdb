@@ -1,0 +1,19 @@
+[package]
+name = "kdb-stub"
+version = "0.1.0"
+edition = "2021"
+description = "MCP schema stub for KDB (Kindly Debugger) - exposes tool schemas only"
+license = "MIT"
+
+[workspace]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["rt", "io-std", "io-util", "macros"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true

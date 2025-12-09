@@ -38,7 +38,7 @@
 //!
 //! ## Framework Compliance
 //! - **UCE34**: Q10 T2+T3 tier selection, Q33 lockfree, Q34 audit trails
-//! - **COCA**: 100% lockfree (AtomicU64 only, no mutex)
+//! - **Chaos**: 100% lockfree (AtomicU64 only, no mutex)
 //! - **ASSUM**: 99.99% safe (all atomics verified)
 //! - **B32**: 2-10× speedup target (SIMD covariance + histogram)
 //! - **T28**: 35+ tests (unit/property/integration/production/determinism)

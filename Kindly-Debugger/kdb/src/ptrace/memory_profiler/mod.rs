@@ -41,10 +41,10 @@
 //! 4. `memory_profiler.detect_use_after_free(snapshot_id)`
 //! 5. `memory_profiler.allocation_hotspots(top_n)`
 //!
-//! # Verification (UCE34, COCA, ASSUM, B32, T28, I20)
+//! # Verification (UCE34, Chaos, ASSUM, B32, T28, I20)
 //!
 //! - ✅ UCE34: Q10 T6 Mixed tier selection, Q11 100% Rust, Q12 nightly features
-//! - ✅ COCA: 100% lockfree capsules, cache-aligned, generation counters
+//! - ✅ Chaos: 100% lockfree capsules, cache-aligned, generation counters
 //! - ✅ ASSUM: 99.99% safe, all unsafe documented with #ASSUME + #VERIFY
 //! - ✅ B32: Fair benchmarking vs Valgrind, 95% CI, 1000+ iterations
 //! - ✅ T28: Comprehensive testing (unit/property/integration/production)
@@ -143,7 +143,7 @@ pub struct UseAfterFree {
 ///
 /// **Framework Compliance**:
 /// - **UCE34**: Q10 T6 Mixed, Q33 #[derive(ComputationalCapsule)], Q34 audit trails
-/// - **COCA**: 100% lockfree (atomic operations only, zero mutex/RwLock)
+/// - **Chaos**: 100% lockfree (atomic operations only, zero mutex/RwLock)
 /// - **ASSUM**: 99.99% safe (all assumptions documented + verified)
 /// - **B32**: Fair baselines (Valgrind, AddressSanitizer), 95% CI, 1000+ iterations
 /// - **T28**: 15+ tests (unit/property/integration/production)

@@ -132,7 +132,7 @@ fn test_toctou_detector_with_cas()        // ✓ Safe (CAS present)
 - **Tier**: T0 (Auditable) - Static analysis, zero runtime cost
 - **Performance**: 0ns runtime, ~10ms compile-time analysis per method
 
-### COCA Mandate
+### Chaos Mandate
 - **Lockfree**: N/A (static analysis tool, not runtime code)
 - **Alignment**: N/A
 - **Generation counters**: ENCOURAGES their use (detects missing CAS)

@@ -55,6 +55,8 @@
 //! assert_eq!(decrypted.num_hashes, 128);
 //! ```
 
+#![allow(dead_code)]
+
 use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Key, Nonce,

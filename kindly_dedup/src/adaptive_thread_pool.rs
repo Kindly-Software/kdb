@@ -34,7 +34,7 @@
 //! Safe Rust implementation:
 //! - Zero unsafe code (100% safe)
 //! - All counter operations are lock-free atomics
-//! - No mutex, no RwLock (100% lockfree principle from COCA)
+//! - No mutex, no RwLock (100% lockfree principle from Chaos)
 //!
 //! # Safety Assumptions (ASSUM Framework)
 //!

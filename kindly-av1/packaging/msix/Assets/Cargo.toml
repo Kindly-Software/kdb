@@ -1,0 +1,12 @@
+[package]
+name = "msix-asset-generator"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+miniz_oxide = "0.7"
+crc32fast = "1.4"
+
+[[bin]]
+name = "generate_placeholders"
+path = "generate_placeholders.rs"

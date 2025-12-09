@@ -70,7 +70,7 @@ pub struct EnvironmentInfo {
 impl EnvironmentInfo {
     /// Serialize to JSON using JsonWriterCapsule
     pub fn to_json(&self) -> JsonWriterResult<String> {
-        let mut writer = JsonWriterCapsule::new();
+        let writer = JsonWriterCapsule::new();
 
         writer.start_object()?;
 

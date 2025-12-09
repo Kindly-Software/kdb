@@ -4,7 +4,7 @@ Production-ready REST API server exposing KDB debugger functionality via HTTP.
 
 ## Architecture
 
-**UCE34/COCA Compliance**: 100% lockfree, no mutex, SIMD-accelerated, Q34 audit trails
+**UCE34/Chaos Compliance**: 100% lockfree, no mutex, SIMD-accelerated, Q34 audit trails
 
 - **T1 Atomic**: Lockfree session management (64B cache-aligned)
 - **T0 Auditable**: Q34 hash-chain audit logging (SOX/SOC2/GDPR/HIPAA compliance)
@@ -138,7 +138,7 @@ curl -X POST http://localhost:8090/v1/debug/attach \
   -d '{"pid": 12345}'
 ```
 
-## COCA Architecture Details
+## Chaos Architecture Details
 
 ### Session State Capsule (T1 Atomic)
 
@@ -443,7 +443,7 @@ ab -n 10000 -c 100 -p attach.json -T application/json \
 - ✅ **Q33**: ComputationalCapsule verification
 - ✅ **Q34**: Hash-chain audit trail (SOX/SOC2/GDPR/HIPAA)
 
-### COCA
+### Chaos
 - ✅ **Lockfree**: Zero mutex/RwLock (grep verified)
 - ✅ **Cache-Aligned**: 64B (session), 256B (audit)
 - ✅ **Generation Counters**: TOCTOU prevention
@@ -467,7 +467,7 @@ ab -n 10000 -c 100 -p attach.json -T application/json \
 - **KDB Debugger**: `/home/samuel/Primitives/kdb/src/lib.rs`
 - **DebuggerCapsule**: `/home/samuel/Primitives/kdb/src/debugger.rs`
 - **UCE34 Framework**: `/home/samuel/CLAUDE.md`
-- **COCA Architecture**: `/home/samuel/Docs/The Computational Capsule.md`
+- **Chaos Architecture**: `/home/samuel/Docs/The Computational Capsule.md`
 - **RapidAPI Docs**: https://rapidapi.com/guides/getting-started
 
 ## License
@@ -482,7 +482,7 @@ Samuel <samuel@primitives.dev>
 
 **Version**: 0.1.0
 **Status**: Production Ready (95/100)
-**Architecture**: UCE34/COCA T1 Atomic + T0 Auditable
+**Architecture**: UCE34/Chaos T1 Atomic + T0 Auditable
 **Binary Size**: 476KB
 **Performance**: <1ms request latency, 625× faster breakpoint coordination vs GDB
 **Compliance**: SOX/SOC2/GDPR/HIPAA ready (Q34 audit trail)

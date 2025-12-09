@@ -2,7 +2,7 @@
 
 ## Overview
 
-Four production-ready MCP tools implemented with **100% COCA (Computational Capsule) architecture**. All state is managed through atomic capsules with zero mutex/RwLock coordination overhead.
+Four production-ready MCP tools implemented with **100% Chaos (Computational Capsule) architecture**. All state is managed through atomic capsules with zero mutex/RwLock coordination overhead.
 
 **Deliverable**: `/home/samuel/Primitives/atomic_mcp_server/src/tools/document.rs` (~630 lines)
 
@@ -223,7 +223,7 @@ Atomic cache statistics snapshot.
 | Q33 | ✅ | Verification: #[derive(ComputationalCapsule)] (compile-time) |
 | Q34 | ✅ | Audit compliance: Generation counters, monotonic tracking |
 
-### COCA (100% Computational Capsules)
+### Chaos (100% Computational Capsules)
 
 **Compliance Checklist**:
 - ✅ All state in capsules (zero loose structs)
@@ -379,7 +379,7 @@ cargo test --test document_tools_tests schema   # Schema tests
 cargo test --test document_tools_tests cache    # Cache tests
 cargo test --test document_tools_tests preload  # Preloader tests
 cargo test --test document_tools_tests concurrent  # Concurrent tests
-cargo test --test document_tools_tests coca     # COCA compliance tests
+cargo test --test document_tools_tests coca     # Chaos compliance tests
 ```
 
 ### Test Results
@@ -388,19 +388,19 @@ cargo test --test document_tools_tests coca     # COCA compliance tests
 - Size/alignment validation: 7 tests
 - Individual tool tests: 12 tests
 - Integration tests: 5 tests
-- COCA compliance: 3 tests
+- Chaos compliance: 3 tests
 
 **Status**: ✅ All passing
 
 ## Design Decisions
 
-### Why 100% COCA?
+### Why 100% Chaos?
 
 1. **Deterministic Latency**: Atomic operations <10ns vs mutex contention 1-100μs
 2. **No Pause Jitter**: Lock-free = no scheduling surprises
 3. **Scalability**: Zero contention at 100+ concurrent threads
 4. **Simplicity**: Compile-time verified (no runtime bugs from locks)
-5. **Production-Ready**: Proven in atomic_capsule (328 capsules, 0 COCA violations)
+5. **Production-Ready**: Proven in atomic_capsule (328 capsules, 0 Chaos violations)
 
 ### Why 4 Tools?
 
@@ -447,7 +447,7 @@ Large document support:
 
 ### Framework Documents
 - **UCE34**: `/home/samuel/CLAUDE.md` § Capsule Framework
-- **COCA**: `/home/samuel/Docs/The Computational Capsule.md`
+- **Chaos**: `/home/samuel/Docs/The Computational Capsule.md`
 - **B32**: `xml/frameworks/b32.xml` (benchmarking standards)
 - **T28**: `xml/frameworks/t28.xml` (testing framework)
 
@@ -480,7 +480,7 @@ If latency exceeds SLA:
 3. **Select appropriate tier**: T1 (atomic) → T2 (SIMD) → T3 (fixed-point)
 4. **Validate with B32**: 95% CI, 1000+ iterations
 
-### COCA Compliance
+### Chaos Compliance
 
 Before committing new tools:
 
@@ -488,7 +488,7 @@ Before committing new tools:
 # Check compilation
 cargo check -p atomic_mcp_server
 
-# Run COCA compliance tests
+# Run Chaos compliance tests
 cargo test --test document_tools_tests coca
 
 # Verify no mutex/RwLock
@@ -497,6 +497,6 @@ grep -r "Mutex\|RwLock" src/tools/document.rs  # Should return nothing
 
 ## Conclusion
 
-This implementation demonstrates production-ready MCP tools using **100% COCA capsule architecture**. All state is atomic, lock-free, and verified at compile-time. Zero runtime overhead, deterministic latency, and proven scalability to 100+ concurrent clients.
+This implementation demonstrates production-ready MCP tools using **100% Chaos capsule architecture**. All state is atomic, lock-free, and verified at compile-time. Zero runtime overhead, deterministic latency, and proven scalability to 100+ concurrent clients.
 
-**Key Achievement**: 4 tools, ~630 lines, 100% framework compliant (UCE34, COCA, ASSUM, B32, T28, I20)
+**Key Achievement**: 4 tools, ~630 lines, 100% framework compliant (UCE34, Chaos, ASSUM, B32, T28, I20)

@@ -1,0 +1,107 @@
+========================================================================
+  kindly_dedup Fast Test Suite (P0 Critical Tests)
+========================================================================
+
+Project: /home/samuel/Primitives/kindly_dedup
+Time: 2025-11-17 20:00:30
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 1: Compilation Checks
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[1] Running Build library... [0;32m✓ PASSED[0m
+[2] Running Check formatting... [0;31m✗ FAILED[0m
+       Error output:
+         Options:
+           -q, --quiet
+                   No output printed to stdout
+           -v, --verbose
+                   Use verbose output
+               --version
+                   Print rustfmt version and exit
+           -p, --package <package>...
+                   Specify package to format
+               --manifest-path <manifest-path>
+                   Specify path to Cargo.toml
+               --message-format <message-format>
+                   Specify message-format: short|json|human
+               --all
+                   Format all packages, and also their local path-based dependencies
+               --check
+                   Run rustfmt in check mode
+           -h, --help
+                   Print help
+         
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 2: Unit Tests
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[3] Running P0 unit tests... [0;32m✓ PASSED[0m
+[4] Running Bloom filter unit tests... [0;32m✓ PASSED[0m
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 3: Integration Tests
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[5] Running P0 integration tests... [0;31m✗ FAILED[0m
+       Error output:
+             t5_comprehensive_tests
+             terminal_capsule_integration
+             test_command_router_simple
+             test_phase4_compilation
+             tui_audit_integration_tests
+             tui_command_routing_tests
+             tui_comprehensive_tests
+             v1_0_benchmark_tests
+             v1_1_tests
+             week1_assum_safety_tests
+             week1_bloom_unit_tests
+             week1_integration_tests
+             week1_parallel_gen_unit_tests
+             week1_production_tests
+             week1_property_tests
+             week2_assum_comprehensive
+             week2_batch_comprehensive_tests
+             week2_batch_integration_tests
+             week2_format_integration_tests
+             week2_simd_comprehensive_tests
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Phase 4: Library Smoke Tests
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[6] Running Library doc tests... [0;31m✗ FAILED[0m
+       Error output:
+         failures:
+             src/batch_minhash.rs - batch_minhash::BatchMinHashCapsule (line 131)
+             src/batch_minhash.rs - batch_minhash::BatchMinHashCapsule::add_document (line 239)
+             src/cpu_detection.rs - cpu_detection::CpuFeatures::has_avx2 (line 156)
+             src/cpu_detection.rs - cpu_detection::CpuFeatures::has_avx512f (line 126)
+             src/cpu_detection.rs - cpu_detection::CpuFeatures::has_sse42 (line 186)
+             src/hierarchical_pairs_iterator.rs - hierarchical_pairs_iterator::HierarchicalPairsIterator<'a>::next (line 244)
+             src/pipeline.rs - pipeline::DedupPipeline (line 109)
+             src/pipeline.rs - pipeline::DedupPipeline<'a>::add_document (line 312)
+             src/pipeline.rs - pipeline::DedupPipeline<'a>::find_duplicates (line 440)
+             src/protection/protection_system.rs - protection::protection_system (line 107)
+             src/protection/protection_system.rs - protection::protection_system::ProtectionSystem::check_all (line 270)
+             src/protection/protection_system.rs - protection::protection_system::ProtectionSystem::initialize_full (line 220)
+             src/resource_limits.rs - resource_limits (line 14)
+             src/streaming_dedup_pipeline.rs - streaming_dedup_pipeline::StreamingDedupPipeline::pairs_iter (line 1075)
+             src/utils/terminal.rs - utils::terminal::refresh_terminal_capabilities (line 66)
+         
+         test result: FAILED. 49 passed; 15 failed; 65 ignored; 0 measured; 0 filtered out; finished in 12.33s
+         
+         error: doctest failed, to rerun pass `--doc`
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Fast Test Suite Summary
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Total Tests:  6
+Passed:       [0;32m3[0m
+Failed:       [0;31m3[0m
+
+[0;31m✗ SOME TESTS FAILED[0m
+Status: FIX ISSUES BEFORE COMMIT
+

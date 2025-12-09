@@ -1,0 +1,31 @@
+thread 'rustc' panicked at /rustc-dev/f46475914de626785090a05ae037578aaa119fc8/compiler/rustc_codegen_ssa/src/back/write.rs:2035:29:
+failed to open bitcode file `/home/samuel/Primitives/kindly_hft/target/debug/incremental/atomic_capsule-3jgvfzaty2522/s-hc7qjpphx0-0llk8lk-working/aql618ozk64gz64u07lbefo63.pre-lto.bc`: No such file or directory (os error 2)
+stack backtrace:
+   0:     0x708433c1e97b - std::backtrace::Backtrace::create::h18e2cc6636ed092b
+   1:     0x708433c1e8c5 - std::backtrace::Backtrace::force_capture::h66ca658846f88e8e
+   2:     0x708432c255f2 - std[6a4c48a9d51f3543]::panicking::update_hook::<alloc[3fa548a172a7b371]::boxed::Box<rustc_driver_impl[64af57ff9d2ed695]::install_ice_hook::{closure#1}>>::{closure#0}
+   3:     0x708433c1f8cf - std::panicking::panic_with_hook::hdbb7ad5795afba6a
+   4:     0x708433c1f68a - std::panicking::panic_handler::{{closure}}::hba180b92900ed5e7
+   5:     0x708433c19519 - std::sys::backtrace::__rust_end_short_backtrace::hbda09eb1793c7781
+   6:     0x708433bfa3cd - __rustc[c80ef5cc1218e9cf]::rust_begin_unwind
+   7:     0x708430b94760 - core::panicking::panic_fmt::h5be7c486b5ae930e
+   8:     0x708432a72cb0 - rustc_codegen_ssa[239007d435df67c5]::back::write::submit_pre_lto_module_to_llvm::<rustc_codegen_llvm[a4679f7ab8d95f0]::LlvmCodegenBackend>::{closure#0}
+   9:     0x70843553df0a - <rustc_codegen_llvm[a4679f7ab8d95f0]::LlvmCodegenBackend as rustc_codegen_ssa[239007d435df67c5]::traits::backend::CodegenBackend>::codegen_crate
+  10:     0x708435773870 - <rustc_interface[2d70ee6601584c98]::queries::Linker>::codegen_and_build_linker
+  11:     0x7084357705b0 - <rustc_interface[2d70ee6601584c98]::passes::create_and_enter_global_ctxt<core[ef3fb77ae87a976f]::option::Option<rustc_interface[2d70ee6601584c98]::queries::Linker>, rustc_driver_impl[64af57ff9d2ed695]::run_compiler::{closure#0}::{closure#2}>::{closure#2} as core[ef3fb77ae87a976f]::ops::function::FnOnce<(&rustc_session[67e717b8e9297f5e]::session::Session, rustc_middle[644145deaf5c7884]::ty::context::CurrentGcx, alloc[3fa548a172a7b371]::sync::Arc<rustc_data_structures[34376fba7d7655c7]::jobserver::Proxy>, &std[6a4c48a9d51f3543]::sync::once_lock::OnceLock<rustc_middle[644145deaf5c7884]::ty::context::GlobalCtxt>, &rustc_data_structures[34376fba7d7655c7]::sync::worker_local::WorkerLocal<rustc_middle[644145deaf5c7884]::arena::Arena>, &rustc_data_structures[34376fba7d7655c7]::sync::worker_local::WorkerLocal<rustc_hir[ba189b4fdca6c33d]::Arena>, rustc_driver_impl[64af57ff9d2ed695]::run_compiler::{closure#0}::{closure#2})>>::call_once::{shim:vtable#0}
+  12:     0x708435567cc0 - rustc_interface[2d70ee6601584c98]::interface::run_compiler::<(), rustc_driver_impl[64af57ff9d2ed695]::run_compiler::{closure#0}>::{closure#1}
+  13:     0x7084356cba49 - std[6a4c48a9d51f3543]::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface[2d70ee6601584c98]::util::run_in_thread_with_globals<rustc_interface[2d70ee6601584c98]::util::run_in_thread_pool_with_globals<rustc_interface[2d70ee6601584c98]::interface::run_compiler<(), rustc_driver_impl[64af57ff9d2ed695]::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  14:     0x7084356cb72a - <<std[6a4c48a9d51f3543]::thread::Builder>::spawn_unchecked_<rustc_interface[2d70ee6601584c98]::util::run_in_thread_with_globals<rustc_interface[2d70ee6601584c98]::util::run_in_thread_pool_with_globals<rustc_interface[2d70ee6601584c98]::interface::run_compiler<(), rustc_driver_impl[64af57ff9d2ed695]::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core[ef3fb77ae87a976f]::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  15:     0x708435113a6f - std::sys::thread::unix::Thread::new::thread_start::h8e08262737e85c84
+  16:     0x70842ec9caa4 - start_thread
+                               at ./nptl/pthread_create.c:447:8
+  17:     0x70842ed29c6c - clone3
+                               at ./misc/../sysdeps/unix/sysv/linux/x86_64/clone3.S:78:0
+  18:                0x0 - <unknown>
+
+
+rustc version: 1.92.0-nightly (f46475914 2025-10-17)
+platform: x86_64-unknown-linux-gnu
+
+query stack during panic:
+end of query stack

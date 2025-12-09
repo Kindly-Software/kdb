@@ -1,7 +1,7 @@
 //! KDB RapidAPI HTTP Server
 //!
 //! Production-ready REST API server exposing KDB debugger functionality.
-//! Built with UCE34/COCA capsule architecture (100% lockfree, no mutex).
+//! Built with UCE34/Chaos capsule architecture (100% lockfree, no mutex).
 //!
 //! ## Architecture
 //! - T1 Atomic: Lockfree session management (64B aligned)
@@ -88,7 +88,7 @@ fn get_start_time() -> u64 {
 // ============================================================================
 
 /// Global CORS middleware capsule for cross-origin request handling
-/// - Allowed origins: kindly.services, www.kindly.services, localhost:8080 (dev)
+/// - Allowed origins: kindly.software, www.kindly.software, localhost:8080 (dev)
 /// - Allow credentials: true (for API key headers)
 /// - Max age: 3600 seconds (1 hour preflight cache)
 static CORS: OnceLock<CorsMiddlewareCapsule> = OnceLock::new();
@@ -97,8 +97,8 @@ fn get_cors() -> &'static CorsMiddlewareCapsule {
     CORS.get_or_init(|| {
         let config = CorsConfig {
             allowed_origins: vec![
-                "https://kindly.services".to_string(),
-                "https://www.kindly.services".to_string(),
+                "https://kindly.software".to_string(),
+                "https://www.kindly.software".to_string(),
                 "http://localhost:8080".to_string(), // Development
                 "http://localhost:3000".to_string(), // Frontend dev
             ],
@@ -206,7 +206,7 @@ fn validate_pid(pid_value: u64) -> Result<u64, String> {
 }
 
 // ============================================================================
-// COCA-Compliant Session Manager (T1 Atomic)
+// Chaos-Compliant Session Manager (T1 Atomic)
 // ============================================================================
 
 /// Lockfree session state capsule (64B cache-aligned)
@@ -1461,7 +1461,7 @@ fn handle_client(mut stream: TcpStream, state: Arc<ServerState>) {
 
 fn main() {
     println!("[INFO] KDB RapidAPI Server v1.1.0");
-    println!("[INFO] UCE34/COCA Architecture: T1 Atomic + T0 Auditable + T6 Rate Limiting");
+    println!("[INFO] UCE34/Chaos Architecture: T1 Atomic + T0 Auditable + T6 Rate Limiting");
     println!("[INFO] Endpoints: 13 REST APIs (10 debug + 3 monitoring)");
     println!("[INFO] Rate Limiting: AdaptiveRateLimiterCapsule (1000 burst, 500 req/sec)");
     println!("[INFO] CORS: CorsMiddlewareCapsule (<50ns origin validation)");
@@ -1476,7 +1476,7 @@ fn main() {
 
     // Initialize CORS middleware
     let _ = get_cors();
-    println!("[INFO] CORS middleware initialized (kindly.services, localhost:8080/3000)");
+    println!("[INFO] CORS middleware initialized (kindly.software, localhost:8080/3000)");
 
     // Initialize input validation
     let _ = get_validator();
@@ -1690,8 +1690,8 @@ mod tests {
         let cors = get_cors();
 
         // Allowed origins
-        assert!(cors.validate_origin("https://kindly.services").unwrap());
-        assert!(cors.validate_origin("https://www.kindly.services").unwrap());
+        assert!(cors.validate_origin("https://kindly.software").unwrap());
+        assert!(cors.validate_origin("https://www.kindly.software").unwrap());
         assert!(cors.validate_origin("http://localhost:8080").unwrap());
         assert!(cors.validate_origin("http://localhost:3000").unwrap());
 

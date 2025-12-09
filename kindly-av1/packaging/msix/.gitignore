@@ -1,0 +1,32 @@
+# MSIX build artifacts
+staging/
+output/
+*.msix
+*.appx
+*.pri
+
+# Certificate files (NEVER commit!)
+*.pfx
+*.cer
+*.pvk
+
+# Test certificates
+*-test.pfx
+
+# Build logs
+*.log
+validation-report.xml
+
+# Rust build artifacts (Assets generator)
+Assets/target/
+Assets/Cargo.lock
+
+# Windows temporary files
+Thumbs.db
+desktop.ini
+
+# Editor files
+.vs/
+.vscode/
+*.suo
+*.user

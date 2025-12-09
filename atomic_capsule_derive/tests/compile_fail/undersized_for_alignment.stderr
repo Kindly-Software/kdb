@@ -1,0 +1,8 @@
+error[E0080]: evaluation panicked: Capsule size mismatch for UndersizedCapsule
+                Expected: 64usize bytes
+                Actual: core :: mem :: size_of :: < UndersizedCapsule > () bytes
+                Help: Check struct field layout and padding
+  --> tests/compile_fail/undersized_for_alignment.rs:12:10
+   |
+12 | #[derive(ComputationalCapsule)]
+   |          ^^^^^^^^^^^^^^^^^^^^ evaluation of `_` failed here

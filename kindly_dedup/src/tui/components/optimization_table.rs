@@ -1,7 +1,7 @@
 //! Optimization Contribution Breakdown Table
 //!
 //! Educational display showing how each optimization contributes to compound speedup.
-//! 100% lockfree using AtomicU64 for all metrics (COCA compliance).
+//! 100% lockfree using AtomicU64 for all metrics (Chaos compliance).
 //!
 //! # UCE34 Q28 (Simplicity)
 //!
@@ -27,7 +27,7 @@ const VALUE_COLOR: Color = Color::BrightYellow;
 
 /// Optimization contribution entry
 ///
-/// # Lock-Free Design (COCA)
+/// # Lock-Free Design (Chaos)
 ///
 /// - **T1 Atomic**: AtomicU64 for throughput counters
 /// - **Cache-aligned**: 64-byte alignment for single-threaded
@@ -92,7 +92,7 @@ impl OptimizationEntry {
 
 /// Optimization breakdown table capsule
 ///
-/// # Lock-Free Design (COCA)
+/// # Lock-Free Design (Chaos)
 ///
 /// - **T1 Atomic**: All entries use AtomicU64
 /// - **Cache-aligned**: 128-byte alignment for multi-field

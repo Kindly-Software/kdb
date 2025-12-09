@@ -7,6 +7,7 @@
 
 use kdb::ptrace::{
     AuditEventCompact, DeletionCertificate, DeletionError, DeletionProofCapsule, LifecycleState,
+    SubscriptionTier,
 };
 use std::path::Path;
 use std::sync::Arc;
@@ -382,7 +383,8 @@ fn q21_test_multiple_users_isolation() {
 
 #[test]
 fn q22_test_stress_many_snapshots() {
-    let capsule = DeletionProofCapsule::new(1, 1).unwrap();
+    // Use Basic tier (1,000 max snapshots) instead of Free tier (100 max)
+    let capsule = DeletionProofCapsule::new_with_tier(1, 1, SubscriptionTier::Basic).unwrap();
 
     let start = std::time::Instant::now();
 
@@ -490,7 +492,8 @@ fn q26_test_stress_merkle_consistency() {
 
 #[test]
 fn q27_test_stress_mixed_operations() {
-    let capsule = Arc::new(DeletionProofCapsule::new(1, 1).unwrap());
+    // Use Basic tier (1,000 max snapshots) instead of Free tier (100 max)
+    let capsule = Arc::new(DeletionProofCapsule::new_with_tier(1, 1, SubscriptionTier::Basic).unwrap());
 
     let capsule_snapshot = Arc::clone(&capsule);
     let t1 = std::thread::spawn(move || {

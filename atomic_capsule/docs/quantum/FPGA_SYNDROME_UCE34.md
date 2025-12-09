@@ -4,7 +4,7 @@
 **Date**: 2025-11-21
 **Tier**: T7 Heterogeneous (FPGA Hardware Acceleration)
 **Target**: <20μs syndrome extraction (10-100× faster than CPU)
-**Framework**: UCE34, COCA, B32, T28, ASSUM, I20
+**Framework**: UCE34, Chaos, B32, T28, ASSUM, I20
 
 ---
 
@@ -497,7 +497,7 @@ use atomic_capsule::collections::ring_buffer::RingBufferCapsule;
 ///
 /// Performance: <20μs per syndrome extraction (10-15× faster than CPU)
 /// Tier: T7 Heterogeneous (FPGA hardware acceleration)
-/// Framework: UCE34, COCA (100% lockfree), B32, T28, ASSUM, I20
+/// Framework: UCE34, Chaos (100% lockfree), B32, T28, ASSUM, I20
 #[repr(C, align(64))]
 pub struct FpgaSyndromeExtractorCapsule {
     // FPGA kernel handle (opaque XRT pointer, NOT thread-safe)
@@ -1084,7 +1084,7 @@ impl FpgaSyndromeExtractorCapsule {
 
 **Framework Compliance**:
 - ✅ **UCE34**: Q1-Q34 complete (tier selection, profiling, Amdahl's Law, nightly features)
-- ✅ **COCA**: 100% lockfree (no mutex/RwLock), cache-aligned (64 bytes)
+- ✅ **Chaos**: 100% lockfree (no mutex/RwLock), cache-aligned (64 bytes)
 - ✅ **B32**: Fair CPU baseline (SIMD), 95% CI, 1000+ iterations
 - ✅ **T28**: 28 tests planned (unit/property/integration/production)
 - ✅ **ASSUM**: 99.99% safe (zero unsafe in fast paths)

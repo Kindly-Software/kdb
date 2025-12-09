@@ -1,0 +1,52 @@
+KINDLY DEDUP - EVALUATION LICENSE AGREEMENT
+
+Copyright (c) 2025 Kindly Software
+Contact: sales@kindly.software
+
+TERMS OF USE
+
+1. EVALUATION PERIOD
+   This software is provided for evaluation purposes only.
+   - Duration: 30 days from first use
+   - Document limit: 5,000,000 documents maximum
+   - Purpose: Production performance validation
+
+2. PERMITTED USE
+   You may:
+   - Evaluate the software on your own datasets
+   - Test performance and accuracy
+   - Share results internally within your organization
+   - Run the demo on your hardware
+
+3. RESTRICTIONS
+   You may NOT:
+   - Use this for production workloads beyond evaluation
+   - Redistribute this software to third parties
+   - Reverse engineer, decompile, or disassemble the software
+   - Remove or modify any proprietary notices
+   - Exceed the 5 million document limit
+
+4. PRODUCTION LICENSE
+   For production use, contact sales@kindly.software to discuss:
+   - Volume licensing
+   - Enterprise support
+   - Custom deployment options
+   - SLA guarantees
+
+5. WARRANTY DISCLAIMER
+   This evaluation software is provided "AS IS" without warranty of any kind.
+   Kindly Software makes no warranties regarding performance, accuracy, or
+   fitness for a particular purpose.
+
+6. LIMITATION OF LIABILITY
+   In no event shall Kindly Software be liable for any damages arising from
+   the use of this evaluation software.
+
+7. CONTACT
+   Questions about licensing:
+   - Email: sales@kindly.software
+   - Website: https://kindly.software
+
+By using this software, you agree to these terms.
+
+Last updated: October 31, 2025

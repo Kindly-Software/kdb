@@ -1,0 +1,43 @@
+[package]
+name = "kindly-av1-installer"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.70"
+authors = ["Kindly Team"]
+description = "Smart installer for kindly-av1 encoder (UCE34/Chaos compliant)"
+license = "Proprietary"
+publish = false
+
+[lib]
+name = "kindly_av1_installer"
+path = "src/lib.rs"
+
+[[bin]]
+name = "kindly-av1-installer"
+path = "src/main.rs"
+
+[dependencies]
+ureq = { version = "2.9", default-features = false, features = ["tls"] }
+dirs = "5.0"
+sha2 = "0.10"
+thiserror = "1.0"
+
+# Unix-specific dependencies (Linux, macOS)
+[target.'cfg(unix)'.dependencies]
+tar = "0.4"
+flate2 = "1.0"
+
+# Windows-specific dependencies
+[target.'cfg(windows)'.dependencies]
+zip = { version = "0.6", default-features = false, features = ["deflate"] }
+
+[features]
+default = ["std"]
+std = []
+
+[profile.release]
+opt-level = "z"     # Optimize for size
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

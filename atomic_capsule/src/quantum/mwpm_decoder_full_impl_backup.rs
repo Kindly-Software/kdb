@@ -738,7 +738,7 @@ impl MWPMDecoderCapsule {
 //
 // Framework Compliance:
 //   - UCE34: Q10 T4 Batch tier ✅
-//   - COCA: 100% lockfree (rayon work-stealing) ✅
+//   - Chaos: 100% lockfree (rayon work-stealing) ✅
 //   - B32: Fair baselines (Union-Find comparison) ✅
 //   - ASSUM: 10 #ASSUME tags (all verified) ✅
 //   - T28: 28 tests required (see test file) ✅

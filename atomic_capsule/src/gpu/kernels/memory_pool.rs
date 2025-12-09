@@ -11,7 +11,7 @@
 // - Q33: Verification (#[derive(ComputationalCapsule)])
 // - Q34: Audit trail (allocation/deallocation tracking)
 //
-// COCA Compliance: 100% lockfree (T1 Atomic coordination)
+// Chaos Compliance: 100% lockfree (T1 Atomic coordination)
 // ASSUM Safety: 99.99%+
 // - #ASSUME_BLOCK_SIZE_POWER_OF_TWO: Block sizes are powers of 2 (256B, 512B, 1KB, 2KB, 4KB, 8KB, 16KB, 32KB)
 // - #ASSUME_MAX_BLOCKS_PER_POOL: Max 65536 blocks per pool (16-bit indices)

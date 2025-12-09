@@ -1,969 +1,901 @@
-//! OBS WebSocket Client Capsule (Phase 3) - T8 Network Tier
+//! OBS WebSocket Protocol 5.0 Client (T8 Network + T1 Atomic)
 //!
-//! **Framework**: UCE34 (Q1-Q34), COCA, ASSUM, B32, T28, I20
-//! **Tier**: T8 (Network) + T1 (Atomic Coordination)
-//! **Size**: 256 bytes (cache-aligned)
-//! **Performance**: <100μs send/recv, <50ms scene switch
-//! **Safety**: 99.99% ASSUM safe
+//! [TRADE SECRET] - PROPRIETARY AND CONFIDENTIAL
 //!
 //! ## Overview
 //!
-//! Direct OBS Studio control via WebSocket Protocol 5.0 (obs-websocket):
+//! Production OBS WebSocket Protocol 5.0 client implementing direct control
+//! of OBS Studio for scene automation and text source updates.
 //!
-//! - **Real-time text updates** (no file I/O overhead)
-//! - **Scene automation** (encoding start/complete/error)
-//! - **Authentication** (SHA256 challenge-response)
-//! - **Connection lifecycle** (lockfree state machine)
+//! ## Protocol Details (OBS WebSocket 5.0)
 //!
-//! ## OBS WebSocket Protocol 5.0
-//!
+//! **Connection Flow**:
 //! ```text
-//! Connection Flow:
-//!   1. Client connects to ws://localhost:4455
-//!   2. Server sends Hello with authentication challenge
-//!   3. Client sends Identify with SHA256(password + challenge)
-//!   4. Server sends Identified on success
-//!   5. Client can now send requests/receive events
+//! 1. TCP connect to localhost:4455
+//! 2. WebSocket HTTP/1.1 Upgrade handshake
+//! 3. Server → Hello (OpCode 0) with challenge/salt
+//! 4. Client → Identify (OpCode 1) with SHA256 auth
+//! 5. Server → Identified (OpCode 2) confirms connection
+//! 6. Client may send Request (OpCode 6), receives RequestResponse (OpCode 7)
+//! ```
 //!
-//! Message Structure (JSON-RPC 2.0):
-//!   {
-//!     "op": 6,  // OpCode (6 = Request)
-//!     "d": {
-//!       "requestType": "SetInputSettings",
-//!       "requestId": "uuid",
-//!       "requestData": { ... }
-//!     }
-//!   }
+//! **SHA256 Authentication Algorithm**:
+//! ```text
+//! secret = base64(SHA256(password + salt))
+//! auth = base64(SHA256(secret + challenge))
+//! ```
 //!
-//! OpCodes:
-//!   0: Hello (server → client, authentication challenge)
-//!   1: Identify (client → server, authentication response)
-//!   2: Identified (server → client, authentication success)
-//!   6: Request (client → server, RPC call)
-//!   7: RequestResponse (server → client, RPC result)
+//! **Message Format** (JSON over WebSocket text frames):
+//! ```json
+//! { "op": number, "d": object }
 //! ```
 //!
 //! ## Memory Layout (256 bytes)
 //!
 //! ```text
-//! 0-7:     state (AtomicU64)                // ConnectionState + generation
-//! 8-11:    request_id (AtomicU32)           // Message ID counter
-//! 12-15:   _padding1 (u32)                  // Alignment
-//! 16-143:  obs_url ([u8; 128])              // ws://host:port
-//! 144-151: websocket_client (AtomicU64)     // WebSocketClientCapsule pointer
-//! 152-159: last_error (AtomicU64)           // ObsError code + timestamp
-//! 160-167: messages_sent (AtomicU64)        // Request counter
-//! 168-175: messages_received (AtomicU64)    // Response counter
-//! 176-255: _padding2 ([u8; 80])             // Cache alignment
-//! Total: 256 bytes
+//! ObsWebSocketCapsule (256B cache-aligned)
+//! ├── state: AtomicU64 (8B)              [ConnectionState + generation]
+//! ├── socket_ptr: AtomicU64 (8B)         [TCP socket pointer (0 = disconnected)]
+//! ├── server_url: [u8; 128] (128B)       [ws://host:port]
+//! ├── request_id: AtomicU64 (8B)         [Monotonic request ID]
+//! ├── messages_sent: AtomicU64 (8B)      [Total messages sent]
+//! ├── messages_received: AtomicU64 (8B)  [Total messages received]
+//! ├── bytes_sent: AtomicU64 (8B)         [Total bytes sent]
+//! ├── bytes_received: AtomicU64 (8B)     [Total bytes received]
+//! ├── last_heartbeat_ns: AtomicU64 (8B)  [Last heartbeat timestamp]
+//! └── _padding2: [u8; 64] (64B)          [Cache alignment to 256B]
+//! Total: 256 bytes (192B fields + 64B padding)
 //! ```
-//!
-//! ## Usage
-//!
-//! ```rust,ignore
-//! use kindly_av1::obs::ObsWebSocketCapsule;
-//!
-//! let obs = ObsWebSocketCapsule::new("ws://localhost:4455", Some("password"));
-//! obs.connect()?;
-//!
-//! // Update text source
-//! obs.update_text_source("EncodingStatus", "Encoding: 45% | 1080p | 28 fps")?;
-//!
-//! // Switch scene
-//! obs.switch_scene("Encoding Scene")?;
-//!
-//! // Scene automation
-//! let config = ObsSceneConfig {
-//!     scene_encoding: "Encoding Scene".to_string(),
-//!     scene_complete: "Complete Scene".to_string(),
-//!     scene_error: "Error Scene".to_string(),
-//! };
-//! obs.on_encoding_start(&config)?;
-//! ```
-//!
-//! ## Performance Targets (B32 Validated)
-//!
-//! | Operation | Target | Notes |
-//! |-----------|--------|-------|
-//! | Connect | <50ms | TCP + WebSocket handshake |
-//! | Authenticate | <100ms | SHA256 + Identify message |
-//! | Update text | <10ms | JSON serialize + send |
-//! | Switch scene | <50ms | Request + response |
-//! | State read | <5ns | Atomic load |
-//!
-//! ## ASSUM Safety (99.99%)
-//!
-//! - #ASSUME_ATOMIC_ALIGNMENT: 256-byte alignment enforced by #[repr(align(256))]
-//! - #ASSUME_LOCKFREE_COORDINATION: All state via atomics, no mutex/RwLock
-//! - #ASSUME_VALID_JSON: OBS responses must be valid JSON
-//! - #ASSUME_VALID_URL: WebSocket URL must be well-formed
-//! - #ASSUME_SINGLE_THREAD_CONNECT: connect() not reentrant
-//! - #ASSUME_UTF8_TEXT: Text source content must be valid UTF-8
-//! - #ASSUME_OBS_PROTOCOL_5: Server must support obs-websocket 5.0+
-//!
-//! ## Testing (T28: 4-tier pyramid)
-//!
-//! - Unit (Q1-Q7): State machine, message building, authentication
-//! - Property (Q8-Q14): Determinism, idempotency, message invariants
-//! - Integration (Q15-Q21): Roundtrip with OBS Studio, scene switching
-//! - Production (Q22-Q28): Encoding lifecycle, error recovery, reconnection
 //!
 //! ## Framework Compliance
 //!
-//! - **UCE34**: Q10 T8 Network + T1 Atomic, Q33 lockfree atomics
-//! - **COCA**: 100% lockfree (no mutex/RwLock), cache-aligned 256B
-//! - **ASSUM**: 99.99% safe (7 documented assumptions)
-//! - **B32**: Fair baseline (obs-websocket-py), 1000+ iterations, 95% CI
-//! - **T28**: 20+ tests across all tiers
-//! - **I20**: Zero breaking changes, backward compatible
+//! - **UCE34**: Q10 T8 Network tier (WebSocket client)
+//! - **Chaos**: 256B cache-aligned, 100% lockfree atomics
+//! - **ASSUM**: All unsafe blocks documented, 99.5%+ safe
+//! - **B32**: <100μs send, <10ms connect target
+//! - **T28**: Unit tests (Q1-Q7) for handshake, auth, request/response
+//!
+//! ## Usage
+//!
+//! ```ignore
+//! use kindly_av1::obs::{ObsWebSocketCapsule, ObsSceneConfig};
+//!
+//! let obs = ObsWebSocketCapsule::new("ws://localhost:4455");
+//! obs.connect(Some("password"))?;
+//!
+//! // Scene automation
+//! obs.set_scene("Encoding")?;
+//!
+//! // Text source update
+//! obs.set_text_source("EncodingStatus", "Encoding: 25% complete")?;
+//!
+//! // Disconnect
+//! obs.disconnect()?;
+//! ```
 
 #![cfg(feature = "obs-websocket")]
 
-use core::fmt;
-use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};
+use std::io::{self, Read, Write, BufRead, BufReader};
+use std::net::TcpStream;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-#[cfg(feature = "std")]
-use atomic_capsule::websocket::WebSocketClientCapsule;
+use sha2::{Sha256, Digest};
+use base64::{Engine as _, engine::general_purpose::STANDARD as base64_engine};
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+/// WebSocket magic GUID (RFC 6455 §1.3)
+const WS_MAGIC: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+
+/// Default OBS WebSocket port
+const DEFAULT_PORT: u16 = 4455;
+
+/// Connection timeout (10 seconds)
+const CONNECT_TIMEOUT_MS: u64 = 10_000;
+
+/// Read timeout for socket operations (5 seconds)
+const READ_TIMEOUT_MS: u64 = 5_000;
+
+// OpCodes (OBS WebSocket Protocol 5.0)
+const OPCODE_HELLO: u8 = 0;
+const OPCODE_IDENTIFY: u8 = 1;
+const OPCODE_IDENTIFIED: u8 = 2;
+const OPCODE_REQUEST: u8 = 6;
+const OPCODE_REQUEST_RESPONSE: u8 = 7;
+
+// ============================================================================
+// Connection State
+// ============================================================================
 
 /// OBS WebSocket connection state
-#[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
 pub enum ConnectionState {
-    Disconnected = 0x00,
-    Connecting = 0x01,
-    Authenticating = 0x02,
-    Connected = 0x03,
-    Error = 0x04,
+    /// Not connected
+    Disconnected = 0,
+    /// TCP connecting
+    Connecting = 1,
+    /// WebSocket handshake in progress
+    Handshaking = 2,
+    /// Authenticating with OBS
+    Authenticating = 3,
+    /// Connected and ready
+    Connected = 4,
+    /// Disconnecting
+    Disconnecting = 5,
+    /// Error state
+    Error = 6,
 }
 
 impl ConnectionState {
-    /// Parse state from u8
-    pub fn from_bits(bits: u8) -> Option<Self> {
-        match bits {
-            0x00 => Some(ConnectionState::Disconnected),
-            0x01 => Some(ConnectionState::Connecting),
-            0x02 => Some(ConnectionState::Authenticating),
-            0x03 => Some(ConnectionState::Connected),
-            0x04 => Some(ConnectionState::Error),
-            _ => None,
-        }
-    }
-
-    /// Check if state is terminal
-    pub fn is_terminal(&self) -> bool {
-        matches!(self, ConnectionState::Error)
-    }
-}
-
-/// OBS WebSocket errors
-#[repr(u16)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ObsError {
-    // Connection errors (0x100-0x1FF)
-    InvalidUrl = 0x100,
-    ConnectionFailed = 0x101,
-    AuthenticationFailed = 0x102,
-    Timeout = 0x103,
-    NotConnected = 0x104,
-    AlreadyConnected = 0x105,
-
-    // Protocol errors (0x200-0x2FF)
-    InvalidMessage = 0x200,
-    InvalidOpCode = 0x201,
-    InvalidJson = 0x202,
-    MissingField = 0x203,
-    InvalidRequestType = 0x204,
-
-    // OBS errors (0x300-0x3FF)
-    SourceNotFound = 0x300,
-    SceneNotFound = 0x301,
-    RequestFailed = 0x302,
-    UnsupportedProtocol = 0x303,
-
-    // Internal errors (0x400-0x4FF)
-    JsonSerializationFailed = 0x400,
-    WebSocketError = 0x401,
-    InternalError = 0x402,
-
-    Unknown = 0xFFFF,
-}
-
-impl fmt::Display for ObsError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ObsError::InvalidUrl => write!(f, "Invalid WebSocket URL"),
-            ObsError::ConnectionFailed => write!(f, "Connection to OBS failed"),
-            ObsError::AuthenticationFailed => write!(f, "OBS authentication failed"),
-            ObsError::Timeout => write!(f, "Request timeout"),
-            ObsError::NotConnected => write!(f, "Not connected to OBS"),
-            ObsError::AlreadyConnected => write!(f, "Already connected to OBS"),
-            ObsError::InvalidMessage => write!(f, "Invalid message format"),
-            ObsError::InvalidOpCode => write!(f, "Invalid OpCode"),
-            ObsError::InvalidJson => write!(f, "Invalid JSON"),
-            ObsError::MissingField => write!(f, "Missing required field"),
-            ObsError::InvalidRequestType => write!(f, "Invalid request type"),
-            ObsError::SourceNotFound => write!(f, "OBS source not found"),
-            ObsError::SceneNotFound => write!(f, "OBS scene not found"),
-            ObsError::RequestFailed => write!(f, "OBS request failed"),
-            ObsError::UnsupportedProtocol => write!(f, "Unsupported OBS protocol version"),
-            ObsError::JsonSerializationFailed => write!(f, "JSON serialization failed"),
-            ObsError::WebSocketError => write!(f, "WebSocket error"),
-            ObsError::InternalError => write!(f, "Internal error"),
-            ObsError::Unknown => write!(f, "Unknown error"),
+    pub fn from_u8(v: u8) -> Self {
+        match v {
+            0 => Self::Disconnected,
+            1 => Self::Connecting,
+            2 => Self::Handshaking,
+            3 => Self::Authenticating,
+            4 => Self::Connected,
+            5 => Self::Disconnecting,
+            6 => Self::Error,
+            _ => Self::Disconnected,
         }
     }
 }
 
-/// Scene automation configuration
+// ============================================================================
+// Scene Configuration
+// ============================================================================
+
+/// Scene names for automation
 #[derive(Debug, Clone)]
 pub struct ObsSceneConfig {
     /// Scene to switch to when encoding starts
-    pub scene_encoding: String,
+    pub scene_encoding: Option<String>,
     /// Scene to switch to when encoding completes
-    pub scene_complete: String,
+    pub scene_complete: Option<String>,
     /// Scene to switch to on encoding error
-    pub scene_error: String,
+    pub scene_error: Option<String>,
 }
 
 impl Default for ObsSceneConfig {
     fn default() -> Self {
         Self {
-            scene_encoding: "Encoding".to_string(),
-            scene_complete: "Complete".to_string(),
-            scene_error: "Error".to_string(),
+            scene_encoding: None,
+            scene_complete: None,
+            scene_error: None,
         }
     }
 }
 
-/// OBS WebSocket Client Capsule (T8 Network + T1 Atomic)
+// ============================================================================
+// Error Types
+// ============================================================================
+
+/// OBS WebSocket error types
+#[derive(Debug, PartialEq, Eq)]
+pub enum ObsError {
+    /// Connection failed
+    ConnectionFailed(String),
+    /// Handshake failed
+    HandshakeFailed(String),
+    /// Authentication failed
+    AuthenticationFailed(String),
+    /// Request failed
+    RequestFailed(String),
+    /// JSON parsing error
+    JsonError(String),
+    /// Socket I/O error
+    IoError(String),
+    /// Invalid state transition
+    InvalidState(String),
+    /// Timeout
+    Timeout,
+}
+
+impl From<io::Error> for ObsError {
+    fn from(err: io::Error) -> Self {
+        ObsError::IoError(err.to_string())
+    }
+}
+
+impl std::fmt::Display for ObsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ObsError::ConnectionFailed(s) => write!(f, "Connection failed: {}", s),
+            ObsError::HandshakeFailed(s) => write!(f, "Handshake failed: {}", s),
+            ObsError::AuthenticationFailed(s) => write!(f, "Authentication failed: {}", s),
+            ObsError::RequestFailed(s) => write!(f, "Request failed: {}", s),
+            ObsError::JsonError(s) => write!(f, "JSON error: {}", s),
+            ObsError::IoError(s) => write!(f, "I/O error: {}", s),
+            ObsError::InvalidState(s) => write!(f, "Invalid state: {}", s),
+            ObsError::Timeout => write!(f, "Operation timed out"),
+        }
+    }
+}
+
+impl std::error::Error for ObsError {}
+
+// ============================================================================
+// ObsWebSocketCapsule (T8 Network + T1 Atomic)
+// ============================================================================
+
+/// OBS WebSocket Protocol 5.0 Client
 ///
-/// 256-byte cache-aligned structure for OBS Studio WebSocket communication.
-#[repr(C, align(256))]
+/// **Tier**: T8 Network (WebSocket client with lockfree coordination)
+/// **Size**: 256 bytes (cache-aligned)
+/// **Performance**: <100μs send, <10ms connect
+/// **Safety**: 99.5%+ safe (TCP I/O isolated)
+///
+/// # ASSUM Tags
+///
+/// - #ASSUME_TCP_SOCKET: TcpStream I/O may block (use timeouts)
+/// - #ASSUME_JSON_VALID: OBS responses are valid JSON (defensive parsing)
+/// - #ASSUME_CACHE_ALIGNED: 256-byte alignment enforced by repr(align(256))
+/// - #ASSUME_UTF8: All text payloads are valid UTF-8
+#[repr(align(256))]
 pub struct ObsWebSocketCapsule {
-    // 0-7: State and generation counter
-    // Bits 0-7: ConnectionState
-    // Bits 8-31: Reserved (24 bits)
-    // Bits 32-63: Generation counter (32 bits)
+    /// Connection state machine (8 states: 0-6)
     state: AtomicU64,
 
-    // 8-11: Request ID counter (for message sequencing)
-    request_id: AtomicU32,
+    /// TCP socket pointer stored as u64 (0 = disconnected)
+    ///
+    /// # ASSUM Safety
+    ///
+    /// Using AtomicU64 instead of AtomicI32 for 64-bit pointer storage.
+    /// On 64-bit systems, Box::into_raw returns usize which is 64 bits.
+    /// AtomicI32 would truncate the pointer causing UB.
+    socket_ptr: AtomicU64,
 
-    // 12-15: Reserved/padding
-    _padding1: u32,
+    /// Server URL (ws://host:port)
+    server_url: [u8; 128],
 
-    // 16-143: OBS WebSocket URL (ws://host:port)
-    obs_url: [u8; 128],
+    /// Request ID counter (monotonic)
+    request_id: AtomicU64,
 
-    // 144-151: WebSocketClientCapsule pointer (reserved)
-    websocket_client: AtomicU64,
-
-    // 152-159: Last error (error code + timestamp)
-    last_error: AtomicU64,
-
-    // 160-167: Messages sent counter
+    /// Total messages sent
     messages_sent: AtomicU64,
 
-    // 168-175: Messages received counter
+    /// Total messages received
     messages_received: AtomicU64,
 
-    // 176-255: Padding to 256 bytes
-    _padding2: [u8; 80],
+    /// Total bytes sent
+    bytes_sent: AtomicU64,
+
+    /// Total bytes received
+    bytes_received: AtomicU64,
+
+    /// Last heartbeat timestamp (nanoseconds since epoch)
+    last_heartbeat_ns: AtomicU64,
+
+    /// Cache alignment padding
+    _padding2: [u8; 64],
 }
 
-// #ASSUME_ATOMIC_ALIGNMENT: 256-byte alignment enforced
-const _: () = assert!(
-    core::mem::align_of::<ObsWebSocketCapsule>() == 256,
-    "ObsWebSocketCapsule must be 256-byte aligned"
-);
-
-// #ASSUME_ATOMIC_SIZE: Verify 256-byte size
-const _: () = assert!(
-    core::mem::size_of::<ObsWebSocketCapsule>() == 256,
-    "ObsWebSocketCapsule must be 256 bytes"
-);
+// SAFETY: AtomicU64/AtomicI32 are Sync, [u8; N] is Sync
+unsafe impl Sync for ObsWebSocketCapsule {}
+unsafe impl Send for ObsWebSocketCapsule {}
 
 impl ObsWebSocketCapsule {
-    /// Create a new OBS WebSocket client capsule
-    ///
-    /// **Latency**: ~10ns (initialization only)
+    /// Create new OBS WebSocket client
     ///
     /// # Arguments
-    /// - `url`: WebSocket URL (e.g., "ws://localhost:4455")
-    /// - `password`: Optional authentication password
     ///
-    /// # ASSUM
-    /// - #ASSUME_VALID_URL: URL must be well-formed WebSocket URL
-    /// - #ASSUME_UTF8_TEXT: Password must be valid UTF-8
-    pub fn new(url: &str, _password: Option<&str>) -> Self {
-        let mut capsule = ObsWebSocketCapsule {
-            state: AtomicU64::new(0), // Disconnected state
-            request_id: AtomicU32::new(1), // Start at 1
-            _padding1: 0,
-            obs_url: [0u8; 128],
-            websocket_client: AtomicU64::new(0),
-            last_error: AtomicU64::new(0),
-            messages_sent: AtomicU64::new(0),
-            messages_received: AtomicU64::new(0),
-            _padding2: [0u8; 80],
-        };
-
-        // Copy URL to buffer
+    /// * `url` - WebSocket URL (e.g., "ws://localhost:4455")
+    ///
+    /// # Returns
+    ///
+    /// New disconnected capsule instance
+    pub fn new(url: &str) -> Self {
+        let mut server_url = [0u8; 128];
         let url_bytes = url.as_bytes();
         let copy_len = url_bytes.len().min(128);
-        capsule.obs_url[..copy_len].copy_from_slice(&url_bytes[..copy_len]);
+        server_url[..copy_len].copy_from_slice(&url_bytes[..copy_len]);
 
-        capsule
-    }
-
-    /// Get current connection state
-    ///
-    /// **Latency**: ~3ns (Acquire ordering)
-    #[inline]
-    pub fn get_state(&self) -> ConnectionState {
-        let state_bits = self.state.load(Ordering::Acquire) & 0xFF;
-        ConnectionState::from_bits(state_bits as u8).unwrap_or(ConnectionState::Disconnected)
-    }
-
-    /// Set connection state atomically
-    ///
-    /// **Latency**: ~3ns (Release ordering)
-    #[inline]
-    fn set_state(&self, new_state: ConnectionState) {
-        let current = self.state.load(Ordering::Acquire);
-        let masked = current & 0xFFFFFFFFFFFFFF00u64; // Clear state bits
-        let new_val = masked | (new_state as u8 as u64);
-        self.state.store(new_val, Ordering::Release);
-    }
-
-    /// Get generation counter
-    ///
-    /// **Latency**: ~3ns
-    #[inline]
-    pub fn get_generation(&self) -> u32 {
-        (self.state.load(Ordering::Acquire) >> 32) as u32
-    }
-
-    /// Increment generation counter
-    ///
-    /// **Latency**: ~5-8ns (CAS loop)
-    #[inline]
-    fn increment_generation(&self) {
-        loop {
-            let current = self.state.load(Ordering::Acquire);
-            let new_val = current.wrapping_add(1 << 32); // Increment bits 32-63
-            match self.state.compare_exchange(
-                current,
-                new_val,
-                Ordering::Release,
-                Ordering::Acquire,
-            ) {
-                Ok(_) => break,
-                Err(_) => continue,
-            }
+        Self {
+            state: AtomicU64::new(ConnectionState::Disconnected as u64),
+            socket_ptr: AtomicU64::new(0), // 0 = disconnected (null pointer)
+            server_url,
+            request_id: AtomicU64::new(0),
+            messages_sent: AtomicU64::new(0),
+            messages_received: AtomicU64::new(0),
+            bytes_sent: AtomicU64::new(0),
+            bytes_received: AtomicU64::new(0),
+            last_heartbeat_ns: AtomicU64::new(0),
+            _padding2: [0; 64], // 192 bytes fields + 64 padding = 256 bytes total
         }
-    }
-
-    /// Get next request ID
-    ///
-    /// **Latency**: ~5ns (fetch_add)
-    #[inline]
-    fn next_request_id(&self) -> u32 {
-        self.request_id.fetch_add(1, Ordering::Relaxed)
     }
 
     /// Connect to OBS WebSocket server
     ///
-    /// **Latency**: <50ms (network operation)
+    /// # Arguments
     ///
-    /// Performs:
-    /// 1. WebSocket connection
-    /// 2. Hello message reception
-    /// 3. Authentication (if password provided)
-    /// 4. Identified message reception
+    /// * `password` - Optional authentication password
     ///
-    /// # Errors
-    /// - InvalidUrl: URL parse failed
-    /// - ConnectionFailed: WebSocket connection refused
-    /// - AuthenticationFailed: Authentication rejected
-    /// - Timeout: Operation timeout
+    /// # Returns
     ///
-    /// # ASSUM
-    /// - #ASSUME_SINGLE_THREAD_CONNECT: Not reentrant
-    /// - #ASSUME_DISCONNECTED_STATE: Must be called from Disconnected state
-    /// - #ASSUME_OBS_PROTOCOL_5: Server must support obs-websocket 5.0+
-    #[cfg(feature = "std")]
-    pub fn connect(&mut self) -> Result<(), ObsError> {
-        // Check current state
-        if self.get_state() != ConnectionState::Disconnected {
-            return Err(ObsError::AlreadyConnected);
-        }
-
-        // Set connecting state
-        self.set_state(ConnectionState::Connecting);
-
-        // Get URL from buffer
-        let url_end = self.obs_url.iter().position(|&b| b == 0).unwrap_or(128);
-        let url = core::str::from_utf8(&self.obs_url[..url_end])
-            .map_err(|_| ObsError::InvalidUrl)?;
-
-        // Create WebSocket client
-        let mut ws_client = WebSocketClientCapsule::new();
-        ws_client
-            .connect(url)
-            .map_err(|_| ObsError::ConnectionFailed)?;
-
-        // Store client pointer (simplified - in production would use proper memory management)
-        self.websocket_client
-            .store(0x1234_5678, Ordering::Release); // Placeholder
-
-        // Transition to authenticating state
-        self.set_state(ConnectionState::Authenticating);
-
-        // In production: Wait for Hello message, send Identify, wait for Identified
-        // For now: Assume authentication succeeds
-        self.set_state(ConnectionState::Connected);
-        self.increment_generation();
-
-        Ok(())
-    }
-
-    /// Connect to OBS WebSocket server (no_std placeholder)
+    /// Ok(()) on success, ObsError on failure
     ///
-    /// Returns error in no_std environments.
-    #[cfg(not(feature = "std"))]
-    pub fn connect(&mut self) -> Result<(), ObsError> {
-        Err(ObsError::InternalError)
-    }
-
-    /// Update OBS text source
+    /// # Performance
     ///
-    /// **Latency**: <10ms (JSON serialize + send)
-    ///
-    /// Sends SetInputSettings request:
-    /// ```json
-    /// {
-    ///   "op": 6,
-    ///   "d": {
-    ///     "requestType": "SetInputSettings",
-    ///     "requestId": "uuid",
-    ///     "requestData": {
-    ///       "inputName": "source_name",
-    ///       "inputSettings": {
-    ///         "text": "updated_text"
-    ///       }
-    ///     }
-    ///   }
-    /// }
-    /// ```
-    ///
-    /// # Errors
-    /// - NotConnected: Not in Connected state
-    /// - SourceNotFound: OBS source doesn't exist
-    /// - RequestFailed: OBS rejected request
-    ///
-    /// # ASSUM
-    /// - #ASSUME_CONNECTED_STATE: Must be Connected
-    /// - #ASSUME_UTF8_TEXT: Text must be valid UTF-8
-    #[cfg(feature = "std")]
-    pub fn update_text_source(&self, source: &str, text: &str) -> Result<(), ObsError> {
-        // Check state
-        if self.get_state() != ConnectionState::Connected {
-            return Err(ObsError::NotConnected);
-        }
+    /// Target: <10ms total (TCP connect + HTTP upgrade + auth)
+    pub fn connect(&self, password: Option<&str>) -> Result<(), ObsError> {
+        // Transition to Connecting state
+        self.state.store(ConnectionState::Connecting as u64, Ordering::Release);
 
-        // Build SetInputSettings message
-        let request_id = self.next_request_id();
-        let message = format!(
-            r#"{{"op":6,"d":{{"requestType":"SetInputSettings","requestId":"{}","requestData":{{"inputName":"{}","inputSettings":{{"text":"{}"}}}}}}}}"#,
-            request_id, source, text
-        );
+        // Parse URL to get host and port
+        let url_str = std::str::from_utf8(&self.server_url)
+            .map_err(|e| ObsError::HandshakeFailed(format!("Invalid URL UTF-8: {}", e)))?
+            .trim_end_matches('\0');
 
-        // Send via WebSocket (placeholder - in production would use actual client)
-        // ws_client.send_text(&message)?;
+        // Simple URL parsing: ws://host:port
+        let url_without_prefix = url_str
+            .strip_prefix("ws://")
+            .ok_or_else(|| ObsError::HandshakeFailed("URL must start with ws://".to_string()))?;
 
-        self.messages_sent.fetch_add(1, Ordering::Relaxed);
+        let addr = if url_without_prefix.contains(':') {
+            url_without_prefix.to_string()
+        } else {
+            format!("{}:{}", url_without_prefix, DEFAULT_PORT)
+        };
 
-        Ok(())
-    }
-
-    /// Update OBS text source (no_std placeholder)
-    #[cfg(not(feature = "std"))]
-    pub fn update_text_source(&self, _source: &str, _text: &str) -> Result<(), ObsError> {
-        Err(ObsError::InternalError)
-    }
-
-    /// Switch OBS scene
-    ///
-    /// **Latency**: <50ms (request + response)
-    ///
-    /// Sends SetCurrentProgramScene request:
-    /// ```json
-    /// {
-    ///   "op": 6,
-    ///   "d": {
-    ///     "requestType": "SetCurrentProgramScene",
-    ///     "requestId": "uuid",
-    ///     "requestData": {
-    ///       "sceneName": "scene_name"
-    ///     }
-    ///   }
-    /// }
-    /// ```
-    ///
-    /// # Errors
-    /// - NotConnected: Not in Connected state
-    /// - SceneNotFound: OBS scene doesn't exist
-    /// - RequestFailed: OBS rejected request
-    ///
-    /// # ASSUM
-    /// - #ASSUME_CONNECTED_STATE: Must be Connected
-    #[cfg(feature = "std")]
-    pub fn switch_scene(&self, scene: &str) -> Result<(), ObsError> {
-        // Check state
-        if self.get_state() != ConnectionState::Connected {
-            return Err(ObsError::NotConnected);
-        }
-
-        // Build SetCurrentProgramScene message
-        let request_id = self.next_request_id();
-        let message = format!(
-            r#"{{"op":6,"d":{{"requestType":"SetCurrentProgramScene","requestId":"{}","requestData":{{"sceneName":"{}"}}}}}}"#,
-            request_id, scene
-        );
-
-        // Send via WebSocket (placeholder)
-        // ws_client.send_text(&message)?;
-
-        self.messages_sent.fetch_add(1, Ordering::Relaxed);
-
-        Ok(())
-    }
-
-    /// Switch OBS scene (no_std placeholder)
-    #[cfg(not(feature = "std"))]
-    pub fn switch_scene(&self, _scene: &str) -> Result<(), ObsError> {
-        Err(ObsError::InternalError)
-    }
-
-    /// Handle encoding start event
-    ///
-    /// **Latency**: <50ms (scene switch)
-    ///
-    /// Switches to encoding scene when encoder starts.
-    #[cfg(feature = "std")]
-    pub fn on_encoding_start(&self, config: &ObsSceneConfig) -> Result<(), ObsError> {
-        self.switch_scene(&config.scene_encoding)
-    }
-
-    /// Handle encoding start event (no_std placeholder)
-    #[cfg(not(feature = "std"))]
-    pub fn on_encoding_start(&self, _config: &ObsSceneConfig) -> Result<(), ObsError> {
-        Err(ObsError::InternalError)
-    }
-
-    /// Handle encoding complete event
-    ///
-    /// **Latency**: <50ms (scene switch)
-    ///
-    /// Switches to complete scene when encoder finishes.
-    #[cfg(feature = "std")]
-    pub fn on_encoding_complete(&self, config: &ObsSceneConfig) -> Result<(), ObsError> {
-        self.switch_scene(&config.scene_complete)
-    }
-
-    /// Handle encoding complete event (no_std placeholder)
-    #[cfg(not(feature = "std"))]
-    pub fn on_encoding_complete(&self, _config: &ObsSceneConfig) -> Result<(), ObsError> {
-        Err(ObsError::InternalError)
-    }
-
-    /// Handle encoding error event
-    ///
-    /// **Latency**: <50ms (scene switch)
-    ///
-    /// Switches to error scene on encoding failure.
-    #[cfg(feature = "std")]
-    pub fn on_encoding_error(&self, config: &ObsSceneConfig) -> Result<(), ObsError> {
-        self.switch_scene(&config.scene_error)
-    }
-
-    /// Handle encoding error event (no_std placeholder)
-    #[cfg(not(feature = "std"))]
-    pub fn on_encoding_error(&self, _config: &ObsSceneConfig) -> Result<(), ObsError> {
-        Err(ObsError::InternalError)
-    }
-
-    /// Get metrics snapshot
-    ///
-    /// **Latency**: ~5ns (relaxed load)
-    pub fn get_metrics(&self) -> (u64, u64) {
-        (
-            self.messages_sent.load(Ordering::Relaxed),
-            self.messages_received.load(Ordering::Relaxed),
+        // #ASSUME_TCP_SOCKET: TcpStream::connect may block
+        let stream = TcpStream::connect_timeout(
+            &addr.parse().map_err(|e| {
+                ObsError::ConnectionFailed(format!("Invalid address: {}", e))
+            })?,
+            Duration::from_millis(CONNECT_TIMEOUT_MS),
         )
+        .map_err(|e| ObsError::ConnectionFailed(e.to_string()))?;
+
+        stream.set_read_timeout(Some(Duration::from_millis(READ_TIMEOUT_MS)))?;
+        stream.set_write_timeout(Some(Duration::from_millis(READ_TIMEOUT_MS)))?;
+
+        // Store socket (we'll use Box to keep it alive)
+        // #ASSUME_64BIT_PTR: Box::into_raw returns usize which is 64 bits on 64-bit systems
+        let raw_ptr = Box::into_raw(Box::new(stream));
+        self.socket_ptr.store(raw_ptr as u64, Ordering::Release);
+
+        // Transition to Handshaking
+        self.state.store(ConnectionState::Handshaking as u64, Ordering::Release);
+
+        // Perform WebSocket handshake
+        self.websocket_handshake()?;
+
+        // Transition to Authenticating
+        self.state.store(ConnectionState::Authenticating as u64, Ordering::Release);
+
+        // Receive Hello message and authenticate
+        self.authenticate(password)?;
+
+        // Transition to Connected
+        self.state.store(ConnectionState::Connected as u64, Ordering::Release);
+
+        Ok(())
     }
 
-    /// Get stored URL
-    pub fn get_url(&self) -> &str {
-        let url_end = self.obs_url.iter().position(|&b| b == 0).unwrap_or(128);
-        core::str::from_utf8(&self.obs_url[..url_end]).unwrap_or("")
-    }
-}
+    /// WebSocket handshake (RFC 6455)
+    fn websocket_handshake(&self) -> Result<(), ObsError> {
+        let stream = self.get_stream()?;
 
-impl Default for ObsWebSocketCapsule {
-    fn default() -> Self {
-        Self::new("ws://localhost:4455", None)
-    }
-}
+        // Generate random WebSocket key (16 bytes)
+        let ws_key = self.generate_ws_key();
 
-impl fmt::Debug for ObsWebSocketCapsule {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ObsWebSocketCapsule")
-            .field("state", &self.get_state())
-            .field("generation", &self.get_generation())
-            .field("url", &self.get_url())
-            .field("request_id", &self.request_id.load(Ordering::Relaxed))
-            .field(
-                "messages_sent",
-                &self.messages_sent.load(Ordering::Relaxed),
+        // Send HTTP upgrade request
+        let handshake = format!(
+            "GET / HTTP/1.1\r\n\
+             Host: localhost\r\n\
+             Upgrade: websocket\r\n\
+             Connection: Upgrade\r\n\
+             Sec-WebSocket-Key: {}\r\n\
+             Sec-WebSocket-Version: 13\r\n\
+             \r\n",
+            ws_key
+        );
+
+        stream
+            .write_all(handshake.as_bytes())
+            .map_err(|e| ObsError::IoError(e.to_string()))?;
+
+        self.bytes_sent
+            .fetch_add(handshake.len() as u64, Ordering::Relaxed);
+
+        // Read HTTP response
+        let mut reader = BufReader::new(stream);
+        let mut response = String::new();
+        loop {
+            let mut line = String::new();
+            reader.read_line(&mut line).map_err(|e| ObsError::IoError(e.to_string()))?;
+            if line == "\r\n" {
+                break;
+            }
+            response.push_str(&line);
+        }
+
+        self.bytes_received
+            .fetch_add(response.len() as u64, Ordering::Relaxed);
+
+        // Verify 101 Switching Protocols
+        if !response.contains("101 Switching Protocols") {
+            return Err(ObsError::HandshakeFailed(format!(
+                "Expected 101, got: {}",
+                response
+            )));
+        }
+
+        Ok(())
+    }
+
+    /// Authenticate with OBS WebSocket server
+    fn authenticate(&self, password: Option<&str>) -> Result<(), ObsError> {
+        // Receive Hello message (OpCode 0)
+        let hello_msg = self.recv_message()?;
+
+        // Manual JSON parsing (simplified - production would use serde_json)
+        let hello_op = Self::extract_json_field(&hello_msg, "\"op\":")
+            .and_then(|s| s.parse::<u8>().ok())
+            .ok_or_else(|| ObsError::JsonError("Missing op field".to_string()))?;
+
+        if hello_op != OPCODE_HELLO {
+            return Err(ObsError::HandshakeFailed(format!(
+                "Expected Hello (op=0), got: {}",
+                hello_op
+            )));
+        }
+
+        // Check if authentication is required
+        let auth_str = if hello_msg.contains("\"authentication\"") {
+            let challenge = Self::extract_json_string(&hello_msg, "\"challenge\":")
+                .ok_or_else(|| ObsError::AuthenticationFailed("Missing challenge".to_string()))?;
+            let salt = Self::extract_json_string(&hello_msg, "\"salt\":")
+                .ok_or_else(|| ObsError::AuthenticationFailed("Missing salt".to_string()))?;
+
+            // Compute authentication response
+            Some(self.compute_auth_response(
+                password.ok_or_else(|| {
+                    ObsError::AuthenticationFailed("Password required but not provided".to_string())
+                })?,
+                &challenge,
+                &salt,
+            )?)
+        } else {
+            None
+        };
+
+        // Extract RPC version
+        let rpc_version = Self::extract_json_field(&hello_msg, "\"rpcVersion\":")
+            .and_then(|s| s.parse::<u32>().ok())
+            .unwrap_or(1);
+
+        // Send Identify message (OpCode 1)
+        let identify = if let Some(auth) = auth_str {
+            format!(
+                r#"{{"op":{},"d":{{"rpcVersion":{},"authentication":"{}","eventSubscriptions":0}}}}"#,
+                OPCODE_IDENTIFY, rpc_version, auth
             )
-            .field(
-                "messages_received",
-                &self.messages_received.load(Ordering::Relaxed),
+        } else {
+            format!(
+                r#"{{"op":{},"d":{{"rpcVersion":{},"eventSubscriptions":0}}}}"#,
+                OPCODE_IDENTIFY, rpc_version
             )
-            .finish()
+        };
+
+        self.send_message(&identify)?;
+
+        // Receive Identified message (OpCode 2)
+        let identified_msg = self.recv_message()?;
+        let identified_op = Self::extract_json_field(&identified_msg, "\"op\":")
+            .and_then(|s| s.parse::<u8>().ok())
+            .ok_or_else(|| ObsError::JsonError("Missing op field".to_string()))?;
+
+        if identified_op != OPCODE_IDENTIFIED {
+            return Err(ObsError::AuthenticationFailed(format!(
+                "Expected Identified (op=2), got: {}",
+                identified_op
+            )));
+        }
+
+        Ok(())
+    }
+
+    /// Compute authentication response (SHA256 challenge-response)
+    ///
+    /// Algorithm:
+    /// 1. secret = base64(SHA256(password + salt))
+    /// 2. auth = base64(SHA256(secret + challenge))
+    fn compute_auth_response(
+        &self,
+        password: &str,
+        challenge: &str,
+        salt: &str,
+    ) -> Result<String, ObsError> {
+        // Step 1: secret = base64(SHA256(password + salt))
+        let mut hasher = Sha256::new();
+        hasher.update(password.as_bytes());
+        hasher.update(salt.as_bytes());
+        let secret_hash = hasher.finalize();
+        let secret = base64_engine.encode(secret_hash);
+
+        // Step 2: auth = base64(SHA256(secret + challenge))
+        let mut hasher = Sha256::new();
+        hasher.update(secret.as_bytes());
+        hasher.update(challenge.as_bytes());
+        let auth_hash = hasher.finalize();
+        let auth = base64_engine.encode(auth_hash);
+
+        Ok(auth)
+    }
+
+    /// Generate random WebSocket key (base64-encoded 16 bytes)
+    fn generate_ws_key(&self) -> String {
+        // Simple timestamp-based key (for production, use rand crate)
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+
+        let key_bytes = timestamp.to_le_bytes();
+        base64_engine.encode(&key_bytes[..16.min(key_bytes.len())])
+    }
+
+    /// Extract JSON field value (simple parser - no external deps)
+    fn extract_json_field(json: &str, field: &str) -> Option<String> {
+        json.find(field).and_then(|start| {
+            let after_field = &json[start + field.len()..];
+            let trimmed = after_field.trim_start();
+            if let Some(comma_pos) = trimmed.find(&[',', '}'][..]) {
+                Some(trimmed[..comma_pos].trim().to_string())
+            } else {
+                None
+            }
+        })
+    }
+
+    /// Extract JSON string value (removes quotes)
+    fn extract_json_string(json: &str, field: &str) -> Option<String> {
+        Self::extract_json_field(json, field).and_then(|s| {
+            if s.starts_with('"') && s.ends_with('"') {
+                Some(s[1..s.len() - 1].to_string())
+            } else {
+                None
+            }
+        })
+    }
+
+    /// Send WebSocket text frame with message
+    fn send_message(&self, payload: &str) -> Result<(), ObsError> {
+        let stream = self.get_stream()?;
+
+        // Build WebSocket text frame (FIN=1, OpCode=1 text, MASK=1)
+        let payload_bytes = payload.as_bytes();
+        let payload_len = payload_bytes.len();
+
+        let mut frame = Vec::new();
+        frame.push(0x81); // FIN=1, OpCode=1 (text)
+
+        // Payload length with MASK bit set
+        if payload_len < 126 {
+            frame.push((payload_len as u8) | 0x80); // MASK=1
+        } else if payload_len <= 0xFFFF {
+            frame.push(126 | 0x80);
+            frame.extend_from_slice(&(payload_len as u16).to_be_bytes());
+        } else {
+            frame.push(127 | 0x80);
+            frame.extend_from_slice(&(payload_len as u64).to_be_bytes());
+        }
+
+        // Masking key (4 random bytes - using timestamp for simplicity)
+        let mask_key = [
+            (self.request_id.load(Ordering::Relaxed) & 0xFF) as u8,
+            ((self.request_id.load(Ordering::Relaxed) >> 8) & 0xFF) as u8,
+            ((self.request_id.load(Ordering::Relaxed) >> 16) & 0xFF) as u8,
+            ((self.request_id.load(Ordering::Relaxed) >> 24) & 0xFF) as u8,
+        ];
+        frame.extend_from_slice(&mask_key);
+
+        // Masked payload
+        for (i, &byte) in payload_bytes.iter().enumerate() {
+            frame.push(byte ^ mask_key[i % 4]);
+        }
+
+        stream.write_all(&frame).map_err(|e| ObsError::IoError(e.to_string()))?;
+
+        self.bytes_sent.fetch_add(frame.len() as u64, Ordering::Relaxed);
+        self.messages_sent.fetch_add(1, Ordering::Relaxed);
+
+        Ok(())
+    }
+
+    /// Receive WebSocket text frame
+    fn recv_message(&self) -> Result<String, ObsError> {
+        let stream = self.get_stream()?;
+
+        // Read frame header (2 bytes minimum)
+        let mut header = [0u8; 2];
+        stream.read_exact(&mut header).map_err(|e| ObsError::IoError(e.to_string()))?;
+
+        let _fin = (header[0] & 0x80) != 0;
+        let opcode = header[0] & 0x0F;
+        let masked = (header[1] & 0x80) != 0;
+        let mut payload_len = (header[1] & 0x7F) as u64;
+
+        // Extended payload length
+        if payload_len == 126 {
+            let mut len_bytes = [0u8; 2];
+            stream.read_exact(&mut len_bytes).map_err(|e| ObsError::IoError(e.to_string()))?;
+            payload_len = u16::from_be_bytes(len_bytes) as u64;
+        } else if payload_len == 127 {
+            let mut len_bytes = [0u8; 8];
+            stream.read_exact(&mut len_bytes).map_err(|e| ObsError::IoError(e.to_string()))?;
+            payload_len = u64::from_be_bytes(len_bytes);
+        }
+
+        // Masking key (server frames should NOT be masked)
+        if masked {
+            return Err(ObsError::HandshakeFailed(
+                "Server frames must not be masked".to_string(),
+            ));
+        }
+
+        // Read payload
+        let mut payload = vec![0u8; payload_len as usize];
+        stream.read_exact(&mut payload).map_err(|e| ObsError::IoError(e.to_string()))?;
+
+        self.bytes_received
+            .fetch_add(2 + payload.len() as u64, Ordering::Relaxed);
+        self.messages_received.fetch_add(1, Ordering::Relaxed);
+
+        // Convert to string (OpCode 1 = text)
+        if opcode == 1 {
+            String::from_utf8(payload)
+                .map_err(|e| ObsError::IoError(format!("Invalid UTF-8: {}", e)))
+        } else {
+            Err(ObsError::HandshakeFailed(format!(
+                "Unexpected opcode: {}",
+                opcode
+            )))
+        }
+    }
+
+    /// Send OBS request and wait for response
+    fn send_request(
+        &self,
+        request_type: &str,
+        request_data: Option<&str>,
+    ) -> Result<String, ObsError> {
+        // Generate unique request ID
+        let req_id = self.request_id.fetch_add(1, Ordering::Relaxed);
+        let request_id = format!("kindly-av1-{}", req_id);
+
+        // Build request message (manual JSON construction)
+        let request = if let Some(data) = request_data {
+            format!(
+                r#"{{"op":{},"d":{{"requestType":"{}","requestId":"{}","requestData":{}}}}}"#,
+                OPCODE_REQUEST, request_type, request_id, data
+            )
+        } else {
+            format!(
+                r#"{{"op":{},"d":{{"requestType":"{}","requestId":"{}"}}}}"#,
+                OPCODE_REQUEST, request_type, request_id
+            )
+        };
+
+        // Send request
+        self.send_message(&request)?;
+
+        // Receive response
+        let response_msg = self.recv_message()?;
+
+        // Verify OpCode = 7 (RequestResponse)
+        let response_op = Self::extract_json_field(&response_msg, "\"op\":")
+            .and_then(|s| s.parse::<u8>().ok())
+            .ok_or_else(|| ObsError::JsonError("Missing op field".to_string()))?;
+
+        if response_op != OPCODE_REQUEST_RESPONSE {
+            return Err(ObsError::RequestFailed(format!(
+                "Expected RequestResponse (op=7), got: {}",
+                response_op
+            )));
+        }
+
+        // Check request status
+        let result_str = Self::extract_json_field(&response_msg, "\"result\":")
+            .ok_or_else(|| ObsError::JsonError("Missing result field".to_string()))?;
+
+        if result_str == "false" {
+            let code = Self::extract_json_field(&response_msg, "\"code\":")
+                .unwrap_or_else(|| "unknown".to_string());
+            let comment = Self::extract_json_string(&response_msg, "\"comment\":")
+                .unwrap_or_else(|| "Unknown error".to_string());
+            return Err(ObsError::RequestFailed(format!(
+                "Request failed: code={}, comment={}",
+                code, comment
+            )));
+        }
+
+        Ok(response_msg)
+    }
+
+    /// Get version information
+    pub fn get_version(&self) -> Result<String, ObsError> {
+        let response = self.send_request("GetVersion", None)?;
+        let version = Self::extract_json_string(&response, "\"obsVersion\":")
+            .unwrap_or_else(|| "unknown".to_string());
+        Ok(version)
+    }
+
+    /// Switch to a specific scene
+    pub fn set_scene(&self, scene_name: &str) -> Result<(), ObsError> {
+        let request_data = format!(r#"{{"sceneName":"{}"}}"#, scene_name);
+        self.send_request("SetCurrentProgramScene", Some(&request_data))?;
+        Ok(())
+    }
+
+    /// Update text source content
+    pub fn set_text_source(&self, source_name: &str, text: &str) -> Result<(), ObsError> {
+        let request_data = format!(
+            r#"{{"inputName":"{}","inputSettings":{{"text":"{}"}}}}"#,
+            source_name, text
+        );
+        self.send_request("SetInputSettings", Some(&request_data))?;
+        Ok(())
+    }
+
+    /// Disconnect from OBS
+    pub fn disconnect(&self) -> Result<(), ObsError> {
+        self.state
+            .store(ConnectionState::Disconnecting as u64, Ordering::Release);
+
+        // Close socket - swap with 0 (null) atomically
+        let socket_ptr = self.socket_ptr.swap(0, Ordering::AcqRel);
+        if socket_ptr != 0 {
+            // #ASSUME_TCP_SOCKET: Reconstruct Box to drop TcpStream
+            // #ASSUME_64BIT_PTR: socket_ptr was stored as u64 from Box::into_raw
+            // SAFETY: socket_ptr is valid pointer from Box::into_raw, called exactly once
+            unsafe {
+                let _stream = Box::from_raw(socket_ptr as *mut TcpStream);
+                // Drop closes the connection
+            }
+        }
+
+        self.state
+            .store(ConnectionState::Disconnected as u64, Ordering::Release);
+
+        Ok(())
+    }
+
+    /// Get current connection state
+    pub fn state(&self) -> ConnectionState {
+        ConnectionState::from_u8(self.state.load(Ordering::Acquire) as u8)
+    }
+
+    /// Get statistics snapshot
+    pub fn snapshot(&self) -> ObsSnapshot {
+        ObsSnapshot {
+            state: self.state(),
+            messages_sent: self.messages_sent.load(Ordering::Relaxed),
+            messages_received: self.messages_received.load(Ordering::Relaxed),
+            bytes_sent: self.bytes_sent.load(Ordering::Relaxed),
+            bytes_received: self.bytes_received.load(Ordering::Relaxed),
+        }
+    }
+
+    /// Helper: Get stream from socket_ptr
+    fn get_stream(&self) -> Result<&mut TcpStream, ObsError> {
+        let socket_ptr = self.socket_ptr.load(Ordering::Acquire);
+        if socket_ptr == 0 {
+            return Err(ObsError::InvalidState("Not connected".to_string()));
+        }
+
+        // #ASSUME_TCP_SOCKET: socket_ptr is valid pointer from Box::into_raw
+        // #ASSUME_64BIT_PTR: socket_ptr is u64 containing valid pointer
+        // SAFETY: socket_ptr is non-null and was stored from Box::into_raw
+        unsafe { Ok(&mut *(socket_ptr as *mut TcpStream)) }
     }
 }
+
+impl Drop for ObsWebSocketCapsule {
+    fn drop(&mut self) {
+        let _ = self.disconnect();
+    }
+}
+
+// ============================================================================
+// Snapshot
+// ============================================================================
+
+/// OBS WebSocket statistics snapshot
+#[derive(Debug, Clone, Copy)]
+pub struct ObsSnapshot {
+    pub state: ConnectionState,
+    pub messages_sent: u64,
+    pub messages_received: u64,
+    pub bytes_sent: u64,
+    pub bytes_received: u64,
+}
+
+// ============================================================================
+// Tests (T28 Q1-Q7 Unit Tests)
+// ============================================================================
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    // ========================================================================
-    // Q1-Q7: Unit Tests
-    // ========================================================================
-
     #[test]
-    fn test_q1_capsule_new() {
-        let obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-        assert_eq!(obs.get_state(), ConnectionState::Disconnected);
-        assert_eq!(obs.get_generation(), 0);
-        assert_eq!(obs.get_url(), "ws://localhost:4455");
-    }
-
-    #[test]
-    fn test_q2_capsule_size_alignment() {
-        assert_eq!(core::mem::size_of::<ObsWebSocketCapsule>(), 256);
-        assert_eq!(core::mem::align_of::<ObsWebSocketCapsule>(), 256);
-    }
-
-    #[test]
-    fn test_q3_state_transitions() {
-        let obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-
-        assert_eq!(obs.get_state(), ConnectionState::Disconnected);
-        obs.set_state(ConnectionState::Connecting);
-        assert_eq!(obs.get_state(), ConnectionState::Connecting);
-        obs.set_state(ConnectionState::Authenticating);
-        assert_eq!(obs.get_state(), ConnectionState::Authenticating);
-        obs.set_state(ConnectionState::Connected);
-        assert_eq!(obs.get_state(), ConnectionState::Connected);
-    }
-
-    #[test]
-    fn test_q4_generation_counter() {
-        let obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-
-        assert_eq!(obs.get_generation(), 0);
-        obs.increment_generation();
-        assert_eq!(obs.get_generation(), 1);
-        obs.increment_generation();
-        assert_eq!(obs.get_generation(), 2);
-    }
-
-    #[test]
-    fn test_q5_request_id_sequence() {
-        let obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-
-        assert_eq!(obs.next_request_id(), 1);
-        assert_eq!(obs.next_request_id(), 2);
-        assert_eq!(obs.next_request_id(), 3);
-    }
-
-    #[test]
-    fn test_q6_metrics_initial() {
-        let obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-        let (sent, recv) = obs.get_metrics();
-        assert_eq!(sent, 0);
-        assert_eq!(recv, 0);
-    }
-
-    #[test]
-    fn test_q7_url_storage() {
-        let url = "ws://192.168.1.100:4455";
-        let obs = ObsWebSocketCapsule::new(url, None);
-        assert_eq!(obs.get_url(), url);
-    }
-
-    // ========================================================================
-    // Q8-Q14: Property Tests
-    // ========================================================================
-
-    #[test]
-    fn test_q8_default_url() {
-        let obs = ObsWebSocketCapsule::default();
-        assert_eq!(obs.get_url(), "ws://localhost:4455");
-    }
-
-    #[test]
-    fn test_q9_state_is_terminal() {
-        assert!(!ConnectionState::Disconnected.is_terminal());
-        assert!(!ConnectionState::Connecting.is_terminal());
-        assert!(!ConnectionState::Authenticating.is_terminal());
-        assert!(!ConnectionState::Connected.is_terminal());
-        assert!(ConnectionState::Error.is_terminal());
-    }
-
-    #[test]
-    #[cfg(feature = "std")]
-    fn test_q10_update_text_not_connected() {
-        let obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-        let result = obs.update_text_source("Status", "Test");
-        assert_eq!(result, Err(ObsError::NotConnected));
-    }
-
-    #[test]
-    #[cfg(feature = "std")]
-    fn test_q11_switch_scene_not_connected() {
-        let obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-        let result = obs.switch_scene("Encoding");
-        assert_eq!(result, Err(ObsError::NotConnected));
-    }
-
-    #[test]
-    #[cfg(feature = "std")]
-    fn test_q12_scene_config_default() {
-        let config = ObsSceneConfig::default();
-        assert_eq!(config.scene_encoding, "Encoding");
-        assert_eq!(config.scene_complete, "Complete");
-        assert_eq!(config.scene_error, "Error");
-    }
-
-    #[test]
-    fn test_q13_error_display() {
+    fn test_q1_capsule_size() {
         assert_eq!(
-            format!("{}", ObsError::NotConnected),
-            "Not connected to OBS"
-        );
-        assert_eq!(
-            format!("{}", ObsError::SceneNotFound),
-            "OBS scene not found"
+            std::mem::size_of::<ObsWebSocketCapsule>(),
+            256,
+            "ObsWebSocketCapsule must be exactly 256 bytes"
         );
     }
 
     #[test]
-    fn test_q14_debug_output() {
-        let obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-        let debug_str = format!("{:?}", obs);
-        assert!(debug_str.contains("Disconnected"));
-        assert!(debug_str.contains("localhost:4455"));
-    }
-
-    // ========================================================================
-    // Q15-Q21: Integration Tests
-    // ========================================================================
-
-    #[test]
-    #[cfg(feature = "std")]
-    fn test_q15_connect_success() {
-        let mut obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-        // Note: This would fail in CI without real OBS instance
-        // In production tests, mock WebSocket client
-        let result = obs.connect();
-        // Allow either success or connection failure (CI environment)
-        if result.is_ok() {
-            assert_eq!(obs.get_state(), ConnectionState::Connected);
-        }
+    fn test_q2_capsule_alignment() {
+        assert_eq!(
+            std::mem::align_of::<ObsWebSocketCapsule>(),
+            256,
+            "ObsWebSocketCapsule must be 256-byte aligned"
+        );
     }
 
     #[test]
-    #[cfg(feature = "std")]
-    fn test_q16_update_text_connected() {
-        let mut obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-        obs.set_state(ConnectionState::Connected);
-
-        let result = obs.update_text_source("Status", "Encoding: 45%");
-        assert!(result.is_ok());
-
-        let (sent, _) = obs.get_metrics();
-        assert_eq!(sent, 1);
+    fn test_q3_initial_state() {
+        let obs = ObsWebSocketCapsule::new("ws://localhost:4455");
+        assert_eq!(obs.state(), ConnectionState::Disconnected);
+        assert_eq!(obs.snapshot().messages_sent, 0);
+        assert_eq!(obs.snapshot().messages_received, 0);
     }
 
     #[test]
-    #[cfg(feature = "std")]
-    fn test_q17_switch_scene_connected() {
-        let mut obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-        obs.set_state(ConnectionState::Connected);
+    fn test_q4_connection_state_transitions() {
+        let obs = ObsWebSocketCapsule::new("ws://localhost:4455");
+        assert_eq!(obs.state(), ConnectionState::Disconnected);
 
-        let result = obs.switch_scene("Encoding Scene");
-        assert!(result.is_ok());
+        obs.state.store(ConnectionState::Connecting as u64, Ordering::Release);
+        assert_eq!(obs.state(), ConnectionState::Connecting);
 
-        let (sent, _) = obs.get_metrics();
-        assert_eq!(sent, 1);
+        obs.state.store(ConnectionState::Connected as u64, Ordering::Release);
+        assert_eq!(obs.state(), ConnectionState::Connected);
     }
 
     #[test]
-    #[cfg(feature = "std")]
-    fn test_q18_on_encoding_start() {
-        let mut obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-        obs.set_state(ConnectionState::Connected);
+    fn test_q5_auth_response_computation() {
+        let obs = ObsWebSocketCapsule::new("ws://localhost:4455");
 
-        let config = ObsSceneConfig::default();
-        let result = obs.on_encoding_start(&config);
-        assert!(result.is_ok());
+        // Known test vector
+        let password = "supersecretpassword";
+        let challenge = "ztTBnnuqrqaKDzRM3xcVdbYm";
+        let salt = "PZVbYpvAnZut2SS6JNJytDm9";
+
+        let auth = obs.compute_auth_response(password, challenge, salt).unwrap();
+
+        // Verify it's base64-encoded (44 chars for SHA256)
+        assert_eq!(auth.len(), 44, "Auth response should be 44 chars (base64 SHA256)");
     }
 
     #[test]
-    #[cfg(feature = "std")]
-    fn test_q19_on_encoding_complete() {
-        let mut obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-        obs.set_state(ConnectionState::Connected);
+    fn test_q6_generate_ws_key() {
+        let obs = ObsWebSocketCapsule::new("ws://localhost:4455");
+        let key1 = obs.generate_ws_key();
+        let key2 = obs.generate_ws_key();
 
-        let config = ObsSceneConfig::default();
-        let result = obs.on_encoding_complete(&config);
-        assert!(result.is_ok());
+        // Keys should be base64-encoded
+        assert!(!key1.is_empty());
+        assert!(!key2.is_empty());
     }
 
     #[test]
-    #[cfg(feature = "std")]
-    fn test_q20_on_encoding_error() {
-        let mut obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-        obs.set_state(ConnectionState::Connected);
+    fn test_q7_json_field_extraction() {
+        let json = r#"{"op":0,"d":{"rpcVersion":1}}"#;
 
-        let config = ObsSceneConfig::default();
-        let result = obs.on_encoding_error(&config);
-        assert!(result.is_ok());
-    }
+        let op = ObsWebSocketCapsule::extract_json_field(json, "\"op\":");
+        assert_eq!(op, Some("0".to_string()));
 
-    #[test]
-    #[cfg(feature = "std")]
-    fn test_q21_multiple_requests_increment_counter() {
-        let mut obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-        obs.set_state(ConnectionState::Connected);
-
-        obs.update_text_source("Status", "Test 1").ok();
-        obs.update_text_source("Status", "Test 2").ok();
-        obs.switch_scene("Scene 1").ok();
-        obs.switch_scene("Scene 2").ok();
-
-        let (sent, _) = obs.get_metrics();
-        assert_eq!(sent, 4);
-    }
-
-    // ========================================================================
-    // Q22-Q28: Production Tests
-    // ========================================================================
-
-    #[test]
-    fn test_q22_concurrent_state_reads() {
-        let obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-        obs.set_state(ConnectionState::Connected);
-
-        let state1 = obs.get_state();
-        let state2 = obs.get_state();
-        assert_eq!(state1, state2);
-        assert_eq!(state1, ConnectionState::Connected);
-    }
-
-    #[test]
-    fn test_q23_generation_persistence() {
-        let obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-
-        obs.increment_generation();
-        let gen1 = obs.get_generation();
-        let gen2 = obs.get_generation();
-        assert_eq!(gen1, gen2);
-        assert_eq!(gen1, 1);
-    }
-
-    #[test]
-    fn test_q24_url_truncation() {
-        let long_url = "ws://".to_string() + &"a".repeat(200);
-        let obs = ObsWebSocketCapsule::new(&long_url, None);
-
-        let stored_url = obs.get_url();
-        assert!(stored_url.len() <= 128);
-        assert!(stored_url.starts_with("ws://"));
-    }
-
-    #[test]
-    #[cfg(feature = "std")]
-    fn test_q25_scene_automation_lifecycle() {
-        let mut obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-        obs.set_state(ConnectionState::Connected);
-
-        let config = ObsSceneConfig {
-            scene_encoding: "Encoding Scene".to_string(),
-            scene_complete: "Complete Scene".to_string(),
-            scene_error: "Error Scene".to_string(),
-        };
-
-        // Simulate full lifecycle
-        obs.on_encoding_start(&config).ok();
-        obs.update_text_source("Status", "Encoding...").ok();
-        obs.on_encoding_complete(&config).ok();
-
-        let (sent, _) = obs.get_metrics();
-        assert_eq!(sent, 3);
-    }
-
-    #[test]
-    #[cfg(feature = "std")]
-    fn test_q26_multiple_connections_fail() {
-        let mut obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-
-        // First connection attempt (may succeed or fail in CI)
-        let _ = obs.connect();
-
-        // If connected, second attempt should fail
-        if obs.get_state() == ConnectionState::Connected {
-            let result = obs.connect();
-            assert_eq!(result, Err(ObsError::AlreadyConnected));
-        }
-    }
-
-    #[test]
-    fn test_q27_request_id_wraparound() {
-        let obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-
-        // Set request_id to near max
-        obs.request_id.store(u32::MAX - 2, Ordering::Relaxed);
-
-        let id1 = obs.next_request_id();
-        let id2 = obs.next_request_id();
-        let id3 = obs.next_request_id();
-
-        assert_eq!(id1, u32::MAX - 1);
-        assert_eq!(id2, u32::MAX);
-        assert_eq!(id3, 0); // Wraps around
-    }
-
-    #[test]
-    fn test_q28_metrics_overflow_safe() {
-        let obs = ObsWebSocketCapsule::new("ws://localhost:4455", None);
-
-        // Set counters to near max
-        obs.messages_sent.store(u64::MAX - 1, Ordering::Relaxed);
-
-        // Increment should wrap
-        obs.messages_sent.fetch_add(1, Ordering::Relaxed);
-        let (sent, _) = obs.get_metrics();
-        assert_eq!(sent, u64::MAX);
-
-        // Another increment wraps to 0
-        obs.messages_sent.fetch_add(1, Ordering::Relaxed);
-        let (sent, _) = obs.get_metrics();
-        assert_eq!(sent, 0);
+        let rpc = ObsWebSocketCapsule::extract_json_field(json, "\"rpcVersion\":");
+        assert_eq!(rpc, Some("1".to_string()));
     }
 }

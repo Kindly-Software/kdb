@@ -312,7 +312,7 @@ RFC 6455 uses variable-length encoding for payload sizes:
 | Framework | Status | Notes |
 |-----------|--------|-------|
 | **UCE34** | ✅ Q1-Q34 | T1 tier selection, lockfree design, auditability |
-| **COCA** | ✅ 100% | Pure computational capsule, zero dependencies |
+| **Chaos** | ✅ 100% | Pure computational capsule, zero dependencies |
 | **ASSUM** | ✅ 99.99% | 5 safety assumptions, all verified |
 | **B32** | ✅ Fair | Criterion benchmarks, 1000+ iterations, 95% CI |
 | **T28** | ✅ 4 Tiers | 14 comprehensive tests (unit/property/integration/production) |

@@ -26,7 +26,7 @@
 //! - **Total Pipeline**: 1.21-1.35× speedup (199.16s → 148-160s)
 //! - **Per-bucket latency**: <10ms (parallel work-stealing)
 //!
-//! ## COCA Compliance
+//! ## Chaos Compliance
 //!
 //! - 100% lockfree (no Mutex/RwLock in implementation)
 //! - Arc<> for thread-safe capsule sharing

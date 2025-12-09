@@ -1,0 +1,551 @@
+// tests/week4_option_c_property_tests.rs
+//
+// Week 4 Option C: Property Tests (4000+ cases)
+// Framework: T28 Tier 2 (Property Testing)
+// Status: TEMPLATE - Awaiting feature implementation
+//
+// This file is a TEMPLATE showing the structure of property tests that
+// will be implemented once the Week 4 Option C features exist.
+
+#![cfg(test)]
+#![allow(dead_code, unused_imports)]
+
+// BLOCKED: Uncomment when features implemented
+// use clapi_core::features::{
+//     CoalescingManager,
+//     PredictiveCacheManager,
+//     AdvancedRateLimiter,
+//     CostForecaster,
+// };
+
+use proptest::prelude::*;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::collections::HashMap;
+use std::time::Duration;
+
+// ============================================================================
+// REQUEST COALESCING PROPERTY TESTS (1000+ cases)
+// ============================================================================
+
+#[cfg(feature = "week4-coalescing")]
+mod coalescing_property_tests {
+    use super::*;
+
+    proptest! {
+        /// Property: All coalesced requests receive the same result
+        ///
+        /// Invariant: ∀ requests with same hash → same result
+        #[test]
+        fn prop_coalescing_preserves_result(
+            request_patterns in prop::collection::vec((0u64..100, 0u64..10), 100..1000)
+        ) {
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            runtime.block_on(async {
+                let manager = Arc::new(CoalescingManager::new());
+                let results = Arc::new(tokio::sync::Mutex::new(HashMap::new()));
+
+                let handles: Vec<_> = request_patterns.into_iter().map(|(req_id, _)| {
+                    let mgr = manager.clone();
+                    let res = results.clone();
+                    tokio::spawn(async move {
+                        let result = mgr.execute_or_wait(req_id, || async {
+                            req_id * 2  // Deterministic result
+                        }).await;
+
+                        res.lock().await.entry(req_id).or_insert_with(Vec::new).push(result);
+                    })
+                }).collect();
+
+                for h in handles {
+                    h.await.unwrap();
+                }
+
+                // Verify: All requests with same ID got same result
+                for (req_id, results_vec) in results.lock().await.iter() {
+                    for result in results_vec {
+                        prop_assert_eq!(*result, req_id * 2);
+                    }
+                }
+
+                Ok(())
+            })?;
+        }
+
+        /// Property: N identical concurrent requests → 1 provider call
+        ///
+        /// Invariant: coalesced_calls = 1 for all N > 1
+        #[test]
+        fn prop_coalescing_reduces_calls(
+            concurrent_identical in 2usize..1000
+        ) {
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            runtime.block_on(async {
+                let manager = Arc::new(CoalescingManager::new());
+                let call_count = Arc::new(AtomicU64::new(0));
+
+                let handles: Vec<_> = (0..concurrent_identical).map(|_| {
+                    let mgr = manager.clone();
+                    let count = call_count.clone();
+                    tokio::spawn(async move {
+                        mgr.execute_or_wait(42, || async {
+                            count.fetch_add(1, Ordering::Relaxed);
+                            "result"
+                        }).await
+                    })
+                }).collect();
+
+                for h in handles {
+                    h.await.unwrap();
+                }
+
+                // Should execute exactly once
+                prop_assert_eq!(call_count.load(Ordering::Relaxed), 1);
+                Ok(())
+            })?;
+        }
+
+        /// Property: Different hashes → independent executions
+        ///
+        /// Invariant: distinct_hashes(N) → N provider calls
+        #[test]
+        fn prop_different_hashes_no_coalescing(
+            num_different in 1usize..100
+        ) {
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            runtime.block_on(async {
+                let manager = Arc::new(CoalescingManager::new());
+                let call_count = Arc::new(AtomicU64::new(0));
+
+                let handles: Vec<_> = (0..num_different).map(|i| {
+                    let mgr = manager.clone();
+                    let count = call_count.clone();
+                    tokio::spawn(async move {
+                        mgr.execute_or_wait(i as u64, || async {
+                            count.fetch_add(1, Ordering::Relaxed);
+                            i
+                        }).await
+                    })
+                }).collect();
+
+                for h in handles {
+                    h.await.unwrap();
+                }
+
+                // Each unique hash should execute
+                prop_assert_eq!(call_count.load(Ordering::Relaxed), num_different as u64);
+                Ok(())
+            })?;
+        }
+
+        /// Property: Cleanup prevents memory leaks
+        ///
+        /// Invariant: in_flight_count eventually → 0
+        #[test]
+        fn prop_cleanup_prevents_leaks(
+            iterations in 10usize..100
+        ) {
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            runtime.block_on(async {
+                let manager = Arc::new(CoalescingManager::new());
+
+                for i in 0..iterations {
+                    manager.execute_or_wait(i as u64, || async {
+                        tokio::time::sleep(Duration::from_millis(1)).await;
+                        i
+                    }).await;
+                }
+
+                // Wait for cleanup
+                tokio::time::sleep(Duration::from_millis(100)).await;
+
+                // All in-flight entries should be cleaned up
+                prop_assert_eq!(manager.in_flight_count(), 0);
+                Ok(())
+            })?;
+        }
+    }
+}
+
+// ============================================================================
+// PREDICTIVE CACHING PROPERTY TESTS (1000+ cases)
+// ============================================================================
+
+#[cfg(feature = "week4-predictive")]
+mod predictive_property_tests {
+    use super::*;
+
+    proptest! {
+        /// Property: Repeating patterns → higher hit rate
+        ///
+        /// Invariant: hit_rate increases with pattern repetitions
+        #[test]
+        fn prop_cache_hit_rate_improves_with_patterns(
+            pattern_length in 2usize..20,
+            pattern_repetitions in 10usize..100
+        ) {
+            let cache = PredictiveCacheManager::new();
+
+            // Generate pattern
+            let pattern: Vec<_> = (0..pattern_length).collect();
+
+            // Repeat pattern N times
+            for _ in 0..pattern_repetitions {
+                for &req_id in &pattern {
+                    cache.record_request(&request(&req_id.to_string()));
+                }
+            }
+
+            // Hit rate should be at least 30%
+            let hit_rate = cache.get_hit_rate();
+            prop_assert!(hit_rate >= 0.3, "Hit rate: {}", hit_rate);
+        }
+
+        /// Property: Random requests → low false positive rate
+        ///
+        /// Invariant: false_positive_rate < 10%
+        #[test]
+        fn prop_false_positive_rate_bounded(
+            num_requests in 100usize..1000,
+            seed in 0u64..1000
+        ) {
+            use rand::{Rng, SeedableRng};
+            use rand::rngs::StdRng;
+
+            let cache = PredictiveCacheManager::new();
+            let mut rng = StdRng::seed_from_u64(seed);
+
+            // Random requests (no pattern)
+            for _ in 0..num_requests {
+                let req_id = rng.gen_range(0..100);
+                cache.record_request(&request(&format!("req{}", req_id)));
+            }
+
+            // Measure false positive rate
+            let mut false_positives = 0;
+            for i in 0..100 {
+                if cache.should_prefetch(&request(&format!("req{}", i))) {
+                    false_positives += 1;
+                }
+            }
+
+            let false_positive_rate = false_positives as f64 / 100.0;
+            prop_assert!(false_positive_rate < 0.10,
+                         "False positive rate: {:.1}%", false_positive_rate * 100.0);
+        }
+
+        /// Property: Pattern detection accuracy
+        ///
+        /// Invariant: After N repetitions, next(A) → B with >80% probability
+        #[test]
+        fn prop_pattern_detection_accuracy(
+            repetitions in 10usize..100
+        ) {
+            let cache = PredictiveCacheManager::new();
+
+            // Pattern: A → B → C
+            for _ in 0..repetitions {
+                cache.record_request(&request("A"));
+                cache.record_request(&request("B"));
+                cache.record_request(&request("C"));
+            }
+
+            // After A, should predict B with high probability
+            cache.record_request(&request("A"));
+            prop_assert!(cache.should_prefetch(&request("B")),
+                        "Failed to predict B after A with {} repetitions", repetitions);
+        }
+
+        /// Property: Memory bounded (LRU eviction)
+        ///
+        /// Invariant: cache_size ≤ max_capacity
+        #[test]
+        fn prop_memory_bounded(
+            num_unique_requests in 1000usize..10000,
+            max_capacity in 100usize..1000
+        ) {
+            let cache = PredictiveCacheManager::with_capacity(max_capacity);
+
+            // Insert more than capacity
+            for i in 0..num_unique_requests {
+                cache.record_request(&request(&format!("req{}", i)));
+            }
+
+            // Cache size should not exceed capacity
+            prop_assert!(cache.current_size() <= max_capacity,
+                        "Cache size: {}, max: {}", cache.current_size(), max_capacity);
+        }
+    }
+}
+
+// ============================================================================
+// ADVANCED RATE LIMITING PROPERTY TESTS (1000+ cases)
+// ============================================================================
+
+#[cfg(feature = "week4-rate-limiting")]
+mod rate_limiting_property_tests {
+    use super::*;
+
+    proptest! {
+        /// Property: Jitter always positive and bounded
+        ///
+        /// Invariant: jitter ∈ [0, refill_rate/10)
+        #[test]
+        fn prop_jitter_always_positive_and_bounded(
+            capacity in 1u64..10000,
+            refill_ns in 1u64..1_000_000_000
+        ) {
+            let limiter = AdvancedRateLimiter::new(capacity, Duration::from_nanos(refill_ns));
+
+            for _ in 0..100 {
+                match limiter.acquire_with_jitter(1) {
+                    Ok(jitter) => {
+                        prop_assert!(jitter.as_nanos() >= 0);
+                        prop_assert!(jitter.as_nanos() < (refill_ns / 10) as u128);
+                    }
+                    Err(_) => {}  // Rate limited (acceptable)
+                }
+            }
+        }
+
+        /// Property: No integer overflow
+        ///
+        /// Invariant: acquire(N) never panics for any N
+        #[test]
+        fn prop_no_overflow(
+            capacity in 1u64..u64::MAX,
+            tokens in 0u64..1000
+        ) {
+            let limiter = AdvancedRateLimiter::new(capacity, Duration::from_nanos(1));
+
+            // Should not panic on extreme values
+            for _ in 0..100 {
+                let _ = limiter.acquire_with_jitter(tokens);
+            }
+        }
+
+        /// Property: Fairness (eventually consistent)
+        ///
+        /// Invariant: After N refills, all users get ≈equal tokens
+        #[test]
+        fn prop_fairness_eventually_consistent(
+            num_users in 2usize..100,
+            capacity in 100u64..1000
+        ) {
+            let limiter = Arc::new(AdvancedRateLimiter::new(capacity, Duration::from_millis(10)));
+            let user_tokens = Arc::new(tokio::sync::Mutex::new(vec![0u64; num_users]));
+
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            runtime.block_on(async {
+                let handles: Vec<_> = (0..num_users).map(|user_id| {
+                    let lim = limiter.clone();
+                    let tokens = user_tokens.clone();
+                    tokio::spawn(async move {
+                        for _ in 0..100 {
+                            if lim.acquire_with_jitter(user_id as u64).is_ok() {
+                                tokens.lock().await[user_id] += 1;
+                            }
+                            tokio::time::sleep(Duration::from_millis(1)).await;
+                        }
+                    })
+                }).collect();
+
+                for h in handles {
+                    h.await.unwrap();
+                }
+
+                // Verify fairness: all users got some tokens
+                let tokens = user_tokens.lock().await;
+                let min = tokens.iter().min().unwrap();
+                let max = tokens.iter().max().unwrap();
+
+                // Variance should be ≤2× (not perfectly fair, but reasonable)
+                prop_assert!(*max <= 2 * *min,
+                            "Fairness violated: min={}, max={}", min, max);
+
+                Ok(())
+            })?;
+        }
+
+        /// Property: Backpressure monotonic
+        ///
+        /// Invariant: Higher load → higher backpressure level
+        #[test]
+        fn prop_backpressure_monotonic(
+            base_rate in 10u64..1000,
+            load_multiplier in 2u64..10
+        ) {
+            let limiter = AdvancedRateLimiter::new(base_rate, Duration::from_secs(1));
+
+            // Low load
+            for _ in 0..base_rate / 2 {
+                let _ = limiter.acquire_with_jitter(1);
+            }
+            let low_backpressure = limiter.current_backpressure_level();
+
+            // High load
+            for _ in 0..base_rate * load_multiplier {
+                let _ = limiter.acquire_with_jitter(1);
+            }
+            let high_backpressure = limiter.current_backpressure_level();
+
+            // Higher load should NOT reduce backpressure
+            prop_assert!(high_backpressure >= low_backpressure,
+                        "Backpressure decreased under load: low={}, high={}",
+                        low_backpressure, high_backpressure);
+        }
+    }
+}
+
+// ============================================================================
+// COST FORECASTING PROPERTY TESTS (1000+ cases)
+// ============================================================================
+
+#[cfg(feature = "week4-cost-forecast")]
+mod cost_forecasting_property_tests {
+    use super::*;
+
+    proptest! {
+        /// Property: Linear trend → bounded error
+        ///
+        /// Invariant: |predicted - actual| ≤ 2 × noise_stddev
+        #[test]
+        fn prop_forecast_error_bounded(
+            trend_slope in -100.0f64..100.0,
+            noise_stddev in 0.0f64..10.0
+        ) {
+            use rand::{Rng, SeedableRng};
+            use rand::rngs::StdRng;
+
+            let forecaster = CostForecaster::new();
+            let mut rng = StdRng::seed_from_u64(42);
+
+            // Generate linear trend + noise
+            for i in 0..1000 {
+                let base = 1000.0 + trend_slope * i as f64;
+                let noise = rng.gen_range(-noise_stddev..noise_stddev);
+                let cost = (base + noise).max(0.0) as i64;
+                forecaster.record_cost(i * 60_000_000_000, cost);
+            }
+
+            // Predict next value
+            let predicted = forecaster.predict_at_offset(1) as f64;
+            let actual = 1000.0 + trend_slope * 1000.0;
+            let error = (predicted - actual).abs();
+
+            // Error should be ≤ 2× noise stddev + slope magnitude
+            prop_assert!(error <= 2.0 * noise_stddev + trend_slope.abs(),
+                        "Error: {:.2}, expected ≤ {:.2}",
+                        error, 2.0 * noise_stddev + trend_slope.abs());
+        }
+
+        /// Property: Trend calculation stable
+        ///
+        /// Invariant: Repeated calculations → same result
+        #[test]
+        fn prop_trend_calculation_stable(
+            num_samples in 100usize..1000
+        ) {
+            let forecaster = CostForecaster::new();
+
+            // Linear trend: y = x
+            for i in 0..num_samples {
+                forecaster.record_cost(i as u64 * 60_000_000_000, i as i64);
+            }
+
+            // Multiple predictions should be stable
+            let pred1 = forecaster.predict_next_hour();
+            let pred2 = forecaster.predict_next_hour();
+            let pred3 = forecaster.predict_next_hour();
+
+            prop_assert_eq!(pred1, pred2);
+            prop_assert_eq!(pred2, pred3);
+        }
+
+        /// Property: Anomaly detection sensitivity
+        ///
+        /// Invariant: spike > 3σ → anomaly detected
+        #[test]
+        fn prop_anomaly_detection_sensitivity(
+            base_cost in 100i64..1000,
+            spike_multiplier in 3u64..10
+        ) {
+            let forecaster = CostForecaster::new();
+
+            // Normal costs
+            for i in 0..100 {
+                forecaster.record_cost(i * 60_000_000_000, base_cost);
+            }
+
+            // Spike
+            let spike = base_cost * spike_multiplier as i64;
+
+            // Should detect anomaly
+            prop_assert!(forecaster.detect_anomaly(spike),
+                        "Failed to detect {:.1}× spike", spike_multiplier);
+        }
+
+        /// Property: Concurrent updates commutative
+        ///
+        /// Invariant: Order of updates doesn't affect final trend
+        #[test]
+        fn prop_concurrent_updates_commutative(
+            num_threads in 2usize..10,
+            samples_per_thread in 100usize..1000
+        ) {
+            use std::thread;
+
+            let forecaster = Arc::new(CostForecaster::new());
+
+            let handles: Vec<_> = (0..num_threads).map(|thread_id| {
+                let fc = forecaster.clone();
+                thread::spawn(move || {
+                    for j in 0..samples_per_thread {
+                        let timestamp = (thread_id * samples_per_thread + j) as u64 * 60_000_000_000;
+                        fc.record_cost(timestamp, (thread_id + j) as i64);
+                    }
+                })
+            }).collect();
+
+            for h in handles {
+                h.join().unwrap();
+            }
+
+            // Trend should be stable (order doesn't matter)
+            let predicted = forecaster.predict_next_hour();
+            prop_assert!(predicted > 0);
+            prop_assert!(predicted < 1_000_000);  // Reasonable bounds
+        }
+    }
+}
+
+// ============================================================================
+// HELPER FUNCTIONS (Blocked - Feature-Dependent)
+// ============================================================================
+
+#[allow(dead_code)]
+fn request(id: &str) -> String {
+    id.to_string()
+}
+
+#[allow(dead_code)]
+fn hash(s: &str) -> u64 {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    s.hash(&mut hasher);
+    hasher.finish()
+}
+
+// ============================================================================
+// TEST CONFIGURATION
+// ============================================================================
+
+// Run property tests with:
+// cargo test --release --features "week4-option-c" -- proptest
+//
+// Generate more cases:
+// PROPTEST_CASES=10000 cargo test --release --features "week4-option-c" -- proptest
+//
+// Shrinking (minimal failing case):
+// PROPTEST_MAX_SHRINK_ITERS=10000 cargo test --release --features "week4-option-c" -- proptest

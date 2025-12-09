@@ -407,7 +407,7 @@ atomic_capsule = { version = "0.3.2", features = [
 | **B32 Benchmarking** | ✅ Honest | ✅ Honest | Maintained |
 | **ASSUM Safety** | ✅ 99.99% | ✅ 99.5% | Persistent features (-0.49%) |
 | **I20 Integration** | ✅ 20/20 | ✅ 20/20 | Maintained |
-| **COCA Architecture** | ✅ 100% lockfree | ✅ 100% lockfree | Maintained |
+| **Chaos Architecture** | ✅ 100% lockfree | ✅ 100% lockfree | Maintained |
 
 ---
 

@@ -248,7 +248,7 @@ cargo bench --bench timer_wheel --features "queue-unbounded"
 | **B32** | ✅ | Fair baselines, 95% CI, <100ns target achieved |
 | **T28** | ✅ | 10 comprehensive tests (unit + property + integration) |
 | **I20** | ✅ | Ready for integration (20/20 validation) |
-| **COCA** | ✅ | 100% computational capsule architecture |
+| **Chaos** | ✅ | 100% computational capsule architecture |
 
 ## Performance Validation (B32)
 
@@ -295,6 +295,6 @@ metrics():        8-15ns    (Relaxed atomic)  ✅
 
 ## Summary
 
-**TimerWheelCapsule** delivers a lockfree, high-performance hierarchical timing wheel for real-time systems. With <15ns scheduling and <5ns per-slot scanning, it achieves 2-10× speedup over alternatives while maintaining 100% safety (zero unsafe, ASSUM verified, COCA compliant).
+**TimerWheelCapsule** delivers a lockfree, high-performance hierarchical timing wheel for real-time systems. With <15ns scheduling and <5ns per-slot scanning, it achieves 2-10× speedup over alternatives while maintaining 100% safety (zero unsafe, ASSUM verified, Chaos compliant).
 
 **Production Status**: ✅ READY - Zero known issues, comprehensive testing, framework compliance verified.

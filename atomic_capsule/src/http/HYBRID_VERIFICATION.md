@@ -201,7 +201,7 @@ cargo +nightly clippy --features http-simd --lib
 | **T28** | ⚠️ 15/28 tests | Unit/Property/Integration only (Production pending) |
 | **B32** | ✅ Complete | Fair baselines, statistical rigor |
 | **I20** | ✅ Complete | All 20 integration questions answered |
-| **COCA** | ✅ 100% lockfree | No mutex/RwLock |
+| **Chaos** | ✅ 100% lockfree | No mutex/RwLock |
 
 ## 8. Performance Targets (from HYBRID_ARCHITECTURE.md)
 
@@ -318,7 +318,7 @@ All verification criteria met:
 - ✅ All tests pass (15/15, 100%)
 - ✅ Benchmarks validated (28 suites)
 - ✅ Capsule verified (compile-time)
-- ✅ Framework compliance (UCE34/ASSUM/T28/B32/I20/COCA)
+- ✅ Framework compliance (UCE34/ASSUM/T28/B32/I20/Chaos)
 
 ### Performance Achievement
 
@@ -339,5 +339,5 @@ All verification criteria met:
 
 **Report Generated**: 2025-10-27
 **Verified By**: Compilation Expert
-**Framework**: UCE34 T0-T6, ASSUM, T28, B32, I20, COCA
+**Framework**: UCE34 T0-T6, ASSUM, T28, B32, I20, Chaos
 **Status**: ✅ PRODUCTION-READY

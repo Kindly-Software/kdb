@@ -1,6 +1,6 @@
 //! WebSocket Server Capsule (T8 Network + T1 Atomic + T4 Batch + T5 Streaming)
 //!
-//! **Framework**: UCE34 (T8 Network + T1 + T4 + T5), COCA, ASSUM, B32, T28, I20
+//! **Framework**: UCE34 (T8 Network + T1 + T4 + T5), Chaos, ASSUM, B32, T28, I20
 //! **Tier**: T8 (Network) + T1 (Atomic coordination) + T4 (Batch broadcasting) + T5 (Streaming assembly)
 //! **Performance**: <50μs accept connection, <100μs upgrade, 10K+ concurrent connections
 //! **Safety**: 100% ASSUM safe (99.99% confidence)

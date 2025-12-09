@@ -75,7 +75,7 @@
 //! - **ASSUM**: 99.99% safety (all assumptions verified)
 //! - **B32**: Fair baseline (unfused circuit), validated 3-5× speedup
 //! - **T28**: 28 comprehensive tests (unit/property/integration/production)
-//! - **COCA**: 100% lockfree atomic coordination
+//! - **Chaos**: 100% lockfree atomic coordination
 //!
 //! # Usage Example
 //!

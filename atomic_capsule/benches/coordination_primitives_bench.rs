@@ -10,10 +10,10 @@
 //!
 //! **Total**: 21 benchmarks, B32-compliant (1000+ iterations, 95% CI)
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use atomic_capsule::primitives::coordination::{
     LockfreeHashBucketCapsule, ParallelPartitionCapsule, PhaseCoordinatorCapsule,
 };
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use std::sync::Arc;
 use std::thread;
 

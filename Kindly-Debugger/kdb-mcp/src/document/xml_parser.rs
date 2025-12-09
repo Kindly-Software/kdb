@@ -55,7 +55,7 @@ use core::simd::{u8x32, SimdPartialEq, Mask, LaneCount, SupportedLaneCount};
 /// - **Throughput**: 400-800 MB/s (AVX2)
 /// - **Latency**: <10ms for 40K token file
 ///
-/// # COCA Compliance
+/// # Chaos Compliance
 /// - 100% lockfree (atomic operations only)
 /// - Cache-aligned (128B prevents false sharing)
 /// - Generation counter (TOCTOU prevention)

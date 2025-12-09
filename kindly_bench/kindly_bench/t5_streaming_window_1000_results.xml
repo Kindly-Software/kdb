@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<benchmark-results xmlns="http://kindly.software/schemas/benchmark-results"
+                   version="1.0.0"
+                   timestamp="2025-11-09T21:51:09Z">
+
+  <metadata>
+    <run-id>ec82a088-3280-4aa2-b56a-27d6113d8028</run-id>
+    <framework-version>kindly_bench 1.0.0</framework-version>
+    <b32-compliant>true</b32-compliant>
+  </metadata>
+
+  <hardware>
+    <cpu>
+      <model>Intel(R) Core(TM) Ultra 7 155H</model>
+      <microarchitecture>Meteor Lake</microarchitecture>
+      <cores-total>22</cores-total>
+      <cache-line-bytes>64</cache-line-bytes>
+    </cpu>
+    <memory>
+      <size-gb>30</size-gb>
+    </memory>
+  </hardware>
+
+  <benchmarks>
+    <benchmark id="T5_Streaming_Window_1000">
+      <name>T5_Streaming_Window_1000</name>
+      <tier>T5-Streaming</tier>
+      <baseline-kind>BatchRebuild</baseline-kind>
+      <optimized>
+        <samples>10000</samples>
+        <mean-ns>15.97</mean-ns>
+        <median-ns>16.00</median-ns>
+        <p95-ns>17.00</p95-ns>
+        <p99-ns>17.00</p99-ns>
+        <stddev-ns>0.72</stddev-ns>
+        <min-ns>14.00</min-ns>
+        <max-ns>23.00</max-ns>
+        <outliers>46</outliers>
+        <confidence-interval-95>
+          <lower-bound-ns>15.95</lower-bound-ns>
+          <upper-bound-ns>15.98</upper-bound-ns>
+        </confidence-interval-95>
+      </optimized>
+      <baseline>
+        <samples>10000</samples>
+        <mean-ns>163.38</mean-ns>
+        <median-ns>163.00</median-ns>
+        <p95-ns>164.00</p95-ns>
+        <p99-ns>186.01</p99-ns>
+        <stddev-ns>47.06</stddev-ns>
+        <min-ns>156.00</min-ns>
+        <max-ns>3862.00</max-ns>
+        <outliers>7</outliers>
+        <confidence-interval-95>
+          <lower-bound-ns>162.46</lower-bound-ns>
+          <upper-bound-ns>164.31</upper-bound-ns>
+        </confidence-interval-95>
+      </baseline>
+      <speedup>
+        <mean-speedup>10.23</mean-speedup>
+        <median-speedup>10.19</median-speedup>
+        <p95-speedup>9.65</p95-speedup>
+        <confidence-interval-95>
+          <lower-bound>10.17</lower-bound>
+          <upper-bound>10.30</upper-bound>
+        </confidence-interval-95>
+      </speedup>
+      <classification>
+        <tier>Suspicious</tier>
+        <confidence>High</confidence>
+      </classification>
+      <recommendation>
+        <action>Validate</action>
+        <reasoning>SUSPICIOUS (>10×) speedup with HIGH confidence (95% CI). Flags: RequiresManualValidation</reasoning>
+        <next-steps>Suspicious speedup (>10×) requires manual validation. Verify: 1) Baseline is fair (not strawman), 2) Measurement methodology is correct, 3) No bugs in optimized code. Run independent validation.</next-steps>
+      </recommendation>
+    </benchmark>
+  </benchmarks>
+
+</benchmark-results>

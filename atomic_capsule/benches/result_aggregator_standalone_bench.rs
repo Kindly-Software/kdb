@@ -304,7 +304,7 @@ impl<K, V, T> Drop for ResultSlot<K, V, T> {
 }
 
 // ==============================================================================
-// V2: Lockfree AtomicPtr + Mutex<Vec> (99% lockfree, NOT 100% COCA)
+// V2: Lockfree AtomicPtr + Mutex<Vec> (99% lockfree, NOT 100% Chaos)
 // ==============================================================================
 
 struct V2AtomicAggregator<K, V>
@@ -398,7 +398,7 @@ where
 }
 
 // ==============================================================================
-// V3: 100% Lockfree AtomicPtr + LockfreeList (100% COCA Compliant)
+// V3: 100% Lockfree AtomicPtr + LockfreeList (100% Chaos Compliant)
 // ==============================================================================
 
 struct V3LockfreeAggregator<K, V>

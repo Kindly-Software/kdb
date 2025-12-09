@@ -1,7 +1,7 @@
 //! [TRADE SECRET] EXIF Camera Database Capsule for Natural Image Validation
 //! Tier: T10 Probabilistic (Bloom filter + hash table for camera database)
 //!
-//! **Framework**: UCE34 + COCA (T10 Probabilistic)
+//! **Framework**: UCE34 + Chaos (T10 Probabilistic)
 //! **Target**: 20-30% false positive reduction via authentic EXIF validation
 //! **Latency**: <500ns database lookup + <100ns Bloom filter negative check
 //! **Safety**: 99.99% ASSUM safe, 100% lockfree
@@ -27,7 +27,7 @@
 //! - **Determinism**: Same EXIF data → same score (bit-exact)
 //! - **Safety**: Zero unsafe code, all bounds checked
 //!
-//! ## COCA Compliance
+//! ## Chaos Compliance
 //!
 //! - **100% Lockfree**: All coordination via atomics
 //! - **Cache-Aligned**: 64B header, 256B cache line for data
@@ -990,7 +990,7 @@ mod tests {
     // ========== FRAMEWORK COMPLIANCE TESTS ==========
 
     #[test]
-    fn test_coca_lockfree_guarantee() {
+    fn test_chaos_lockfree_guarantee() {
         // Verify no unsafe code or mutex usage
         let capsule = EXIFCameraDatabaseCapsule::new();
         // All operations use atomics only - verified by construction

@@ -15,7 +15,7 @@
 //
 // Framework Compliance:
 // ✅ UCE34: Q10 T2 SIMD tier, Q33 #[derive(ComputationalCapsule)]
-// ✅ COCA: 100% lockfree coordination, cache-aligned (256B)
+// ✅ Chaos: 100% lockfree coordination, cache-aligned (256B)
 // ✅ ASSUM: 99.99% safe (5 documented unsafe blocks, all verified)
 // ✅ B32: Fair baseline (scalar FNV-1a 800ns, SIMD <100ns target)
 // ✅ T28: Comprehensive testing (10+ unit, 5+ property tests)

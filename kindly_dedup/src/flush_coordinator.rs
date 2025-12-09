@@ -53,7 +53,7 @@
 //!
 //! # Safety & Compliance
 //!
-//! - **COCA**: 100% lockfree (DualAtomicU64 CAS only, no mutex)
+//! - **Chaos**: 100% lockfree (DualAtomicU64 CAS only, no mutex)
 //! - **ASSUM**: 8 assumptions documented with #ASSUME tags
 //! - **B32**: Fair baseline (atomic operations <10ns)
 //! - **T28**: Comprehensive 4-tier tests (unit/property/integration/production)

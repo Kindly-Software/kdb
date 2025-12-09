@@ -18,7 +18,7 @@
 //! - **Chaining**: <100ns total (2 SQE + link flag)
 //! - **Fixed buffers**: <1ms registration (kernel), <20ns per op (amortized)
 //!
-//! # Framework Compliance (UCE34 + COCA)
+//! # Framework Compliance (UCE34 + Chaos)
 //!
 //! - **Tier**: T1 (Atomic <100ns) + T5 (Streaming O(1))
 //! - **Lockfree**: 100% atomic coordination, zero mutexes

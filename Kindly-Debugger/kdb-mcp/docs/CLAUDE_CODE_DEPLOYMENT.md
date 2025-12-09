@@ -530,4 +530,4 @@ A: `cache_stats --clear && xpath_query --cache-policy disable`
 
 ## License
 
-All code is protected under COCA (Computational Capsule) architecture. See `/home/samuel/Docs/The Computational Capsule.md` for details.
+All code is protected under Chaos (Computational Capsule) architecture. See `/home/samuel/Docs/The Computational Capsule.md` for details.

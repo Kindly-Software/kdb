@@ -474,7 +474,7 @@ fn test_hot_reload() {
 
 **UCE34**: Q10 T1 Atomic tier selection (lockfree coordination)
 
-**COCA**: 100% lockfree (32 × AtomicBool), cache-aligned (256B)
+**Chaos**: 100% lockfree (32 × AtomicBool), cache-aligned (256B)
 
 **ASSUM**: 99.99% safe (all assumptions documented)
 - #ASSUME_FLAG_INDEX_VALID: flag.index() < COUNT (enforced: enum repr)

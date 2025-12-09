@@ -22,10 +22,10 @@
 //! AV1 intra prediction is COMPUTE-BOUND (2-19× SIMD speedup is realistic).
 //! Baseline is optimized scalar C code (NOT naive loops).
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 
 #[cfg(feature = "portable_simd")]
-use atomic_capsule::encoder::{IntraPredictionCapsule, IntraMode};
+use atomic_capsule::encoder::{IntraMode, IntraPredictionCapsule};
 
 // ============================================================================
 // BASELINE: Scalar Implementations (OPTIMIZED, NOT STRAWMAN)
@@ -99,18 +99,17 @@ fn bench_4x4_dc(c: &mut Criterion) {
     let mut group = c.benchmark_group("intra_4x4_dc");
 
     let capsule = IntraPredictionCapsule::new();
-    capsule.set_mode(IntraMode::DC);
-    capsule.set_block_size(4);
+    capsule.set_mode(IntraMode::DC, 0);
+    capsule.set_block_size(4, 4);
 
-    // Reference pixels: 4 top + 4 left = 8 bytes
-    let refs = vec![128u8; 8];
-    capsule.load_references(&refs).unwrap();
+    // Reference pixels: 4 top + 4 left + 1 top_left = 9 bytes
+    let top = vec![128u8; 4];
+    let left = vec![128u8; 4];
+    capsule.load_references(&top, &left, 128);
 
     // SIMD implementation
     group.bench_function("simd", |b| {
-        b.iter(|| {
-            black_box(capsule.predict_block_4x4().unwrap())
-        });
+        b.iter(|| black_box(capsule.predict_block_4x4().unwrap()));
     });
 
     // Scalar baseline
@@ -133,16 +132,15 @@ fn bench_4x4_directional(c: &mut Criterion) {
     let mut group = c.benchmark_group("intra_4x4_directional");
 
     let capsule = IntraPredictionCapsule::new();
-    capsule.set_mode(IntraMode::Vertical);
-    capsule.set_block_size(4);
+    capsule.set_mode(IntraMode::Vertical, 0);
+    capsule.set_block_size(4, 4);
 
-    let refs = vec![128u8; 8];
-    capsule.load_references(&refs).unwrap();
+    let top = vec![128u8; 4];
+    let left = vec![128u8; 4];
+    capsule.load_references(&top, &left, 128);
 
     group.bench_function("simd", |b| {
-        b.iter(|| {
-            black_box(capsule.predict_block_4x4().unwrap())
-        });
+        b.iter(|| black_box(capsule.predict_block_4x4().unwrap()));
     });
 
     let mut output = vec![0u8; 16];
@@ -164,16 +162,15 @@ fn bench_4x4_smooth(c: &mut Criterion) {
     let mut group = c.benchmark_group("intra_4x4_smooth");
 
     let capsule = IntraPredictionCapsule::new();
-    capsule.set_mode(IntraMode::Smooth);
-    capsule.set_block_size(4);
+    capsule.set_mode(IntraMode::Smooth, 0);
+    capsule.set_block_size(4, 4);
 
-    let refs = vec![128u8; 8];
-    capsule.load_references(&refs).unwrap();
+    let top = vec![128u8; 4];
+    let left = vec![128u8; 4];
+    capsule.load_references(&top, &left, 128);
 
     group.bench_function("simd", |b| {
-        b.iter(|| {
-            black_box(capsule.predict_block_4x4().unwrap())
-        });
+        b.iter(|| black_box(capsule.predict_block_4x4().unwrap()));
     });
 
     let mut output = vec![0u8; 16];
@@ -199,16 +196,15 @@ fn bench_8x8_dc(c: &mut Criterion) {
     let mut group = c.benchmark_group("intra_8x8_dc");
 
     let capsule = IntraPredictionCapsule::new();
-    capsule.set_mode(IntraMode::DC);
-    capsule.set_block_size(8);
+    capsule.set_mode(IntraMode::DC, 0);
+    capsule.set_block_size(8, 8);
 
-    let refs = vec![128u8; 16];  // 8 top + 8 left
-    capsule.load_references(&refs).unwrap();
+    let top = vec![128u8; 8];
+    let left = vec![128u8; 8];
+    capsule.load_references(&top, &left, 128);
 
     group.bench_function("simd", |b| {
-        b.iter(|| {
-            black_box(capsule.predict_block_8x8().unwrap())
-        });
+        b.iter(|| black_box(capsule.predict_block_8x8().unwrap()));
     });
 
     let mut output = vec![0u8; 64];
@@ -230,16 +226,15 @@ fn bench_8x8_directional(c: &mut Criterion) {
     let mut group = c.benchmark_group("intra_8x8_directional");
 
     let capsule = IntraPredictionCapsule::new();
-    capsule.set_mode(IntraMode::Horizontal);
-    capsule.set_block_size(8);
+    capsule.set_mode(IntraMode::Horizontal, 0);
+    capsule.set_block_size(8, 8);
 
-    let refs = vec![128u8; 16];
-    capsule.load_references(&refs).unwrap();
+    let top = vec![128u8; 8];
+    let left = vec![128u8; 8];
+    capsule.load_references(&top, &left, 128);
 
     group.bench_function("simd", |b| {
-        b.iter(|| {
-            black_box(capsule.predict_block_8x8().unwrap())
-        });
+        b.iter(|| black_box(capsule.predict_block_8x8().unwrap()));
     });
 
     let mut output = vec![0u8; 64];
@@ -265,16 +260,15 @@ fn bench_16x16_dc(c: &mut Criterion) {
     let mut group = c.benchmark_group("intra_16x16_dc");
 
     let capsule = IntraPredictionCapsule::new();
-    capsule.set_mode(IntraMode::DC);
-    capsule.set_block_size(16);
+    capsule.set_mode(IntraMode::DC, 0);
+    capsule.set_block_size(16, 16);
 
-    let refs = vec![128u8; 32];  // 16 top + 16 left
-    capsule.load_references(&refs).unwrap();
+    let top = vec![128u8; 16];
+    let left = vec![128u8; 16];
+    capsule.load_references(&top, &left, 128);
 
     group.bench_function("simd", |b| {
-        b.iter(|| {
-            black_box(capsule.predict_block_16x16().unwrap())
-        });
+        b.iter(|| black_box(capsule.predict_block_16x16().unwrap()));
     });
 
     let mut output = vec![0u8; 256];
@@ -296,16 +290,15 @@ fn bench_16x16_smooth(c: &mut Criterion) {
     let mut group = c.benchmark_group("intra_16x16_smooth");
 
     let capsule = IntraPredictionCapsule::new();
-    capsule.set_mode(IntraMode::SmoothV);
-    capsule.set_block_size(16);
+    capsule.set_mode(IntraMode::SmoothV, 0);
+    capsule.set_block_size(16, 16);
 
-    let refs = vec![128u8; 32];
-    capsule.load_references(&refs).unwrap();
+    let top = vec![128u8; 16];
+    let left = vec![128u8; 16];
+    capsule.load_references(&top, &left, 128);
 
     group.bench_function("simd", |b| {
-        b.iter(|| {
-            black_box(capsule.predict_block_16x16().unwrap())
-        });
+        b.iter(|| black_box(capsule.predict_block_16x16().unwrap()));
     });
 
     let mut output = vec![0u8; 256];
@@ -331,16 +324,15 @@ fn bench_32x32_dc(c: &mut Criterion) {
     let mut group = c.benchmark_group("intra_32x32_dc");
 
     let capsule = IntraPredictionCapsule::new();
-    capsule.set_mode(IntraMode::DC);
-    capsule.set_block_size(32);
+    capsule.set_mode(IntraMode::DC, 0);
+    capsule.set_block_size(32, 32);
 
-    let refs = vec![128u8; 64];  // 32 top + 32 left
-    capsule.load_references(&refs).unwrap();
+    let top = vec![128u8; 32];
+    let left = vec![128u8; 32];
+    capsule.load_references(&top, &left, 128);
 
     group.bench_function("simd", |b| {
-        b.iter(|| {
-            black_box(capsule.predict_block_32x32().unwrap())
-        });
+        b.iter(|| black_box(capsule.predict_block_32x32().unwrap()));
     });
 
     let mut output = vec![0u8; 1024];
@@ -362,16 +354,15 @@ fn bench_32x32_directional(c: &mut Criterion) {
     let mut group = c.benchmark_group("intra_32x32_directional");
 
     let capsule = IntraPredictionCapsule::new();
-    capsule.set_mode(IntraMode::D45);
-    capsule.set_block_size(32);
+    capsule.set_mode(IntraMode::D45, 0);
+    capsule.set_block_size(32, 32);
 
-    let refs = vec![128u8; 64];
-    capsule.load_references(&refs).unwrap();
+    let top = vec![128u8; 32];
+    let left = vec![128u8; 32];
+    capsule.load_references(&top, &left, 128);
 
     group.bench_function("simd", |b| {
-        b.iter(|| {
-            black_box(capsule.predict_block_32x32().unwrap())
-        });
+        b.iter(|| black_box(capsule.predict_block_32x32().unwrap()));
     });
 
     let mut output = vec![0u8; 1024];
@@ -393,16 +384,15 @@ fn bench_32x32_smooth(c: &mut Criterion) {
     let mut group = c.benchmark_group("intra_32x32_smooth");
 
     let capsule = IntraPredictionCapsule::new();
-    capsule.set_mode(IntraMode::SmoothH);
-    capsule.set_block_size(32);
+    capsule.set_mode(IntraMode::SmoothH, 0);
+    capsule.set_block_size(32, 32);
 
-    let refs = vec![128u8; 64];
-    capsule.load_references(&refs).unwrap();
+    let top = vec![128u8; 32];
+    let left = vec![128u8; 32];
+    capsule.load_references(&top, &left, 128);
 
     group.bench_function("simd", |b| {
-        b.iter(|| {
-            black_box(capsule.predict_block_32x32().unwrap())
-        });
+        b.iter(|| black_box(capsule.predict_block_32x32().unwrap()));
     });
 
     let mut output = vec![0u8; 1024];
@@ -424,16 +414,15 @@ fn bench_32x32_paeth(c: &mut Criterion) {
     let mut group = c.benchmark_group("intra_32x32_paeth");
 
     let capsule = IntraPredictionCapsule::new();
-    capsule.set_mode(IntraMode::Paeth);
-    capsule.set_block_size(32);
+    capsule.set_mode(IntraMode::Paeth, 0);
+    capsule.set_block_size(32, 32);
 
-    let refs = vec![128u8; 64];
-    capsule.load_references(&refs).unwrap();
+    let top = vec![128u8; 32];
+    let left = vec![128u8; 32];
+    capsule.load_references(&top, &left, 128);
 
     group.bench_function("simd", |b| {
-        b.iter(|| {
-            black_box(capsule.predict_block_32x32().unwrap())
-        });
+        b.iter(|| black_box(capsule.predict_block_32x32().unwrap()));
     });
 
     // Paeth is complex, use smooth as scalar baseline
@@ -459,7 +448,8 @@ fn bench_32x32_paeth(c: &mut Criterion) {
 fn bench_mode_comparison_32x32(c: &mut Criterion) {
     let mut group = c.benchmark_group("mode_comparison_32x32");
 
-    let refs = vec![128u8; 64];
+    let top = vec![128u8; 32];
+    let left = vec![128u8; 32];
 
     // Test all 13 IntraMode variants
     let modes = [
@@ -480,17 +470,15 @@ fn bench_mode_comparison_32x32(c: &mut Criterion) {
 
     for mode in &modes {
         let capsule = IntraPredictionCapsule::new();
-        capsule.set_mode(*mode);
-        capsule.set_block_size(32);
-        capsule.load_references(&refs).unwrap();
+        capsule.set_mode(*mode, 0);
+        capsule.set_block_size(32, 32);
+        capsule.load_references(&top, &left, 128);
 
         group.bench_with_input(
             BenchmarkId::from_parameter(format!("{:?}", mode)),
             mode,
             |b, _| {
-                b.iter(|| {
-                    black_box(capsule.predict_block_32x32().unwrap())
-                });
+                b.iter(|| black_box(capsule.predict_block_32x32().unwrap()));
             },
         );
     }
@@ -506,22 +494,21 @@ fn bench_mode_comparison_32x32(c: &mut Criterion) {
 fn bench_angle_delta_sweep_32x32(c: &mut Criterion) {
     let mut group = c.benchmark_group("angle_delta_sweep_32x32");
 
-    let refs = vec![128u8; 64];
+    let top = vec![128u8; 32];
+    let left = vec![128u8; 32];
 
     // Test D45 with all 7 delta angles (-3 to +3)
     for delta in -3..=3 {
         let capsule = IntraPredictionCapsule::new();
-        capsule.set_mode_with_angle(IntraMode::D45, delta);
-        capsule.set_block_size(32);
-        capsule.load_references(&refs).unwrap();
+        capsule.set_mode(IntraMode::D45, delta);
+        capsule.set_block_size(32, 32);
+        capsule.load_references(&top, &left, 128);
 
         group.bench_with_input(
             BenchmarkId::from_parameter(format!("delta_{}", delta)),
             &delta,
             |b, _| {
-                b.iter(|| {
-                    black_box(capsule.predict_block_32x32().unwrap())
-                });
+                b.iter(|| black_box(capsule.predict_block_32x32().unwrap()));
             },
         );
     }

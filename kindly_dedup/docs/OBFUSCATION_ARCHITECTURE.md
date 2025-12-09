@@ -1,7 +1,7 @@
 # Obfuscation Architecture - 5-Layer Protection Stack
 
 **Status**: Production-ready (v2.0.0)
-**Framework**: UCE34 + COCA + ASSUM + B32 + T28 + I20
+**Framework**: UCE34 + Chaos + ASSUM + B32 + T28 + I20
 **Performance**: <1.17% total overhead (EXCEPTIONAL)
 **AI Resistance**: 8-9/10 (3-6 months to reverse engineer)
 
@@ -242,7 +242,7 @@ pub struct ParameterEncryptionCapsule {
 **Q34 (Auditability)**: Hash-chain validation, generation counters
 - **Mechanism**: CRC64 per parameter, atomic state tracking
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 
 **100% Lockfree**:
 - Zero mutex, zero RwLock, zero parking_lot
@@ -661,7 +661,7 @@ let param_encrypt = ParameterEncryptionCapsule::new();
 ### Framework Documents
 
 - **UCE34**: `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/uce34.xml`
-- **COCA**: `/home/samuel/Docs/The Computational Capsule.md`
+- **Chaos**: `/home/samuel/Docs/The Computational Capsule.md`
 - **ASSUM**: `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/assum.xml`
 - **B32**: `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/b32.xml`
 - **T28**: `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/t28.xml`
@@ -690,7 +690,7 @@ kindly_dedup's **5-layer obfuscation stack** provides **8-9/10 AI resistance** w
 5. **ParameterEncryptionCapsule** (T1+T2): LSH/Bloom/MinHash encryption
 
 **Production-Ready** (v2.0.0):
-- 100% lockfree (COCA compliant)
+- 100% lockfree (Chaos compliant)
 - 99.5% ASSUM safe (zero unsafe in fast paths)
 - 175+ tests (T28 comprehensive)
 - <1.17% overhead (B32 EXCEPTIONAL)

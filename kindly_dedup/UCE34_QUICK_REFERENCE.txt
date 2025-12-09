@@ -1,0 +1,141 @@
+================================================================================
+UCE34 FRAMEWORK - QUICK REFERENCE CARD
+Large Files Analysis (>25K tokens)
+================================================================================
+
+TOP 10 FILES BY TOKEN COUNT:
+────────────────────────────────────────────────────────────────────────────
+
+ 1. UCE33_FRAMEWORK_ORIGINAL.md (97.3K) ⚠️ DEPRECATED → Archive
+ 2. primitives-catalog-foundation.xml (25.6K) ✓ Keep (114 primitives)
+ 3. NEGATIVE_TRAIT_BOUNDS_PLAN.md (21.0K) [Research]
+ 4. primitives-catalog-extended.xml (20.0K) ✓ Keep + extract migration guide
+ 5. HISTOGRAM_CAPSULE_BLUEPRINT.md (17.6K) ✓ Keep (reference standard)
+ 6. SERIALIZE_CAPSULE_BLUEPRINT.md (17.7K) ✓ Keep
+ 7. frameworks/uce34.xml (17.9K) ✓ Keep (core framework)
+ 8. KEY_INNOVATIONS.md (14.6K) ✓ Keep
+ 9. COMPUTATIONAL_CAPSULE_UCE33_ANALYSIS.md (11.8K) ✓ Keep
+10. RUST_DEBUG_FRAMEWORK_UCE32.md (11.0K) [Legacy → OK in legacy/]
+
+
+ONE-PAGE SUMMARY:
+────────────────────────────────────────────────────────────────────────────
+
+PROBLEM:  One 97K-token deprecated file (53% of large-file overhead)
+SOLUTION: Archive UCE33_FRAMEWORK_ORIGINAL.md to legacy/v5.14/
+IMPACT:   Reclaim ~100K tokens, cleanups active documentation
+
+DESIGN:   XML v6.0 is well-architected with canonical sources
+  • shared-components.xml (22K) - Single source of truth
+  • framework-selection-tree.xml (27K) - Framework routing
+  • 7 modular framework files - Independent composability
+  • 3-part primitives catalog - Unavoidably large but necessary
+
+PRODUCTION FILES JUSTIFIED:
+  ✓ Primitives catalogs (52K) - 191 total primitives, each queryable via XPath
+  ✓ Blueprints (73K) - Reference standards with performance tables
+  ✓ XML frameworks (55K) - Canonical sources with minimal redundancy
+
+
+ACTION ITEMS:
+────────────────────────────────────────────────────────────────────────────
+
+IMMEDIATE (Today):
+  □ Archive UCE33_FRAMEWORK_ORIGINAL.md
+    mv /home/samuel/.../UCE33_FRAMEWORK_ORIGINAL.md \
+       /home/samuel/.../legacy/v5.14/UCE33_FRAMEWORK_ORIGINAL.md.archive
+
+SHORT-TERM (This Week):
+  □ Create Framework Index explaining each large file
+  □ Verify no broken links after archival
+
+MEDIUM-TERM (This Month):
+  □ Consider extracting migration guide from extended.xml (-5.5K tokens)
+  □ Monitor which files accessed most frequently
+
+LONG-TERM (Monitor):
+  □ Track uce34.xml access patterns for potential splitting
+  □ Ensure new files stay <20K tokens (current design target)
+
+
+LOCATION REFERENCE (Quick):
+────────────────────────────────────────────────────────────────────────────
+
+Production (XML v6.0):
+  /home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/
+  └─ shared/ (canonical: shared-components.xml, framework-selection-tree.xml)
+  └─ frameworks/ (7 files: uce34, assum, b32, i20, t28, q12, uce-d7)
+  └─ primitives-catalog-*.xml (3-part: foundation, composite, extended)
+
+Primitives Docs (Blueprints):
+  /home/samuel/Primitives/Docs/
+  └─ KEY_INNOVATIONS.md (14.6K)
+  └─ HISTOGRAM_CAPSULE_BLUEPRINT.md (17.6K) [reference standard]
+  └─ SERIALIZE_CAPSULE_BLUEPRINT.md (17.7K)
+  └─ COMPUTATIONAL_CAPSULE_UCE33_ANALYSIS.md (11.8K)
+  └─ [5 other blueprints: ASYNC, JSON, HTTP, ZSTD, others]
+
+Deprecated/Research:
+  /home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/
+  └─ legacy/ (v5.12, v5.14 archives)
+  └─ NEGATIVE_TRAIT_BOUNDS_PLAN.md (21K) [research]
+  └─ UCE33_FRAMEWORK_ORIGINAL.md (97K) [TO ARCHIVE]
+
+
+TOKEN DISTRIBUTION (Current):
+────────────────────────────────────────────────────────────────────────────
+
+Total Large Files (>25K tokens): ~183K tokens
+├─ Production: 80K tokens (44%) ← Keep
+├─ Deprecated: 97K tokens (53%) ← Archive
+└─ Research/Legacy: 32K tokens (18%) ← Move or keep per project policy
+
+If deprecated archived: Production only = 80K tokens (clean state)
+
+
+EFFICIENCY RATINGS:
+────────────────────────────────────────────────────────────────────────────
+
+EXCELLENT: shared-components.xml, framework-selection-tree.xml, uce34.xml
+  → Single sources of truth, heavily XPath-referenced
+
+GOOD:      primitives-catalogs, HISTOGRAM_BLUEPRINT, SERIALIZE_BLUEPRINT
+  → Reference standards, unavoidably large, high value
+
+ACCEPTABLE: KEY_INNOVATIONS.md, COMPUTATIONAL_CAPSULE_ANALYSIS.md
+  → Important but could use link-heavy optimization
+
+POOR:      UCE33_FRAMEWORK_ORIGINAL.md, NEGATIVE_TRAIT_BOUNDS_PLAN.md
+  → Deprecated or research, not critical path
+
+
+FILES ANALYSIS DOCUMENTS:
+────────────────────────────────────────────────────────────────────────────
+
+Generated Reports:
+
+1. UCE34_LARGE_FILES_ANALYSIS.md (14K)
+   → Comprehensive 500+ line analysis with recommendations
+   → Content breakdowns, optimization opportunities, migration strategy
+
+2. UCE34_LARGE_FILES_DETAILED_LISTING.txt (13K)
+   → Ranked listing with detailed metadata for each file
+   → Token efficiency ratings, supporting files reference
+
+3. UCE34_LARGE_FILES_FINDINGS_SUMMARY.md (9.3K)
+   → Executive summary, key findings, action items
+
+All saved to: /home/samuel/Primitives/kindly_dedup/
+
+
+BOTTOM LINE:
+────────────────────────────────────────────────────────────────────────────
+
+✓ Framework documentation is WELL-ORGANIZED (XML v6.0)
+✓ Production files are JUSTIFIED (primitives, blueprints, frameworks)
+✗ One 97K-token file DEPRECATED (should archive immediately)
+
+VERDICT: Archive 1 file, accept remaining sizes as necessary for quality.
+
+================================================================================
+Generated: 2025-11-13

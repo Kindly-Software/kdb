@@ -335,7 +335,7 @@ cargo test --features quota-tracker patterns::quota_tracker -- --test-threads=1
 - ✅ **Q11-Q15**: Safety analysis complete
 - ✅ **Q16-Q20**: Testing & rollout strategy ready
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 - ✅ **100% lockfree**: Zero mutex/RwLock, pure atomics
 - ✅ **Cache-aligned**: 64-byte alignment, no false sharing
 - ✅ **Generation counters**: TOCTOU prevention via CAS

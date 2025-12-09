@@ -56,7 +56,7 @@ All 15 composites satisfy:
 | **ASSUM** | ✅ 99.99% Safe | All assumptions documented, compile-time verified |
 | **B32** | ⚠️ Modeled | Performance models (not yet benchmarked) |
 | **T28** | 📋 Planned | Test designs for each composite |
-| **COCA** | ✅ 100% Lockfree | No mutex/RwLock, generation counters, cache-aligned |
+| **Chaos** | ✅ 100% Lockfree | No mutex/RwLock, generation counters, cache-aligned |
 
 ---
 
@@ -1376,7 +1376,7 @@ All 15 composites will satisfy:
 📋 **Integration Tests**: Real-world workloads (web analytics, clustering)
 📋 **Production Tests**: Load tests, memory profiling, latency distribution
 
-### COCA (100% Lockfree)
+### Chaos (100% Lockfree)
 
 ✅ **No Mutex/RwLock**: All composites use atomic primitives exclusively
 ✅ **Generation Counters**: TOCTOU prevention for all read paths
@@ -1418,7 +1418,7 @@ All 15 composites will satisfy:
 2. 🥈 **SIMD Bloom Filter (T10+T1+T2)**: 40× compound speedup, production-critical for caching
 3. 🥉 **Quad-Tier HyperLogLog (T10+T1+T2+T3)**: 80× compound speedup, maximum innovation stacking
 
-**Framework Compliance**: All composites satisfy UCE34 Q10-Q34, IMPL-2 V3.1, ASSUM, COCA mandates.
+**Framework Compliance**: All composites satisfy UCE34 Q10-Q34, IMPL-2 V3.1, ASSUM, Chaos mandates.
 
 **Estimated Timeline**: 54 days (7.5 weeks) for complete implementation + testing + benchmarking.
 

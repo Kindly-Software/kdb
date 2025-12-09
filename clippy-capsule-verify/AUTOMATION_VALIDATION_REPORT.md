@@ -310,7 +310,7 @@ Successfully implemented comprehensive CI/CD automation for clippy-capsule-verif
 5. Customization guide (lint levels, hooks, disabling)
 6. Migration workflow (6 phases)
 7. Command reference (setup, clippy, audit)
-8. Framework compliance (UCE34, COCA, B32, ASSUM, I20)
+8. Framework compliance (UCE34, Chaos, B32, ASSUM, I20)
 9. Success metrics
 10. References
 
@@ -424,7 +424,7 @@ Successfully implemented comprehensive CI/CD automation for clippy-capsule-verif
 - **Q33 (Lockfree mandate)**: ✅ P0.1 (mutex) and P0.4 (atomic) lints enforced
 - **Q34 (Auditability)**: ✅ Commit-msg hook enforces tags, CI/CD artifacts saved 30 days
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 
 - **100% lockfree**: ✅ P0.1 (mutex violation) enforced
 - **Cache-aligned**: ✅ P0.2 (alignment violation) enforced
@@ -441,7 +441,7 @@ Successfully implemented comprehensive CI/CD automation for clippy-capsule-verif
 ### ASSUM (Assumptions & Safety)
 
 - **Safety enforcement**: ✅ P0 lints prevent unsafe patterns
-- **Assumption verification**: ✅ Lints verify COCA assumptions
+- **Assumption verification**: ✅ Lints verify Chaos assumptions
 - **99.5%+ safety target**: ✅ Enforced via deny-level P0 lints
 
 ### I20 (Integration Framework)
@@ -536,7 +536,7 @@ Successfully implemented comprehensive CI/CD automation for clippy-capsule-verif
 - [x] Troubleshooting guide included
 - [x] Migration workflow documented
 - [x] Command reference provided
-- [x] Framework compliance validated (UCE34, COCA, B32, ASSUM, I20)
+- [x] Framework compliance validated (UCE34, Chaos, B32, ASSUM, I20)
 - [x] Validation report created (this document)
 
 ## Next Steps
@@ -578,7 +578,7 @@ Successfully implemented comprehensive CI/CD automation for clippy-capsule-verif
 - **All permissions set** (executable scripts)
 - **Documentation complete** (21KB, 692 lines)
 - **Performance validated** (5-35s execution times)
-- **Framework compliant** (UCE34, COCA, B32, ASSUM, I20)
+- **Framework compliant** (UCE34, Chaos, B32, ASSUM, I20)
 
 **Status**: ✅ Production-ready
 

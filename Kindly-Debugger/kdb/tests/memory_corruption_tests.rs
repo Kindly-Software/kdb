@@ -59,7 +59,7 @@ mod tests {
         // Build the example first
         let build_status = Command::new("cargo")
             .args(["build", "--release", "--example", example_name])
-            .current_dir("/home/samuel/Primitives/kdb")
+            .current_dir("/home/samuel/Primitives/Kindly-Debugger/kdb")
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status()
@@ -71,6 +71,7 @@ mod tests {
 
         // Run the pre-built binary directly (faster than cargo run)
         // Note: In a workspace, binaries are in the workspace root target directory
+        // Workspace root target directory (kdb is part of Primitives workspace)
         let binary_path = format!(
             "/home/samuel/Primitives/target/release/examples/{}",
             example_name
@@ -122,7 +123,7 @@ mod tests {
     fn test_buffer_overflow_target_builds() {
         let status = Command::new("cargo")
             .args(["build", "--example", "buffer_overflow_target"])
-            .current_dir("/home/samuel/Primitives/kdb")
+            .current_dir("/home/samuel/Primitives/Kindly-Debugger/kdb")
             .status()
             .expect("Failed to execute cargo build");
 
@@ -196,7 +197,7 @@ mod tests {
     fn test_use_after_free_target_builds() {
         let status = Command::new("cargo")
             .args(["build", "--example", "use_after_free_target"])
-            .current_dir("/home/samuel/Primitives/kdb")
+            .current_dir("/home/samuel/Primitives/Kindly-Debugger/kdb")
             .status()
             .expect("Failed to execute cargo build");
 
@@ -321,7 +322,7 @@ mod tests {
         // Spawn target in wait mode
         let mut child = Command::new("cargo")
             .args(["run", "--example", "buffer_overflow_target", "--", "wait"])
-            .current_dir("/home/samuel/Primitives/kdb")
+            .current_dir("/home/samuel/Primitives/Kindly-Debugger/kdb")
             .env("KDB_WAIT", "1")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -352,7 +353,7 @@ mod tests {
         // Spawn target in wait mode
         let mut child = Command::new("cargo")
             .args(["run", "--example", "use_after_free_target", "--", "wait"])
-            .current_dir("/home/samuel/Primitives/kdb")
+            .current_dir("/home/samuel/Primitives/Kindly-Debugger/kdb")
             .env("KDB_WAIT", "1")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())

@@ -9,7 +9,7 @@
 //! - Persistent: Buckets stored on disk, accessed via mmap (zero-copy)
 //! - Atomic: Cache coordination via AtomicU64 last_access timestamps (TOCTOU prevention)
 //! - Streaming: O(1) per-bucket read operations (cache hit or mmap fetch)
-//! - Zero mutex/RwLock (COCA mandate)
+//! - Zero mutex/RwLock (Chaos mandate)
 //!
 //! # LRU Cache Strategy
 //!
@@ -90,11 +90,11 @@ impl CacheEntry {
 
 /// Disk-backed LSH bucket reader capsule
 ///
-/// # COCA Architecture
+/// # Chaos Architecture
 ///
 /// **Cache alignment**: 64 bytes (HotTier) to prevent false sharing
 /// **Coordination**: Lockfree HashMap with AtomicU64 timestamps (T1 Atomic)
-/// **No mutex/RwLock**: Pure atomic operations for cache coordination (COCA mandate)
+/// **No mutex/RwLock**: Pure atomic operations for cache coordination (Chaos mandate)
 /// **Mmap**: Zero-copy reads from disk file (T9 Persistent)
 ///
 /// # Verification (Q33)

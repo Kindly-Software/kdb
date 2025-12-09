@@ -1045,7 +1045,7 @@ fn integration_test_summary() {
     println!("║   ✓ UCE34: Q10 T6 Mixed tier (atomic_mcp_server + kdb)                   ║");
     println!("║   ✓ T28: 28-test comprehensive testing (4 tiers)                         ║");
     println!("║   ✓ B32: Fair baseline, 95% CI, 1000+ iterations validation              ║");
-    println!("║   ✓ COCA: 100% computational capsule architecture (lockfree)             ║");
+    println!("║   ✓ Chaos: 100% computational capsule architecture (lockfree)             ║");
     println!("║   ✓ ASSUM: 99.99% safety, all assumptions verified                       ║");
     println!("║   ✓ I20: Integration validation (20/20 questions)                        ║");
     println!("╚════════════════════════════════════════════════════════════════════════════╝\n");

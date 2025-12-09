@@ -2,7 +2,7 @@
 
 **Date**: 2025-11-16
 **Status**: ✅ PRODUCTION READY (28/28 tests passing)
-**Framework Compliance**: UCE34 (Q10 T0+T1+T9), COCA (100% lockfree), ASSUM (99.99% safe), B32, T28 (4 tiers)
+**Framework Compliance**: UCE34 (Q10 T0+T1+T9), Chaos (100% lockfree), ASSUM (99.99% safe), B32, T28 (4 tiers)
 
 ---
 
@@ -373,7 +373,7 @@ merkle consistency (500×)     Stable root      Consistent  ✅ Verified
 | No Unsafe Blocks (fast path) | ✅ | 1 unsafe block (ring buffer), documented |
 | ASSUM Safety Verified | ✅ | 7 assumptions, all verified by tests |
 | Performance Validated (B32) | ✅ | <50ns snapshots, <500ms deletion |
-| Framework Compliance | ✅ | UCE34, COCA, T28, ASSUM, Q34 |
+| Framework Compliance | ✅ | UCE34, Chaos, T28, ASSUM, Q34 |
 | Integration Tested | ✅ | Works with kdb mod system |
 | Documentation Complete | ✅ | This file + inline comments |
 
@@ -451,7 +451,7 @@ merkle consistency (500×)     Stable root      Consistent  ✅ Verified
 
 ### Framework Documentation
 - **UCE34 Framework**: `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/xml/frameworks/uce34.xml` (Q10-Q34)
-- **COCA Principles**: `/home/samuel/Docs/The Computational Capsule.md`
+- **Chaos Principles**: `/home/samuel/Docs/The Computational Capsule.md`
 - **KEY_INNOVATIONS**: `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md`
 
 ### Related Capsules

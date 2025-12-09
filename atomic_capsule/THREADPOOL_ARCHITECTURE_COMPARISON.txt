@@ -1,0 +1,329 @@
+═══════════════════════════════════════════════════════════════════════════════
+   ThreadPool Multi-Producer: Architecture Comparison
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ CURRENT ARCHITECTURE (With Mutex - NOT LOCKFREE)                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    [Thread A]     [Thread B]     [Thread C]     ...     [Thread N]
+         │              │              │                       │
+         └──────────────┴──────────────┴───────────────────────┘
+                              │
+                    ┌─────────▼──────────┐
+                    │   push_mutex       │  ⚠️ MUTEX (NOT LOCKFREE!)
+                    │   Arc<Mutex<()>>   │
+                    └─────────┬──────────┘
+                              │ (serialized)
+                    ┌─────────▼──────────────────────┐
+                    │  LockfreeWorkQueue             │
+                    │  (Chase-Lev single-producer)   │
+                    │                                │
+                    │  ┌──────────────────────────┐  │
+                    │  │ head: AtomicU64 (64B)   │  │
+                    │  │ tail: AtomicU64 (64B)   │  │
+                    │  │ buffer[2048] (128KB)    │  │
+                    │  └──────────────────────────┘  │
+                    └─────────┬──────────────────────┘
+                              │
+         ┌────────────────────┼────────────────────┐
+         │                    │                    │
+    ┌────▼────┐         ┌────▼────┐         ┌────▼────┐
+    │Worker 0 │         │Worker 1 │   ...   │Worker 7 │
+    │ steal() │         │ steal() │         │ steal() │
+    └─────────┘         └─────────┘         └─────────┘
+
+PERFORMANCE:
+  - Push (uncontended): ~15ns (mutex fast path)
+  - Push (contended):   ~55ns (mutex contention)
+  - Steal:              ~10-20ns (lockfree CAS)
+
+ISSUES:
+  ❌ Mutex violates 100% lockfree mandate
+  ❌ Priority inversion risk (unbounded blocking)
+  ❌ Not suitable for HFT/RT workloads
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ OPTION A: QueueCapsule<Task, MPMC> (RECOMMENDED - 100% LOCKFREE) ✅        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    [Thread A]     [Thread B]     [Thread C]     ...     [Thread N]
+         │              │              │                       │
+         └──────────────┴──────────────┴───────────────────────┘
+                              │
+                    ┌─────────▼──────────────────────┐
+                    │  QueueCapsule<Task, MPMC>      │  ✅ 100% LOCKFREE!
+                    │  (CAS-based multi-producer)    │
+                    │                                │
+                    │  ┌──────────────────────────┐  │
+                    │  │ head: AtomicUsize (64B) │  │  ← CAS on pop
+                    │  │ tail: AtomicUsize (64B) │  │  ← CAS on push
+                    │  │ head_gen: AtomicU64     │  │  ← ABA prevention
+                    │  │ tail_gen: AtomicU64     │  │
+                    │  │ buffer[2048] (128KB)    │  │
+                    │  └──────────────────────────┘  │
+                    └─────────┬──────────────────────┘
+                              │
+         ┌────────────────────┼────────────────────┐
+         │                    │                    │
+    ┌────▼────┐         ┌────▼────┐         ┌────▼────┐
+    │Worker 0 │         │Worker 1 │   ...   │Worker 7 │
+    │  pop()  │         │  pop()  │         │  pop()  │
+    └─────────┘         └─────────┘         └─────────┘
+
+PERFORMANCE:
+  - Push (uncontended): ~100ns (CAS loop, 6× slower)
+  - Push (contended):   ~100-200ns (CAS retry, 2-4× slower)
+  - Pop:                ~100ns (symmetric with push)
+
+BENEFITS:
+  ✅ 100% lockfree (achieves mandate)
+  ✅ Production-tested (116 tests, Phase 5)
+  ✅ Simple integration (20 line diff)
+  ✅ Low risk (proven MPMC design)
+  ✅ 10% overhead negligible vs task execution
+
+CHANGES REQUIRED:
+  1. Replace queue type: LockfreeWorkQueue → QueueCapsule<Task, MPMC>
+  2. Remove push_mutex: Delete Arc<Mutex<()>> field
+  3. Update push(): Direct queue.push(), no mutex
+  4. Update workers: steal() → pop() (symmetric consumers)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ OPTION B: Chase-Lev + CAS (Complex, Not Recommended) ⚠️                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    [Thread A]     [Thread B]     [Thread C]     ...     [Thread N]
+         │              │              │                       │
+         └──────────────┴──────────────┴───────────────────────┘
+                              │ (CAS contention)
+                    ┌─────────▼──────────────────────┐
+                    │  LockfreeWorkQueue (Upgraded)  │  ⚠️ HIGH COMPLEXITY
+                    │  (Multi-producer via CAS)      │
+                    │                                │
+                    │  ┌──────────────────────────┐  │
+                    │  │ head: AtomicU64 (64B)   │  │  ← ADD CAS HERE!
+                    │  │ tail: AtomicU64 (64B)   │  │
+                    │  │ buffer[2048] (128KB)    │  │
+                    │  └──────────────────────────┘  │
+                    └─────────┬──────────────────────┘
+                              │
+         ┌────────────────────┼────────────────────┐
+         │                    │                    │
+    ┌────▼────┐         ┌────▼────┐         ┌────▼────┐
+    │Worker 0 │         │Worker 1 │   ...   │Worker 7 │
+    │ steal() │         │ steal() │         │ steal() │
+    └─────────┘         └─────────┘         └─────────┘
+
+PERFORMANCE:
+  - Push (uncontended): ~20ns (CAS fast path, 4× slower than original)
+  - Push (contended):   ~20-50ns (CAS retry, better than Option A)
+  - Steal:              ~10-20ns (unchanged)
+
+CHALLENGES:
+  ⚠️ High complexity (new race conditions)
+  ⚠️ Extensive testing required (T28 + property tests)
+  ⚠️ 8-16 hour implementation (vs 2-4 for Option A)
+  ⚠️ "Reinventing the wheel" (QueueCapsule already solves this)
+
+WHEN TO CONSIDER:
+  - IF profiling shows 100ns push is bottleneck (unlikely)
+  - IF HFT/RT scenarios require <50ns push
+  - IF time budget allows 8-16 hours
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ OPTION C: Per-Thread Queues (Very Complex, Not Recommended) ❌              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    [Thread A]──┐  [Thread B]──┐  [Thread C]──┐       [Thread N]──┐
+                │               │               │                   │
+           ┌────▼────┐     ┌───▼─────┐    ┌───▼─────┐       ┌─────▼────┐
+           │ Queue A │     │ Queue B │    │ Queue C │  ...  │ Queue N  │
+           │ (128KB) │     │ (128KB) │    │ (128KB) │       │ (128KB)  │
+           └────┬────┘     └────┬────┘    └────┬────┘       └─────┬────┘
+                │               │               │                   │
+    ┌───────────┴───────────────┴───────────────┴───────────────────┘
+    │
+    │  ┌──────────────────────────────────────────────────────────┐
+    └──┤ Work-Stealing Coordinator (Round-Robin Stealing Logic)   │
+       └──────────────────────────────────────┬───────────────────┘
+                                              │
+                         ┌────────────────────┼────────────────────┐
+                         │                    │                    │
+                    ┌────▼────┐         ┌────▼────┐         ┌────▼────┐
+                    │Worker 0 │         │Worker 1 │   ...   │Worker 7 │
+                    │steal_rr │         │steal_rr │         │steal_rr │
+                    └─────────┘         └─────────┘         └─────────┘
+
+PERFORMANCE:
+  - Push (uncontended): ~5ns (single-producer preserved!)
+  - Push (contended):   N/A (per-thread, no contention)
+  - Steal:              ~10-20ns (round-robin across N queues)
+
+CHALLENGES:
+  ❌ Very high complexity (N queues, load balancing, affinity)
+  ❌ Memory overhead (N × 128KB = 1MB+ for 8 spawners)
+  ❌ Load imbalance (idle spawner queues wasted)
+  ❌ ThreadLocal coordination (platform-dependent, hard to test)
+  ❌ 16-24 hour implementation
+
+WHEN TO CONSIDER:
+  - ONLY IF 5ns push is critical (profiled bottleneck)
+  - ONLY IF memory overhead acceptable (GB+ available)
+  - ONLY IF thread affinity can be enforced (fixed spawners)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ DECISION MATRIX                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌───────────────────┬─────────────────┬─────────────────┬──────────────────┐
+│ Criteria          │  Option A       │  Option B       │  Option C        │
+│ (Weighted)        │  (QueueCapsule) │  (CAS Chase-Lev)│  (Per-Thread)    │
+├───────────────────┼─────────────────┼─────────────────┼──────────────────┤
+│ Lockfree (HIGH)   │  ✅ Yes (CAS)   │  ✅ Yes (CAS)   │  ✅ Yes          │
+│ Risk (HIGH)       │  ✅ LOW         │  ⚠️ HIGH        │  ❌ VERY HIGH    │
+│ Effort (HIGH)     │  ✅ 2-4 hours   │  ⚠️ 8-16 hours  │  ❌ 16-24 hours  │
+│ Push Latency (MED)│  ⚠️ 100ns (20×) │  ✅ 20ns (4×)   │  ✅ 5ns (1×)     │
+│ Maintain (MED)    │  ✅ Simple      │  ⚠️ Moderate    │  ❌ Complex      │
+├───────────────────┼─────────────────┼─────────────────┼──────────────────┤
+│ SCORE (out of 10) │  9/10           │  6/10           │  3/10            │
+└───────────────────┴─────────────────┴─────────────────┴──────────────────┘
+
+                       ⭐ WINNER: OPTION A ⭐
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ IMPLEMENTATION COMPARISON                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ CURRENT (Mutex) → OPTION A (QueueCapsule) Code Diff                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────┬──────────────────────────────────────────────────┐
+│ BEFORE (pool.rs)         │ AFTER (pool.rs)                                  │
+├──────────────────────────┼──────────────────────────────────────────────────┤
+│ use super::queue::       │ use crate::collections::queue::{                 │
+│   LockfreeWorkQueue;     │   QueueCapsule, MPMC, PushError                  │
+│                          │ };                                               │
+├──────────────────────────┼──────────────────────────────────────────────────┤
+│ pub struct ThreadPool {  │ pub struct ThreadPool {                          │
+│   queue: Arc<            │   queue: Arc<                                    │
+│     LockfreeWorkQueue>,  │     QueueCapsule<Task, MPMC>>,                   │
+│   push_mutex:            │   // Removed: push_mutex                         │
+│     Arc<Mutex<()>>,      │                                                  │
+│   ...                    │   ...                                            │
+│ }                        │ }                                                │
+├──────────────────────────┼──────────────────────────────────────────────────┤
+│ pub fn push(&self, ..) { │ pub fn push(&self, ..) {                         │
+│   let _guard =           │   // No mutex!                                   │
+│     self.push_mutex      │   self.queue.push(task)                          │
+│       .lock().unwrap();  │     .map_err(|e| match e {                       │
+│   self.queue.push(task)? │       PushError::Full(_) =>                      │
+│   ...                    │         ParallelError::QueueFull                 │
+│ }                        │     })?;                                         │
+│                          │   ...                                            │
+│                          │ }                                                │
+├──────────────────────────┼──────────────────────────────────────────────────┤
+│ fn run(...) {            │ fn run(...) {                                    │
+│   if let Some(task) =    │   if let Some(task) =                            │
+│     queue.steal() {      │     queue.pop() {  // ← Changed from steal()    │
+│     ...                  │     ...                                          │
+│   }                      │   }                                              │
+│ }                        │ }                                                │
+└──────────────────────────┴──────────────────────────────────────────────────┘
+
+TOTAL CHANGES: ~20 lines (3 struct fields, 2 method calls, 1 import)
+DELETED: push_mutex field (3 lines)
+ADDED: QueueCapsule import (2 lines)
+MODIFIED: push() method (5 lines), worker run() (3 lines), new() (5 lines)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PERFORMANCE IMPACT VISUALIZATION                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+PUSH LATENCY (Logarithmic Scale):
+
+  5ns  ████                                  (Chase-Lev single-producer)
+       │
+ 10ns  ████████                              
+       │
+ 20ns  ████████████████                      (Option B: CAS Chase-Lev)
+       │
+ 50ns  ████████████████████████████████████  (Current: Mutex contended)
+       │
+100ns  ████████████████████████████████████████████████ (Option A: QueueCapsule)
+       │
+200ns  ████████████████████████████████████████████████████████████
+       └───────────────────────────────────────────────────────────────────►
+         FASTER                                                      SLOWER
+
+
+TOTAL OVERHEAD (16 threads × 100 tasks = 1,600 tasks):
+
+  Current (Mutex):      1,600 × 55ns  =   88μs push overhead
+  Option A (Queue):     1,600 × 100ns =  160μs push overhead
+  Difference:           +72μs (82% slower push)
+
+  Task Execution:       1,600 × 1μs   = 1,600μs total
+  
+  Overhead Percentage:
+    Current: 88μs / 1,600μs =  5.5% ✅
+    Option A: 160μs / 1,600μs = 10.0% ✅ (Still acceptable!)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ FINAL RECOMMENDATION                                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │                                                                          │
+  │  ⭐ IMPLEMENT OPTION A: QueueCapsule<Task, MPMC> ⭐                      │
+  │                                                                          │
+  │  CONFIDENCE: 95%                                                         │
+  │  EFFORT:     2-4 hours                                                   │
+  │  RISK:       LOW                                                         │
+  │                                                                          │
+  │  RATIONALE:                                                              │
+  │  1. Achieves 100% lockfree mandate (primary goal)                        │
+  │  2. Production-tested (116 tests, Phase 5)                               │
+  │  3. Simple integration (20 line diff)                                    │
+  │  4. Performance acceptable (10% overhead negligible)                     │
+  │  5. Lowest risk (proven MPMC design)                                     │
+  │                                                                          │
+  └──────────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Generated: 2025-11-13
+Analyst: Claude (Search Specialist)
+Full Analysis: THREADPOOL_MULTI_PRODUCER_ANALYSIS.md (937 lines)
+Summary: THREADPOOL_ANALYSIS_SUMMARY.md (282 lines)
+

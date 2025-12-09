@@ -1,0 +1,24 @@
+# Nightly toolchain configuration (IMPL-2 V3.1 cutting-edge-first)
+#
+# MANDATED BY /home/samuel/CLAUDE.md:
+# - Rust nightly REQUIRED for breakthrough features
+# - LLD linker: 30% faster builds
+# - Duplicate elimination: 10% smaller binaries
+
+[toolchain]
+channel = "nightly"
+components = ["rust-src", "rustfmt", "clippy", "rust-analyzer"]
+targets = ["x86_64-unknown-linux-gnu"]
+profile = "minimal"
+
+# ============================================================================
+# NIGHTLY FEATURES ENABLED (Q12 ULTRATHINK)
+# ============================================================================
+#
+# Build with:
+#   cargo +nightly build --release --features nightly-all
+#
+# Unstable features (.cargo/config.toml):
+#   RUSTFLAGS="-C link-arg=-fuse-ld=lld -Z share-generics=y"
+#
+# ============================================================================

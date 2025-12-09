@@ -1,11 +1,40 @@
-# Atomic Debugger - Lockfree Time-Travel Debugging
+# KDB - The Kindly Debugger
+
+**World's first audit-compliant time-travel debugger with MCP delivery**
 
 **Version**: 0.1.0
-**Budget**: 128 KB (of 1 MB total)
-**Tiers**: T0 (Auditable) + T1 (Atomic) + T2 (SIMD)
+**Status**: Commercial Product (NOT Open Source)
+**Delivery**: Via MCP (Model Context Protocol) - Platform Agnostic
+**Tiers**: T0 (Auditable) + T1 (Atomic) + T2 (SIMD) = T6 Mixed
 **Performance**: 10-30× faster debugging sessions | 625× breakpoint coordination (B32 validated)
 
 Production-ready computational capsules for high-performance debugging with bidirectional execution replay, SIMD-accelerated stack unwinding, and hash-chained auditability.
+
+## Quick Start (MCP Users)
+
+1. **Sign up**: Visit [kindly.software](https://kindly.software) or use the API directly:
+   ```bash
+   curl -X POST https://api.kindly.software/api/v1/signup \
+     -H "Content-Type: application/json" \
+     -d '{"email": "you@example.com"}'
+   ```
+
+2. **Configure MCP client** (Claude Code, Cursor, etc.):
+   ```json
+   {
+     "kindly-debugger": {
+       "type": "remote",
+       "url": "https://api.kindly.software/mcp",
+       "headers": {
+         "Authorization": "Bearer YOUR_LICENSE_KEY"
+       }
+     }
+   }
+   ```
+
+3. **Debug via AI**: Ask your AI assistant to debug your code using natural language.
+
+See [kdb-docs](../kdb-docs/) for complete documentation.
 
 ## Performance Summary (B32 Validated vs GDB)
 
@@ -398,7 +427,7 @@ All assumptions verified:
 - **Caveats documented**: Ptrace overhead, symbol lookup effects
 - **Validation method**: See B32_VALIDATION_REPORT.md
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 
 - 100% lockfree (zero Mutex/RwLock)
 - Cache-aligned (256B/32B)
@@ -455,26 +484,45 @@ All assumptions verified:
 
 ## License
 
-MIT OR Apache-2.0
+**Commercial Product - NOT Open Source**
+
+KDB (The Kindly Debugger) is proprietary software developed by Kindly Software. All rights reserved.
+
+- **Hobby Tier**: Free, 5 sessions/month (unlimited during 7-day promotional period)
+- **Pro Tier**: Extended sessions and features
+- **Enterprise Tier**: Unlimited sessions, custom SLA, priority support
+
+For licensing inquiries, contact: sales@kindly.software
+
+See [kindly.software](https://kindly.software) for pricing and signup.
 
 ## Platform Support
 
-**Status**: Linux x86_64 only (production ready)
+**Delivery Model**: MCP (Model Context Protocol) - Platform Agnostic Access
 
+| Component | Platform | Details |
+|-----------|----------|---------|
+| **User Access** | Any OS | macOS, Windows, Linux via MCP clients (Claude Code, Cursor, etc.) |
+| **MCP Server** | Any OS | Can run wherever Rust compiles |
+| **Core Debugger** | Linux x86_64 | Server-side ptrace operations |
+
+**How It Works**:
+Users on any platform connect to the KDB MCP server through their AI assistant. The MCP server handles the debugging operations on a Linux backend. Users never need to interact with ptrace directly.
+
+**Backend Requirements** (Server-side only):
 | Platform | Status | Details |
 |----------|--------|---------|
 | **Linux x86_64** | ✅ Production | Full ptrace, DWARF, SIMD, time-travel |
 | **Linux aarch64** | ⚠️ Untested | Code likely compatible, needs validation |
-| **macOS** | ❌ Planned | Requires Mach API, 2-4 weeks estimated |
-| **Windows** | ❌ Planned | Requires Debug API + PDB parsing, 4-8 weeks |
-| **WASM** | ❌ N/A | No ptrace, not applicable |
 
-See [`docs/PLATFORM_SUPPORT.md`](/docs/PLATFORM_SUPPORT.md) for comprehensive platform documentation, roadmap, and migration guide.
+**Note**: macOS and Windows native debugging is not supported because the core uses Linux ptrace. However, users on macOS/Windows can debug Linux processes remotely via MCP.
+
+See [`docs/PLATFORM_SUPPORT.md`](/docs/PLATFORM_SUPPORT.md) for comprehensive platform documentation.
 
 ## References
 
 - **UCE34 Framework**: `/home/samuel/projects/kindly-ecosystem/kindly-main/docs/frameworks/UCE34_FRAMEWORK.md`
-- **COCA Philosophy**: `/home/samuel/Docs/The Computational Capsule.md`
+- **Chaos Philosophy**: `/home/samuel/Docs/The Computational Capsule.md`
 - **Key Innovations**: `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md`
 - **atomic_capsule**: `/home/samuel/Primitives/atomic_capsule/`
 - **Platform Support**: `docs/PLATFORM_SUPPORT.md` (comprehensive guide)

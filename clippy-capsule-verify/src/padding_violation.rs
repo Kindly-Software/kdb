@@ -2,7 +2,7 @@
 //!
 //! **Purpose**: Detect capsules with padding fields that have incorrect size calculations.
 //!
-//! ## Why This Matters (COCA Mandate)
+//! ## Why This Matters (Chaos Mandate)
 //!
 //! Padding fields ensure capsule size matches alignment, but incorrect padding calculation
 //! defeats the purpose:
@@ -113,7 +113,7 @@ declare_lint! {
     /// - T1 (Atomic): Requires exact padding (size = alignment)
     /// - T2 (SIMD): Stricter: 256B minimum for AVX2/AVX-512
     ///
-    /// **COCA Mandate**:
+    /// **Chaos Mandate**:
     /// - 100% lockfree, cache-aligned architecture
     /// - Incorrect padding violates core principle
     ///
@@ -303,7 +303,7 @@ fn get_alignment_value(attrs: &[rustc_hir::Attribute]) -> Option<u64> {
 /// - **Performance impact**: Real-world metrics (cache coherency traffic)
 /// - **ASCII diagram**: Shows correct vs incorrect padding layouts
 /// - **Auto-fix suggestion**: Exact padding value needed with formula
-/// - **Framework references**: COCA cache alignment mandate
+/// - **Framework references**: Chaos cache alignment mandate
 ///
 /// # ASSUM Framework
 ///
@@ -324,7 +324,7 @@ fn emit_incorrect_padding_diagnostic<'tcx>(
         format_padding_violation_diagram,
         format_padding_calculation_detailed,
         format_false_sharing_impact,
-        format_coca_compliance_ref,
+        format_chaos_compliance_ref,
     };
 
     let item_name = cx.tcx.item_name(item.owner_id.to_def_id());
@@ -417,18 +417,18 @@ fn emit_incorrect_padding_diagnostic<'tcx>(
                 lint.note("    ⚠ Multiple capsules per cache line".to_string());
                 lint.note("    ⚠ Cache line bounces between cores on each update".to_string());
                 lint.note("    ⚠ 3-5× slowdown from coherency traffic (B32 measured)".to_string());
-                lint.note("    ⚠ Violates COCA 'exclusive cache line' mandate".to_string());
+                lint.note("    ⚠ Violates Chaos 'exclusive cache line' mandate".to_string());
             } else {
                 lint.note("  Over-padding (THIS CASE):".to_string());
                 lint.note(format!("    ⚠ Wastes {} bytes of memory per instance", actual_padding - required_padding));
                 lint.note("    ⚠ Reduces cache efficiency (fewer structures per line)".to_string());
                 lint.note("    ⚠ Unnecessary memory pressure in large collections".to_string());
-                lint.note("    ⚠ Still violates COCA alignment mandate (wrong total)".to_string());
+                lint.note("    ⚠ Still violates Chaos alignment mandate (wrong total)".to_string());
             }
 
             // === SECTION 8: FRAMEWORK COMPLIANCE ===
-            let coca_refs = format_coca_compliance_ref();
-            for line in coca_refs {
+            let chaos_refs = format_chaos_compliance_ref();
+            for line in chaos_refs {
                 lint.note(line);
             }
 

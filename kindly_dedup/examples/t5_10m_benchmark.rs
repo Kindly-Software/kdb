@@ -338,7 +338,7 @@ fn main() {
     println!("  Q34 (Auditability): ✓ AtomicU64 counters for Q34 compliance");
     println!();
 
-    println!("COCA (Computational Capsule):");
+    println!("Chaos (Computational Capsule):");
     println!("  ✓ 100% lockfree (no mutex/RwLock)");
     println!("  ✓ Cache-aligned structures (64B/128B)");
     println!("  ✓ Atomic operations only");
@@ -375,5 +375,5 @@ fn main() {
     println!("  Speedup vs Seq:   {:.2}×", speedup);
     println!();
 
-    println!("Status: {} (UCE34 + COCA + B32 + ASSUM + T28)", classification.0);
+    println!("Status: {} (UCE34 + Chaos + B32 + ASSUM + T28)", classification.0);
 }

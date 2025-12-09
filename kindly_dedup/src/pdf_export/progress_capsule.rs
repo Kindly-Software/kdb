@@ -13,7 +13,7 @@
 //! - stage: AtomicU8 (generation stage: 0=Init, 1=Header, 2=Body, 3=Footer, 4=Render) (8B)
 //! - _padding: [u8; 96] (pad to 128B)
 //!
-//! # COCA Compliance
+//! # Chaos Compliance
 //! - 100% lockfree (AtomicU8 only, Relaxed ordering for non-critical)
 //! - Cache-aligned (128B)
 //! - T5 Streaming: Incremental progress updates without blocking
@@ -67,7 +67,7 @@ impl PdfGenerationStage {
 /// - 100% lockfree (atomic operations only)
 /// - <10ns coordination overhead per operation
 ///
-/// # COCA Verification
+/// # Chaos Verification
 /// - Zero mutex/RwLock (verified: grep -c "Mutex\|RwLock" = 0)
 /// - Cache-aligned (repr(C, align(128)))
 /// - T5 Streaming: Incremental updates without blocking

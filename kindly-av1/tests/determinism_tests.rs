@@ -15,7 +15,7 @@
 //!
 //! - **T28**: Q29-Q35 Determinism tier validation
 //! - **UCE34**: Q30 validation tier (reproducibility)
-//! - **COCA**: All tests verify capsule-level determinism
+//! - **Chaos**: All tests verify capsule-level determinism
 //! - **ASSUM**: Hash-based verification (blake3 for speed)
 //!
 //! # Testing Strategy
@@ -28,7 +28,7 @@ use std::path::PathBuf;
 
 use blake3::Hasher;
 
-use kindly_av1::encoder::{EncoderWiringCapsule, wiring_capsule::WiringState};
+use kindly_av1::encoder::{wiring_capsule::WiringState, EncoderWiringCapsule};
 
 // ============================================================================
 // Helper Functions
@@ -79,7 +79,7 @@ fn encode_and_hash(
     speed: u8,
 ) -> Result<[u8; 32], String> {
     let mut wiring = EncoderWiringCapsule::new();
-    let sub_capsules = wiring
+    let mut sub_capsules = wiring
         .initialize(width, height, crf, speed)
         .map_err(|e| format!("Initialize failed: {:?}", e))?;
 
@@ -87,12 +87,12 @@ fn encode_and_hash(
 
     // Encode the frame
     let encoded_frame = wiring
-        .encode_frame(frame_data, &sub_capsules)
+        .encode_frame(frame_data, &mut sub_capsules)
         .map_err(|e| format!("Encode frame failed: {:?}", e))?;
 
     // Flush to finalize (returns Vec<Vec<u8>> of delayed frames)
     let _flushed_frames = wiring
-        .flush(&sub_capsules)
+        .flush(&mut sub_capsules)
         .map_err(|e| format!("Flush failed: {:?}", e))?;
 
     assert_eq!(wiring.state(), WiringState::Finalized);
@@ -111,6 +111,60 @@ fn create_test_frame_64x64() -> Vec<u8> {
     let mut frame = vec![0u8; frame_size];
 
     // Y plane: horizontal gradient
+    for y in 0..height {
+        for x in 0..width {
+            let idx = (y * width + x) as usize;
+            frame[idx] = (x * 255 / (width - 1)) as u8;
+        }
+    }
+
+    // U/V planes: constant mid-gray
+    let y_size = (width * height) as usize;
+    let uv_size = (width * height / 4) as usize;
+    for i in 0..uv_size {
+        frame[y_size + i] = 128; // U
+        frame[y_size + uv_size + i] = 128; // V
+    }
+
+    frame
+}
+
+/// Create test frame data for 128x128 YUV420p
+fn create_test_frame_128x128() -> Vec<u8> {
+    let width = 128;
+    let height = 128;
+    let frame_size = (width * height * 3 / 2) as usize;
+    let mut frame = vec![0u8; frame_size];
+
+    // Y plane: horizontal gradient (provides detail for quantization sensitivity)
+    for y in 0..height {
+        for x in 0..width {
+            let idx = (y * width + x) as usize;
+            frame[idx] = (x * 255 / (width - 1)) as u8;
+        }
+    }
+
+    // U/V planes: constant mid-gray
+    let y_size = (width * height) as usize;
+    let uv_size = (width * height / 4) as usize;
+    for i in 0..uv_size {
+        frame[y_size + i] = 128; // U
+        frame[y_size + uv_size + i] = 128; // V
+    }
+
+    frame
+}
+
+/// Create test frame data for custom resolution YUV420p
+///
+/// Creates a gradient pattern that provides detail for quantization sensitivity testing.
+/// This function generates frames for arbitrary resolutions that don't have hardcoded
+/// dav1d compatibility frames, ensuring the encoder uses the real quantization pipeline.
+fn create_test_frame_custom(width: u32, height: u32) -> Vec<u8> {
+    let frame_size = (width * height * 3 / 2) as usize;
+    let mut frame = vec![0u8; frame_size];
+
+    // Y plane: horizontal gradient (provides detail for quantization sensitivity)
     for y in 0..height {
         for x in 0..width {
             let idx = (y * width + x) as usize;
@@ -156,7 +210,7 @@ fn test_q29_same_input_same_output_multi_frame() {
     // Encode sequence of 5 identical frames, twice
     let encode_sequence = || -> Result<[u8; 32], String> {
         let mut wiring = EncoderWiringCapsule::new();
-        let sub_capsules = wiring
+        let mut sub_capsules = wiring
             .initialize(64, 64, 28, 5)
             .map_err(|e| format!("Init failed: {:?}", e))?;
 
@@ -164,13 +218,13 @@ fn test_q29_same_input_same_output_multi_frame() {
 
         for _ in 0..5 {
             let encoded = wiring
-                .encode_frame(&frame, &sub_capsules)
+                .encode_frame(&frame, &mut sub_capsules)
                 .map_err(|e| format!("Encode failed: {:?}", e))?;
             all_output.extend_from_slice(&encoded);
         }
 
         let _flushed = wiring
-            .flush(&sub_capsules)
+            .flush(&mut sub_capsules)
             .map_err(|e| format!("Flush failed: {:?}", e))?;
 
         Ok(hash_bytes(&all_output))
@@ -188,10 +242,16 @@ fn test_q29_same_input_same_output_multi_frame() {
 /// Q29-3: Different CRF produces different output (sanity check)
 #[test]
 fn test_q29_different_crf_different_output() {
-    let frame = create_test_frame_64x64();
+    // Use 192×192 to force real encoding pipeline (not dav1d compatible hardcoded frames)
+    // The following resolutions have hardcoded frames that bypass quantization:
+    // 8×8, 32×32, 64×64, 128×128, 160×120, 256×256, 320×240, 3840×2160 (4K)
+    // 192×192 is NOT hardcoded, so it will use the real quantization pipeline
+    let width = 192;
+    let height = 192;
+    let frame = create_test_frame_custom(width, height);
 
-    let hash_crf20 = encode_and_hash(64, 64, &frame, 20, 5).expect("CRF 20 encode failed");
-    let hash_crf30 = encode_and_hash(64, 64, &frame, 30, 5).expect("CRF 30 encode failed");
+    let hash_crf20 = encode_and_hash(width, height, &frame, 20, 5).expect("CRF 20 encode failed");
+    let hash_crf30 = encode_and_hash(width, height, &frame, 30, 5).expect("CRF 30 encode failed");
 
     assert_ne!(
         hash_crf20, hash_crf30,
@@ -279,19 +339,19 @@ fn test_q31_continuous_baseline() {
     let frame = create_test_frame_64x64();
 
     let mut wiring = EncoderWiringCapsule::new();
-    let sub_capsules = wiring.initialize(64, 64, 28, 5).expect("Init failed");
+    let mut sub_capsules = wiring.initialize(64, 64, 28, 5).expect("Init failed");
 
     let mut all_output = Vec::new();
 
     // Encode 10 frames continuously
     for _ in 0..10 {
         let encoded = wiring
-            .encode_frame(&frame, &sub_capsules)
+            .encode_frame(&frame, &mut sub_capsules)
             .expect("Encode failed");
         all_output.extend_from_slice(&encoded);
     }
 
-    let _flushed = wiring.flush(&sub_capsules).expect("Flush failed");
+    let _flushed = wiring.flush(&mut sub_capsules).expect("Flush failed");
     let hash = hash_bytes(&all_output);
 
     assert_ne!(hash, [0u8; 32], "Q31-1 FAILED: Zero hash");
@@ -313,16 +373,18 @@ fn test_q31_checkpoint_resume_principle() {
     // Continuous encoding (baseline)
     let hash_continuous = {
         let mut wiring = EncoderWiringCapsule::new();
-        let sub_capsules = wiring.initialize(64, 64, 28, 5).expect("Init failed");
+        let mut sub_capsules = wiring.initialize(64, 64, 28, 5).expect("Init failed");
 
         let mut all_output = Vec::new();
 
         for _ in 0..10 {
-            let encoded = wiring.encode_frame(&frame, &sub_capsules).expect("Encode failed");
+            let encoded = wiring
+                .encode_frame(&frame, &mut sub_capsules)
+                .expect("Encode failed");
             all_output.extend_from_slice(&encoded);
         }
 
-        let _flushed = wiring.flush(&sub_capsules).expect("Flush failed");
+        let _flushed = wiring.flush(&mut sub_capsules).expect("Flush failed");
         hash_bytes(&all_output)
     };
 
@@ -330,23 +392,27 @@ fn test_q31_checkpoint_resume_principle() {
     // Note: This doesn't test actual checkpoint files, just principle
     let hash_simulated = {
         let mut wiring = EncoderWiringCapsule::new();
-        let sub_capsules = wiring.initialize(64, 64, 28, 5).expect("Init failed");
+        let mut sub_capsules = wiring.initialize(64, 64, 28, 5).expect("Init failed");
 
         let mut all_output = Vec::new();
 
         // Phase 1: Encode first 5 frames
         for _ in 0..5 {
-            let encoded = wiring.encode_frame(&frame, &sub_capsules).expect("Encode failed");
+            let encoded = wiring
+                .encode_frame(&frame, &mut sub_capsules)
+                .expect("Encode failed");
             all_output.extend_from_slice(&encoded);
         }
 
         // Phase 2: Continue encoding next 5 frames
         for _ in 0..5 {
-            let encoded = wiring.encode_frame(&frame, &sub_capsules).expect("Encode failed");
+            let encoded = wiring
+                .encode_frame(&frame, &mut sub_capsules)
+                .expect("Encode failed");
             all_output.extend_from_slice(&encoded);
         }
 
-        let _flushed = wiring.flush(&sub_capsules).expect("Flush failed");
+        let _flushed = wiring.flush(&mut sub_capsules).expect("Flush failed");
         hash_bytes(&all_output)
     };
 
@@ -400,7 +466,10 @@ fn test_q32_no_state_leakage() {
     let hash3 = encode_and_hash(64, 64, &frame, 28, 5).expect("Run 3 failed");
 
     assert_eq!(hash1, hash2, "Q32-2 FAILED: Run 1 vs 2 differ");
-    assert_eq!(hash2, hash3, "Q32-2 FAILED: Run 2 vs 3 differ (state leakage)");
+    assert_eq!(
+        hash2, hash3,
+        "Q32-2 FAILED: Run 2 vs 3 differ (state leakage)"
+    );
 }
 
 // ============================================================================
@@ -437,7 +506,7 @@ fn test_q33_no_drift_100_frames() {
 
     let encode_100_frames = || -> Result<[u8; 32], String> {
         let mut wiring = EncoderWiringCapsule::new();
-        let sub_capsules = wiring
+        let mut sub_capsules = wiring
             .initialize(64, 64, 28, 5)
             .map_err(|e| format!("Init failed: {:?}", e))?;
 
@@ -446,13 +515,13 @@ fn test_q33_no_drift_100_frames() {
 
         for _ in 0..100 {
             let encoded = wiring
-                .encode_frame(&frame, &sub_capsules)
+                .encode_frame(&frame, &mut sub_capsules)
                 .map_err(|e| format!("Encode failed: {:?}", e))?;
             all_output.extend_from_slice(&encoded);
         }
 
         let _flushed = wiring
-            .flush(&sub_capsules)
+            .flush(&mut sub_capsules)
             .map_err(|e| format!("Flush failed: {:?}", e))?;
 
         // Hash all output combined
@@ -528,11 +597,7 @@ fn test_q34_hash_stability_documentation() {
     // [Update this after first run]
 
     // For now, just verify hash is non-zero (encoding succeeded)
-    assert_ne!(
-        hash,
-        [0u8; 32],
-        "Q34-2 FAILED: Encoding produced zero hash"
-    );
+    assert_ne!(hash, [0u8; 32], "Q34-2 FAILED: Encoding produced zero hash");
 
     // Re-encode to verify stability
     let hash2 = encode_and_hash(64, 64, &frame, 28, 5).expect("Re-encode failed");
@@ -558,8 +623,8 @@ fn test_q35_stress_1000_identical_encodes() {
     let mut hashes = Vec::new();
 
     for run in 0..1000 {
-        let hash = encode_and_hash(64, 64, &frame, 28, 5)
-            .expect(&format!("Stress run {} failed", run));
+        let hash =
+            encode_and_hash(64, 64, &frame, 28, 5).expect(&format!("Stress run {} failed", run));
         hashes.push(hash);
 
         // Early exit if we detect non-determinism
@@ -611,9 +676,7 @@ fn test_q35_stress_multi_resolution() {
             assert_eq!(
                 hashes[0], hashes[i],
                 "Q35-2 FAILED: {}x{} stress run {} differs",
-                width,
-                height,
-                i
+                width, height, i
             );
         }
     }
@@ -655,14 +718,12 @@ fn test_determinism_across_crf_range() {
     let crf_values = [10, 20, 28, 35, 40, 50];
 
     for crf in crf_values {
-        let hash1 = encode_and_hash(64, 64, &frame, crf, 5).expect(&format!("CRF {} run 1 failed", crf));
-        let hash2 = encode_and_hash(64, 64, &frame, crf, 5).expect(&format!("CRF {} run 2 failed", crf));
+        let hash1 =
+            encode_and_hash(64, 64, &frame, crf, 5).expect(&format!("CRF {} run 1 failed", crf));
+        let hash2 =
+            encode_and_hash(64, 64, &frame, crf, 5).expect(&format!("CRF {} run 2 failed", crf));
 
-        assert_eq!(
-            hash1, hash2,
-            "CRF {} non-deterministic",
-            crf
-        );
+        assert_eq!(hash1, hash2, "CRF {} non-deterministic", crf);
     }
 }
 
@@ -677,10 +738,6 @@ fn test_determinism_across_speed_presets() {
         let hash2 = encode_and_hash(64, 64, &frame, 28, speed)
             .expect(&format!("Speed {} run 2 failed", speed));
 
-        assert_eq!(
-            hash1, hash2,
-            "Speed preset {} non-deterministic",
-            speed
-        );
+        assert_eq!(hash1, hash2, "Speed preset {} non-deterministic", speed);
     }
 }

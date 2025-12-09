@@ -1,15 +1,29 @@
 # Changelog
 
-All notable changes to kindly-debugger will be documented in this file.
+All notable changes to Kindly Debugger will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.1] - 2025-12-07
+
+### Added
+
+- **Signup Service**: New user signup API at `https://api.kindly.software/api/v1/signup`
+- **Tiered Licensing**: Hobby (free, 5 sessions/month), Pro (coming soon), Enterprise (unlimited)
+- **7-Day Launch Promo**: Hobby tier users get unlimited sessions during promotional period
+
+### Changed
+
+- Clarified platform support: MCP-first delivery model (platform-agnostic access)
+- Updated documentation to reflect commercial product status (NOT open source)
+- Improved pricing tier documentation with clear feature breakdowns
 
 ## [1.0.0] - 2024-12-05
 
 ### Added
 
-- Initial public release of kindly-debugger
+- Initial commercial release of Kindly Debugger
 - **Debugger Tools**
   - `debugger/attach` - Attach to running processes
   - `debugger/set_breakpoint` - Set breakpoints at memory addresses
@@ -43,4 +57,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-For more information, visit [kindly.services](https://kindly.services)
+For more information, visit [kindly.software](https://kindly.software)

@@ -1,0 +1,21 @@
+Backup Manifest - Fri Nov 21 04:43:42 PM EST 2025
+========================================
+Timestamp: 20251121_164342
+Hostname: samuel-HP-Envy-Laptop-17t-da000
+User: samuel
+
+Files Backed Up:
+========================================
+Configuration: /home/samuel/Primitives/backups/daily/20251121_164342_config.tar.gz (4.0K)
+Persistent Data: /home/samuel/Primitives/backups/daily/20251121_164342_data.tar.gz (4.0K)
+Audit Logs: /home/samuel/Primitives/backups/daily/20251121_164342_logs.tar.gz (4.0K)
+
+Checksums (SHA256):
+========================================
+9a1a26d3a03f10d8ad175bda0809a6a051f9ba985f73be85506bf837cbc8649a  /home/samuel/Primitives/backups/daily/20251121_164342_config.tar.gz
+d392ac5341608f60eaa87de709db5753b51e9ad1c6e59ef1bd22c1eb18e7e815  /home/samuel/Primitives/backups/daily/20251121_164342_data.tar.gz
+d7273fc65ac615af5bfc8ca9131be1f9ff0dfda637e72042b827014cda2cf90d  /home/samuel/Primitives/backups/daily/20251121_164342_logs.tar.gz
+
+Total Backup Size: 20K
+Backup Location: /home/samuel/Primitives/backups/daily
+========================================

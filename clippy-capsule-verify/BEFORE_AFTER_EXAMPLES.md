@@ -82,7 +82,7 @@ Why Mutex is slow:
   • Context switch overhead (~1-10μs)
   • Priority inversion in real-time systems
   • Non-deterministic latency (lock contention)
-  • Defeats COCA 100% lockfree mandate
+  • Defeats Chaos 100% lockfree mandate
 
 ━━━ Lockfree Alternatives ━━━
 
@@ -117,7 +117,7 @@ Why Mutex is slow:
 
 ━━━ Framework Compliance ━━━
 
-  - COCA: 100% lockfree mandate (NON-NEGOTIABLE)
+  - Chaos: 100% lockfree mandate (NON-NEGOTIABLE)
   - UCE34 Q33: Atomic capsule verification
   - B32: 10-100× proven speedups, 95% CI
   - T28: Production-tested patterns
@@ -125,7 +125,7 @@ Why Mutex is slow:
 ━━━ Documentation ━━━
 
 • /home/samuel/Docs/The Atomic Capsule.md (DualAtomicU64 pattern, memory ordering)
-• /home/samuel/Docs/The Computational Capsule.md (COCA philosophy and principles)
+• /home/samuel/Docs/The Computational Capsule.md (Chaos philosophy and principles)
 • /home/samuel/Primitives/Docs/KEY_INNOVATIONS.md (Proven speedups and benchmarks)
 • /home/samuel/Primitives/atomic_capsule/CLAUDE.md (110+ capsule examples)
 • /home/samuel/CLAUDE.md (UCE34 framework (Q1-Q34))
@@ -241,7 +241,7 @@ Cache coherency protocol (MESI):
 
 ━━━ Framework Compliance ━━━
 
-  - COCA: Cache-aligned mandate (T1 tier requirement)
+  - Chaos: Cache-aligned mandate (T1 tier requirement)
   - UCE34 Q10: Tier selection enforcement
   - B32: 6-10× proven slowdown without alignment
 
@@ -398,7 +398,7 @@ MUST document safety proof in comment!
 
 ━━━ Framework Compliance ━━━
 
-  - COCA: TOCTOU prevention (T1 tier requirement)
+  - Chaos: TOCTOU prevention (T1 tier requirement)
   - UCE34 Q10: Generation counter mandate
   - ASSUM: Document exceptions with safety proof
   - B32: 3-10× proven latency prevention
@@ -480,7 +480,7 @@ MUST document safety proof in comment!
    - Real-world impact (not exaggerated)
 
 5. **Framework Compliance**
-   - COCA, UCE34, B32, T28, ASSUM
+   - Chaos, UCE34, B32, T28, ASSUM
    - Demonstrates adherence to standards
 
 6. **Categorized Documentation**
@@ -502,7 +502,7 @@ MUST document safety proof in comment!
 
 - **Fix accuracy**: 70% → 95% (better understanding = fewer mistakes)
 - **Security awareness**: +40% (developers learn TOCTOU, false sharing, cache coherency)
-- **Framework adoption**: +60% (clear COCA patterns encourage compliance)
+- **Framework adoption**: +60% (clear Chaos patterns encourage compliance)
 
 ### Learning Curve
 

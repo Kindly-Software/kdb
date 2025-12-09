@@ -3,7 +3,7 @@
 //! [TRADE SECRET] - PROPRIETARY AND CONFIDENTIAL
 //!
 //! This library provides the core encoding functionality for kindly-av1,
-//! built on the COCA (Computational Capsule Architecture) framework.
+//! built on the Chaos (Computational Capsule Architecture) framework.
 //!
 //! ## Architecture
 //!
@@ -25,7 +25,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 T6 Mixed tier, Q33 derive verification
-//! - **COCA**: 100% lockfree, cache-aligned capsules
+//! - **Chaos**: 100% lockfree, cache-aligned capsules
 //! - **ASSUM**: All unsafe documented with #ASSUME/#VERIFY
 //! - **B32**: Criterion benchmarks with 95% CI
 //! - **T28**: 5-tier testing (unit/property/integration/production/determinism)
@@ -57,6 +57,8 @@ pub use encoder::{
     EncoderWiringCapsule,
     KindlyAv1CliMetacapsule,
     EncoderSubCapsules,
+    GpuMotionEstimationCapsule,
+    MotionVector,
 };
 pub use license::LicenseVerificationCapsule;
 pub use checkpoint::EncoderCheckpointCapsule;

@@ -1,6 +1,6 @@
 //! KDB API Landing Page
 //!
-//! Leptos WASM application for api.kindly.services documentation.
+//! Leptos WASM application for api.kindly.software documentation.
 
 use leptos::prelude::*;
 use wasm_bindgen::prelude::*;

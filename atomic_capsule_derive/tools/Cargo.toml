@@ -1,0 +1,55 @@
+[workspace]
+# This is a standalone workspace, not part of the parent Primitives workspace
+
+[package]
+name = "atomic_capsule_tools"
+version = "0.1.0"
+edition = "2021"
+authors = ["Samuel <samuel@atomic-capsule.com>"]
+description = "Developer tools for atomic_capsule maintenance and migration"
+
+[dependencies]
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Parsing and code manipulation
+syn = { version = "2.0", features = ["full", "extra-traits"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+
+[dev-dependencies]
+# Testing framework
+proptest = "1.6"
+criterion = "0.5"
+tempfile = "3.15"
+
+# Test utilities
+pretty_assertions = "1.4"
+
+[[bin]]
+name = "fix_padding_fields"
+path = "src/bin/fix_padding_fields.rs"
+
+[[test]]
+name = "unit_tests"
+path = "tests/unit_tests.rs"
+
+[[test]]
+name = "property_tests"
+path = "tests/property_tests.rs"
+
+[[test]]
+name = "integration_tests"
+path = "tests/integration_tests.rs"
+
+[[test]]
+name = "production_tests"
+path = "tests/production_tests.rs"
+
+[profile.test]
+opt-level = 2  # Optimize tests for better performance measurements
+
+[profile.bench]
+opt-level = 3
+lto = true

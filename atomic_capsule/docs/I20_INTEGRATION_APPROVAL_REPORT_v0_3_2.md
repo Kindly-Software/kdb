@@ -58,7 +58,7 @@ Phase 2 features (parallel livelock fix, serialization precision fixes, persiste
 - ✅ 99.48% safe (577/580 assumptions documented in I20 report)
 - ✅ Zero UB commitment (lockfree, no unsafe outside ASSUM tags)
 
-**COCA Framework** (Capsule Architecture):
+**Chaos Framework** (Capsule Architecture):
 - ✅ 100% lockfree (zero mutex/RwLock)
 - ✅ All components use T0-T9 tier architecture
 
@@ -166,7 +166,7 @@ Phase 2 features (parallel livelock fix, serialization precision fixes, persiste
 - T28: 4-tier test pyramid designed (80 tests)
 - B32: Performance targets documented and validated for Components 1-2
 - ASSUM: 99.48% safe (577/580 assumptions documented)
-- COCA: 100% lockfree architecture (zero mutex/RwLock)
+- Chaos: 100% lockfree architecture (zero mutex/RwLock)
 
 ### Criterion 4: Rollback Plan Validated ✅
 
@@ -249,7 +249,7 @@ Phase 2 features (parallel livelock fix, serialization precision fixes, persiste
 - [x] T28: 4-tier test pyramid designed ✅
 - [x] B32: Performance targets documented ✅
 - [x] ASSUM: 99.48% safe (documented) ✅
-- [x] COCA: 100% lockfree ✅
+- [x] Chaos: 100% lockfree ✅
 
 ---
 
@@ -262,7 +262,7 @@ Phase 2 features (parallel livelock fix, serialization precision fixes, persiste
 **Rationale**:
 1. ✅ All 20 I20 questions comprehensively answered (16,847 words)
 2. ✅ 80+ integration tests designed (1,247 lines, 4 T28 tiers)
-3. ✅ Framework compliance validated (I20, T28, B32, ASSUM, COCA)
+3. ✅ Framework compliance validated (I20, T28, B32, ASSUM, Chaos)
 4. ✅ Components 1-2 production-ready (28,567 LOC, 125+ tests passing)
 5. 🔄 Components 3-4 in progress (2,229 LOC, design complete)
 6. ✅ Risk assessment complete (all risks mitigated to Very Low)

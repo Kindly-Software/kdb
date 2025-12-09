@@ -2,10 +2,10 @@
 //!
 //! **P2.1 MEDIUM**: Detects incorrect atomic Ordering usage in computational capsules.
 //!
-//! ## UCE34 Q10 (Tier Selection) & COCA Mandate
+//! ## UCE34 Q10 (Tier Selection) & Chaos Mandate
 //!
 //! Computational capsules require proper memory ordering for lockfree coordination:
-//! - **Relaxed**: NO synchronization (breaks COCA guarantees)
+//! - **Relaxed**: NO synchronization (breaks Chaos guarantees)
 //! - **Acquire**: Synchronize reads (load operations)
 //! - **Release**: Synchronize writes (store operations)
 //! - **AcqRel**: Both read and write synchronization (compare_exchange)
@@ -17,7 +17,7 @@
 //! - No happens-before relationship → stale reads
 //! - No synchronization → data races between threads
 //! - 3-10× latency spike when race detected and retry triggered
-//! - Violates COCA SeqCst/SWeMR (Single Writer, Multiple Readers) patterns
+//! - Violates Chaos SeqCst/SWeMR (Single Writer, Multiple Readers) patterns
 //!
 //! ## Example
 //!
@@ -75,7 +75,7 @@ declare_lint! {
     /// Relaxed ordering provides NO synchronization:
     /// - Loads may see stale values (no happens-before)
     /// - Stores may be reordered arbitrarily
-    /// - Breaks COCA SeqCst/SWeMR patterns
+    /// - Breaks Chaos SeqCst/SWeMR patterns
     /// - Causes subtle data races and 3-10× latency spikes
     ///
     /// ## Correct orderings
@@ -281,7 +281,7 @@ fn emit_ordering_violation_diagnostic<'tcx>(
             lint.note("CRITICAL: Relaxed ordering provides NO synchronization:");
             lint.note("  ❌ Loads may see stale values (no happens-before edge)");
             lint.note("  ❌ Stores may be reordered arbitrarily by CPU/compiler");
-            lint.note("  ❌ Breaks COCA SeqCst/SWeMR lockfree guarantee");
+            lint.note("  ❌ Breaks Chaos SeqCst/SWeMR lockfree guarantee");
             lint.note("  ❌ Causes subtle data races and 3-10× latency spikes on contention");
             lint.note("");
 
@@ -312,7 +312,7 @@ fn emit_ordering_violation_diagnostic<'tcx>(
             // === FRAMEWORK CONTEXT ===
             lint.note("FRAMEWORK COMPLIANCE:");
             lint.note("  • UCE34 Q10: Tier selection requires proper memory ordering");
-            lint.note("  • COCA mandate: 100% lockfree, no mutex/RwLock (requires correct Ordering)");
+            lint.note("  • Chaos mandate: 100% lockfree, no mutex/RwLock (requires correct Ordering)");
             lint.note("  • ASSUM: #ASSUME_CORRECT_ORDERING verified via compile-time lint");
             lint.note("  • B32: Performance gains (5-20%) only with proper synchronization");
             lint.note("");

@@ -1,0 +1,173 @@
+kindly-web - Project File Tree
+================================
+
+SOURCE CODE (1,787 lines)
+────────────────────────
+src/
+├── lib.rs (87 lines)
+│   └── Root app + routing + gold column borders
+│
+├── components/ (component library - atomic design)
+│   ├── common/ (11 atoms)
+│   │   ├── button.rs (152 lines) - Primary/Secondary/Outlined variants
+│   │   ├── card.rs - Container with hover
+│   │   ├── icon.rs - SVG icon wrapper
+│   │   ├── input.rs - Text input styling
+│   │   ├── link.rs - Styled anchor
+│   │   ├── badge.rs - Status badge
+│   │   ├── avatar.rs - Profile picture
+│   │   ├── spinner.rs - Loading indicator
+│   │   ├── divider.rs - Visual separator
+│   │   ├── text.rs - Text/paragraph
+│   │   ├── tooltip.rs - Hover tooltip
+│   │   └── mod.rs
+│   │
+│   ├── molecular/ (6+ molecules)
+│   │   ├── navbar.rs - Navigation bar
+│   │   ├── nav_item.rs - Nav menu item
+│   │   ├── feature_card.rs - Feature showcase
+│   │   ├── pricing_card.rs - Pricing option
+│   │   ├── stat_card.rs - Statistic card
+│   │   ├── testimonial.rs - Customer quote
+│   │   ├── hero_heading.rs - Large headline
+│   │   ├── code_block.rs - Code snippet
+│   │   ├── cta_button.rs - Call-to-action
+│   │   ├── gradient_text.rs - Gradient text
+│   │   ├── feature_list.rs - Feature list
+│   │   ├── section_container.rs - Layout wrapper
+│   │   └── mod.rs
+│   │
+│   ├── sections/ (8 organisms)
+│   │   ├── hero.rs (243 lines) - Hero banner
+│   │   ├── performance.rs (145 lines) - Speed metrics
+│   │   ├── features.rs - Feature grid
+│   │   ├── comparison.rs (130 lines) - vs Competitors
+│   │   ├── demo.rs (235 lines) - Interactive demo
+│   │   ├── pricing.rs - Pricing section
+│   │   ├── api.rs (189 lines) - API documentation
+│   │   ├── faq.rs (152 lines) - FAQ accordion
+│   │   ├── testimonials.rs - Customer quotes
+│   │   ├── security.rs - Security features
+│   │   ├── footer.rs (275 lines) - Footer links
+│   │   └── mod.rs
+│   │
+│   ├── stripe_checkout.rs - Stripe integration
+│   ├── navbar.rs (26 lines) - Main navbar (simple)
+│   └── mod.rs
+│
+├── pages/ (page-level routing)
+│   ├── home.rs (52 lines) - Landing page (10 sections)
+│   ├── pricing_stripe.rs (213 lines) - Stripe checkout page
+│   ├── success.rs (298 lines) - Payment success page
+│   ├── cancel.rs (273 lines) - Payment cancelled page
+│   └── mod.rs
+│
+├── utils/ (plain Rust utilities - no capsules)
+│   ├── theme.rs (171 lines) - Design tokens & colors
+│   ├── glassmorphism.rs (272 lines) - Frosted glass styles
+│   ├── layout.rs (147 lines) - Responsive breakpoints
+│   ├── style_builder.rs - Inline style utilities
+│   ├── stripe_api.rs (101 lines) - Stripe API client
+│   └── mod.rs
+│
+├── error.rs - Error types
+├── main.rs (2 lines) - WASM entry point
+└── lib.rs - Module declarations
+
+CONFIG & BUILD
+──────────────
+├── Cargo.toml (31 lines)
+│   ├── Dependencies: leptos, wasm-bindgen, gloo-net, serde, sha2, base64, thiserror
+│   └── Release profile: -Oz optimization, LTO, single codegen unit, stripped
+│
+├── fly.toml (26 lines)
+│   ├── App: kindly-software-website
+│   ├── Region: Chicago (ord)
+│   ├── VM: shared-cpu-1x, 256MB RAM
+│   └── HTTP: force HTTPS, 200 soft/250 hard limit
+│
+└── Cargo.lock - Locked dependencies
+
+HTML & ASSETS
+─────────────
+├── index.html (560 lines)
+│   ├── Meta tags (SEO, OG, Twitter)
+│   ├── Embedded CSS (550 lines)
+│   │   ├── CSS variables (purple, gold, glass, shadows)
+│   │   ├── Global styles (body, sections, buttons)
+│   │   ├── Component styles (navbar, hero, footer)
+│   │   ├── Responsive breakpoints (@media max-width: 768px)
+│   │   └── Animations (holographic-shimmer, pulse-glow)
+│   └── WASM app container <div id="app">
+│
+└── dist/ (generated after build)
+    ├── index.html (redirects to kindly_web.js)
+    ├── kindly_web.js (~120KB gzipped)
+    ├── kindly_web_bg.wasm (~180KB gzipped)
+    └── kindly_web_bg.wasm.d.ts
+
+TESTING & DOCS
+──────────────
+├── tests/ - Integration tests
+│   ├── unit_components.rs
+│   ├── integration.rs
+│   ├── wasm_integration.rs
+│   ├── layout_state_capsule_test.rs
+│   └── ...more test files
+│
+├── benches/ - Performance benchmarks
+│   ├── performance_bench.rs
+│   ├── capsule_benchmarks.rs
+│   └── ...more bench files
+│
+├── docs/ - Documentation
+│   └── xml/ - XML specifications
+│       ├── capsules-registry.xml
+│       ├── premium-design-guide.xml
+│       └── architecture.xml
+│
+└── CLAUDE.md - Project instructions
+
+BACKUPS & CONFIG
+────────────────
+├── backups/v2.8-pre-redesign/ - Previous version
+│   ├── utils/ - Old utilities
+│   │   ├── theme.rs (old)
+│   │   ├── glassmorphism.rs (old)
+│   │   ├── layout.rs (old)
+│   │   └── style_builder.rs (old)
+│   └── components/ - Old components
+│
+├── .claude/ - Claude Code config
+├── .github/ - GitHub workflows
+├── .gitignore
+├── .cargo/ - Cargo config
+└── compilation_logs/ - Build logs
+
+
+QUICK STATS
+───────────
+Total Lines of Rust: 1,787
+├── Largest file: success.rs (298 lines)
+├── Component count: 25+ (11 atoms, 6+ molecules, 8 organisms)
+├── Pages: 4 (home, pricing, success, cancel)
+└── Bundle size: ~180KB gzipped (52% under budget)
+
+Design System:
+├── Colors: 10 purple shades + 5 gold shades + 10 semantic
+├── Typography: 6 font families × 8 sizes × 8 weights
+├── Spacing: 12 sizes (4px to 96px, 8px grid)
+├── Border radius: 5 levels (4px to full)
+├── Shadows: 5 levels (none to 2xl)
+└── Animations: 2 (holographic-shimmer, pulse-glow)
+
+DEPENDENCIES (8 main)
+─────────────────────
+1. leptos 0.7 - Framework (CSR mode)
+2. leptos_meta 0.7 - Meta tags
+3. leptos_router 0.7 - Routing
+4. wasm-bindgen 0.2 - JS interop
+5. gloo-net 0.6 - HTTP client
+6. web-sys 0.3 - DOM API
+7. serde 1.0 - Serialization
+8. sha2 0.10 - License key hashing

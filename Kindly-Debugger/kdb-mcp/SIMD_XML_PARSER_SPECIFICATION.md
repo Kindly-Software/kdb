@@ -15,7 +15,7 @@ High-performance, SIMD-accelerated XML parsing for 40K+ token documents (CLAUDE.
 ### Key Characteristics
 - **Architecture**: T2+T3 Mixed capsule (128 bytes, 128-byte aligned)
 - **Performance**: 400-800 MB/s (SIMD) / 50-100 MB/s (scalar)
-- **Safety**: 100% lockfree, COCA-compliant, 99.5% ASSUM verified
+- **Safety**: 100% lockfree, Chaos-compliant, 99.5% ASSUM verified
 - **Compatibility**: Automatic AVX2 detection + scalar fallback
 - **Validation**: T28 comprehensive (27/28 tests passing)
 
@@ -697,7 +697,7 @@ let xml = xml.trim_start_matches(|c| c != '<');  // Start at first real tag
 
 ### Frameworks
 - **UCE34**: Q1-Q34 Systematic Discovery (this spec follows Q1-Q28)
-- **COCA**: 100% Computational Capsule (atomic operations, cache-aligned)
+- **Chaos**: 100% Computational Capsule (atomic operations, cache-aligned)
 - **ASSUM**: 8/8 safety assumptions verified (99.5%+)
 - **B32**: Fair performance benchmarking (95% CI applicable)
 - **T28**: 4-tier testing (27/28 tests passing)

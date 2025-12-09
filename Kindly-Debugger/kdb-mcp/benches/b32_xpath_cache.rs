@@ -34,7 +34,7 @@ fn main() {
         "//tier[@id='tier-t2']",
         "//tier[@id='tier-t3']",
         "//framework[@id='UCE34']",
-        "//framework[@id='COCA']",
+        "//framework[@id='Chaos']",
         "//lint[@id='P0.1']",
         "//lint[@id='P0.2']",
         "//capsule[@name='DctCapsule']",

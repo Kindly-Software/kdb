@@ -175,7 +175,7 @@ sudo systemctl status kdb      # Service status
 - **Q33**: Verification via tests (16 tests passing)
 - **Q34**: Hash-chain audit trails (kdb core feature)
 
-### COCA (Computational Capsule)
+### Chaos (Computational Capsule)
 
 - **Tier**: T1 Atomic for observability counters
 - **Lockfree**: All counters use atomic operations (zero mutex)

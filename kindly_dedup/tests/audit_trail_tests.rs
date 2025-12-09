@@ -11,7 +11,7 @@
 //! - ASSUM: 99.99% safe (hash chain integrity verified)
 //! - B32: <200ns audit overhead (measured)
 //! - UCE34: Q34 compliance validation
-//! - COCA: 100% lockfree (atomic_capsule primitives)
+//! - Chaos: 100% lockfree (atomic_capsule primitives)
 
 #[cfg(feature = "audit-trail")]
 mod audit_tests {

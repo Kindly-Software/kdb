@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-The `unified-traits` feature introduces a **hierarchical trait system** for all 10 computational capsule tiers, enabling 95% COCA compliance. This is a **100% backward-compatible** change—existing code continues to work without modification.
+The `unified-traits` feature introduces a **hierarchical trait system** for all 10 computational capsule tiers, enabling 95% Chaos compliance. This is a **100% backward-compatible** change—existing code continues to work without modification.
 
 **Key Changes**:
 - ✅ **Base trait**: `Capsule` (all capsules implement this)

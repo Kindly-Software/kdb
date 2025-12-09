@@ -1,0 +1,538 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- capsule-api-template.xml: Standard API specification format for computational capsules -->
+<!-- Version 1.0: Defines canonical structure for documenting capsule APIs -->
+<capsule-api-template xmlns="http://kindly.ai/uce34/v6.0"
+                      version="1.0">
+
+  <!-- ========================================
+       API TEMPLATE STRUCTURE
+       Canonical format for capsule API documentation
+       ======================================== -->
+  <template>
+    <description>
+      Standard template for documenting computational capsule APIs.
+      All capsules should follow this structure for consistency.
+    </description>
+
+    <capsule-api name="CAPSULE_NAME" tier="TX" size="NB" alignment="64B">
+      <!-- Basic identification -->
+      <metadata>
+        <version>Semantic version (e.g., 1.0.0)</version>
+        <status>Draft|Stable|Deprecated</status>
+        <since>First version where this capsule appeared</since>
+        <authors>List of contributors</authors>
+        <location>Module path (e.g., atomic_capsule::collections::histogram)</location>
+      </metadata>
+
+      <description>
+        Brief description of capsule purpose and primary use cases.
+        Include key performance characteristics.
+      </description>
+
+      <!-- Type parameters if generic -->
+      <type-parameters>
+        <param name="T" bounds="Send + Sync + Copy">Element type</param>
+        <param name="N" type="const usize">Capacity (compile-time constant)</param>
+      </type-parameters>
+
+      <!-- Constructor(s) -->
+      <constructors>
+        <constructor name="new">
+          <signature>pub const fn new() -> Self</signature>
+          <description>Creates a new capsule with default configuration</description>
+          <preconditions>
+            <condition>None (infallible)</condition>
+          </preconditions>
+          <postconditions>
+            <condition>Capsule is in initialized state</condition>
+            <condition>All atomic fields are zero-initialized</condition>
+          </postconditions>
+          <complexity time="O(1)" space="O(1)"/>
+          <const-evaluable>Yes (const fn)</const-evaluable>
+        </constructor>
+
+        <constructor name="with_config">
+          <signature>pub fn with_config(config: Config) -> Result&lt;Self, ConfigError&gt;</signature>
+          <description>Creates a new capsule with custom configuration</description>
+          <preconditions>
+            <condition>config.capacity &gt; 0</condition>
+            <condition>config.capacity &lt;= MAX_CAPACITY</condition>
+          </preconditions>
+          <postconditions>
+            <condition>Capsule respects all config parameters</condition>
+          </postconditions>
+          <complexity time="O(1)" space="O(1)"/>
+          <const-evaluable>No (validation)</const-evaluable>
+        </constructor>
+      </constructors>
+
+      <!-- Methods organized by category -->
+      <methods>
+        <!-- Read operations (no mutation) -->
+        <method-group category="read">
+          <method name="get">
+            <signature>pub fn get(&amp;self, key: K) -> Option&lt;&amp;V&gt;</signature>
+            <description>Retrieves a value by key without mutation</description>
+            <thread-safety>MPMC (multiple readers safe)</thread-safety>
+            <latency>&lt;10ns typical, &lt;50ns worst-case</latency>
+            <memory-ordering>Acquire</memory-ordering>
+            <preconditions>
+              <condition>None</condition>
+            </preconditions>
+            <postconditions>
+              <condition>Returns Some if key exists, None otherwise</condition>
+              <condition>No mutation to internal state</condition>
+            </postconditions>
+          </method>
+
+          <method name="len">
+            <signature>pub fn len(&amp;self) -> usize</signature>
+            <description>Returns current number of elements</description>
+            <thread-safety>MPMC</thread-safety>
+            <latency>&lt;5ns (single atomic load)</latency>
+            <memory-ordering>Relaxed</memory-ordering>
+            <preconditions>
+              <condition>None</condition>
+            </preconditions>
+            <postconditions>
+              <condition>Returns count at time of call (may be stale)</condition>
+            </postconditions>
+          </method>
+
+          <method name="is_empty">
+            <signature>pub fn is_empty(&amp;self) -> bool</signature>
+            <description>Returns true if no elements present</description>
+            <thread-safety>MPMC</thread-safety>
+            <latency>&lt;5ns</latency>
+            <memory-ordering>Relaxed</memory-ordering>
+            <preconditions>
+              <condition>None</condition>
+            </preconditions>
+            <postconditions>
+              <condition>Equivalent to self.len() == 0</condition>
+            </postconditions>
+          </method>
+        </method-group>
+
+        <!-- Write operations (mutation) -->
+        <method-group category="write">
+          <method name="insert">
+            <signature>pub fn insert(&amp;self, key: K, value: V) -> Option&lt;V&gt;</signature>
+            <description>Inserts or updates a key-value pair</description>
+            <thread-safety>SWeMR (single writer, multiple readers)</thread-safety>
+            <latency>&lt;50ns typical, &lt;200ns worst-case</latency>
+            <memory-ordering>AcqRel</memory-ordering>
+            <preconditions>
+              <condition>Caller has exclusive write access (or uses atomic CAS)</condition>
+            </preconditions>
+            <postconditions>
+              <condition>Returns previous value if key existed</condition>
+              <condition>Key-value pair is visible to subsequent reads</condition>
+            </postconditions>
+          </method>
+
+          <method name="remove">
+            <signature>pub fn remove(&amp;self, key: &amp;K) -> Option&lt;V&gt;</signature>
+            <description>Removes and returns value for key</description>
+            <thread-safety>SWeMR</thread-safety>
+            <latency>&lt;50ns typical</latency>
+            <memory-ordering>AcqRel</memory-ordering>
+            <preconditions>
+              <condition>Caller has exclusive write access</condition>
+            </preconditions>
+            <postconditions>
+              <condition>Returns removed value if key existed</condition>
+              <condition>Key no longer visible to reads</condition>
+            </postconditions>
+          </method>
+        </method-group>
+
+        <!-- Atomic operations (lockfree coordination) -->
+        <method-group category="atomic">
+          <method name="compare_exchange">
+            <signature>pub fn compare_exchange(&amp;self, current: u64, new: u64, success: Ordering, failure: Ordering) -> Result&lt;u64, u64&gt;</signature>
+            <description>Atomic compare-and-swap operation</description>
+            <thread-safety>MPMC (fully lockfree)</thread-safety>
+            <latency>&lt;10ns typical</latency>
+            <memory-ordering>Configurable (success/failure orderings)</memory-ordering>
+            <preconditions>
+              <condition>None</condition>
+            </preconditions>
+            <postconditions>
+              <condition>If current matches, atomically replaces with new</condition>
+              <condition>Returns Ok(previous) on success, Err(actual) on failure</condition>
+            </postconditions>
+          </method>
+
+          <method name="fetch_add">
+            <signature>pub fn fetch_add(&amp;self, delta: u64, ordering: Ordering) -> u64</signature>
+            <description>Atomically adds delta and returns previous value</description>
+            <thread-safety>MPMC</thread-safety>
+            <latency>&lt;10ns</latency>
+            <memory-ordering>Configurable</memory-ordering>
+            <preconditions>
+              <condition>None (wraps on overflow)</condition>
+            </preconditions>
+            <postconditions>
+              <condition>Returns value before addition</condition>
+              <condition>New value = old + delta (wrapping)</condition>
+            </postconditions>
+          </method>
+
+          <method name="snapshot">
+            <signature>pub fn snapshot(&amp;self) -> Snapshot</signature>
+            <description>Captures atomic consistent snapshot of state</description>
+            <thread-safety>MPMC</thread-safety>
+            <latency>&lt;20ns (DualAtomicU64)</latency>
+            <memory-ordering>Acquire</memory-ordering>
+            <preconditions>
+              <condition>None</condition>
+            </preconditions>
+            <postconditions>
+              <condition>Returns consistent view of all state fields</condition>
+              <condition>Snapshot reflects state at single point in time</condition>
+            </postconditions>
+          </method>
+        </method-group>
+
+        <!-- Batch operations -->
+        <method-group category="batch">
+          <method name="batch_insert">
+            <signature>pub fn batch_insert(&amp;self, items: impl Iterator&lt;Item = (K, V)&gt;) -> BatchResult</signature>
+            <description>Inserts multiple items efficiently</description>
+            <thread-safety>SWeMR</thread-safety>
+            <latency>O(n) but amortized, &lt;10ns per item</latency>
+            <memory-ordering>AcqRel (single fence for batch)</memory-ordering>
+            <preconditions>
+              <condition>Caller has exclusive write access</condition>
+            </preconditions>
+            <postconditions>
+              <condition>All items visible after batch completes</condition>
+              <condition>Returns count of successful inserts</condition>
+            </postconditions>
+          </method>
+        </method-group>
+      </methods>
+
+      <!-- State machine (if stateful) -->
+      <state-transitions>
+        <description>State machine for capsule lifecycle</description>
+        <states>
+          <state id="uninitialized">Not yet constructed</state>
+          <state id="ready">Accepting operations</state>
+          <state id="draining">Completing in-flight, rejecting new</state>
+          <state id="closed">No longer usable</state>
+        </states>
+        <transitions>
+          <transition from="uninitialized" to="ready" trigger="new()" guard="none"/>
+          <transition from="ready" to="draining" trigger="drain()" guard="none"/>
+          <transition from="draining" to="closed" trigger="all_drained" guard="in_flight == 0"/>
+          <transition from="ready" to="closed" trigger="close()" guard="none"/>
+        </transitions>
+      </state-transitions>
+
+      <!-- Connection points -->
+      <connections>
+        <description>How this capsule connects to others</description>
+        <input type="direct" from="ProducerCapsule">
+          <description>Receives items from producer</description>
+          <protocol>Push-based, backpressure via return value</protocol>
+        </input>
+        <input type="pipeline" from="UpstreamCapsule">
+          <description>Receives batches from pipeline stage</description>
+          <protocol>Batch handoff with generation counter</protocol>
+        </input>
+        <output type="broadcast" to="ConsumerCapsule">
+          <description>Distributes events to subscribers</description>
+          <protocol>Fanout with at-least-once delivery</protocol>
+        </output>
+        <output type="request-response" to="PersistentCapsule">
+          <description>Queries persistent storage</description>
+          <protocol>Async request with timeout</protocol>
+        </output>
+      </connections>
+
+      <!-- Invariants that must always hold -->
+      <invariants>
+        <invariant id="I1">len() &lt;= capacity()</invariant>
+        <invariant id="I2">All atomic operations are wait-free or lock-free</invariant>
+        <invariant id="I3">Generation counter increases monotonically</invariant>
+        <invariant id="I4">Snapshot is always consistent (no torn reads)</invariant>
+        <invariant id="I5">size_of::&lt;Self&gt;() == declared size (verified at compile time)</invariant>
+        <invariant id="I6">align_of::&lt;Self&gt;() &gt;= declared alignment</invariant>
+      </invariants>
+
+      <!-- ASSUM safety documentation -->
+      <assum-tags>
+        <description>Safety assumptions and verifications per ASSUM framework</description>
+
+        <assume id="A1" category="MEMORY_ORDERING">
+          <text>Acquire load synchronizes with Release store for generation counter</text>
+          <location>fn snapshot(), fn update()</location>
+        </assume>
+        <verify id="V1" references="A1">
+          <text>T28 concurrent tests verify no torn reads under contention</text>
+          <test>tests/concurrent_snapshot_tests.rs</test>
+        </verify>
+
+        <assume id="A2" category="TOCTOU_PREVENTION">
+          <text>Generation counter prevents ABA problem in CAS loops</text>
+          <location>fn compare_exchange_with_generation()</location>
+        </assume>
+        <verify id="V2" references="A2">
+          <text>Property tests with proptest verify ABA scenarios handled</text>
+          <test>tests/property_tests.rs::aba_prevention</test>
+        </verify>
+
+        <assume id="A3" category="ALIGNMENT">
+          <text>Cache alignment (64B) prevents false sharing</text>
+          <location>struct definition, #[repr(C, align(64))]</location>
+        </assume>
+        <verify id="V3" references="A3">
+          <text>Compile-time assertion validates alignment</text>
+          <test>const _: () = assert!(align_of::&lt;Self&gt;() &gt;= 64);</test>
+        </verify>
+
+        <assume id="A4" category="PANIC_SAFETY">
+          <text>No panics in critical sections</text>
+          <location>All methods</location>
+        </assume>
+        <verify id="V4" references="A4">
+          <text>No unwrap/expect in production code paths</text>
+          <test>Clippy lint: clippy::unwrap_used denied</test>
+        </verify>
+      </assum-tags>
+
+      <!-- Performance characteristics -->
+      <performance>
+        <latency-profile>
+          <operation name="get">&lt;10ns (cache hit), &lt;50ns (cache miss)</operation>
+          <operation name="insert">&lt;50ns (no resize), &lt;1us (resize)</operation>
+          <operation name="snapshot">&lt;20ns (DualAtomicU64)</operation>
+        </latency-profile>
+        <throughput>
+          <metric name="reads">100M+ ops/sec single-threaded</metric>
+          <metric name="writes">10M+ ops/sec (SWeMR pattern)</metric>
+        </throughput>
+        <memory>
+          <metric name="overhead">Fixed 64B header + N * element_size</metric>
+          <metric name="alignment">64B (L1 cache line)</metric>
+        </memory>
+      </performance>
+
+      <!-- Usage examples -->
+      <examples>
+        <example name="basic_usage">
+          <code language="rust">
+let capsule = MyCapsule::new();
+capsule.insert(key, value);
+if let Some(v) = capsule.get(&amp;key) {
+    println!("Found: {:?}", v);
+}
+          </code>
+        </example>
+        <example name="atomic_update">
+          <code language="rust">
+loop {
+    let snapshot = capsule.snapshot();
+    let new_value = compute(snapshot.value);
+    match capsule.compare_exchange(snapshot.packed, new_value, AcqRel, Acquire) {
+        Ok(_) => break,
+        Err(_) => continue, // Retry on contention
+    }
+}
+          </code>
+        </example>
+      </examples>
+
+    </capsule-api>
+  </template>
+
+  <!-- ========================================
+       CONCRETE EXAMPLES
+       Real capsule APIs following the template
+       ======================================== -->
+  <examples>
+
+    <capsule-api name="CircuitBreaker" tier="T1" size="8B" alignment="64B">
+      <metadata>
+        <version>1.0.0</version>
+        <status>Stable</status>
+        <since>atomic_capsule 0.2.0</since>
+        <location>atomic_capsule::patterns::circuit_breaker</location>
+      </metadata>
+
+      <description>
+        High-performance circuit breaker using DualAtomicU64 pattern.
+        9 packed fields in 8 bytes. 9.8ns load, &lt;15ns update.
+        SWeMR pattern for concurrent access.
+      </description>
+
+      <constructors>
+        <constructor name="new">
+          <signature>pub const fn new(config: CircuitBreakerConfig) -> Self</signature>
+          <complexity time="O(1)" space="O(1)"/>
+          <const-evaluable>Yes</const-evaluable>
+        </constructor>
+      </constructors>
+
+      <methods>
+        <method-group category="read">
+          <method name="state">
+            <signature>pub fn state(&amp;self) -> CircuitState</signature>
+            <thread-safety>MPMC</thread-safety>
+            <latency>9.8ns (Relaxed load)</latency>
+          </method>
+          <method name="is_open">
+            <signature>pub fn is_open(&amp;self) -> bool</signature>
+            <thread-safety>MPMC</thread-safety>
+            <latency>&lt;10ns</latency>
+          </method>
+          <method name="metrics">
+            <signature>pub fn metrics(&amp;self) -> CircuitMetrics</signature>
+            <thread-safety>MPMC</thread-safety>
+            <latency>&lt;15ns (snapshot)</latency>
+          </method>
+        </method-group>
+
+        <method-group category="atomic">
+          <method name="record_success">
+            <signature>pub fn record_success(&amp;self)</signature>
+            <thread-safety>SWeMR</thread-safety>
+            <latency>&lt;15ns</latency>
+          </method>
+          <method name="record_failure">
+            <signature>pub fn record_failure(&amp;self)</signature>
+            <thread-safety>SWeMR</thread-safety>
+            <latency>&lt;15ns</latency>
+          </method>
+          <method name="try_call">
+            <signature>pub fn try_call&lt;F, R&gt;(&amp;self, f: F) -> Result&lt;R, CircuitError&gt;</signature>
+            <thread-safety>SWeMR</thread-safety>
+            <latency>~20ns overhead + f() time</latency>
+          </method>
+        </method-group>
+      </methods>
+
+      <state-transitions>
+        <states>
+          <state id="closed">Normal operation, allowing calls</state>
+          <state id="open">Failing fast, rejecting calls</state>
+          <state id="half_open">Testing recovery, limited calls</state>
+        </states>
+        <transitions>
+          <transition from="closed" to="open" trigger="failure_threshold_exceeded"/>
+          <transition from="open" to="half_open" trigger="timeout_elapsed"/>
+          <transition from="half_open" to="closed" trigger="success_threshold_met"/>
+          <transition from="half_open" to="open" trigger="failure_in_half_open"/>
+        </transitions>
+      </state-transitions>
+
+      <invariants>
+        <invariant>size_of::&lt;CircuitBreaker&gt;() == 8</invariant>
+        <invariant>align_of::&lt;CircuitBreaker&gt;() &gt;= 64</invariant>
+        <invariant>state is always one of Closed|Open|HalfOpen</invariant>
+      </invariants>
+
+      <assum-tags>
+        <assume id="A1" category="MEMORY_ORDERING">
+          DualAtomicU64 provides atomic 128-bit operations via CMPXCHG16B
+        </assume>
+        <verify id="V1" references="A1">
+          B32 benchmarks confirm no torn reads under contention
+        </verify>
+      </assum-tags>
+
+      <performance>
+        <claim speedup="3-10x" baseline="RwLock circuit breaker" validation="B32-Validated"/>
+      </performance>
+    </capsule-api>
+
+    <capsule-api name="HistogramCapsule" tier="T1" size="256B" alignment="64B">
+      <metadata>
+        <version>1.0.0</version>
+        <status>Stable</status>
+        <since>atomic_capsule 0.3.0</since>
+        <location>atomic_capsule::collections::histogram</location>
+      </metadata>
+
+      <description>
+        Lockfree histogram with O(1) bucket updates.
+        50x faster than std::HashMap for frequency counting.
+        Fixed bucket count (32 default), atomic increments.
+      </description>
+
+      <constructors>
+        <constructor name="new">
+          <signature>pub const fn new() -> Self</signature>
+          <complexity time="O(1)" space="O(1)"/>
+          <const-evaluable>Yes</const-evaluable>
+        </constructor>
+        <constructor name="with_buckets">
+          <signature>pub fn with_buckets(count: usize) -> Self</signature>
+          <complexity time="O(n)" space="O(n)"/>
+          <const-evaluable>No</const-evaluable>
+        </constructor>
+      </constructors>
+
+      <methods>
+        <method-group category="atomic">
+          <method name="record">
+            <signature>pub fn record(&amp;self, value: u64)</signature>
+            <description>Increments bucket for value</description>
+            <thread-safety>MPMC</thread-safety>
+            <latency>&lt;10ns</latency>
+          </method>
+          <method name="count">
+            <signature>pub fn count(&amp;self, bucket: usize) -> u64</signature>
+            <thread-safety>MPMC</thread-safety>
+            <latency>&lt;5ns</latency>
+          </method>
+        </method-group>
+
+        <method-group category="read">
+          <method name="percentile">
+            <signature>pub fn percentile(&amp;self, p: f64) -> u64</signature>
+            <thread-safety>MPMC</thread-safety>
+            <latency>O(buckets)</latency>
+          </method>
+          <method name="total">
+            <signature>pub fn total(&amp;self) -> u64</signature>
+            <thread-safety>MPMC</thread-safety>
+            <latency>O(buckets)</latency>
+          </method>
+        </method-group>
+      </methods>
+
+      <invariants>
+        <invariant>All bucket counts are non-negative</invariant>
+        <invariant>sum(buckets) == total()</invariant>
+      </invariants>
+
+      <performance>
+        <claim speedup="50x" baseline="std::HashMap frequency counter" validation="B32-Validated"/>
+      </performance>
+    </capsule-api>
+
+  </examples>
+
+  <!-- ========================================
+       VALIDATION CHECKLIST
+       Requirements for complete API documentation
+       ======================================== -->
+  <validation-checklist>
+    <item required="true">Metadata (version, status, location)</item>
+    <item required="true">Description (purpose, key characteristics)</item>
+    <item required="true">At least one constructor with complexity</item>
+    <item required="true">All public methods documented</item>
+    <item required="true">Thread-safety for each method</item>
+    <item required="true">Latency expectations for each method</item>
+    <item required="true">Memory ordering for atomic methods</item>
+    <item required="true">Invariants (compile-time size/align verification)</item>
+    <item required="true">ASSUM tags for all unsafe operations</item>
+    <item required="false">State transitions (if stateful)</item>
+    <item required="false">Connection points (if composable)</item>
+    <item required="false">Usage examples</item>
+  </validation-checklist>
+
+</capsule-api-template>

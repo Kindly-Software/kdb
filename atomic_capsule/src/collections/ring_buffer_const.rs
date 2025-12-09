@@ -68,7 +68,7 @@
 //!
 //! # Framework Compliance
 //! - **UCE34**: Q10 T0+T5 (compile-time optimization on streaming capsule), Q12 (nightly generic_const_exprs)
-//! - **COCA**: 100% lockfree, cache-aligned, generation counters
+//! - **Chaos**: 100% lockfree, cache-aligned, generation counters
 //! - **ASSUM**: 99.99% safe (zero unsafe code in fast path, const initialization)
 //! - **B32**: 5-15% speedup validated (zero-alloc + modulo optimization)
 //! - **T28**: Compile-time validation tests + runtime equivalence tests

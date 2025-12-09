@@ -1,0 +1,140 @@
+{
+  "description": "Example Stripe MCP Configuration for Claude Code",
+  "note": "Choose ONE of the following configurations based on your setup",
+  "configurations": {
+    "remote_stripe_mcp": {
+      "description": "Remote Stripe MCP (Recommended) - Stripe-hosted server, OAuth auth",
+      "config": {
+        "mcpServers": {
+          "stripe": {
+            "url": "https://mcp.stripe.com/",
+            "auth": "oauth"
+          }
+        }
+      },
+      "advantages": [
+        "No local installation needed",
+        "Stripe maintains the server",
+        "OAuth authentication (recommended)",
+        "Works with Claude, Cursor, VS Code"
+      ],
+      "installation": "claude mcp add --transport http stripe https://mcp.stripe.com/"
+    },
+
+    "local_stripe_mcp_env": {
+      "description": "Local Stripe MCP with Environment Variable",
+      "config": {
+        "mcpServers": {
+          "stripe": {
+            "command": "npx",
+            "args": ["@stripe/mcp", "--tools=all"],
+            "env": {
+              "STRIPE_SECRET_KEY": "sk_test_YOUR_SECRET_KEY"
+            }
+          }
+        }
+      },
+      "setup": [
+        "1. npm install -g @stripe/mcp",
+        "2. Get API key from https://dashboard.stripe.com/apikeys",
+        "3. Replace YOUR_SECRET_KEY with actual key",
+        "4. Add config to ~/.claude/settings.json"
+      ],
+      "security": "⚠️ Do NOT commit this to git. Use .env instead."
+    },
+
+    "local_stripe_mcp_file": {
+      "description": "Local Stripe MCP with .env file (Recommended for local)",
+      "config": {
+        "mcpServers": {
+          "stripe": {
+            "command": "npx",
+            "args": ["@stripe/mcp", "--tools=all"],
+            "env": {
+              "STRIPE_SECRET_KEY": "${STRIPE_SECRET_KEY}"
+            }
+          }
+        }
+      },
+      "setup": [
+        "1. npm install -g @stripe/mcp",
+        "2. Create ~/.env file (chmod 600)",
+        "3. Add: export STRIPE_SECRET_KEY='sk_test_YOUR_KEY'",
+        "4. Add config to ~/.claude/settings.json (without actual key)",
+        "5. Source .env before running Claude Code"
+      ],
+      "security": "✅ Keys stored in .env (not in config)",
+      "load_env": "source ~/.env && claude-code"
+    },
+
+    "local_stripe_mcp_keyring": {
+      "description": "Local Stripe MCP with System Keyring (Most Secure)",
+      "config": {
+        "mcpServers": {
+          "stripe": {
+            "command": "bash",
+            "args": [
+              "-c",
+              "export STRIPE_SECRET_KEY=$(pass show stripe/secret_key) && npx @stripe/mcp --tools=all"
+            ]
+          }
+        }
+      },
+      "setup": [
+        "1. Install pass: sudo apt install pass",
+        "2. Store key: pass insert stripe/secret_key",
+        "3. Test: pass show stripe/secret_key",
+        "4. Add config above to ~/.claude/settings.json"
+      ],
+      "security": "✅✅ Keys in GPG-encrypted system keyring",
+      "load_env": "claude-code (key loaded from keyring automatically)"
+    }
+  },
+
+  "file_locations": {
+    "claude_code": "~/.claude/settings.json",
+    "cursor": "~/.cursor/mcp.json",
+    "vs_code": ".vscode/mcp.json",
+    "env_file": "~/.env (chmod 600)",
+    "keyring": "pass show stripe/secret_key"
+  },
+
+  "api_key_sources": {
+    "test_mode": {
+      "url": "https://dashboard.stripe.com/test/apikeys",
+      "prefix": "sk_test_",
+      "use_case": "Development, testing, no real charges"
+    },
+    "live_mode": {
+      "url": "https://dashboard.stripe.com/apikeys",
+      "prefix": "sk_live_",
+      "use_case": "Production, real charges processed",
+      "warning": "Only enable when ready for production"
+    }
+  },
+
+  "verification": {
+    "test_stripe_connection": "curl -H 'Authorization: Bearer sk_test_...' https://api.stripe.com/v1/products",
+    "verify_mcp_loaded": "claude mcp list",
+    "check_env_variable": "echo $STRIPE_SECRET_KEY",
+    "test_product_creation": "Ask Claude: 'Create a test product called \"test_product\" for $99'"
+  },
+
+  "troubleshooting": {
+    "mcp_not_found": [
+      "1. Verify MCP is in config: cat ~/.claude/settings.json",
+      "2. Restart Claude Code",
+      "3. Check: claude mcp list"
+    ],
+    "api_key_invalid": [
+      "1. Verify key format: echo $STRIPE_SECRET_KEY",
+      "2. Check key is active: https://dashboard.stripe.com/apikeys",
+      "3. Try test key: sk_test_..."
+    ],
+    "authentication_failed": [
+      "1. For OAuth: Complete auth flow in Stripe Dashboard",
+      "2. For API key: Check Bearer token format",
+      "3. Test: curl -H 'Authorization: Bearer sk_test_...' https://api.stripe.com"
+    ]
+  }
+}

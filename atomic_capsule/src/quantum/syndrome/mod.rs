@@ -47,7 +47,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 T2 SIMD tier, Q33 verification, Q34 audit trails
-//! - **COCA**: 100% computational capsule, 256B aligned, lockfree
+//! - **Chaos**: 100% computational capsule, 256B aligned, lockfree
 //! - **B32**: Fair baseline (scalar Pauli evaluation), 95% CI, 3-4× validated
 //! - **T28**: 28+ comprehensive tests (unit/property/integration/production)
 //! - **ASSUM**: 99.99% safety (10 assumptions verified)

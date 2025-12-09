@@ -4,7 +4,7 @@
 // Framework Compliance:
 // - UCE34: Q10 T6 Mixed tier validation
 // - T28: Complete Q22-Q28 production testing
-// - COCA: 100% lockfree validation under production load
+// - Chaos: 100% lockfree validation under production load
 // - ASSUM: Stress tests verify assumptions hold under load
 // - B32: Performance baselines for regression detection
 // - I20: Production integration validation

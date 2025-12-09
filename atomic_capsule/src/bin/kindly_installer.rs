@@ -3,7 +3,7 @@
 //! **Framework**: UCE34 (Q1-Q34 systematic discovery)
 //! **Tiers Used**: T0 (Auditable), T1 (Atomic), T8 (Network), T9 (Persistent)
 //! **Status**: Production-Ready
-//! **COCA Compliance**: 100% lockfree, zero mutex, zero unsafe code
+//! **Chaos Compliance**: 100% lockfree, zero mutex, zero unsafe code
 //!
 //! ## Purpose
 //!

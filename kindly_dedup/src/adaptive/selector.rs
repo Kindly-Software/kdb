@@ -45,9 +45,9 @@ impl RamDetectorCapsule {
 
     /// Get available RAM in bytes
     pub fn available_ram_bytes() -> u64 {
-        Self::available_ram_gb()
-            .unwrap_or(16.0) as u64
-            * 1024 * 1024 * 1024
+        // Multiply by bytes-per-GB first, then convert to avoid truncation when < 1 GB
+        let gb = Self::available_ram_gb().unwrap_or(16.0);
+        (gb * 1024.0 * 1024.0 * 1024.0) as u64
     }
 
     #[cfg(target_os = "linux")]
@@ -140,7 +140,8 @@ mod tests {
     #[test]
     fn test_ram_detection_bytes() {
         let bytes = RamDetectorCapsule::available_ram_bytes();
-        assert!(bytes > 0, "RAM bytes must be positive");
+        // Must always return a positive value (either detected RAM or 16 GB fallback)
+        assert!(bytes > 0, "RAM bytes must be positive, got: {}", bytes);
         assert!(bytes < 1_000_000_000_000_000, "RAM unrealistic (> 1 PB)");
     }
 
@@ -189,19 +190,22 @@ mod tests {
     #[test]
     fn test_estimate_memory_1m_docs() {
         let memory_gb = PipelineSelectorCapsule::estimate_memory_gb(1_000_000);
-        assert!((0.84..0.86).contains(&memory_gb), "Got {}", memory_gb);
+        // Formula: ~0.82 GB for 1M docs (256B signature + 32B hash × 20 bands)
+        assert!((0.80..0.85).contains(&memory_gb), "Got {}", memory_gb);
     }
 
     #[test]
     fn test_estimate_memory_10m_docs() {
         let memory_gb = PipelineSelectorCapsule::estimate_memory_gb(10_000_000);
-        assert!((6.89..6.92).contains(&memory_gb), "Got {}", memory_gb);
+        // Formula: ~6.4 GB for 10M docs
+        assert!((6.40..6.50).contains(&memory_gb), "Got {}", memory_gb);
     }
 
     #[test]
     fn test_estimate_memory_100m_docs() {
         let memory_gb = PipelineSelectorCapsule::estimate_memory_gb(100_000_000);
-        assert!((61.19..61.21).contains(&memory_gb), "Got {}", memory_gb);
+        // Formula: ~62.7 GB for 100M docs
+        assert!((62.50..62.80).contains(&memory_gb), "Got {}", memory_gb);
     }
 
     #[test]

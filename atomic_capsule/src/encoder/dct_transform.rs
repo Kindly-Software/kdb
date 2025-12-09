@@ -11,7 +11,7 @@
 //
 // FRAMEWORK COMPLIANCE:
 // - UCE34: Q10 T2 SIMD tier, Q12 ULTRATHINK (Chen-Wang research)
-// - COCA: 256B cache-aligned, lockfree atomic coordination
+// - Chaos: 256B cache-aligned, lockfree atomic coordination
 // - ASSUM: 99.99% safety target (all assumptions verified)
 // - B32: <500ns per 32×32 block target
 // - T28: 28 comprehensive tests
@@ -600,6 +600,7 @@ impl Default for DctTransformCapsule {
 // ========== SAFETY VERIFICATION ==========
 
 #[cfg(test)]
+#[allow(deprecated)]
 mod verification {
     use super::*;
 

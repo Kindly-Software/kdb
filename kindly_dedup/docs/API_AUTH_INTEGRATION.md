@@ -32,7 +32,7 @@ HTTP Request
 ## Framework Compliance
 
 - **UCE34**: Q10 T1 Atomic (lockfree coordination), Q34 (audit trail)
-- **COCA**: 100% computational capsules (no mutex/RwLock - minimal Mutex for cache only)
+- **Chaos**: 100% computational capsules (no mutex/RwLock - minimal Mutex for cache only)
 - **ASSUM**: 99.99% safe (zero unsafe code)
 - **B32**: <100ns authentication overhead
 - **T28**: Comprehensive testing (6 unit tests, property tests planned)

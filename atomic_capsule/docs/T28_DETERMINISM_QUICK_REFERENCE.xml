@@ -1,0 +1,468 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- T28 Q29-Q35 Determinism Tier Quick Reference -->
+<!-- Version 1.0 | Date: 2025-11-24 | 7 questions, implementation patterns, quick wins -->
+<quick-reference framework="T28" tier="Q29-Q35" version="1.0" date="2025-11-24">
+
+  <metadata>
+    <title>T28 Q29-Q35 Determinism Validation - Quick Reference Card</title>
+    <purpose>Rapid reference for testing deterministic behavior in capsule compositions</purpose>
+    <scope>Bitwise reproducibility, execution path determinism, generation counter monotonicity, cache coherence, memory ordering, deterministic replay, multi-tier composition</scope>
+    <token-count estimate="3500" limit="5000"/>
+  </metadata>
+
+  <!-- ========================================
+       TIER OVERVIEW
+       ======================================== -->
+  <tier-overview>
+    <description>Tier 5: Determinism Validation (Q29-Q35) addresses critical gaps in T28 testing framework by validating that atomic capsules produce reproducible results, execution paths are deterministic, and multi-tier compositions preserve deterministic behavior.</description>
+
+    <quick-win-roadmap effort="12h" impact="30%">
+      <win id="Q31-gen-counter" effort="5h" impact="30%">
+        10 generation counter tests (5 per-capsule monotonicity, 5 cross-capsule ordering, wraparound safety)
+      </win>
+      <win id="Q32-cache-coherence" effort="4h" impact="15%">
+        5 cache coherence tests (false sharing detection, alignment verification, perfcnt validation)
+      </win>
+      <win id="Q33-memory-ordering" effort="3h" impact="15%">
+        3 memory ordering tests (Acquire/Release fence, SeqCst total order, ABA prevention)
+      </win>
+    </quick-win-roadmap>
+  </tier-overview>
+
+  <!-- ========================================
+       TIER SUMMARY TABLE
+       ======================================== -->
+  <tier-questions>
+    <question id="Q29" name="Execution Path Determinism">
+      <focus>Same input → same execution path (recorded via kdb trace replay)</focus>
+      <test-pattern>record_execution(input) → replay → verify_identical_path</test-pattern>
+      <success-criterion>100% path match across 10+ runs</success-criterion>
+      <estimated-tests>3-5 tests (simple, complex, error paths)</estimated-tests>
+      <example-ref>determinism-execution-path</example-ref>
+    </question>
+
+    <question id="Q30" name="Bitwise Reproducibility">
+      <focus>Output bytes match exactly across runs (SIMD, fixed-point, float)</focus>
+      <test-pattern>for 100 runs: output = compute(fixed_input); assert!(output == baseline)</test-pattern>
+      <success-criterion>All 100 runs produce identical bit patterns</success-criterion>
+      <estimated-tests>5-7 tests (SIMD, float, fixed-point, serialization)</estimated-tests>
+      <example-ref>determinism-bitwise</example-ref>
+    </question>
+
+    <question id="Q31" name="Generation Counter Monotonicity">
+      <focus>Cross-capsule ordering, wraparound safety, monotonic increments under concurrency</focus>
+      <test-pattern>100 capsules × 10K increments → collect generations → verify unique + ordered</test-pattern>
+      <success-criterion>Zero duplicates, zero gaps, monotonic across capsules</success-criterion>
+      <estimated-tests>10 tests (per-capsule, cross-capsule, concurrent, wraparound)</estimated-tests>
+      <example-ref>determinism-generation-counter</example-ref>
+    </question>
+
+    <question id="Q32" name="Cache Coherence Determinism">
+      <focus>Alignment effectiveness, false sharing detection via perfcnt, cache line contention</focus>
+      <test-pattern>measure_cache_misses(hot_atomic) → assert_lt!(misses, 5% * operations)</test-pattern>
+      <success-criterion>&lt;5% cache miss rate with 64B alignment</success-criterion>
+      <estimated-tests>5 tests (alignment verification, contention measurement, false sharing test)</estimated-tests>
+      <example-ref>determinism-cache-coherence</example-ref>
+    </question>
+
+    <question id="Q33" name="Memory Ordering Consistency">
+      <focus>Acquire/Release fence, SeqCst total order, ABA prevention, reordering detection</focus>
+      <test-pattern>test_fence_acq_prevents_load_reordering { assert!(no_reordering_detected) }</test-pattern>
+      <success-criterion>All fences prevent reordering, total order verified, ABA impossible</success-criterion>
+      <estimated-tests>3-5 tests (fence effectiveness, total order, ABA prevention)</estimated-tests>
+      <example-ref>determinism-memory-ordering</example-ref>
+    </question>
+
+    <question id="Q34" name="Deterministic Replay">
+      <focus>kdb snapshot → replay → identical state, backward/forward replay, time-travel capability</focus>
+      <test-pattern>trace = record(input); replayed = replay(trace); assert_eq!(trace.final_state, replayed.final_state)</test-pattern>
+      <success-criterion>Replay matches original, forward and backward both work</success-criterion>
+      <estimated-tests>4-6 tests (snapshot completeness, forward/backward replay, comparison)</estimated-tests>
+      <example-ref>determinism-replay</example-ref>
+    </question>
+
+    <question id="Q35" name="Composition Determinism">
+      <focus>T1+T2+T3 compositions maintain determinism, metacapsule orchestration, no emergent nondeterminism</focus>
+      <test-pattern>test_t6_mixed_determinism { for input in test_inputs { verify!(compute_t6(input) == expected) } }</test-pattern>
+      <success-criterion>100+ runs with identical output for all tier combinations</success-criterion>
+      <estimated-tests>5-7 tests (T1 alone, T1+T2, T1+T2+T3, T6 metacapsule, error paths)</estimated-tests>
+      <example-ref>determinism-composition</example-ref>
+    </question>
+  </tier-questions>
+
+  <!-- ========================================
+       IMPLEMENTATION PATTERNS
+       ======================================== -->
+  <implementation-patterns>
+
+    <pattern id="q29-execution-path">
+      <title>Q29: Execution Path Determinism Pattern</title>
+      <description>Record execution trace, replay, compare instruction addresses and opcodes</description>
+      <code><![CDATA[
+#[test]
+fn test_execution_path_determinism() {
+    use kdb::record_execution;
+
+    let input = 42u64;
+    let trace1 = record_execution(|| compute(input)).unwrap();
+    let trace2 = record_execution(|| compute(input)).unwrap();
+
+    // Verify identical execution paths
+    assert_eq!(trace1.instructions.len(), trace2.instructions.len());
+    for (i1, i2) in trace1.instructions.iter().zip(trace2.instructions.iter()) {
+        assert_eq!(i1.addr, i2.addr);
+        assert_eq!(i1.opcode, i2.opcode);
+    }
+}
+      ]]></code>
+    </pattern>
+
+    <pattern id="q30-bitwise">
+      <title>Q30: Bitwise Reproducibility Pattern</title>
+      <description>Run 100+ iterations, compare byte-for-byte output</description>
+      <code><![CDATA[
+#[test]
+fn test_bitwise_reproducibility() {
+    let input = [1.0f32, 2.0, 3.0, 4.0];
+    let baseline = compute_simd(&input);
+
+    // 100+ runs, bitwise identical
+    for _ in 0..100 {
+        let output = compute_simd(&input);
+        assert_eq!(&baseline[..], &output[..], "Bitwise mismatch detected!");
+    }
+}
+      ]]></code>
+    </pattern>
+
+    <pattern id="q31-generation">
+      <title>Q31: Generation Counter Monotonicity Pattern</title>
+      <description>100 capsules × 10K increments, verify no duplicates and ordering</description>
+      <code><![CDATA[
+#[test]
+fn test_generation_monotonicity() {
+    let capsules: Vec<_> = (0..100).map(|_| DualAtomicU64::new()).collect();
+    let mut all_gens = Vec::new();
+
+    for capsule in &capsules {
+        for _ in 0..10_000 {
+            capsule.store(1, Ordering::Release);
+            all_gens.push(capsule.generation());
+        }
+    }
+
+    // Verify unique
+    let unique: HashSet<_> = all_gens.iter().cloned().collect();
+    assert_eq!(unique.len(), all_gens.len());
+}
+      ]]></code>
+    </pattern>
+
+    <pattern id="q32-cache">
+      <title>Q32: Cache Coherence Pattern</title>
+      <description>Verify 64B alignment, measure cache misses with perfcnt</description>
+      <code><![CDATA[
+#[test]
+fn test_cache_coherence() {
+    let atomic1 = create_aligned_atomic::<64>();
+    let atomic2 = create_aligned_atomic::<64>();
+
+    // Verify alignment
+    assert_eq!(std::mem::align_of_val(&atomic1), 64);
+
+    // Measure contention
+    for _ in 0..10_000 {
+        atomic1.fetch_add(1, Ordering::Relaxed);
+    }
+    // Expected: <5% cache misses with proper alignment
+}
+      ]]></code>
+    </pattern>
+
+    <pattern id="q33-memory">
+      <title>Q33: Memory Ordering Pattern</title>
+      <description>Test Acquire/Release fence prevents reordering</description>
+      <code><![CDATA[
+#[test]
+fn test_memory_ordering() {
+    let x = Arc::new(AtomicU64::new(0));
+    let y = Arc::new(AtomicU64::new(0));
+
+    let x1 = Arc::clone(&x);
+    let t1 = thread::spawn(move || {
+        x1.store(1, Ordering::Release); // Release fence
+    });
+
+    let y1 = Arc::clone(&y);
+    let t2 = thread::spawn(move || {
+        while y1.load(Ordering::Relaxed) == 0 {}
+        // Acquire: prevents later loads from moving before
+        let val = x.load(Ordering::Acquire);
+        assert_eq!(val, 1); // Should always be true
+    });
+
+    y.store(1, Ordering::Relaxed);
+    t1.join().unwrap();
+    t2.join().unwrap();
+}
+      ]]></code>
+    </pattern>
+
+    <pattern id="q34-replay">
+      <title>Q34: Deterministic Replay Pattern</title>
+      <description>Snapshot state, replay execution, verify identical outcome</description>
+      <code><![CDATA[
+#[test]
+fn test_deterministic_replay() {
+    let capsule = DualAtomicU64::new();
+
+    // Record initial state
+    capsule.store(42, Ordering::Release);
+    let gen1 = capsule.generation();
+
+    // Execute and snapshot
+    capsule.store(100, Ordering::Release);
+    let gen2 = capsule.generation();
+
+    // Verify deterministic behavior
+    assert!(gen2 > gen1);
+
+    // kdb would:
+    // 1. Record all snapshots
+    // 2. Replay from snapshot
+    // 3. Verify final state matches
+}
+      ]]></code>
+    </pattern>
+
+    <pattern id="q35-composition">
+      <title>Q35: Composition Determinism Pattern</title>
+      <description>Test T1+T2+T3 tiers combined maintain determinism</description>
+      <code><![CDATA[
+#[test]
+fn test_composition_determinism() {
+    // Run 100+ times
+    for _ in 0..100 {
+        // T1: Atomic store
+        let atomic = DualAtomicU64::new();
+        atomic.store(100, Ordering::Release);
+
+        // T2: SIMD computation
+        let input = std::simd::i32x4::from_array([1, 2, 3, 4]);
+        let simd_result = input.wrapping_mul(std::simd::i32x4::splat(2));
+
+        // T3: Fixed-point P&L
+        let fixed_val = fixed::types::I16F16::from_num(100);
+        let computed = fixed_val + fixed::types::I16F16::from_num(200);
+
+        // Verify all remain deterministic
+        assert_eq!(atomic.load(Ordering::Acquire), 100);
+        assert_eq!(computed, fixed::types::I16F16::from_num(300));
+    }
+}
+      ]]></code>
+    </pattern>
+
+  </implementation-patterns>
+
+  <!-- ========================================
+       QUICK WIN CHECKLIST
+       ======================================== -->
+  <quick-wins>
+    <win id="Q31-10-tests" priority="HIGH" effort="5h" impact="30%">
+      <title>10 Generation Counter Tests (5h effort)</title>
+      <includes>
+        <test>1 per-capsule monotonicity (50 increments)</test>
+        <test>1 cross-capsule ordering (10 capsules, 1K increments)</test>
+        <test>1 concurrent updates (16 threads, 10K increments)</test>
+        <test>1 wraparound edge case (u64::MAX - 10 range)</test>
+        <test>1 gap detection (verify no skipped generations)</test>
+        <test>1 duplicate detection (HashSet size == total_increments)</test>
+        <test>1 global ordering (sort by timestamp, verify monotonic)</test>
+        <test>1 high concurrency stress (100 capsules, 100K increments)</test>
+        <test>1 zero initialization (verify gen starts at 1, not 0)</test>
+        <test>1 comparison with baseline (verify consistent across runs)</test>
+      </includes>
+      <commands><![CDATA[
+# Run Q31 tests
+cargo test --lib test_t28_q31 -- --test-threads=1
+
+# Measure performance
+cargo bench --bench generation_counter_bench
+
+# Check coverage
+cargo tarpaulin --lib --out Html
+      ]]></commands>
+    </win>
+
+    <win id="Q32-5-tests" priority="HIGH" effort="4h" impact="15%">
+      <title>5 Cache Coherence Tests (4h effort)</title>
+      <includes>
+        <test>1 alignment verification (assert align_of == 64)</test>
+        <test>1 false sharing test (hammer atomic1, measure atomic2 contention)</test>
+        <test>1 cache miss measurement (perfcnt validation)</test>
+        <test>1 padding calculation check (verify 64B/128B/256B boundaries)</test>
+        <test>1 multi-core contention (16 threads on same/different cache lines)</test>
+      </includes>
+      <commands><![CDATA[
+# Run Q32 tests
+cargo test --lib test_t28_q32 -- --test-threads=1
+
+# Benchmark with perfcnt
+cargo bench --bench cache_coherence_bench
+
+# Verify alignment on target
+cargo run --bin align_check
+      ]]></commands>
+    </win>
+
+    <win id="Q33-3-tests" priority="HIGH" effort="3h" impact="15%">
+      <title>3 Memory Ordering Tests (3h effort)</title>
+      <includes>
+        <test>1 Acquire/Release fence (prevents load/store reordering)</test>
+        <test>1 SeqCst total order (all threads observe same order)</test>
+        <test>1 ABA prevention (double-check with generation counter)</test>
+      </includes>
+      <commands><![CDATA[
+# Run Q33 tests
+cargo test --lib test_t28_q33 -- --test-threads=1
+
+# Run with loom (model checker)
+cargo test --lib test_t28_q33 --features loom
+
+# Stress test (1M operations)
+cargo test --lib test_aba_prevention -- --nocapture --test-threads=1
+      ]]></commands>
+    </win>
+  </quick-wins>
+
+  <!-- ========================================
+       COMMANDS & WORKFLOWS
+       ======================================== -->
+  <commands>
+
+    <command name="Run all Q29-Q35 tests">
+      <desc>Execute all determinism tier tests with verbose output</desc>
+      <usage><![CDATA[
+cargo test --lib \
+  test_t28_q29 \
+  test_t28_q30 \
+  test_t28_q31 \
+  test_t28_q32 \
+  test_t28_q33 \
+  test_t28_q34 \
+  test_t28_q35 \
+  -- --test-threads=1 --nocapture
+      ]]></usage>
+    </command>
+
+    <command name="Quick wins (12h implementation)">
+      <desc>Run quick-win roadmap tests in priority order</desc>
+      <usage><![CDATA[
+# Phase 1: Q31 (5h)
+cargo test --lib test_t28_q31 -- --test-threads=1
+
+# Phase 2: Q32 (4h)
+cargo test --lib test_t28_q32 -- --test-threads=1
+
+# Phase 3: Q33 (3h)
+cargo test --lib test_t28_q33 -- --test-threads=1
+
+# Total time: ~12h → 30% gap closure
+      ]]></usage>
+    </command>
+
+    <command name="Comprehensive validation (production)">
+      <desc>Full suite with B32 benchmarking and kdb integration</desc>
+      <usage><![CDATA[
+# Step 1: Run all tests
+cargo test --all-features
+
+# Step 2: Run B32 benchmarks (1000+ iterations)
+cargo bench --lib
+
+# Step 3: Run with kdb tracer (requires kdb installed)
+KDB_TRACE=1 cargo test --lib test_t28_q29 test_t28_q34
+
+# Step 4: Generate coverage report
+cargo tarpaulin --out Html --output-dir coverage/
+
+# Step 5: Verify completion
+./scripts/verify-t28-determinism.sh
+      ]]></usage>
+    </command>
+
+    <command name="Monitor generation counters (real-time)">
+      <desc>Watch generation counter distribution across capsules</desc>
+      <usage><![CDATA[
+cargo run --release --bin monitor_gen_counters -- \
+  --capsules 100 \
+  --increments 10000 \
+  --threads 16
+      ]]></usage>
+    </command>
+
+  </commands>
+
+  <!-- ========================================
+       VALIDATION CRITERIA
+       ======================================== -->
+  <validation-criteria>
+    <metric name="Q29-Q35 Test Count" target="100+ tests" current="0" priority="CRITICAL"/>
+    <metric name="Generation Counter Tests" target="50+ tests" current="5" priority="CRITICAL"/>
+    <metric name="Memory Ordering Tests" target="20+ tests" current="3" priority="HIGH"/>
+    <metric name="Cache Coherence Tests" target="10+ tests" current="0" priority="HIGH"/>
+    <metric name="Determinism Reproducibility" target="95%+" current="0%" priority="HIGH"/>
+    <metric name="B32 Performance Determinism" target="P99 variance &lt;5%" current="unknown" priority="MEDIUM"/>
+    <metric name="kdb Integration Tests" target="10+ tests" current="0" priority="HIGH"/>
+  </validation-criteria>
+
+  <!-- ========================================
+       RELATED FRAMEWORKS
+       ======================================== -->
+  <framework-references>
+    <framework id="B32">Performance benchmarking (95% CI, 1000+ iterations, validate determinism claims)</framework>
+    <framework id="ASSUM">Unsafe code validation (ensure assumptions hold for deterministic behavior)</framework>
+    <framework id="I20">Integration testing (verify composed systems maintain determinism)</framework>
+    <framework id="kdb">Time-travel debugger (record/replay execution traces for Q29, Q34)</framework>
+  </framework-references>
+
+  <!-- ========================================
+       ANTI-PATTERNS (Q29-Q35)
+       ======================================== -->
+  <anti-patterns>
+    <anti-pattern name="Timing-dependent assertions">
+      <description>Tests fail intermittently due to sleep/timing, defeating determinism validation</description>
+      <solution>Use kdb recording instead, verify instruction-level determinism, not timing</solution>
+    </anti-pattern>
+
+    <anti-pattern name="Floating-point comparison without tolerance">
+      <description>SIMD results differ slightly (1-2 ULP), test fails requiring tolerance</description>
+      <solution>Use fixed-point or canonical float libraries, validate bitwise equality, architecture-specific</solution>
+    </anti-pattern>
+
+    <anti-pattern name="Generation counter test with only 1 capsule">
+      <description>Doesn't catch cross-capsule ordering issues, only validates per-capsule monotonicity</description>
+      <solution>Test with 100+ capsules, 10K+ increments, verify global ordering via HashSet</solution>
+    </anti-pattern>
+
+    <anti-pattern name="Cache coherence test without perfcnt validation">
+      <description>Assumes alignment works without measuring cache misses</description>
+      <solution>Use perfcnt library, measure &lt;5% cache miss rate, validate on target hardware</solution>
+    </anti-pattern>
+
+    <anti-pattern name="Memory ordering test in release mode only">
+      <description>Misses reordering issues visible in debug mode or under -O2</description>
+      <solution>Test with both debug and release builds, use loom for exhaustive interleaving</solution>
+    </anti-pattern>
+  </anti-patterns>
+
+  <!-- ========================================
+       TOKEN BUDGET
+       ======================================== -->
+  <token-budget>
+    <estimate>3500 tokens (current: 3.5K) / 5000 limit (70%)</estimate>
+    <distribution>Metadata (5%) | Tier summary (20%) | Patterns (35%) | Quick wins (25%) | Commands (10%) | Validation (5%)</distribution>
+  </token-budget>
+
+</quick-reference>

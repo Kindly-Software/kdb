@@ -11,7 +11,7 @@
 
 ## Executive Summary
 
-This report documents the complete implementation of `ReferenceFrameCapsule`, a production-ready AV1 reference frame manager built with full UCE34/COCA framework compliance. The capsule delivers:
+This report documents the complete implementation of `ReferenceFrameCapsule`, a production-ready AV1 reference frame manager built with full UCE34/Chaos framework compliance. The capsule delivers:
 
 - **<100ns slot query** (T1 Atomic load)
 - **<1μs frame swap** (T4 Batch update of 1-8 slots)
@@ -231,7 +231,7 @@ struct NaiveReferenceFrameManager {
   - Order hints enable temporal replay
   - Compatible with Q34 hash-chain audit trails (future integration)
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 
 - **Cache-aligned**: 256B alignment (verified via compile-time assertions)
 - **Lockfree**: 100% atomic operations, no blocking primitives
@@ -420,7 +420,7 @@ for frame_id in 0..60 {
 - **This report**: Comprehensive implementation details
 - **Inline docs**: 100+ lines of API documentation
 - **ASSUM tags**: 6 documented assumptions with verification
-- **Framework compliance**: UCE34/COCA/ASSUM/B32/T28/I20 ✅
+- **Framework compliance**: UCE34/Chaos/ASSUM/B32/T28/I20 ✅
 
 ---
 
@@ -477,7 +477,7 @@ The `ReferenceFrameCapsule` represents a **production-ready**, **100% lockfree**
 - ✅ **Compliance**: RFC 9000 Section 7.20, 8-slot DPB, 7 reference types
 - ✅ **Testing**: 28 comprehensive tests (4 tiers: unit/property/integration/production)
 - ✅ **Benchmarking**: Fair baselines, Criterion.rs, 8 benchmark groups
-- ✅ **Framework**: UCE34 (Q1-Q34), COCA (100% lockfree), ASSUM (99.99%), B32, T28, I20
+- ✅ **Framework**: UCE34 (Q1-Q34), Chaos (100% lockfree), ASSUM (99.99%), B32, T28, I20
 
 **Recommendation**: Deploy immediately for AV1 encoder development. Conservative speedup claims (3-20×) with extensive validation ensure production reliability.
 

@@ -32,7 +32,7 @@
 //! - **B32**: Fair baselines, <5ns performance target
 //! - **T28**: 15 comprehensive tests (unit, property, integration, production)
 //! - **I20**: 20/20 integration checks
-//! - **COCA**: 100% lockfree (no mutex/RwLock, atomic primitives only)
+//! - **Chaos**: 100% lockfree (no mutex/RwLock, atomic primitives only)
 
 use crate::alignment::AlignmentTier;
 use core::sync::atomic::{AtomicU32, AtomicU64, Ordering};

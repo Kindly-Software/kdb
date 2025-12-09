@@ -34,12 +34,12 @@
 //! |---|---|---|
 //! | Verify Phase | 50-70% | Typical for streaming access |
 //!
-//! ## Framework Compliance (UCE34/ASSUM/COCA)
+//! ## Framework Compliance (UCE34/ASSUM/Chaos)
 //!
 //! - **UCE34**: Q10 (T9+T1+T5+T10 tier selection), Q33 (verified), Q34 (audit trails)
 //! - **ASSUM**: 99.99% safe (append-only log, CRC64 validation, atomic coordination)
 //! - **B32**: Fair baselines, 95% CI, honest memory/throughput reporting
-//! - **COCA**: 100% lockfree (ConcurrentMapCapsule, AtomicU64, no mutex)
+//! - **Chaos**: 100% lockfree (ConcurrentMapCapsule, AtomicU64, no mutex)
 //! - **T28**: Integration tests (Q15-Q21 coverage, repeatable datasets)
 //!
 //! ## ASSUM Assumptions

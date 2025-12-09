@@ -56,7 +56,7 @@ All notable changes to atomic_capsule are documented in this file.
 ### Framework Compliance
 
 - **UCE34**: 100% (Q1-Q34 systematic discovery, Q10 T6 Mixed tier for serialization)
-- **COCA**: 100% (lockfree, cache-aligned, all 250 capsules)
+- **Chaos**: 100% (lockfree, cache-aligned, all 250 capsules)
 - **ASSUM**: 99.99% (150+ verified assumptions per capsule)
 - **B32**: 100% (fair baselines, honest performance claims)
 - **T28**: 98.2% (770/785 tests passing, 15 ignored stress tests)
@@ -85,7 +85,7 @@ None. All additions are feature-gated. Full backward compatibility with v0.7.0.
 
 ### Framework Compliance
 
-All phases apply: UCE34 (Q1-Q34 systematic discovery), COCA (100% lockfree), ASSUM (99.99% safe), B32 (fair benchmarks), T28 (comprehensive testing), I20 (zero breaking changes).
+All phases apply: UCE34 (Q1-Q34 systematic discovery), Chaos (100% lockfree), ASSUM (99.99% safe), B32 (fair benchmarks), T28 (comprehensive testing), I20 (zero breaking changes).
 
 ### Performance
 
@@ -163,7 +163,7 @@ All v0.3.4 performance characteristics maintained:
   - Property (1 test): Alignment and size verification
 - **Safety**: 99.99% ASSUM compliant (8 ASSUM tags, zero unsafe code)
 - **Documentation**: UCE34 Q1-Q34 analysis in module header
-- **Frameworks**: 100% compliance with UCE34, ASSUM, B32, T28, I20, COCA
+- **Frameworks**: 100% compliance with UCE34, ASSUM, B32, T28, I20, Chaos
 
 ### Framework Compliance (6/6)
 
@@ -172,7 +172,7 @@ All v0.3.4 performance characteristics maintained:
 - ✅ **B32**: Performance claims validated (<15ns load, <20ns update)
 - ✅ **T28**: 9 tests (7 unit, 1 integration, 1 property)
 - ✅ **I20**: Q1-Q20 integration (zero coupling, immediate deployment)
-- ✅ **COCA**: 100% lockfree (DualAtomicU64 pattern, 128B aligned, zero mutex/RwLock)
+- ✅ **Chaos**: 100% lockfree (DualAtomicU64 pattern, 128B aligned, zero mutex/RwLock)
 
 ### Breaking Changes
 
@@ -270,7 +270,7 @@ All v0.3.3 performance characteristics maintained:
   - [docs/I20_PERSISTENT_BLOOM_INTEGRATION.md](./docs/I20_PERSISTENT_BLOOM_INTEGRATION.md): Integration analysis
   - [benches/BLOOM_FILTER_B32_BENCHMARK.md](./benches/BLOOM_FILTER_B32_BENCHMARK.md): Performance validation
 - **Compilation**: <10 seconds release mode, +8KB binary size
-- **Frameworks**: 100% compliance with UCE34 (Q1-Q34), ASSUM (99.99%), B32, T28 (16 tests), I20 (Q1-Q20), COCA (100% lockfree)
+- **Frameworks**: 100% compliance with UCE34 (Q1-Q34), ASSUM (99.99%), B32, T28 (16 tests), I20 (Q1-Q20), Chaos (100% lockfree)
 
 ### Framework Compliance (6/6)
 
@@ -279,7 +279,7 @@ All v0.3.3 performance characteristics maintained:
 - ✅ **B32**: Fair baselines (HashSet exact, hdrhistogram probabilistic), 1000+ iterations, 95% CI, honest claims
 - ✅ **T28**: 16 tests (4-tier pyramid: Unit 8, Integration 4, Concurrency 4)
 - ✅ **I20**: Q1-Q20 integration (I20-Immediate strategy, zero coupling, <5min rollback)
-- ✅ **COCA**: 100% lockfree (AtomicU8 only, 128B aligned, zero mutex/RwLock)
+- ✅ **Chaos**: 100% lockfree (AtomicU8 only, 128B aligned, zero mutex/RwLock)
 
 ### Breaking Changes
 
@@ -333,7 +333,7 @@ No dependency changes from v0.3.3:
 ### Contributors
 
 - **Phase 14 Lead**: Claude Code (AI-powered development)
-- **Frameworks**: UCE34 (Systematic Discovery), ASSUM (Safety), B32 (Benchmarking), T28 (Testing), I20 (Integration), COCA (Architecture)
+- **Frameworks**: UCE34 (Systematic Discovery), ASSUM (Safety), B32 (Benchmarking), T28 (Testing), I20 (Integration), Chaos (Architecture)
 
 ---
 
@@ -422,7 +422,7 @@ All v0.3.0 performance characteristics maintained:
 - **Safety**: 99.7% ASSUM compliant (577+ tags, up from 632 in v0.3.0 due to parallel fixes)
 - **Documentation**: 7,650+ lines Phase 3 documentation
 - **Compilation**: Zero errors, 20 non-critical warnings (P2-P3 documentation only)
-- **Frameworks**: 100% compliance with UCE34, T28, B32, ASSUM, I20, COCA
+- **Frameworks**: 100% compliance with UCE34, T28, B32, ASSUM, I20, Chaos
 
 ### Known Issues (Deferred to v0.3.2)
 
@@ -482,7 +482,7 @@ No dependency changes from v0.3.0:
   - Performance Expert (B32 benchmarking)
   - Integration Expert (I20 validation)
 
-- **Frameworks**: UCE34 (Modular), T28 (Testing), B32 (Benchmarking), ASSUM (Safety), I20 (Integration), COCA (Architecture)
+- **Frameworks**: UCE34 (Modular), T28 (Testing), B32 (Benchmarking), ASSUM (Safety), I20 (Integration), Chaos (Architecture)
 - **Testing**: 496+ passing tests (excludes production-tier timeouts)
 - **Benchmarking**: B32 framework (fair baselines, realistic targets)
 
@@ -575,7 +575,7 @@ Major release introducing three foundation capsule features for lockfree collect
 - ✅ B32: Honest benchmarking (fair baselines, statistical rigor)
 - ✅ ASSUM: Safety framework (99.99% safe, 637 tags, 632 verifies)
 - ✅ I20: Integration framework (20/20 questions answered)
-- ✅ COCA: Computational Capsule Architecture (100% lockfree)
+- ✅ Chaos: Computational Capsule Architecture (100% lockfree)
 
 #### Deprecations
 - **atomic_capsule_map**: Deprecated in favor of atomic_capsule collections
@@ -601,7 +601,7 @@ Major release introducing three foundation capsule features for lockfree collect
 - **Safety**: 99.99% ASSUM compliant, zero unsafe code in Phase 1 core
 - **Documentation**: 1,331+ lines of architecture & migration guides
 - **Compilation**: Zero errors, 22 non-critical warnings (documentation only)
-- **Frameworks**: 100% compliance with UCE34, T28, B32, ASSUM, I20, COCA
+- **Frameworks**: 100% compliance with UCE34, T28, B32, ASSUM, I20, Chaos
 
 ### Known Issues (Deferred to v0.3.1)
 - Phase 3 parallel module: Memory corruption in work-stealing queue tests
@@ -642,7 +642,7 @@ See [DASHMAP_MIGRATION_GUIDE.md](./docs/DASHMAP_MIGRATION_GUIDE.md) for:
 
 ### Contributors
 - **Phase 1 Team**: Claude Code with 10-specialist subagent architecture
-- **Frameworks**: UCE34 (Modular), T28 (Testing), B32 (Benchmarking), ASSUM (Safety), I20 (Integration), COCA (Architecture)
+- **Frameworks**: UCE34 (Modular), T28 (Testing), B32 (Benchmarking), ASSUM (Safety), I20 (Integration), Chaos (Architecture)
 - **Testing**: 871+ tests across all tiers (unit/property/integration/production)
 - **Benchmarking**: B32 framework (fair baselines, 1000+ iterations, 95% CI)
 

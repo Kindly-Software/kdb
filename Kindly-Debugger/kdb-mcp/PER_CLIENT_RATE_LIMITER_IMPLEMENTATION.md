@@ -1,7 +1,7 @@
 # PerClientRateLimiterCapsule Implementation Summary
 
 **Date**: November 15, 2025
-**Framework**: UCE34 (Q1-Q34) Systematic Discovery + COCA + ASSUM + B32 + T28 + I20
+**Framework**: UCE34 (Q1-Q34) Systematic Discovery + Chaos + ASSUM + B32 + T28 + I20
 **Tier**: T1 (Atomic) + T5 (Streaming)
 **Status**: ✅ Production-Ready
 
@@ -418,7 +418,7 @@ cargo bench --features "std,per-client-rate-limiter" --bench b32_per_client_rate
 | Framework | Status | Evidence |
 |-----------|--------|----------|
 | UCE34 | ✅ Full | Q1-Q34 systematic discovery documented |
-| COCA | ✅ 100% | All operations atomic, 0 mutex/RwLock |
+| Chaos | ✅ 100% | All operations atomic, 0 mutex/RwLock |
 | ASSUM | ✅ 99.99% | 12 assumptions verified in tests |
 | B32 | ✅ Fair | Global vs per-client baseline, Criterion 1000+ |
 | T28 | ✅ 28+ | Unit/Property/Integration/Production tests |

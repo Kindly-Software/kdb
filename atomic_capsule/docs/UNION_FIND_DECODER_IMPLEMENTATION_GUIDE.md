@@ -950,7 +950,7 @@ fn measure_stabilizers(qstate: &QuantumStateCapsule) -> Result<Vec<bool>, Box<dy
 - [ ] B32 latency targets met (<15μs/50μs/120μs for d=3/5/7)
 - [ ] Monte Carlo accuracy >90% (10K trials)
 - [ ] ASSUM safety 99.99% (zero unsafe code, all via atomics)
-- [ ] Framework compliance 100% (UCE34+COCA+B32+T28+ASSUM+I20)
+- [ ] Framework compliance 100% (UCE34+Chaos+B32+T28+ASSUM+I20)
 
 ---
 
@@ -958,4 +958,4 @@ fn measure_stabilizers(qstate: &QuantumStateCapsule) -> Result<Vec<bool>, Box<dy
 
 **Next Steps**: Implement Phase Q3.5.1 (Core Union-Find) following this guide
 **Estimated Effort**: 4 weeks (1 week per phase Q3.5.1-Q3.5.4)
-**Framework Compliance**: 100% UCE34+COCA+B32+T28+ASSUM+I20 ✅
+**Framework Compliance**: 100% UCE34+Chaos+B32+T28+ASSUM+I20 ✅

@@ -143,7 +143,7 @@ cargo test --lib time_travel
 - **UCE34**: Q10 tier selection (T0+T1), Q33 verification (compile-time assertions)
 - **ASSUM**: 99.99% safe (all assumptions documented and verified)
 - **B32**: <10ns per snapshot (achievable on modern CPUs)
-- **COCA**: 100% computational capsule architecture (lockfree, cache-aligned)
+- **Chaos**: 100% computational capsule architecture (lockfree, cache-aligned)
 
 ### Next Steps
 

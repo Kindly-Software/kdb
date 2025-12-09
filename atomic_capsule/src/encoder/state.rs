@@ -23,7 +23,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q10 T1 Atomic tier, Q33 lockfree verification, Q34 audit trails
-//! - **COCA**: 100% computational capsule, 64B cache-aligned, generation counters
+//! - **Chaos**: 100% computational capsule, 64B cache-aligned, generation counters
 //! - **ASSUM**: 99.99% safe, documented assumptions (lockfree coordination, atomic operations)
 //! - **B32**: Target <50ns query, <100ns update (validated with criterion)
 //! - **T28**: 28 comprehensive tests (unit/property/integration/production)

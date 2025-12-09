@@ -548,7 +548,7 @@ println!("Chaos:  {} failures", chaos_result.unwrap().total_failures);
 - **T28 Testing**: 4-tier testing pyramid (Unit/Property/Integration/Production)
 - **B32 Benchmarking**: Fair baseline validation (95% CI, 1000+ iterations)
 - **ASSUM Safety**: 99.99% safety guarantee methodology
-- **COCA**: Computational Capsule architecture (100% lockfree)
+- **Chaos**: Computational Capsule architecture (100% lockfree)
 
 ### Related Tests
 

@@ -1,7 +1,7 @@
 # HTTP/2 Stream Manager Capsule - RFC 9113 Implementation
 
 **Status**: Production-Ready (Phase 1 complete)
-**Framework Compliance**: UCE34 + COCA + ASSUM + B32 + T28 + I20
+**Framework Compliance**: UCE34 + Chaos + ASSUM + B32 + T28 + I20
 **Tier**: T4 (Batch) + T1 (Atomic)
 **Performance Targets**: <200ns creation, <100ns lookup, <150ns flow control
 
@@ -244,7 +244,7 @@ for handle in handles {
 - **Q28-Q33**: Optimization, validation (T28 tests)
 - **Q34**: Q34 audit trails (error tracking for compliance)
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 
 - **100% Lockfree**: No mutex/RwLock, all atomic operations
 - **Cache-Aligned**: 256B manager, 128B entries (prevents false sharing)
@@ -427,7 +427,7 @@ The HTTP/2 Stream Manager implementation contains strategic optimizations and ar
 ## Authors and Contributors
 
 - **Initial Implementation**: Agent 49 (HTTP/2 Stream Manager Specialist)
-- **Framework Compliance**: Claude Code (UCE34, COCA, ASSUM, B32, T28, I20)
+- **Framework Compliance**: Claude Code (UCE34, Chaos, ASSUM, B32, T28, I20)
 - **Testing**: 170 comprehensive tests (100% pass rate)
 
 ## License

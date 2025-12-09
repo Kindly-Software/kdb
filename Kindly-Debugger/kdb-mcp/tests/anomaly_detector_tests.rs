@@ -1,6 +1,6 @@
 //! Comprehensive T28 Testing Suite for AnomalyDetectorCapsule (28+ tests)
 //!
-//! **Framework**: UCE34 (Q1-Q34), COCA (100% lockfree), ASSUM (99.99% safety)
+//! **Framework**: UCE34 (Q1-Q34), Chaos (100% lockfree), ASSUM (99.99% safety)
 //!
 //! **Test Tiers** (T28: 4 tiers × 7 tests):
 //! - Unit (Q1-Q7): Basic functionality, feature extraction, predictions

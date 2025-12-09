@@ -57,13 +57,12 @@
 //!
 //! - **UCE34**: Q10 (T1+T4 tier selection), Q11 (Rust transform), Q33 (verification)
 //! - **ASSUM**: 99.99% safe (thread_local! guarantees per-thread isolation)
-//! - **COCA**: 100% lockfree (no mutex/RwLock)
+//! - **Chaos**: 100% lockfree (no mutex/RwLock)
 //! - **T28**: 4 comprehensive tests (unit/property/integration/production)
 
 use std::cell::RefCell;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use std::thread;
 
 use thiserror::Error;
 

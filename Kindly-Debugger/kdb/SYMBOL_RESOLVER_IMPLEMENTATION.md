@@ -155,7 +155,7 @@ loop {
 
 Total: 24 tests minimum (T28 Q1-Q28 compliance)
 
-#### COCA (100% Lockfree)
+#### Chaos (100% Lockfree)
 
 - Zero mutex/RwLock (verified: grep 0 occurrences)
 - All coordination via atomics (DualAtomicU64, AtomicU32, AtomicU64)
@@ -260,4 +260,4 @@ The SymbolResolverCapsule implementation successfully demonstrates:
 
 **Effort**: 8-10 hours (as estimated in spec), complex DWARF parsing as expected.
 
-**Framework Compliance**: UCE34 ✅, ASSUM ✅, B32 ✅, T28 (planned), COCA ✅
+**Framework Compliance**: UCE34 ✅, ASSUM ✅, B32 ✅, T28 (planned), Chaos ✅

@@ -13,7 +13,7 @@ The T5 Streaming Pipeline has been successfully implemented, tested, and validat
 - **End-to-End Throughput**: **575,491 docs/sec** (2.88× faster than 200-300K target)
 - **Speedup**: **14.46× vs 39,788 docs/sec baseline** (far exceeds 3.3× minimum)
 - **Reliability**: **100%** (zero panics across 1M document benchmark)
-- **Framework Compliance**: **100%** (UCE34, COCA, ASSUM, B32, T28, I20)
+- **Framework Compliance**: **100%** (UCE34, Chaos, ASSUM, B32, T28, I20)
 
 **Key Achievement**: T5 pipeline processes 1M documents in **1.74 seconds** on AMD Ryzen 9 6900HX (22 cores).
 
@@ -105,7 +105,7 @@ Result: Vec<Cluster>
 
 **Q34 (Auditability)**: JSON audit trail for SOX/SOC2/GDPR/HIPAA
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 
 **Mandate**: 100% lockfree, zero rayon, pure atomic_capsule primitives
 
@@ -373,7 +373,7 @@ git push origin v2.0.0
 - **Final Errors**: 0 ✅
 - **Test Pass Rate**: 11/11 (100%)
 - **Test Runtime**: 0.23s (260× faster than 60s hang)
-- **Framework Compliance**: 6/6 (100% - UCE34, COCA, ASSUM, B32, T28, I20)
+- **Framework Compliance**: 6/6 (100% - UCE34, Chaos, ASSUM, B32, T28, I20)
 - **Performance**: 14.46× speedup (far exceeds targets)
 
 ---

@@ -1,0 +1,215 @@
+warning: user-defined alias `bench` is ignored, because it is shadowed by a built-in command
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/atomic_network_gateway/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/kiang/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/atomic_capsule_tier1/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/samuel/Primitives/kindly-portfolio/Cargo.toml
+workspace: /home/samuel/Primitives/Cargo.toml
+   Compiling proc-macro2 v1.0.101
+   Compiling unicode-ident v1.0.19
+   Compiling libc v0.2.176
+   Compiling autocfg v1.5.0
+   Compiling serde_core v1.0.227
+   Compiling cfg-if v1.0.3
+   Compiling parking_lot_core v0.9.11
+   Compiling serde v1.0.227
+   Compiling once_cell v1.21.3
+   Compiling find-msvc-tools v0.1.2
+   Compiling shlex v1.3.0
+   Compiling pkg-config v0.3.32
+   Compiling vcpkg v0.2.15
+   Compiling smallvec v1.15.1
+   Compiling itoa v1.0.15
+   Compiling icu_normalizer_data v2.0.0
+   Compiling bytes v1.10.1
+   Compiling pin-project-lite v0.2.16
+   Compiling typenum v1.18.0
+   Compiling icu_properties_data v2.0.1
+   Compiling httparse v1.10.1
+   Compiling stable_deref_trait v1.2.1
+   Compiling cc v1.2.39
+   Compiling scopeguard v1.2.0
+   Compiling futures-core v0.3.31
+   Compiling version_check v0.9.5
+   Compiling fnv v1.0.7
+   Compiling openssl v0.10.74
+   Compiling log v0.4.28
+   Compiling serde_json v1.0.145
+   Compiling native-tls v0.2.14
+   Compiling tracing-core v0.1.34
+   Compiling crossbeam-utils v0.8.21
+   Compiling bitflags v2.9.4
+   Compiling pin-utils v0.1.0
+   Compiling hashbrown v0.16.0
+   Compiling lock_api v0.4.13
+   Compiling equivalent v1.0.2
+   Compiling writeable v0.6.1
+   Compiling litemap v0.8.0
+   Compiling futures-task v0.3.31
+   Compiling generic-array v0.14.7
+   Compiling http v1.3.1
+   Compiling tracing v0.1.41
+   Compiling rustversion v1.0.22
+   Compiling quote v1.0.40
+   Compiling getrandom v0.3.3
+   Compiling futures-util v0.3.31
+   Compiling syn v2.0.106
+   Compiling futures-sink v0.3.31
+   Compiling percent-encoding v2.3.2
+   Compiling socket2 v0.6.0
+   Compiling mio v1.0.4
+   Compiling signal-hook-registry v1.4.6
+   Compiling indexmap v2.11.4
+   Compiling tower-service v0.3.3
+   Compiling parking_lot v0.12.4
+   Compiling http-body v1.0.1
+   Compiling ryu v1.0.20
+   Compiling try-lock v0.2.5
+   Compiling slab v0.4.11
+   Compiling foreign-types-shared v0.1.1
+   Compiling atomic-waker v1.1.2
+   Compiling openssl-sys v0.9.110
+   Compiling foreign-types v0.3.2
+   Compiling want v0.3.1
+   Compiling num-traits v0.2.19
+   Compiling sync_wrapper v1.0.2
+   Compiling futures-channel v0.3.31
+   Compiling thiserror v2.0.17
+   Compiling memchr v2.7.6
+   Compiling portable-atomic v1.11.1
+   Compiling httpdate v1.0.3
+   Compiling tower-layer v0.3.3
+   Compiling http-body-util v0.1.3
+   Compiling form_urlencoded v1.2.2
+   Compiling crossbeam-epoch v0.9.18
+   Compiling openssl-probe v0.1.6
+   Compiling base64 v0.22.1
+   Compiling ipnet v2.11.0
+   Compiling rustix v1.1.2
+   Compiling zerocopy v0.8.27
+   Compiling crossbeam-deque v0.8.6
+   Compiling rand_core v0.9.3
+   Compiling linux-raw-sys v0.11.0
+   Compiling either v1.15.0
+   Compiling mime v0.3.17
+   Compiling utf8_iter v1.0.4
+   Compiling regex-syntax v0.8.6
+   Compiling rayon-core v1.13.0
+   Compiling crypto-common v0.1.6
+   Compiling block-buffer v0.10.4
+   Compiling half v2.6.0
+   Compiling zeroize v1.8.2
+   Compiling winnow v0.7.13
+   Compiling toml_write v0.1.2
+   Compiling fastrand v2.3.0
+   Compiling iri-string v0.7.8
+   Compiling clap_lex v0.7.5
+   Compiling anstyle v1.0.11
+   Compiling ciborium-io v0.2.2
+   Compiling plotters-backend v0.3.7
+   Compiling ciborium-ll v0.2.2
+   Compiling digest v0.10.7
+   Compiling rustls-pki-types v1.12.0
+error: extern location for half does not exist: /home/samuel/Primitives/target/release/deps/libhalf-f7b3ca2877899993.rmeta
+ --> /home/samuel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ciborium-ll-0.2.2/src/hdr.rs:3:5
+  |
+3 | use half::f16;
+  |     ^^^^
+
+error: failed to build archive at `/home/samuel/Primitives/target/release/deps/libopenssl_sys-a834d9ff14be66aa.rlib`: failed to rename archive file: No such file or directory (os error 2)
+
+error: error writing dependencies to `/home/samuel/Primitives/target/release/deps/ciborium_ll-ac87aa59ab71de89.d`: No such file or directory (os error 2)
+
+error: extern location for crossbeam_deque does not exist: /home/samuel/Primitives/target/release/deps/libcrossbeam_deque-a2685e885fb0252d.rmeta
+ --> /home/samuel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rayon-core-1.13.0/src/job.rs:3:5
+  |
+3 | use crossbeam_deque::{Injector, Steal};
+  |     ^^^^^^^^^^^^^^^
+
+error: extern location for crossbeam_utils does not exist: /home/samuel/Primitives/target/release/deps/libcrossbeam_utils-22a99419b0ca5b0f.rmeta
+ --> /home/samuel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rayon-core-1.13.0/src/sleep/mod.rs:6:5
+  |
+6 | use crossbeam_utils::CachePadded;
+  |     ^^^^^^^^^^^^^^^
+
+error: extern location for crypto_common does not exist: /home/samuel/Primitives/target/release/deps/libcrypto_common-6af749f10757e02a.rmeta
+ --> /home/samuel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/digest-0.10.7/src/core_api.rs:8:9
+  |
+8 | pub use crypto_common::{AlgorithmName, Block, BlockSizeUser, OutputSizeUser, Reset};
+  |         ^^^^^^^^^^^^^
+
+error: could not compile `ciborium-ll` (lib) due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: couldn't create a temp dir: No such file or directory (os error 2) at path "/home/samuel/Primitives/target/release/deps/rmetauzLwnZ"
+
+error: could not compile `zeroize` (lib) due to 1 previous error
+error: error writing dependencies to `/home/samuel/Primitives/target/release/deps/rayon_core-5cec20189117cbef.d`: No such file or directory (os error 2)
+
+error: error writing dependencies to `/home/samuel/Primitives/target/release/deps/rustix-8ac430939f27364e.d`: No such file or directory (os error 2)
+
+error: extern location for zeroize does not exist: /home/samuel/Primitives/target/release/deps/libzeroize-aef525025b3cc499.rmeta
+   --> /home/samuel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rustls-pki-types-1.12.0/src/lib.rs:135:6
+    |
+135 | impl zeroize::Zeroize for PrivateKeyDer<'static> {
+    |      ^^^^^^^
+
+error: could not compile `digest` (lib) due to 1 previous error
+error: could not compile `rustix` (lib) due to 1 previous error
+error: could not compile `rayon-core` (lib) due to 3 previous errors
+error: could not compile `rustls-pki-types` (lib) due to 1 previous error
+error: error writing dependencies to `/home/samuel/Primitives/target/release/deps/anstyle-6dc04849ca18d364.d`: No such file or directory (os error 2)
+
+error: could not compile `anstyle` (lib) due to 1 previous error
+error: failed to write bytecode to /home/samuel/Primitives/target/release/deps/num_traits-97c3b3f84b5f3790.num_traits.b88a7a454f38642e-cgu.0.rcgu.bc: No such file or directory (os error 2)
+
+error: could not compile `openssl-sys` (lib) due to 1 previous error
+error: extern location for crypto_common does not exist: /home/samuel/Primitives/target/release/deps/libcrypto_common-728cd6608d135bc9.rmeta
+ --> /home/samuel/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/digest-0.10.7/src/core_api.rs:8:9
+  |
+8 | pub use crypto_common::{AlgorithmName, Block, BlockSizeUser, OutputSizeUser, Reset};
+  |         ^^^^^^^^^^^^^
+
+error: couldn't create a temp dir: No such file or directory (os error 2) at path "/home/samuel/Primitives/target/release/deps/rmetaIhgYAy"
+
+error: could not compile `num-traits` (lib) due to 1 previous error
+error: could not compile `digest` (lib) due to 1 previous error
+error: could not compile `plotters-backend` (lib) due to 1 previous error
+error: failed to write bytecode to /home/samuel/Primitives/target/release/deps/clap_lex-85cb891a8e1bd595.clap_lex.441a82c6a528ab9d-cgu.0.rcgu.bc: No such file or directory (os error 2)
+
+error: error writing dependencies to `/home/samuel/Primitives/target/release/deps/zerocopy-3f153cf609a382c0.d`: No such file or directory (os error 2)
+
+error: could not compile `clap_lex` (lib) due to 1 previous error
+error: could not compile `zerocopy` (lib) due to 1 previous error
+error: error writing dependencies to `/home/samuel/Primitives/target/release/deps/iri_string-60b94a0035a16bac.d`: No such file or directory (os error 2)
+
+error: could not compile `iri-string` (lib) due to 1 previous error
+error: failed to write /home/samuel/Primitives/target/release/deps/libserde_json-665a38a4b01bb9f3.rmeta: No such file or directory (os error 2)
+
+error: could not compile `serde_json` (lib) due to 1 previous error
+error: couldn't create a temp dir: No such file or directory (os error 2) at path "/home/samuel/Primitives/target/release/deps/rmetawLL90k"
+
+error: could not compile `serde_json` (lib) due to 1 previous error
+error: failed to write bytecode to /home/samuel/Primitives/target/release/deps/ipnet-aa7a48e6507742e7.ipnet.d9e46f86b7550a1e-cgu.0.rcgu.bc: No such file or directory (os error 2)
+
+error: could not compile `ipnet` (lib) due to 1 previous error
+error: couldn't create a temp dir: No such file or directory (os error 2) at path "/home/samuel/Primitives/target/release/deps/rmetaxDvWCn"
+
+error: could not compile `regex-syntax` (lib) due to 1 previous error
+error: couldn't create a temp dir: No such file or directory (os error 2) at path "/home/samuel/Primitives/target/release/deps/rmetap9UMRH"
+
+error: could not compile `iri-string` (lib) due to 1 previous error
+error: couldn't create a temp dir: No such file or directory (os error 2) at path "/home/samuel/Primitives/target/release/deps/rmetaLUPSnm"
+
+error: could not compile `winnow` (lib) due to 1 previous error
+error: couldn't create a temp dir: No such file or directory (os error 2) at path "/home/samuel/Primitives/target/release/deps/rmetaXiGYs6"
+
+error: could not compile `winnow` (lib) due to 1 previous error
+error: couldn't create a temp dir: No such file or directory (os error 2) at path "/home/samuel/Primitives/target/release/deps/rmetaPuVFKX"
+
+error: could not compile `syn` (lib) due to 1 previous error

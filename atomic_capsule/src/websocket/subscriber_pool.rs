@@ -1,6 +1,6 @@
 //! WebSocketSubscriberPoolCapsule - Lockfree Preallocated Subscriber Pool (T1 Atomic + T4 Batch)
 //!
-//! **Framework**: UCE34 (T1 Atomic + T4 Batch), COCA, ASSUM, B32, T28, I20
+//! **Framework**: UCE34 (T1 Atomic + T4 Batch), Chaos, ASSUM, B32, T28, I20
 //! **Tier**: T1 (Atomic coordination) + T4 (Batch allocation)
 //! **Performance**: <30ns allocate/free
 //! **Safety**: 100% ASSUM safe (99.99% confidence)
@@ -100,7 +100,7 @@
 //! ## Framework Compliance
 //!
 //! - **UCE34**: Q10 T1 Atomic + T4 Batch, Q33 compile-time verification
-//! - **COCA**: 100% lockfree atomics (no mutex/RwLock)
+//! - **Chaos**: 100% lockfree atomics (no mutex/RwLock)
 //! - **ASSUM**: 5 assumptions documented, 99.99% confidence
 //! - **B32**: <30ns allocate/free, 95% CI, fair baseline (malloc)
 //! - **T28**: 14 tests (unit/property/integration/production)

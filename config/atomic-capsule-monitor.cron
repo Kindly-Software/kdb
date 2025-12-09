@@ -1,0 +1,18 @@
+# Monitoring and Alerting for atomic_capsule HTTP server
+# Framework: UCE34 Q34 (audit trail of monitoring)
+# ASSUM: #ASSUME_CRON_RELIABLE (cron daemon runs consistently)
+
+# Monitor health/metrics every 5 minutes
+*/5 * * * * samuel /home/samuel/Primitives/scripts/monitor.sh >> /home/samuel/Primitives/logs/monitor.log 2>&1
+
+# Run alerts every 3 minutes
+*/3 * * * * samuel /home/samuel/Primitives/scripts/alert.sh >> /home/samuel/Primitives/logs/alert-cron.log 2>&1
+
+# Archive old log files (daily at 2am)
+0 2 * * * samuel /usr/bin/find /home/samuel/Primitives/logs -name "*.log" -mtime +7 -exec gzip {} \; 2>/dev/null || true
+
+# Restart service if crashed (every 10 minutes, but respects systemd restart settings)
+*/10 * * * * samuel systemctl is-active --quiet atomic-http-server || systemctl restart atomic-http-server 2>/dev/null || true
+
+# Generate daily health report (at midnight)
+0 0 * * * samuel /home/samuel/Primitives/scripts/generate_daily_report.sh >> /home/samuel/Primitives/logs/daily-report.log 2>&1

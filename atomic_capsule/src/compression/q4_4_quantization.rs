@@ -34,7 +34,7 @@
 //! - Q4.4(0xF0): mantissa=15, exp=0 → 15 × 2^-8 = 0.05859375
 //! ```
 //!
-//! # COCA Principles Applied
+//! # Chaos Principles Applied
 //! - **128-byte alignment**: Per-zone scaling metadata
 //! - **Deterministic quantization**: Same input → same output always
 //! - **Saturation arithmetic**: No overflow panics

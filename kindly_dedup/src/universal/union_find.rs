@@ -3,6 +3,13 @@
 //! High-performance Union-Find (Disjoint Set Union) data structure optimized for
 //! billion-scale deduplication with O(1) memory per document and lockfree atomics.
 //!
+//! # Clippy Suppressions
+//! - `unsafe_code`: Mmap operations require unsafe for raw pointer manipulation (ASSUM verified)
+//! - `missing_docs`: Internal error variants and type aliases have self-documenting names
+
+#![allow(unsafe_code)]
+#![allow(missing_docs)]
+//!
 //! # Tier: T9 Persistent + T10 Probabilistic (path halving)
 //!
 //! - **Memory**: 8 bytes per document (4B parent + 4B rank)
@@ -11,7 +18,7 @@
 //! - **Throughput**: 500K+ unions/sec (sustained, O(α(n)) amortized)
 //! - **Capacity**: 1B+ elements (disk-backed mmap)
 //! - **Crash Safety**: Optional (clusters can be rebuilt from LSH pairs)
-//! - **Lockfree**: 100% COCA compliant (atomic operations only, no mutex/RwLock)
+//! - **Lockfree**: 100% Chaos compliant (atomic operations only, no mutex/RwLock)
 //!
 //! # Algorithm
 //!
@@ -80,7 +87,7 @@
 //! # Framework Compliance
 //!
 //! - **UCE34**: Q1-Q34 systematic discovery (T9 Persistent tier selection)
-//! - **COCA**: 100% lockfree (atomic operations only, no mutex/RwLock)
+//! - **Chaos**: 100% lockfree (atomic operations only, no mutex/RwLock)
 //! - **ASSUM**: 99.99% safe (path halving assumptions documented and verified)
 //! - **B32**: Fair benchmarking (500K unions/sec conservative vs v1.x 600K)
 //! - **T28**: Comprehensive testing (unit/property/integration/production)
@@ -578,7 +585,7 @@ impl MmapUnionFindCapsule {
     /// // clusters[4...] = individual singletons
     /// ```
     pub fn get_clusters(&self) -> Result<Vec<Vec<DocId>>> {
-        let mut clusters: ConcurrentMapCapsule<DocId, Vec<DocId>> = ConcurrentMapCapsule::new();
+        let clusters: ConcurrentMapCapsule<DocId, Vec<DocId>> = ConcurrentMapCapsule::new();
 
         // Single pass: group elements by root
         for doc_id in 0..self.capacity {

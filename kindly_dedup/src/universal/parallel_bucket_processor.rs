@@ -1,6 +1,15 @@
 //! ParallelBucketProcessorCapsule - T4 Batch Parallel LSH Processing
 //!
 //! Parallel processing of LSH buckets using atomic_capsule::parallel primitives.
+//!
+//! # Clippy Suppressions
+//! - `missing_docs`: Internal types have self-documenting names
+//! - `dead_code`: Experimental code for future development
+//! - `unused_variables`: Debug/logging variables retained for troubleshooting
+
+#![allow(missing_docs)]
+#![allow(dead_code)]
+#![allow(unused_variables)]
 //! LSH buckets are independent, making them ideal for work-stealing parallelism.
 //!
 //! ## Architecture (T4 Batch + T1 Atomic)
@@ -32,7 +41,6 @@ use crate::universal::{
     BandHash, MmapLshBucketCapsule, MmapUnionFindCapsule,
 };
 use crate::universal::pipeline::UniversalPipelineError;
-use crate::universal::MinHashSig;
 
 /// BucketId - Identifier for LSH bucket (band_hash wrapper)
 ///

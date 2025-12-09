@@ -1,4 +1,4 @@
-//! kindly-video-server: Static file server for kindly.services
+//! kindly-video-server: Static file server for kindly.software
 //!
 //! Uses pure std::net for serving pre-built WASM bundle.
 //! SPA routing with index.html fallback.

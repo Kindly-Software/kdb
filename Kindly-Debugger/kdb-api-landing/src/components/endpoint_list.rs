@@ -248,12 +248,12 @@ fn EndpointCard(endpoint: &'static Endpoint) -> impl IntoView {
 
     let curl_command = if let Some(body) = endpoint.request_body {
         format!(
-            "curl -X {} https://api.kindly.services{} \\\n  -H 'Content-Type: application/json' \\\n  -d '{}'",
+            "curl -X {} https://api.kindly.software{} \\\n  -H 'Content-Type: application/json' \\\n  -d '{}'",
             endpoint.method, endpoint.path, body
         )
     } else {
         format!(
-            "curl -X {} https://api.kindly.services{}",
+            "curl -X {} https://api.kindly.software{}",
             endpoint.method, endpoint.path
         )
     };

@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- NEW CAPSULES - ATOMIC_CAPSULE SESSION ADDITIONS -->
+<!-- Format: Lean XML matching existing catalog style -->
+<!-- Tiers: T0 (Auditable), T1 (Atomic), T5 (Streaming), T0+T1, T6 (Mixed) -->
+
+<primitives session="2025-11-14" count="9">
+  
+  <!-- ============================================================================ -->
+  <!-- TIER 0: AUDITABLE CAPSULES -->
+  <!-- ============================================================================ -->
+  
+  <primitive id="install-audit-trail-capsule" tier="T0+T9">
+    <name>InstallAuditTrailCapsule</name>
+    <size>512B</size>
+    <perf>&lt;50ns append, O(n) verify</perf>
+    <use>Tamper-evident hash-chain audit trail for compliance (SOX, SOC2, GDPR, HIPAA)</use>
+    <file>src/install/install_audit.rs</file>
+    <flag>std</flag>
+    <tests>25+</tests>
+    <status>production</status>
+    <innovation>T0+T9 composition: hash-chaining (auditable) + mmap persistence (crash-safe)</innovation>
+    <framework>UCE34 Q34 (auditability), ASSUM 99.99%, B32 fair baseline</framework>
+  </primitive>
+
+  <!-- ============================================================================ -->
+  <!-- TIER 1: ATOMIC CAPSULES (Lockfree Coordination) -->
+  <!-- ============================================================================ -->
+
+  <primitive id="timer-wheel-capsule" tier="T1">
+    <name>TimerWheelCapsule</name>
+    <size>8KB</size>
+    <perf>&lt;100ns schedule, &lt;50ns cancel, &lt;5ns tick</perf>
+    <use>Hierarchical O(1) timer scheduling with 4-level timing wheel (1ms, 100ms, 10s, 16min)</use>
+    <file>src/runtime/timer_wheel.rs</file>
+    <flag>queue-unbounded</flag>
+    <tests>16</tests>
+    <status>production</status>
+    <innovation>T1 atomic scheduling, generation counters for ABA prevention, TOCTOU-safe</innovation>
+    <framework>UCE34 Q10 (tier selection), ASSUM 99.5%, B32 validated</framework>
+  </primitive>
+
+  <primitive id="mcp-tool-registry-capsule" tier="T1">
+    <name>McpToolRegistryCapsule</name>
+    <size>64KB</size>
+    <perf>&lt;120ns lookup, &lt;150ns insert</perf>
+    <use>Lockfree tool registry for Model Context Protocol (MCP) with 256 tool capacity</use>
+    <file>src/mcp/tool_registry.rs</file>
+    <flag>std</flag>
+    <tests>24</tests>
+    <status>production</status>
+    <innovation>T1 atomic hash table, LockfreeHashTable backend, zero contention lookups</innovation>
+    <framework>UCE34 Q1-Q34, I20 integration validation 20/20</framework>
+  </primitive>
+
+  <primitive id="quota-tracker-capsule" tier="T1">
+    <name>QuotaTrackerCapsule</name>
+    <size>64KB</size>
+    <perf>&lt;70ns record, &lt;10ns check, &lt;5ns read</perf>
+    <use>Per-user monthly quota tracking with atomic counters and zero locks</use>
+    <file>src/patterns/quota_tracker.rs</file>
+    <flag>std</flag>
+    <tests>20</tests>
+    <status>production</status>
+    <innovation>T1 atomic quotas, generation counters for TOCTOU, 1024 user slots 64B aligned</innovation>
+    <framework>UCE34 Q10 (T1), ASSUM 99.5%, monthly reset via CAS</framework>
+  </primitive>
+
+  <primitive id="rate-limiter-capsule" tier="T1+T3">
+    <name>RateLimiterCapsule</name>
+    <size>64B</size>
+    <perf>&lt;150ns per check (token bucket refill + consume)</perf>
+    <use>Token bucket rate limiting with Q16.16 fixed-point token encoding</use>
+    <file>src/patterns/rate_limiter.rs</file>
+    <flag>std</flag>
+    <tests>18</tests>
+    <status>production</status>
+    <innovation>T1+T3 composition: atomic coordination + fixed-point math, deterministic 0.0000153 token precision</innovation>
+    <framework>UCE34 Q10 (T1+T3), ASSUM 99.5%, B32 validated</framework>
+  </primitive>
+
+  <primitive id="installer-state-capsule" tier="T1">
+    <name>InstallerStateCapsule</name>
+    <size>128B</size>
+    <perf>&lt;15ns phase transition, &lt;5ns progress read</perf>
+    <use>Track installation progress: phase (0-9), bytes downloaded/total, timing, ETA</use>
+    <file>src/install/installer_state.rs</file>
+    <flag>std</flag>
+    <tests>20</tests>
+    <status>production</status>
+    <innovation>T1 atomic coordination, DualAtomicU64 pattern, 128B cache-alignment</innovation>
+    <framework>UCE34 Q1-Q34, 10 ASSUM verified, accurate progress ETA calculation</framework>
+  </primitive>
+
+  <primitive id="signature-verifier-capsule" tier="T1">
+    <name>SignatureVerifierCapsule</name>
+    <size>256B</size>
+    <perf>&lt;10ns cached verify, &lt;100ns first-time</perf>
+    <use>Constant-time signature verification with cache for rapid re-verification</use>
+    <file>src/install/signature_verifier.rs</file>
+    <flag>std</flag>
+    <tests>15</tests>
+    <status>production</status>
+    <innovation>T1 atomic caching, constant-time comparison prevents timing attacks</innovation>
+    <framework>UCE34, ASSUM 99.5%, security-focused</framework>
+  </primitive>
+
+  <primitive id="download-progress-capsule" tier="T1">
+    <name>DownloadProgressCapsule</name>
+    <size>512B</size>
+    <perf>&lt;20ns update, &lt;5ns read</perf>
+    <use>Track download progress: bytes downloaded, total, speed, ETA</use>
+    <file>src/install/download_progress.rs</file>
+    <flag>std</flag>
+    <tests>18</tests>
+    <status>production</status>
+    <innovation>T1 atomic tracking, monotonic counters, speed/ETA calculations</innovation>
+    <framework>UCE34 Q10 (T1), T28 comprehensive testing</framework>
+  </primitive>
+
+  <!-- ============================================================================ -->
+  <!-- TIER 5: STREAMING CAPSULES (Incremental Operations) -->
+  <!-- ============================================================================ -->
+
+  <primitive id="ring-buffer-capsule" tier="T5">
+    <name>RingBufferCapsule&lt;T&gt;</name>
+    <size>128KB base + T</size>
+    <perf>&lt;10ns record, O(1) all operations</perf>
+    <use>Generic lockfree ring buffer for streaming trace data with 16,384 entry capacity</use>
+    <file>src/collections/ring_trace.rs</file>
+    <flag>ring-trace</flag>
+    <tests>14</tests>
+    <status>production</status>
+    <innovation>T5 streaming, generic over T (must be Copy), wraparound with generation counter</innovation>
+    <framework>UCE34 Q10 (T5), ASSUM 99.5%, I20 approved for HFT integration</framework>
+  </primitive>
+
+  <!-- ============================================================================ -->
+  <!-- TIER 0+T1: COMPOSITE AUDITABLE + ATOMIC -->
+  <!-- ============================================================================ -->
+
+  <primitive id="replay-engine-capsule" tier="T0+T1">
+    <name>ReplayEngineCapsule&lt;T&gt;</name>
+    <size>128KB</size>
+    <perf>&lt;10ns step_backward/forward, O(1) jump, O(n) verify_hash_chain</perf>
+    <use>Bidirectional time-travel debugging with hash-chain integrity for Q34 compliance</use>
+    <file>src/patterns/time_travel.rs</file>
+    <flag>time-travel</flag>
+    <tests>8</tests>
+    <status>production</status>
+    <innovation>T0+T1 composition: hash-chaining (auditable) + atomic coordination (lockfree), generic snapshots</innovation>
+    <framework>UCE34 Q34 (auditability), ASSUM 99.99%, T28 validation</framework>
+  </primitive>
+
+</primitives>
+
+<!-- ============================================================================ -->
+<!-- ATOMIC_DEBUGGER + ATOMIC_MCP_SERVER SUMMARY (Composite Capsules) -->
+<!-- ============================================================================ -->
+<!--
+
+ATOMIC_DEBUGGER (1 MB T6 Mixed Composite)
+- DebuggerCapsule: 23 component capsules
+  - T1 Atomic (8): ExecutionState, BreakpointMgr, RegisterReader, ThreadState, WatchpointTable, 
+                   PtraceWrapper, ProcessState, BreakpointTable
+  - T2 SIMD (4): SimdStackFrame, SimdSymbolTable, SymbolResolver, StackUnwinder
+  - T4 Batch (2): ParallelStackAnalyzer, BatchSymbolResolver
+  - T5 Streaming (1): RingBufferTrace
+  - T9 Persistent (2): MmapCrashDump, ProcessMap
+  - T10 Probabilistic (1): LshPathTable
+  - ptrace Linux-specific (8): Additional tier-1 capsules
+
+ATOMIC_MCP_SERVER (256 KB T6 Mixed Composite)
+- McpServerCapsule: 10 component capsules
+  - T0 Auditable (1): AuditLogCapsule
+  - T1 Atomic (9): JsonRpc, RateLimiter, QuotaTracker, ToolRegistry, LicenseValidator,
+                   ToolExecutor, StdioTransport, McpRuntime, + cross-references to atomic_capsule
+
+-->

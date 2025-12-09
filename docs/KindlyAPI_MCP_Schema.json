@@ -1,0 +1,851 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "KindlyAPI MCP Tools Schema",
+  "description": "Complete schema for all 18 KindlyAPI MCP tools (execution runtime model)",
+  "version": "1.0.0",
+
+  "definitions": {
+    "IntegrationId": {
+      "type": "string",
+      "pattern": "^int_[a-zA-Z0-9]{16}$",
+      "description": "Unique integration identifier (e.g., int_a1b2c3d4e5f6g7h8)"
+    },
+
+    "HealthLevel": {
+      "type": "string",
+      "enum": ["L0_NORMAL", "L1_DEGRADED", "L2_LIMITED", "L3_PAUSED"],
+      "description": "Circuit breaker health level (maps to ACB-64)"
+    },
+
+    "AuthConfig": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["bearer", "api_key", "basic", "oauth2"]
+        },
+        "credentials": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "token": {"type": "string"}
+              },
+              "required": ["token"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "key": {"type": "string"},
+                "header_name": {"type": "string"}
+              },
+              "required": ["key"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "username": {"type": "string"},
+                "password": {"type": "string"}
+              },
+              "required": ["username", "password"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": ["type", "credentials"]
+    },
+
+    "RateBudget": {
+      "type": "object",
+      "properties": {
+        "requests_per_minute": {"type": "integer", "minimum": 1},
+        "requests_per_hour": {"type": "integer", "minimum": 1},
+        "requests_per_day": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+
+    "AuditEntry": {
+      "type": "object",
+      "properties": {
+        "timestamp": {"type": "string", "format": "date-time"},
+        "event": {"type": "string", "enum": ["spec_fetch", "integrate", "call_start", "call_success", "call_error", "breaker_flip", "drift_detect"]},
+        "integration_id": {"$ref": "#/definitions/IntegrationId"},
+        "endpoint": {"type": "string"},
+        "status_code": {"type": "integer"},
+        "latency_us": {"type": "integer"},
+        "error_code": {"type": "string"},
+        "prev_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      },
+      "required": ["timestamp", "event", "hash"]
+    }
+  },
+
+  "tools": {
+    "integrate_api": {
+      "description": "Setup a new API integration with intelligent generation - for APIs WITHOUT official MCP servers. Auto-generates tools from OpenAPI spec with smart parameter inference, workflow detection, response normalization, and automatic OAuth handling.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "api_identifier": {
+            "oneOf": [
+              {"type": "string", "description": "Known API name (e.g., 'stripe', 'github')"},
+              {"type": "string", "format": "uri", "description": "OpenAPI spec URL"}
+            ]
+          },
+          "auth": {"$ref": "#/definitions/AuthConfig"},
+          "security_policy": {
+            "type": "object",
+            "properties": {
+              "allowed_endpoints": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Allowlist of endpoint paths (regex supported)"
+              },
+              "blocked_methods": {
+                "type": "array",
+                "items": {"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]}
+              },
+              "rate_budget": {"$ref": "#/definitions/RateBudget"}
+            },
+            "additionalProperties": false
+          },
+          "options": {
+            "type": "object",
+            "properties": {
+              "base_url": {"type": "string", "format": "uri"},
+              "timeout_ms": {"type": "integer", "minimum": 100, "maximum": 300000},
+              "retry_policy": {"type": "string", "enum": ["none", "basic", "exponential", "adaptive"]},
+              "cache_responses": {"type": "boolean"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": ["api_identifier", "auth"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"},
+          "api_name": {"type": "string"},
+          "base_url": {"type": "string", "format": "uri"},
+          "endpoints_discovered": {"type": "integer"},
+          "health": {"$ref": "#/definitions/HealthLevel"},
+          "message": {"type": "string"}
+        },
+        "required": ["integration_id", "api_name", "health"]
+      },
+      "errors": [
+        {"code": "SPEC_NOT_FOUND", "message": "Could not locate OpenAPI spec"},
+        {"code": "AUTH_INVALID", "message": "Authentication test failed"},
+        {"code": "SPEC_PARSE_ERROR", "message": "OpenAPI spec is malformed"},
+        {"code": "INTEGRATION_LIMIT", "message": "Free tier limit reached (3 integrations)"}
+      ]
+    },
+
+    "call_endpoint": {
+      "description": "Execute an API call with intelligent parameter inference, automatic error recovery, response normalization, circuit breaker, retry, and audit guarantees. Automatically fills parameters from context and handles OAuth token refresh.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"},
+          "endpoint": {"type": "string", "description": "Endpoint path or operation ID"},
+          "params": {
+            "type": "object",
+            "properties": {
+              "path": {"type": "object"},
+              "query": {"type": "object"},
+              "body": {"type": ["object", "array", "string"]}
+            },
+            "additionalProperties": false
+          },
+          "options": {
+            "type": "object",
+            "properties": {
+              "idempotency_key": {"type": "string"},
+              "timeout_ms": {"type": "integer"},
+              "priority": {"type": "string", "enum": ["low", "normal", "high"]}
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": ["integration_id", "endpoint"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "success": {"type": "boolean"},
+          "status_code": {"type": "integer"},
+          "body": {},
+          "headers": {"type": "object"},
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "latency_us": {"type": "integer"},
+              "breaker_level": {"$ref": "#/definitions/HealthLevel"},
+              "retries": {"type": "integer"},
+              "cache_hit": {"type": "boolean"},
+              "audit_hash": {"type": "string"}
+            }
+          }
+        },
+        "required": ["success", "status_code", "metadata"]
+      },
+      "errors": [
+        {"code": "INTEGRATION_NOT_FOUND", "message": "Integration ID does not exist"},
+        {"code": "BREAKER_PAUSED", "message": "Circuit breaker at L3 (paused), try again in {retry_after}s"},
+        {"code": "ENDPOINT_BLOCKED", "message": "Endpoint not in security allowlist"},
+        {"code": "RATE_LIMIT_EXCEEDED", "message": "Rate budget exhausted: {used}/{limit} requests/minute"},
+        {"code": "AUTH_EXPIRED", "message": "Authentication credentials expired, run test_auth"},
+        {"code": "VALIDATION_ERROR", "message": "Request parameters failed schema validation: {details}"},
+        {"code": "TIMEOUT", "message": "Request exceeded timeout ({timeout_ms}ms)"},
+        {"code": "DRIFT_DETECTED", "message": "API response differs from spec, trying alternate snapshot"}
+      ]
+    },
+
+    "get_health": {
+      "description": "Get current health status and recent errors for an integration",
+      "input": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"}
+        },
+        "required": ["integration_id"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"},
+          "api_name": {"type": "string"},
+          "health": {"$ref": "#/definitions/HealthLevel"},
+          "breaker_state": {
+            "type": "object",
+            "properties": {
+              "level": {"$ref": "#/definitions/HealthLevel"},
+              "cause": {"type": "string"},
+              "since": {"type": "string", "format": "date-time"},
+              "error_count": {"type": "integer"},
+              "success_rate": {"type": "number", "minimum": 0, "maximum": 1}
+            }
+          },
+          "rate_status": {
+            "type": "object",
+            "properties": {
+              "used_per_minute": {"type": "integer"},
+              "limit_per_minute": {"type": "integer"},
+              "used_per_hour": {"type": "integer"},
+              "limit_per_hour": {"type": "integer"}
+            }
+          },
+          "recent_errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "timestamp": {"type": "string", "format": "date-time"},
+                "endpoint": {"type": "string"},
+                "error_code": {"type": "string"},
+                "message": {"type": "string"}
+              }
+            },
+            "maxItems": 10
+          },
+          "last_success": {"type": "string", "format": "date-time"},
+          "drift_detected": {"type": "boolean"}
+        },
+        "required": ["integration_id", "health", "breaker_state"]
+      }
+    },
+
+    "get_call_history": {
+      "description": "Retrieve tamper-evident audit trail (ALE-128 hash chain)",
+      "input": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"},
+          "limit": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
+          "offset": {"type": "integer", "minimum": 0, "default": 0},
+          "filter": {
+            "type": "object",
+            "properties": {
+              "event_types": {"type": "array", "items": {"type": "string"}},
+              "start_time": {"type": "string", "format": "date-time"},
+              "end_time": {"type": "string", "format": "date-time"}
+            }
+          }
+        },
+        "required": ["integration_id"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {"$ref": "#/definitions/AuditEntry"}
+          },
+          "total": {"type": "integer"},
+          "chain_valid": {"type": "boolean", "description": "Hash chain integrity check result"}
+        },
+        "required": ["entries", "total", "chain_valid"]
+      }
+    },
+
+    "list_integrations": {
+      "description": "List all configured API integrations (official MCP, MCP extensions, and long tail)",
+      "input": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": "object",
+            "properties": {
+              "health": {"$ref": "#/definitions/HealthLevel"},
+              "api_name": {"type": "string"},
+              "type": {"type": "string", "enum": ["official_mcp", "mcp_extension", "kindly_integration"], "description": "Filter by integration type"}
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "integrations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "integration_id": {"$ref": "#/definitions/IntegrationId"},
+                "api_name": {"type": "string"},
+                "base_url": {"type": "string"},
+                "health": {"$ref": "#/definitions/HealthLevel"},
+                "type": {"type": "string", "enum": ["official_mcp", "mcp_extension", "kindly_integration"], "description": "official_mcp: vendor MCP server (observe-only), mcp_extension: KindlyAPI extends official MCP, kindly_integration: long tail without official MCP"},
+                "official_mcp_coverage_pct": {"type": "number", "description": "For mcp_extension type: percentage of total API exposed by official MCP (e.g., 3.2% for Stripe)"},
+                "created_at": {"type": "string", "format": "date-time"},
+                "last_used": {"type": "string", "format": "date-time"},
+                "total_calls": {"type": "integer"}
+              }
+            }
+          },
+          "total": {"type": "integer"}
+        }
+      }
+    },
+
+    "get_integration_info": {
+      "description": "Get detailed information about an integration including available endpoints",
+      "input": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"}
+        },
+        "required": ["integration_id"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"},
+          "api_name": {"type": "string"},
+          "base_url": {"type": "string"},
+          "spec_version": {"type": "string"},
+          "endpoints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {"type": "string"},
+                "method": {"type": "string"},
+                "operation_id": {"type": "string"},
+                "summary": {"type": "string"},
+                "parameters": {"type": "array"},
+                "request_body": {"type": "object"},
+                "allowed": {"type": "boolean", "description": "Allowed by security policy"}
+              }
+            }
+          },
+          "security_policy": {
+            "type": "object",
+            "properties": {
+              "allowed_endpoints_count": {"type": "integer"},
+              "blocked_methods": {"type": "array"},
+              "rate_budget": {"$ref": "#/definitions/RateBudget"}
+            }
+          }
+        }
+      }
+    },
+
+    "validate_request": {
+      "description": "Validate a request without executing it (dry-run)",
+      "input": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"},
+          "endpoint": {"type": "string"},
+          "params": {"type": "object"}
+        },
+        "required": ["integration_id", "endpoint"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "valid": {"type": "boolean"},
+          "checks": {
+            "type": "object",
+            "properties": {
+              "endpoint_exists": {"type": "boolean"},
+              "endpoint_allowed": {"type": "boolean"},
+              "params_valid": {"type": "boolean"},
+              "rate_budget_ok": {"type": "boolean"},
+              "auth_valid": {"type": "boolean"}
+            }
+          },
+          "errors": {"type": "array", "items": {"type": "string"}},
+          "warnings": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+
+    "explain_error": {
+      "description": "Get friendly explanation and suggested fixes for an error",
+      "input": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"},
+          "error_code": {"type": "string"},
+          "audit_hash": {"type": "string", "description": "Hash from failed call_endpoint response"}
+        },
+        "required": ["integration_id", "error_code"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "error_code": {"type": "string"},
+          "category": {"type": "string", "enum": ["auth", "rate_limit", "validation", "drift", "timeout", "breaker", "unknown"]},
+          "explanation": {"type": "string"},
+          "suggested_fixes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "action": {"type": "string"},
+                "command": {"type": "string"},
+                "description": {"type": "string"}
+              }
+            }
+          },
+          "related_docs": {"type": "array", "items": {"type": "string", "format": "uri"}}
+        }
+      }
+    },
+
+    "test_auth": {
+      "description": "Validate authentication credentials with a test request",
+      "input": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"}
+        },
+        "required": ["integration_id"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "valid": {"type": "boolean"},
+          "test_endpoint": {"type": "string"},
+          "status_code": {"type": "integer"},
+          "message": {"type": "string"},
+          "expires_at": {"type": "string", "format": "date-time"}
+        }
+      }
+    },
+
+    "update_integration": {
+      "description": "Update integration configuration or credentials",
+      "input": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"},
+          "updates": {
+            "type": "object",
+            "properties": {
+              "auth": {"$ref": "#/definitions/AuthConfig"},
+              "security_policy": {"type": "object"},
+              "options": {"type": "object"}
+            },
+            "minProperties": 1
+          }
+        },
+        "required": ["integration_id", "updates"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"},
+          "updated_fields": {"type": "array", "items": {"type": "string"}},
+          "message": {"type": "string"}
+        }
+      }
+    },
+
+    "search_api_catalog": {
+      "description": "Browse the API catalog of 100+ pre-integrated APIs (community contributions) - for APIs WITHOUT official MCP servers",
+      "input": {
+        "type": "object",
+        "properties": {
+          "query": {"type": "string"},
+          "category": {"type": "string", "enum": ["payment", "communication", "database", "ai", "analytics", "crm", "internal", "other"]},
+          "limit": {"type": "integer", "minimum": 1, "maximum": 50, "default": 10},
+          "show_only_without_mcp": {"type": "boolean", "default": true, "description": "Filter to only show APIs without official MCP servers"}
+        },
+        "anyOf": [
+          {"required": ["query"]},
+          {"required": ["category"]}
+        ]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "api_id": {"type": "string"},
+                "name": {"type": "string"},
+                "description": {"type": "string"},
+                "category": {"type": "string"},
+                "spec_url": {"type": "string", "format": "uri"},
+                "auth_types": {"type": "array", "items": {"type": "string"}},
+                "popularity": {"type": "integer"},
+                "has_official_mcp": {"type": "boolean", "description": "True if API has official MCP server (prefer that)"},
+                "community_contributed": {"type": "boolean"}
+              }
+            }
+          },
+          "total": {"type": "integer"},
+          "catalog_stats": {
+            "type": "object",
+            "properties": {
+              "total_apis": {"type": "integer"},
+              "without_official_mcp": {"type": "integer"},
+              "community_contributions": {"type": "integer"}
+            }
+          }
+        }
+      }
+    },
+
+    "batch_call": {
+      "description": "Execute multiple API calls efficiently (Pro tier)",
+      "input": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"},
+          "requests": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "request_id": {"type": "string"},
+                "endpoint": {"type": "string"},
+                "params": {"type": "object"}
+              },
+              "required": ["endpoint"]
+            },
+            "minItems": 1,
+            "maxItems": 100
+          },
+          "options": {
+            "type": "object",
+            "properties": {
+              "parallel": {"type": "boolean", "default": true},
+              "fail_fast": {"type": "boolean", "default": false}
+            }
+          }
+        },
+        "required": ["integration_id", "requests"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "request_id": {"type": "string"},
+                "success": {"type": "boolean"},
+                "status_code": {"type": "integer"},
+                "body": {},
+                "error": {"type": "string"}
+              }
+            }
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "total": {"type": "integer"},
+              "success": {"type": "integer"},
+              "failed": {"type": "integer"},
+              "duration_ms": {"type": "integer"}
+            }
+          }
+        }
+      }
+    },
+
+    "get_rate_status": {
+      "description": "Get current rate limit usage and remaining budget",
+      "input": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"}
+        },
+        "required": ["integration_id"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"},
+          "windows": {
+            "type": "object",
+            "properties": {
+              "per_minute": {
+                "type": "object",
+                "properties": {
+                  "used": {"type": "integer"},
+                  "limit": {"type": "integer"},
+                  "remaining": {"type": "integer"},
+                  "resets_at": {"type": "string", "format": "date-time"}
+                }
+              },
+              "per_hour": {"type": "object"},
+              "per_day": {"type": "object"}
+            }
+          }
+        }
+      }
+    },
+
+    "delete_integration": {
+      "description": "Remove an integration and its audit history",
+      "input": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"},
+          "confirm": {"type": "boolean", "description": "Must be true to confirm deletion"}
+        },
+        "required": ["integration_id", "confirm"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"},
+          "deleted": {"type": "boolean"},
+          "audit_entries_archived": {"type": "integer"},
+          "message": {"type": "string"}
+        }
+      }
+    },
+
+    "ai_discover": {
+      "description": "Use AI to find relevant endpoints for a goal with intelligent workflow detection and composite tool suggestions (Pro tier)",
+      "input": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"},
+          "goal": {"type": "string", "description": "What you want to accomplish (e.g., 'manage subscriptions')"}
+        },
+        "required": ["integration_id", "goal"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "endpoints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "endpoint": {"type": "string"},
+                "method": {"type": "string"},
+                "relevance_score": {"type": "number"},
+                "explanation": {"type": "string"},
+                "example_params": {"type": "object"}
+              }
+            }
+          },
+          "suggested_workflow": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+
+    "optimize_calls": {
+      "description": "Get suggestions for batching and caching (Pro tier)",
+      "input": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"},
+          "analyze_window_hours": {"type": "integer", "minimum": 1, "maximum": 168, "default": 24}
+        },
+        "required": ["integration_id"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "suggestions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {"type": "string", "enum": ["batching", "caching", "deduplication"]},
+                "endpoints": {"type": "array"},
+                "estimated_savings": {"type": "string"},
+                "implementation": {"type": "string"}
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "export_client": {
+      "description": "Generate client code for an integration (optional fallback)",
+      "input": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"},
+          "language": {"type": "string", "enum": ["rust", "python", "typescript", "go"]},
+          "features": {
+            "type": "array",
+            "items": {"type": "string", "enum": ["retry", "circuit_breaker", "audit_logging"]}
+          }
+        },
+        "required": ["integration_id", "language"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "code": {"type": "string"},
+          "filename": {"type": "string"},
+          "dependencies": {"type": "array", "items": {"type": "string"}},
+          "instructions": {"type": "string"}
+        }
+      }
+    },
+
+    "create_template": {
+      "description": "Save integration config as reusable template (Enterprise tier)",
+      "input": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"},
+          "template_name": {"type": "string"},
+          "description": {"type": "string"}
+        },
+        "required": ["integration_id", "template_name"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "template_id": {"type": "string"},
+          "template_name": {"type": "string"},
+          "message": {"type": "string"}
+        }
+      }
+    },
+
+    "observe_mcp_server": {
+      "description": "Monitor an official MCP server (Stripe, GitHub, etc.) for health and availability - observe-only, doesn't execute",
+      "input": {
+        "type": "object",
+        "properties": {
+          "mcp_server_name": {"type": "string", "description": "Name of official MCP server (e.g., 'stripe', 'github')"},
+          "monitor_interval_seconds": {"type": "integer", "minimum": 10, "maximum": 3600, "default": 60}
+        },
+        "required": ["mcp_server_name"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "observer_id": {"type": "string"},
+          "mcp_server_name": {"type": "string"},
+          "status": {"type": "string", "enum": ["healthy", "degraded", "down", "unknown"]},
+          "last_check": {"type": "string", "format": "date-time"},
+          "uptime_percentage": {"type": "number"},
+          "message": {"type": "string"}
+        }
+      }
+    },
+
+    "extend_mcp_server": {
+      "description": "Extend an official MCP server by auto-generating intelligent tools for endpoints it doesn't expose (e.g., Stripe has 710 endpoints but official MCP only has 23). Fills the gap for missing 97% of API surface with smart parameter inference, workflow detection, and response normalization.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "mcp_server_name": {"type": "string", "description": "Name of official MCP server to extend (e.g., 'stripe', 'github')"},
+          "openapi_spec_url": {"type": "string", "format": "uri", "description": "Optional: Custom OpenAPI spec URL (auto-detected if not provided)"}
+        },
+        "required": ["mcp_server_name"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "extension_id": {"type": "string", "description": "Unique extension identifier (e.g., ext_stripe_advanced)"},
+          "official_mcp_endpoints": {"type": "integer", "description": "Endpoints already in official MCP (e.g., 23 for Stripe)"},
+          "kindlyapi_endpoints": {"type": "integer", "description": "Additional endpoints KindlyAPI provides (e.g., 687 for Stripe)"},
+          "total_coverage": {"type": "integer", "description": "Total endpoints accessible (official + extension, e.g., 710)"},
+          "coverage_improvement": {"type": "string", "description": "Before/after summary (e.g., '23 → 710 endpoints (3,000% increase)')"},
+          "missing_endpoints": {
+            "type": "array",
+            "description": "Sample of endpoints added by extension",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {"type": "string"},
+                "method": {"type": "string"},
+                "description": {"type": "string"}
+              }
+            }
+          },
+          "message": {"type": "string"}
+        },
+        "required": ["extension_id", "official_mcp_endpoints", "kindlyapi_endpoints", "total_coverage"]
+      }
+    },
+
+    "suggest_alternatives": {
+      "description": "Suggest alternative APIs when primary is down or degraded (e.g., Stripe down → suggest PayPal)",
+      "input": {
+        "type": "object",
+        "properties": {
+          "integration_id": {"$ref": "#/definitions/IntegrationId"},
+          "reason": {"type": "string", "enum": ["down", "degraded", "rate_limited", "too_slow"]}
+        },
+        "required": ["integration_id"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "alternatives": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "api_name": {"type": "string"},
+                "reason": {"type": "string"},
+                "compatibility": {"type": "string", "enum": ["drop-in", "similar", "requires_changes"]},
+                "setup_complexity": {"type": "string", "enum": ["easy", "moderate", "complex"]},
+                "has_official_mcp": {"type": "boolean"}
+              }
+            }
+          },
+          "recommendation": {"type": "string"}
+        }
+      }
+    }
+  }
+}

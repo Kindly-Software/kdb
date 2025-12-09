@@ -40,7 +40,7 @@
 //!
 //! - **UCE34 Q10**: T0+T10 (Auditable + Probabilistic)
 //! - **UCE34 Q34**: SHA256 hash-chain integrity
-//! - **COCA**: 100% lockfree, cache-aligned, generation counters
+//! - **Chaos**: 100% lockfree, cache-aligned, generation counters
 //! - **ASSUM**: Documented pointer safety for hot-path lookup
 //!
 //! ## TRADE SECRET NOTICE

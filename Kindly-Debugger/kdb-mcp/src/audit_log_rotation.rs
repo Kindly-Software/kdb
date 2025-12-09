@@ -44,7 +44,7 @@
 //!
 //! - **UCE34 Q10**: T0 Auditable tier (tamper-evident audit trail)
 //! - **UCE34 Q34**: Hash-chain integrity verification (Q34 compliance)
-//! - **COCA**: 100% lockfree coordination (atomic operations only)
+//! - **Chaos**: 100% lockfree coordination (atomic operations only)
 //! - **ASSUM**: 99.99% safety (10+ assumptions, all verified)
 //! - **B32**: <50ns append, <100ms rotation, <5ms verification
 //! - **T28**: 7 tests (unit/property/integration/production)

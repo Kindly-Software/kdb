@@ -1,18 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- kdb-mcp - MCP Debugging Server for kdb (T6 Mixed) -->
-<!-- Version: 0.2.0 | Updated: 2025-12-06 -->
-<project name="kdb-mcp" version="0.2.0">
+<!-- Version: 0.2.2 | Updated: 2025-12-09 -->
+<!-- COMMERCIAL PRODUCT - NOT OPEN SOURCE -->
+<project name="kdb-mcp" version="0.2.2">
 
 <metadata>
   <description>T6 Mixed JSON-RPC MCP server orchestrating kdb debugger with sub-10μs latency and tier-based subscription enforcement</description>
-  <location>/home/samuel/Primitives/kdb-mcp/</location>
-  <size>75,962 LOC | 59 modules | 27 MCP tools</size>
-  <tier>T6 Mixed (T0+T1+T2+T4+T5+T10)</tier>
-  <framework>UCE34, COCA 100% lockfree, 99.99% ASSUM safe</framework>
+  <role>PRIMARY USER INTERFACE - This is how users interact with KDB</role>
+  <delivery-model>MCP (Model Context Protocol) - Platform agnostic access from any OS</delivery-model>
+  <location>/home/samuel/Primitives/Kindly-Debugger/kdb-mcp/</location>
+  <size>76,500+ LOC | 60 modules | 27 MCP tools</size>
+  <tier>T6 Mixed (T0+T1+T2+T4+T5+T8+T10)</tier>
+  <framework>UCE34, Chaos 100% lockfree, 99.99% ASSUM safe</framework>
   <performance>&lt;10μs RPC orchestration | &lt;200ns tier enforcement</performance>
+  <commercial-status>PROPRIETARY - NOT OPEN SOURCE</commercial-status>
   <trade-secret>YES - MCP server implementation protected</trade-secret>
-  <status>Production Ready | 326/327 tests passing</status>
+  <status>Production Ready | 333/334 tests passing (7 new SSE transport tests)</status>
+  <signup-url>https://api.kindly.software/api/v1/signup</signup-url>
+  <live-endpoint>https://mcp.kindly.software/sse</live-endpoint>
 </metadata>
+
+<commercial-model>
+  <status>Commercial product with tiered licensing</status>
+  <tiers>
+    <tier name="Hobby" price="Free" sessions="5/month" promo="Unlimited during 7-day launch period"/>
+    <tier name="Pro" price="Coming Soon" sessions="Extended"/>
+    <tier name="Enterprise" price="Contact" sessions="Unlimited" features="Priority support, custom SLA"/>
+  </tiers>
+  <platform-support>
+    <note>Users on ANY OS (macOS, Windows, Linux) connect via MCP clients</note>
+    <note>AI assistants (Claude Code, Cursor, etc.) handle the MCP protocol</note>
+    <note>Users debug via natural language - never touch ptrace directly</note>
+  </platform-support>
+</commercial-model>
 
 <!-- ============================================================================
      ARCHITECTURE OVERVIEW
@@ -37,6 +57,88 @@
     <step order="10" capsule="JsonRpcCapsule" latency="&lt;1μs">Format JSON response</step>
   </request-flow>
 </architecture>
+
+<!-- ============================================================================
+     SSE TRANSPORT SYSTEM (NEW - 2025-12-09)
+     ============================================================================ -->
+<sse-transport version="1.0" status="PRODUCTION" spec="MCP 2024-11-05">
+  <description>T6 Mixed SSE transport implementing MCP Server-Sent Events protocol</description>
+  <live-status>✅ LIVE at https://mcp.kindly.software/sse</live-status>
+
+  <protocol-flow>
+    <step order="1" method="GET" path="/sse" response="200 + text/event-stream">
+      Client establishes SSE connection, receives session ID via endpoint event
+    </step>
+    <step order="2" event="endpoint" format="data: /message?sessionId={uuid}">
+      Server sends endpoint event with unique session ID (UUID format)
+    </step>
+    <step order="3" method="POST" path="/message?sessionId={uuid}" response="204 No Content">
+      Client sends JSON-RPC requests to message endpoint
+    </step>
+    <step order="4" event="message" format="data: {json-rpc-response}">
+      Server pushes JSON-RPC response via SSE stream
+    </step>
+  </protocol-flow>
+
+  <capsules>
+    <capsule name="HttpTransportCapsule" file="http_transport.rs" tier="T6 Mixed" size="512B" alignment="256B">
+      <latency>&lt;1μs handle_request()</latency>
+      <purpose>Chaos-compliant HTTP request handling with metrics tracking</purpose>
+      <key-method name="is_protocol_method()" latency="&lt;100ns">
+        Detects MCP protocol methods (initialize, ping, notifications/initialized) that bypass auth per MCP spec
+      </key-method>
+      <features>
+        <feature>Path validation: /mcp, /sse, /message, /health</feature>
+        <feature>Header extraction: X-License-Key, Authorization, Content-Type</feature>
+        <feature>Content-Type relaxation: allows empty (MCP client compatibility)</feature>
+        <feature>Atomic metrics: total_requests, successful_requests, auth_failures, rate_limit_hits</feature>
+      </features>
+    </capsule>
+    <capsule name="SseConnectionPoolCapsule" file="sse_connection_pool.rs" tier="T4+T1" size="~13KB" alignment="256B">
+      <slots>100 concurrent SSE connections</slots>
+      <latency>&lt;100ns allocate/release</latency>
+      <purpose>Lockfree connection slot management with bitmap tracking</purpose>
+    </capsule>
+    <capsule name="RateLimiterCapsule" file="rate_limiter.rs" tier="T1" size="4KB" alignment="64B">
+      <latency>&lt;20ns check_and_consume()</latency>
+      <purpose>Global token bucket rate limiting</purpose>
+    </capsule>
+  </capsules>
+
+  <mcp-spec-compliance>
+    <requirement name="initialize without auth" status="✅">
+      Protocol methods bypass authentication per MCP 2024-11-05 spec.
+      is_protocol_method() detects: "initialize", "ping", "notifications/initialized"
+    </requirement>
+    <requirement name="204 No Content for POST" status="✅">
+      POST /message returns 204, response delivered via SSE push
+    </requirement>
+    <requirement name="endpoint event first" status="✅">
+      Server sends 'event: endpoint' with session ID immediately after SSE handshake
+    </requirement>
+    <requirement name="heartbeat/keepalive" status="✅">
+      30-second SSE heartbeat interval prevents connection timeout
+    </requirement>
+  </mcp-spec-compliance>
+
+  <binary name="mcp_sse_server" file="src/bin/mcp_sse_server.rs" lines="~800">
+    <build>cargo build --release --bin mcp_sse_server --features "std,json-rpc,sse-transport,http-transport"</build>
+    <deployment>/home/samuel/mcp_servers/kdb-mcp/bin/mcp_sse_server</deployment>
+    <systemd-service>kdb-mcp-sse.service</systemd-service>
+    <port>8081</port>
+    <memory>~3MB runtime (100 concurrent connections)</memory>
+  </binary>
+
+  <tests count="7" file="http_transport.rs:999-1076">
+    <test name="test_is_protocol_method_initialize">initialize method detection</test>
+    <test name="test_is_protocol_method_ping">ping method detection</test>
+    <test name="test_is_protocol_method_notifications_initialized">notification detection</test>
+    <test name="test_is_protocol_method_tool_calls_require_auth">tools/list requires auth</test>
+    <test name="test_is_protocol_method_resources_require_auth">resources/* requires auth</test>
+    <test name="test_is_protocol_method_empty_and_invalid">edge case handling</test>
+    <test name="test_is_protocol_method_edge_cases">key ordering variations</test>
+  </tests>
+</sse-transport>
 
 <!-- ============================================================================
      TIER ENFORCEMENT SYSTEM (NEW - 2025-12-06)
@@ -187,7 +289,7 @@
 <!-- ============================================================================
      MODULE INVENTORY
      ============================================================================ -->
-<modules total="59">
+<modules total="61">
   <category name="Core" files="12">
     <module name="lib.rs" lines="452">Public API, 8-capsule docs</module>
     <module name="server.rs" lines="2859">McpServerCapsule orchestrator</module>
@@ -229,9 +331,11 @@
     <module name="per_client_rate_limiter.rs">Per-client rate limits</module>
   </category>
 
-  <category name="Phase 2C: Infrastructure" files="8" lines="~3500">
+  <category name="Phase 2C: Infrastructure" files="10" lines="~4500">
     <module name="runtime.rs">T5 async runtime</module>
-    <module name="http_transport.rs">T4 HTTP transport</module>
+    <module name="http_transport.rs" lines="1076" tier="T6 Mixed">HttpTransportCapsule (512B, 256B-aligned), is_protocol_method() for MCP auth bypass, 7 tests</module>
+    <module name="sse_transport.rs" lines="~600" tier="T5+T8">SseTransportCapsule, SSE event formatting, session management</module>
+    <module name="sse_connection_pool.rs" lines="~400" tier="T4+T1">SseConnectionPoolCapsule (~13KB), 100 concurrent connections, bitmap tracking</module>
     <module name="stdio_transport.rs">T5 stdio transport</module>
     <module name="connection_pool.rs">Connection pooling</module>
     <module name="tool_executor.rs">Tool execution</module>
@@ -242,7 +346,7 @@
 <!-- ============================================================================
      FEATURE FLAGS
      ============================================================================ -->
-<feature-flags total="40">
+<feature-flags total="41">
   <category name="Core">
     <flag name="std">Standard library (required)</flag>
     <flag name="json-rpc">JSON-RPC serialization (default)</flag>
@@ -268,9 +372,10 @@
     <flag name="rate-limiting"/>
   </category>
 
-  <category name="Phase 2C: Infrastructure" count="8">
+  <category name="Phase 2C: Infrastructure" count="9">
     <flag name="runtime"/>
     <flag name="http-transport"/>
+    <flag name="sse-transport" note="MCP 2024-11-05 SSE protocol (production live)"/>
     <flag name="stdio-transport"/>
     <flag name="connection-pool"/>
     <flag name="tool-executor"/>
@@ -349,6 +454,48 @@
      DEPLOYMENT
      ============================================================================ -->
 <deployment>
+  <npm-package version="1.0.1" published="2025-12-09">
+    <name>@kindly-software-inc/kdb</name>
+    <registry>https://registry.npmjs.org/</registry>
+    <install>npm install @kindly-software-inc/kdb</install>
+    <transport type="sse">
+      <url>https://mcp.kindly.software/sse</url>
+      <message-endpoint>POST /message?sessionId={uuid}</message-endpoint>
+      <health-endpoint>GET /health</health-endpoint>
+    </transport>
+    <authentication>
+      <type>api-key</type>
+      <header>X-License-Key</header>
+      <signup>https://kindly.software</signup>
+    </authentication>
+    <client-directory>/home/samuel/Primitives/Kindly-Debugger/kdb-mcp-client/</client-directory>
+  </npm-package>
+
+  <sse-server version="0.2.0" status="✅ PRODUCTION LIVE" updated="2025-12-09">
+    <binary>/home/samuel/mcp_servers/kdb-mcp/bin/mcp_sse_server</binary>
+    <source>/home/samuel/Primitives/Kindly-Debugger/kdb-mcp/src/bin/mcp_sse_server.rs</source>
+    <port>8081</port>
+    <systemd-service>kdb-mcp-sse.service</systemd-service>
+    <cloudflare-tunnel>kindly-mcp (92183b6d-8059-4cb5-b1c2-1b4974b62f7a)</cloudflare-tunnel>
+    <public-url>https://mcp.kindly.software</public-url>
+    <capsules-in-use>
+      <capsule>HttpTransportCapsule (512B, T6 Mixed) - HTTP request handling</capsule>
+      <capsule>SseConnectionPoolCapsule (~13KB, T4+T1) - 100 connection slots</capsule>
+      <capsule>RateLimiterCapsule (4KB, T1) - global token bucket</capsule>
+      <capsule>McpServerCapsule (256KB, T6 Mixed) - request orchestration</capsule>
+      <capsule>DebuggerCapsule (1MB, T6 Mixed) - kdb debugger core</capsule>
+    </capsules-in-use>
+    <verified-endpoints>
+      <endpoint method="GET" path="/sse" response="200 text/event-stream" verified="2025-12-09">SSE connection</endpoint>
+      <endpoint method="POST" path="/message?sessionId={uuid}" response="204" verified="2025-12-09">JSON-RPC messages</endpoint>
+      <endpoint method="GET" path="/health" response="200 JSON" verified="2025-12-09">Health check</endpoint>
+    </verified-endpoints>
+    <mcp-methods-tested>
+      <method name="initialize" auth-required="no" verified="2025-12-09">Protocol handshake</method>
+      <method name="tools/list" auth-required="yes" verified="2025-12-09">Returns 27 tools</method>
+    </mcp-methods-tested>
+  </sse-server>
+
   <binary name="kdb-mcp-server" size="256KB">
     <build>cargo build --release --bin kdb-mcp-server --features "std,json-rpc"</build>
   </binary>
@@ -372,13 +519,20 @@
 <quick-reference>
   <commands>
     <cmd name="build">cargo build --release --features "std,json-rpc"</cmd>
+    <cmd name="build-sse">cargo build --release --bin mcp_sse_server --features "std,json-rpc,sse-transport,http-transport"</cmd>
     <cmd name="test">cargo test --lib --features "std,json-rpc"</cmd>
+    <cmd name="test-http">cargo test http_transport --features "std,json-rpc,http-transport"</cmd>
     <cmd name="bench">ssh samuel@kindly-hub "cd ~/Primitives/kdb-mcp &amp;&amp; cargo bench"</cmd>
     <cmd name="clippy">cargo clippy --all-features</cmd>
+    <cmd name="deploy-sse">scp target/release/mcp_sse_server samuel@kindly-hub:~/mcp_servers/kdb-mcp/bin/</cmd>
+    <cmd name="restart-sse">ssh samuel@kindly-hub "sudo systemctl restart kdb-mcp-sse.service"</cmd>
+    <cmd name="logs-sse">ssh samuel@kindly-hub "journalctl -u kdb-mcp-sse.service -f"</cmd>
   </commands>
 
   <key-files>
     <file path="src/server.rs">McpServerCapsule orchestrator (dispatch_tool at line 680)</file>
+    <file path="src/http_transport.rs">HttpTransportCapsule (512B), is_protocol_method() at line 328, 7 tests at line 999</file>
+    <file path="src/bin/mcp_sse_server.rs">SSE server binary (~800 lines), uses HttpTransportCapsule + SseConnectionPoolCapsule</file>
     <file path="src/tier_enforcement.rs">TierEnforcementCapsule + FeatureFlags</file>
     <file path="src/snapshot_quota.rs">SnapshotQuotaCapsule + EnforcementStage</file>
     <file path="src/session_tier_map.rs">SessionTierMapCapsule (FNV-1a hash table)</file>

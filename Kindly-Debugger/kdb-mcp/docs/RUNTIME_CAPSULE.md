@@ -339,7 +339,7 @@ Test coverage:
 - **B32**: Honest benchmarking, fair baselines
 - **T28**: Comprehensive testing (58 unit + integration tests)
 - **I20**: Integration validation (complete)
-- **COCA**: 100% computational capsule architecture
+- **Chaos**: 100% computational capsule architecture
 
 ## Example: Running the Server
 

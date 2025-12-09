@@ -1,0 +1,33 @@
+error: Missing #[capsule(...)] attribute
+
+       The ComputationalCapsule derive macro requires capsule configuration.
+
+       Add this attribute to your struct:
+       #[capsule(alignment = 64)]
+
+       Common configurations:
+       - alignment = 64:  Standard single cache line (most common)
+       - alignment = 128: Dual cache line (DualAtomicU64 pattern)
+       - alignment = 256: Multi-line capsules (large state)
+
+       Optional parameters:
+       - size = N:    Expected struct size in bytes
+       - tier = "T":  Capsule tier (Atomic, SIMD, FixedPoint, etc.)
+       - auto_pad = true: Generate padding suggestion
+
+       Example:
+       #[derive(ComputationalCapsule)]
+       #[capsule(alignment = 64, size = 64)]
+       #[repr(C, align(64))]
+       struct MyCapsule { ... }
+
+       Help: Add #[capsule(alignment = 64)] before your struct
+       See: /home/samuel/Docs/The Computational Capsule.md
+       See: $WORKSPACE/atomic_capsule/CLAUDE.md (Examples)
+ --> tests/compile_fail/missing_capsule_attr.rs:6:1
+  |
+6 | / #[repr(C, align(64))]
+7 | | struct MissingAttr {
+8 | |     data: [u8; 64],
+9 | | }
+  | |_^

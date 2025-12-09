@@ -1,0 +1,115 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║        C4 JOB-LEVEL PARALLELISM BENCHMARK - QUICK REFERENCE               ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+STATUS: ❌ CRITICAL FAILURE
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ERROR SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Failure Phase:     Phase 2.3 (LSH Bucketing)
+Error Type:        LSH memtable capacity exceeded
+Document #:        568,846 of 12,097,545 (4.7% of corpus)
+Root Cause:        Bounded memtable with hardcoded capacity
+Remaining Docs:    11,528,699 (95.3% unprocessed)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHAT WAS MEASURED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Corpus Loading:        230.98s (52,375 docs/sec)
+✅ JSONL Parsing:         Complete for 12.1M docs
+✅ MinHash Signing:       Complete for 12.1M docs
+❌ LSH Bucketing:         FAILED at 4.7% (568.8K docs)
+❌ Job-Level Parallelism: NOT TESTED (Phase 3 never reached)
+❌ Speedup Validation:    IMPOSSIBLE (no baseline measurement)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHAT CANNOT BE CLAIMED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❌ 3.6× total speedup     - No measurements collected
+❌ 10-14× parallel        - Parallelism never tested
+❌ 200-215K docs/sec      - No throughput data
+❌ Production readiness   - Benchmark fails on real data
+❌ Performance advantage  - All comparisons impossible
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+KEY ISSUES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. LSH MEMTABLE CAPACITY BUG (CRITICAL)
+   - Hardcoded capacity insufficient for 12.1M documents
+   - Not configurable via CLI flags
+   - No graceful overflow handling
+   
+2. INCOMPLETE BENCHMARK (HIGH)
+   - Job-level parallelism never tested
+   - Speedup claim remains UNVALIDATED
+   - Cannot compare against baseline
+
+3. AMDAHL'S LAW ANALYSIS (CRITICAL)
+   - Sequential phases: loading, parsing, merging
+   - Parallelizable phase: LSH bucketing (~46.7% of baseline)
+   - Theoretical max speedup with 16 jobs: ~1.76×
+   - Realistic speedup (60-80% efficiency): 1.05-1.41×
+   - CONCLUSION: 3.6× claim may be MATHEMATICALLY IMPOSSIBLE
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FRAMEWORK COMPLIANCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+UCE34:   ❌ FAILED (Q33 validation incomplete)
+B32:     ❌ FAILED (no baseline measurement)
+T28:     ❌ FAILED (test itself has critical bug)
+ASSUM:   ❌ FAILED (capacity assumption violated)
+I20:     ❌ FAILED (safety issue: capacity overflow)
+COCA:    ⚠️  UNTESTED (parallelism never reached)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERDICT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❌ PRODUCTION-READY:     NO (critical bug blocks all testing)
+❌ SPEEDUP VALIDATED:    NO (benchmark incomplete)
+🔴 RISK LEVEL:          CRITICAL (do not publicize)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RECOMMENDATIONS (IN ORDER)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. FIX LSH MEMTABLE CAPACITY BUG
+   Location:  src/universal/lsh_bucket.rs (estimated)
+   Fix:       Scale capacity with corpus size OR unbounded LSH
+   Time:      1-2 days
+   
+2. RE-RUN COMPLETE BENCHMARK
+   Goal:      Collect baseline + parallel + speedup measurements
+   Test:      On increasing sizes (100K, 1M, 12.1M)
+   Time:      2-3 hours
+   
+3. VALIDATE AMDAHL'S LAW
+   Goal:      Determine realistic speedup limits
+   Action:    Recalculate if 3.6× is achievable
+   Time:      2-4 hours
+   
+4. UPDATE PUBLIC CLAIMS
+   If speedup < 2.0×: Do not claim improvement
+   Document Amdahl limits and scalability constraints
+   Time:      1 hour
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FULL REPORTS AVAILABLE AT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Executive Summary (9.1 KB):   C4_BENCHMARK_EXECUTIVE_SUMMARY.txt
+Detailed Report (16 KB):      C4_BENCHMARK_FINAL_VALIDATION.md
+
+Both available in:
+  /tmp/                          (temporary)
+  /home/samuel/Primitives/kindly_dedup/   (project directory)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+END OF QUICK REFERENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -1,6 +1,6 @@
 # P1.3 CAPSULE_INCORRECT_PADDING Enhanced Diagnostics
 
-**Framework**: UCE34 Q34 (Auditability) + COCA Cache Alignment
+**Framework**: UCE34 Q34 (Auditability) + Chaos Cache Alignment
 **Status**: Complete, compiled successfully
 **Files Modified**: 2 (padding_violation.rs, diagnostics.rs)
 
@@ -13,7 +13,7 @@ Enhanced error messages for P1.3 CAPSULE_INCORRECT_PADDING to provide developers
 3. **Step-by-step calculation** breakdown with inline formulas
 4. **False sharing impact** visualization and performance metrics
 5. **Exact auto-fix suggestions** with calculated padding values
-6. **Framework compliance** references to COCA mandate
+6. **Framework compliance** references to Chaos mandate
 
 ---
 
@@ -117,9 +117,9 @@ PERFORMANCE CONSEQUENCES:
     ⚠ Multiple capsules per cache line
     ⚠ Cache line bounces between cores on each update
     ⚠ 3-5× slowdown from coherency traffic (B32 measured)
-    ⚠ Violates COCA 'exclusive cache line' mandate
+    ⚠ Violates Chaos 'exclusive cache line' mandate
 
-COCA Framework References:
+Chaos Framework References:
   - Computational Capsule.md § Cache-Aligned Padding (philosophy)
   - The Atomic Capsule.md § DualAtomicU64 pattern (practical patterns)
   - UCE34_TIER_REFERENCE.md § T1 Tier Padding Rules (tier-specific requirements)
@@ -138,7 +138,7 @@ QUICK CHECK: After fix, struct should be:
 ✅ Section 5: Exact auto-fix suggestion
 ✅ Section 6: False sharing visualization
 ✅ Section 7: Performance consequences (B32 metrics)
-✅ Section 8: COCA framework compliance references
+✅ Section 8: Chaos framework compliance references
 ✅ Section 9: Quick verification checklist
 
 ---
@@ -165,8 +165,8 @@ Added 4 new diagnostic helper functions:
 - Explains coherency traffic consequence
 - Quantifies 3-5× slowdown
 
-#### 4. `format_coca_compliance_ref()`
-- Links to 4 key COCA framework documents
+#### 4. `format_chaos_compliance_ref()`
+- Links to 4 key Chaos framework documents
 - References KEY_INNOVATIONS.md for proven speedups
 
 ### File 2: `src/padding_violation.rs` (+60 lines net)
@@ -192,7 +192,7 @@ Updated `emit_incorrect_padding_diagnostic()` to:
 | 5. EXACT FIX | Calculated padding value needed | padding_violation.rs logic |
 | 6. FALSE SHARING IMPACT | Cache line visualization | format_false_sharing_impact() |
 | 7. PERFORMANCE CONSEQUENCES | B32 metrics (3-5× slowdown) | hardcoded + conditional |
-| 8. FRAMEWORK REFERENCES | COCA compliance links | format_coca_compliance_ref() |
+| 8. FRAMEWORK REFERENCES | Chaos compliance links | format_chaos_compliance_ref() |
 | 9. QUICK CHECK | Verification formula | padding_violation.rs logic |
 
 ---
@@ -227,7 +227,7 @@ PERFORMANCE CONSEQUENCES:
     ⚠ Wastes 72 bytes of memory per instance
     ⚠ Reduces cache efficiency (fewer structures per line)
     ⚠ Unnecessary memory pressure in large collections
-    ⚠ Still violates COCA alignment mandate (wrong total)
+    ⚠ Still violates Chaos alignment mandate (wrong total)
 ```
 
 ---
@@ -315,7 +315,7 @@ This enhancement preserves all existing IP and trade secret protections:
 
 ## References
 
-- **COCA Philosophy**: `/home/samuel/Docs/The Computational Capsule.md`
+- **Chaos Philosophy**: `/home/samuel/Docs/The Computational Capsule.md`
 - **Atomic Patterns**: `/home/samuel/Docs/The Atomic Capsule.md`
 - **Key Innovations**: `/home/samuel/Primitives/Docs/KEY_INNOVATIONS.md`
 - **UCE34 Framework**: `/home/samuel/CLAUDE.md` § UCE34

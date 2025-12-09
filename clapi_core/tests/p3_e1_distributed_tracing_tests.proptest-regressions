@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 8f05e0d5164c7cd0c3928b49e2031841b32bfb0f4690bd4886510c2e5f0d0216 # shrinks to durations_us = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 486, 124, 947, 6, 65, 521, 224, 115, 121, 951, 176, 864, 651, 804, 779, 291, 145, 898, 410, 977, 587, 797, 205, 263, 49, 277, 663, 264, 379, 362, 434, 84, 263, 826, 981, 604, 580, 444, 130, 271, 147, 93, 364, 921, 634, 785, 914, 255, 677, 109, 143]

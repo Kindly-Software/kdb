@@ -78,7 +78,7 @@
 //! ## UCE34 Framework Compliance
 //! - **Q10**: T1 Atomic tier (lockfree coordination, generation counters)
 //! - **Q33**: 100% lockfree (NO mutex/RwLock, all atomic operations)
-//! - **COCA**: Cache-aligned 128B, DualAtomicU64 pattern, generation counters
+//! - **Chaos**: Cache-aligned 128B, DualAtomicU64 pattern, generation counters
 //! - **ASSUM**: Document all atomic operations with #ASSUME/#VERIFY
 
 use crate::patterns::DualAtomicU64;

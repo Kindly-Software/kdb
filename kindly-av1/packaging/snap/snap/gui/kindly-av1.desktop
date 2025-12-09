@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=kindly-av1
+Comment=GPU-Accelerated AV1 Video Encoder
+Exec=kindly-av1 %F
+Icon=${SNAP}/meta/gui/kindly-av1.png
+Terminal=true
+Type=Application
+Categories=AudioVideo;Video;Recorder;
+MimeType=video/mp4;video/x-matroska;video/avi;video/quicktime;video/x-msvideo;
+Keywords=video;encoder;av1;gpu;codec;compression;
+StartupNotify=false
+X-GNOME-UsesNotifications=true

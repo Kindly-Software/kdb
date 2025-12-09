@@ -4,7 +4,7 @@
 **Size**: 64 bytes (cache-aligned)
 **Latency**: <20ns PID check, <10ns command check
 **Performance**: >500M ops/sec concurrent
-**Framework**: UCE34 (Q1-Q34), COCA, 100% lockfree, ASSUM 99.99% safe
+**Framework**: UCE34 (Q1-Q34), Chaos, 100% lockfree, ASSUM 99.99% safe
 **Status**: Production Ready (v0.1.0)
 
 ## Overview
@@ -422,7 +422,7 @@ Sustained: >100M ops/sec for production workloads
 ### Frameworks
 
 - **UCE34**: Q10 T1 tier, Q33 verification, Q34 audit
-- **COCA**: 100% computational capsule pattern
+- **Chaos**: 100% computational capsule pattern
 - **ASSUM**: 99.99% safety (10+ assumptions verified)
 - **B32**: Fair baseline, <20ns latency, >500M ops/sec
 - **T28**: Comprehensive testing (unit/property/integration/load)
@@ -476,7 +476,7 @@ let allowed = ac.is_pid_allowed(pid) && ac.is_command_allowed(cmd);
 
 ## References
 
-- **Framework**: `CLAUDE.md` (UCE34, COCA, ASSUM)
+- **Framework**: `CLAUDE.md` (UCE34, Chaos, ASSUM)
 - **Tier Definition**: `Primitives/Docs/KEY_INNOVATIONS.md` (T1 Atomic)
 - **Testing**: T28 framework documentation
 - **Example**: `examples/access_control_demo.rs`
@@ -485,4 +485,4 @@ let allowed = ac.is_pid_allowed(pid) && ac.is_command_allowed(cmd);
 
 **Version**: 0.1.0
 **Status**: Production Ready
-**Framework Compliance**: UCE34 (Q1-Q34), COCA, ASSUM 99.99%, B32, T28, I20
+**Framework Compliance**: UCE34 (Q1-Q34), Chaos, ASSUM 99.99%, B32, T28, I20

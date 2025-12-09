@@ -2,7 +2,7 @@
 
 ## Overview
 
-Enhanced the atomic_mcp_server with a production-ready HTTP transport layer for public MCP protocol access. The implementation is 100% COCA-compliant with lockfree operations, comprehensive authentication, rate limiting, and CORS support.
+Enhanced the atomic_mcp_server with a production-ready HTTP transport layer for public MCP protocol access. The implementation is 100% Chaos-compliant with lockfree operations, comprehensive authentication, rate limiting, and CORS support.
 
 ## File Created
 
@@ -105,7 +105,7 @@ Memory Layout:
 - Cache-aligned (512B) prevents false sharing
 - Nightly-first with stable fallback
 
-### COCA (Computational Capsule Architecture)
+### Chaos (Computational Capsule Architecture)
 - **Lockfree Mandate**: Zero mutex/RwLock, all coordination via atomics
 - **Cache Alignment**: 256-byte alignment, 512-byte total size
 - **Generation Counters**: TOCTOU prevention via atomic versioning
@@ -311,7 +311,7 @@ This HTTP transport implementation contains strategic optimizations (lockfree co
 
 - [x] UCE34 Q10-Q12 compliance (tier selection, transformation, nightly)
 - [x] IMPL-2 V3.1 compliance (cutting-edge first, lockfree mandate)
-- [x] COCA compliance (100% lockfree, cache-aligned, generation counters)
+- [x] Chaos compliance (100% lockfree, cache-aligned, generation counters)
 - [x] ASSUM framework (assumptions documented, verification tests)
 - [x] T28 unit tests (4 tests covering state, metrics, CORS)
 - [ ] T28 property tests (concurrent requests, race conditions)
@@ -326,7 +326,7 @@ This HTTP transport implementation contains strategic optimizations (lockfree co
 
 The HTTP transport implementation provides a production-ready, lockfree bridge between HTTP clients and the atomic_mcp_server. Key achievements:
 
-1. **100% COCA Compliance**: Zero mutex/RwLock, cache-aligned, generation counters
+1. **100% Chaos Compliance**: Zero mutex/RwLock, cache-aligned, generation counters
 2. **Sub-100μs Latency**: <20ns parsing, <150ns auth, <50ns rate limit, <10μs MCP
 3. **Full Security**: API key auth, rate limiting, request validation, CORS
 4. **Comprehensive Metrics**: 6 atomic counters, EMA latency tracking

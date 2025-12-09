@@ -9,7 +9,7 @@
 //! **Framework Compliance**:
 //! - B32: 95% CI, 1000+ iterations, fair baseline
 //! - UCE34: Q10 (T1 Atomic), Q33 (validation)
-//! - COCA: <100ns lockfree operations
+//! - Chaos: <100ns lockfree operations
 //!
 //! **Targets**:
 //! - API key validation: <30ns

@@ -18,7 +18,7 @@
 //! - Q10 Tier: T1 Atomic + T2 SIMD + T5 Streaming
 //! - Q11 Transform: DualAtomicU64, generation counters, lockfree coordination
 //! - Q12 Nightly: portable_simd for stack capture acceleration
-//! - Q33: 100% lockfree (COCA compliant)
+//! - Q33: 100% lockfree (Chaos compliant)
 //! - Q34: Hash-chain integrity for audit trails
 //!
 //! # ASSUM Framework
