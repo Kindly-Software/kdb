@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Redirect, Response},
     routing::{get, post},
     Json, Router,
@@ -193,6 +193,7 @@ pub fn signup_router() -> Router<Arc<AppState>> {
 /// - 500 InternalServerError: Email sending failed
 pub async fn signup_handler(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Json(payload): Json<SignupRequest>,
 ) -> Response {
     // Step 1 & 2: Validate email format and check disposable
@@ -214,12 +215,12 @@ pub async fn signup_handler(
             .into_response();
     }
 
-    // Extract client IP for rate limiting (use placeholder for now)
-    // In production, extract from X-Forwarded-For or connection info
-    let client_ip = "0.0.0.0"; // TODO: Extract from request headers
+    // Extract client IP for rate limiting from X-Forwarded-For header
+    // Fly.io/Cloudflare adds real client IP to this header
+    let client_ip = extract_client_ip(&headers);
 
     // Step 3: Check rate limit
-    if !state.registration.check_rate_limit(client_ip) {
+    if !state.registration.check_rate_limit(&client_ip) {
         return (
             StatusCode::TOO_MANY_REQUESTS,
             Json(ErrorResponse::new(
@@ -230,8 +231,22 @@ pub async fn signup_handler(
             .into_response();
     }
 
+    // Step 3b: Check if email has been seen recently (duplicate prevention)
+    let email_hash = hash_email(&payload.email);
+    if state.registration.is_email_seen(email_hash) {
+        tracing::info!(email_hash = email_hash, "Duplicate signup attempt detected in capsule");
+        return (
+            StatusCode::CONFLICT,
+            Json(ErrorResponse::new(
+                "This email is already registered. Please check your inbox for the verification email or use the resend option.",
+                "EMAIL_ALREADY_REGISTERED",
+            )),
+        )
+            .into_response();
+    }
+
     // Step 4: Register user
-    let pending_user = match state.registration.register(&payload.email, &payload.org_name, client_ip) {
+    let pending_user = match state.registration.register(&payload.email, &payload.org_name, &client_ip) {
         Ok(user) => user,
         Err(e) => {
             let (status, error_msg, code) = match e {
@@ -250,10 +265,18 @@ pub async fn signup_handler(
                     "Disposable emails not allowed".to_string(),
                     "DISPOSABLE_EMAIL",
                 ),
+                SignupError::EmailAlreadyRegistered => (
+                    StatusCode::CONFLICT,
+                    "This email is already registered".to_string(),
+                    "EMAIL_ALREADY_REGISTERED",
+                ),
             };
             return (status, Json(ErrorResponse::new(error_msg, code))).into_response();
         }
     };
+
+    // Record email as seen for future duplicate detection
+    state.registration.record_email_seen(pending_user.email_hash);
 
     // Step 5: Generate verification token
     let verification_token = match state.verification.generate_token(pending_user.email_hash) {
@@ -314,43 +337,20 @@ pub async fn signup_handler(
                 }
             }
             Err(crate::db::DbError::AlreadyExists) => {
-                tracing::info!(email_hash = pending_user.email_hash, "User already exists, checking verification status");
+                tracing::info!(email_hash = pending_user.email_hash, "User already exists in DB - rejecting duplicate signup");
 
-                // Look up the existing user to check if already verified
-                if let Ok(Some(existing_user)) = db_client.get_user_by_email_hash(pending_user.email_hash).await {
-                    if existing_user.email_verified {
-                        if let Some(ref license_key) = existing_user.license_key {
-                            tracing::info!(email_hash = pending_user.email_hash, "User already verified, resending license key");
+                // Record in capsule for fast rejection of future duplicates
+                state.registration.record_email_seen(pending_user.email_hash);
 
-                            // Send license recovery email
-                            if let Some(ref email_sender) = state.email_sender {
-                                let is_promo = state.license_gen.is_promo_active();
-                                let sessions = if is_promo {
-                                    crate::capsules::SubscriptionTier::Hobby.promo_sessions_per_month()
-                                } else {
-                                    crate::capsules::SubscriptionTier::Hobby.sessions_per_month()
-                                };
-                                if let Err(e) = email_sender
-                                    .send_license_email(&payload.email, license_key, "Hobby", sessions, is_promo)
-                                    .await
-                                {
-                                    tracing::error!("Failed to send license recovery email: {}", e);
-                                }
-                            }
-
-                            // Return success - license resent
-                            return (
-                                StatusCode::OK,
-                                Json(SignupResponse {
-                                    status: "license_resent".to_string(),
-                                    message: "Your license key has been sent to your email.".to_string(),
-                                }),
-                            )
-                                .into_response();
-                        }
-                    }
-                }
-                // Not verified yet - continue with resend verification flow
+                // Return 409 Conflict with helpful message
+                return (
+                    StatusCode::CONFLICT,
+                    Json(ErrorResponse::new(
+                        "This email is already registered. Please check your inbox for the verification email, or use the resend option.",
+                        "EMAIL_ALREADY_REGISTERED",
+                    )),
+                )
+                    .into_response();
             }
             Err(e) => {
                 tracing::warn!("Failed to persist user to KindlyDB (graceful degradation): {}", e);
@@ -442,16 +442,19 @@ pub async fn verify_handler(
                     // Fall through to capsule verification which will also fail
                 }
 
-                // Check if already verified
-                if user.email_verified {
-                    tracing::info!(user_id = user.id, "User already verified, redirecting");
-                    if let Some(ref license_key) = user.license_key {
-                        let redirect_url = format!(
-                            "https://www.kindly.software/#verified?license={}",
-                            license_key
-                        );
-                        return Redirect::temporary(&redirect_url).into_response();
-                    }
+                // Check if user already has a license (prevents duplicate license generation)
+                // This handles both: verified users AND race conditions where license was issued but not marked verified
+                if let Some(ref license_key) = user.license_key {
+                    tracing::info!(
+                        user_id = user.id,
+                        email_verified = user.email_verified,
+                        "User already has license, redirecting to verified page"
+                    );
+                    let redirect_url = format!(
+                        "https://www.kindly.software/#verified?license={}",
+                        license_key
+                    );
+                    return Redirect::temporary(&redirect_url).into_response();
                 }
 
                 // Check token expiration
@@ -815,6 +818,48 @@ fn hash_token_to_email(token: &str) -> u64 {
     u64::from_le_bytes([
         bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
     ])
+}
+
+/// Extract client IP from X-Forwarded-For header (Fly.io/Cloudflare) or fallback to "unknown"
+///
+/// X-Forwarded-For format: "client_ip, proxy1_ip, proxy2_ip"
+/// We want the first (leftmost) IP which is the original client
+fn extract_client_ip(headers: &HeaderMap) -> String {
+    // Try X-Forwarded-For first (standard proxy header)
+    if let Some(xff) = headers.get("x-forwarded-for") {
+        if let Ok(xff_str) = xff.to_str() {
+            // Get first IP in comma-separated list
+            if let Some(client_ip) = xff_str.split(',').next() {
+                let trimmed = client_ip.trim();
+                if !trimmed.is_empty() {
+                    return trimmed.to_string();
+                }
+            }
+        }
+    }
+
+    // Try CF-Connecting-IP (Cloudflare specific)
+    if let Some(cf_ip) = headers.get("cf-connecting-ip") {
+        if let Ok(ip_str) = cf_ip.to_str() {
+            let trimmed = ip_str.trim();
+            if !trimmed.is_empty() {
+                return trimmed.to_string();
+            }
+        }
+    }
+
+    // Try Fly-Client-IP (Fly.io specific)
+    if let Some(fly_ip) = headers.get("fly-client-ip") {
+        if let Ok(ip_str) = fly_ip.to_str() {
+            let trimmed = ip_str.trim();
+            if !trimmed.is_empty() {
+                return trimmed.to_string();
+            }
+        }
+    }
+
+    // Fallback
+    "unknown".to_string()
 }
 
 // ============================================================================

@@ -617,7 +617,7 @@ async fn test_idempotent_signup_same_email() {
     let response1 = app.clone().oneshot(request1).await.unwrap();
     assert_eq!(response1.status(), StatusCode::CREATED);
 
-    // Second signup with same email (should succeed, returns same pending user)
+    // Second signup with same email (should return CONFLICT due to duplicate prevention)
     let request2 = Request::builder()
         .method("POST")
         .uri("/api/v1/signup")
@@ -629,12 +629,13 @@ async fn test_idempotent_signup_same_email() {
         .unwrap();
 
     let response2 = app.oneshot(request2).await.unwrap();
-    assert_eq!(response2.status(), StatusCode::CREATED);
+    assert_eq!(response2.status(), StatusCode::CONFLICT);
 
-    // Both should have same status
+    // First should be verification_sent, second should have error code
     let body1 = parse_json_body(response1.into_body()).await;
     let body2 = parse_json_body(response2.into_body()).await;
-    assert_eq!(body1["status"], body2["status"]);
+    assert_eq!(body1["status"], "verification_sent");
+    assert_eq!(body2["code"], "EMAIL_ALREADY_REGISTERED");
 }
 
 // ============================================================================

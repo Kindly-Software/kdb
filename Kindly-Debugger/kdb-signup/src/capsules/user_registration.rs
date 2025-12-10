@@ -52,6 +52,10 @@ pub enum SignupError {
     /// Disposable email domain blocked
     #[error("Disposable email blocked")]
     DisposableEmail,
+
+    /// Email already registered (duplicate signup attempt)
+    #[error("Email already registered")]
+    EmailAlreadyRegistered,
 }
 
 /// Pending user created from successful registration
@@ -89,12 +93,24 @@ const MAX_SIGNUPS_PER_HOUR: u16 = 5;
 /// Number of rate limit slots (power of 2 for fast modulo)
 const RATE_LIMIT_SLOTS: usize = 16;
 
+/// Number of email dedup slots (uses remaining padding space)
+/// Each slot packs: [email_hash_trunc:48][registration_hour:16]
+const EMAIL_SEEN_SLOTS: usize = 12;
+
+/// Email slot packing: upper 48 bits for hash, lower 16 bits for hour window
+const EMAIL_HASH_MASK: u64 = 0xFFFFFFFFFFFF0000;
+const EMAIL_WINDOW_MASK: u64 = 0xFFFF;
+
+/// Email seen expiry: 24 hours (slots older than this are considered expired)
+const EMAIL_SEEN_EXPIRY_HOURS: u16 = 24;
+
 /// T1 Atomic tier capsule for user registration
 ///
 /// 256-byte, 64-byte aligned structure with:
 /// - Atomic statistics (24 bytes)
 /// - Rate limit hash table (128 bytes)
-/// - Padding (104 bytes)
+/// - Email dedup hash table (96 bytes)
+/// - Padding (8 bytes)
 #[repr(C, align(64))]
 pub struct UserRegistrationCapsule {
     // === Statistics (24 bytes) ===
@@ -109,9 +125,15 @@ pub struct UserRegistrationCapsule {
     /// 16 slots, each packing (ip_hash:32, count:16, window_start:16)
     rate_limit_slots: [AtomicU64; RATE_LIMIT_SLOTS],
 
+    // === Email Dedup Hash Table (96 bytes) ===
+    /// 12 slots for recent email_hash tracking
+    /// Each slot packs: [email_hash_trunc:48][registration_hour:16]
+    /// Used for fast duplicate detection before DB call
+    email_seen_slots: [AtomicU64; EMAIL_SEEN_SLOTS],
+
     // === Padding to 256 bytes ===
-    /// Padding: 256 - 24 - 128 = 104 bytes
-    _padding: [u8; 104],
+    /// Padding: 256 - 24 - 128 - 96 = 8 bytes
+    _padding: [u8; 8],
 }
 
 // Compile-time verification of struct size and alignment
@@ -146,7 +168,21 @@ impl UserRegistrationCapsule {
                 AtomicU64::new(0),
                 AtomicU64::new(0),
             ],
-            _padding: [0u8; 104],
+            email_seen_slots: [
+                AtomicU64::new(0),
+                AtomicU64::new(0),
+                AtomicU64::new(0),
+                AtomicU64::new(0),
+                AtomicU64::new(0),
+                AtomicU64::new(0),
+                AtomicU64::new(0),
+                AtomicU64::new(0),
+                AtomicU64::new(0),
+                AtomicU64::new(0),
+                AtomicU64::new(0),
+                AtomicU64::new(0),
+            ],
+            _padding: [0u8; 8],
         }
     }
 
@@ -318,6 +354,70 @@ impl UserRegistrationCapsule {
         // Minutes since epoch, truncated to 16 bits
         // Each window is 60 minutes (1 hour)
         ((now / 3600) & 0xFFFF) as u16
+    }
+
+    /// Get current time as hours since epoch (for email dedup expiry)
+    #[inline]
+    fn current_hour_window() -> u16 {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        // Hours since epoch, truncated to 16 bits (wraps every ~7.5 years)
+        ((now / 3600) & 0xFFFF) as u16
+    }
+
+    /// Check if an email hash has been seen recently (within 24 hours)
+    ///
+    /// Uses a simple hash table with 12 slots. Returns true if email was
+    /// seen within EMAIL_SEEN_EXPIRY_HOURS (24 hours).
+    ///
+    /// # Arguments
+    /// * `email_hash` - 64-bit BLAKE3 hash of the email address
+    ///
+    /// # Returns
+    /// * `true` - Email has been seen recently (duplicate)
+    /// * `false` - Email not seen (new registration)
+    #[inline]
+    pub fn is_email_seen(&self, email_hash: u64) -> bool {
+        let current_hour = Self::current_hour_window();
+        let slot_idx = (email_hash as usize) % EMAIL_SEEN_SLOTS;
+        let slot_value = self.email_seen_slots[slot_idx].load(Ordering::SeqCst);
+
+        // Extract packed values: [email_hash_trunc:48][registration_hour:16]
+        let stored_hash_trunc = slot_value & EMAIL_HASH_MASK;
+        let stored_hour = (slot_value & EMAIL_WINDOW_MASK) as u16;
+        let email_hash_trunc = email_hash & EMAIL_HASH_MASK;
+
+        // Check if slot matches our email hash and is not expired
+        if stored_hash_trunc == email_hash_trunc {
+            // Calculate hours since registration (handles wrap-around)
+            let hours_since = current_hour.wrapping_sub(stored_hour);
+            return hours_since < EMAIL_SEEN_EXPIRY_HOURS;
+        }
+
+        false
+    }
+
+    /// Record that an email has been seen (for duplicate detection)
+    ///
+    /// Stores the email hash in a slot for 24 hours of duplicate detection.
+    /// Uses CAS loop for lockfree operation.
+    ///
+    /// # Arguments
+    /// * `email_hash` - 64-bit BLAKE3 hash of the email address
+    #[inline]
+    pub fn record_email_seen(&self, email_hash: u64) {
+        let current_hour = Self::current_hour_window();
+        let slot_idx = (email_hash as usize) % EMAIL_SEEN_SLOTS;
+
+        // Pack email hash (upper 48 bits) with current hour (lower 16 bits)
+        let email_hash_trunc = email_hash & EMAIL_HASH_MASK;
+        let new_value = email_hash_trunc | (current_hour as u64);
+
+        // Simple store - we don't need CAS here since we just overwrite
+        // Collisions are acceptable (probabilistic dedup, not absolute)
+        self.email_seen_slots[slot_idx].store(new_value, Ordering::SeqCst);
     }
 
     /// Hash an IP address to 32 bits using BLAKE3
