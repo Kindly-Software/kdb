@@ -863,8 +863,8 @@ impl SseTransportCapsule {
         // Determine tier from API key (default to Hobby if none)
         let tier = if api_key.is_some() {
             // In production, this would validate the API key
-            // For now, default to Developer tier if key present
-            SubscriptionTier::Developer
+            // For now, default to Engineer tier if key present
+            SubscriptionTier::Engineer
         } else {
             SubscriptionTier::Hobby
         };

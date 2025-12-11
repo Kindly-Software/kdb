@@ -35,11 +35,15 @@
 #[cfg(feature = "portable_simd")]
 use core::simd::f32x8;
 
+use core::sync::atomic::{AtomicU64, Ordering};
+
 /// LSH bucket capsule for approximate nearest neighbor search
 ///
 /// # Layout (128 bytes, Warm Tier)
 /// - Hyperplanes: 16 × 4D vectors = 128 bytes (16-bit fixed-point per coordinate, i16 = 2 bytes)
-/// - Total: 16 hyperplanes × 4 dimensions × 2 bytes = 128 bytes
+/// - poison_state: AtomicU64 = 8 bytes (Q35 self-destruct tracking)
+/// - _padding: [u8; 120] to maintain 256-byte alignment
+/// - Total: 256 bytes (cache-aligned)
 ///
 /// # Performance
 /// - Projection: <100ns (16 hyperplanes, SIMD dot products)
@@ -49,12 +53,15 @@ use core::simd::f32x8;
 /// # ASSUM Safety
 /// - `#ASSUME_HYPERPLANES_NORMALIZED`: Hyperplanes are unit vectors
 /// - `#VERIFY_HYPERPLANES`: Validated during initialization
+/// - `#ASSUME_POISON_STATE_ATOMIC`: AtomicU64 provides lockfree poison tracking
 #[repr(C, align(128))]
 pub struct LshBucketCapsule {
     /// Random hyperplanes (16 × 4D, Q7.8 fixed-point)
     /// Each hyperplane is a 4D unit vector encoded as i16 [-128, 127] = [-1.0, 0.992]
     /// Size: 16 hyperplanes × 4 dimensions × 2 bytes = 128 bytes
     hyperplanes: [[i16; 4]; 16],
+    /// Q35: Self-destruct poison state tracking (0 = healthy)
+    poison_state: AtomicU64,
 }
 
 impl LshBucketCapsule {
@@ -68,7 +75,7 @@ impl LshBucketCapsule {
     /// let vector = [1.0, 0.0, 0.0, 0.0];
     /// let bucket = lsh.project(&vector);
     /// ```
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         // Initialize with identity hyperplanes (will be randomized in production)
         // Q7.8 encoding: 256 = 1.0, 128 = 0.5, 0 = 0.0, -256 = -1.0
         let hyperplanes = [
@@ -90,7 +97,10 @@ impl LshBucketCapsule {
             [-256, 0, 0, 0],      // [-1, 0, 0, 0] (negative direction)
         ];
 
-        Self { hyperplanes }
+        Self {
+            hyperplanes,
+            poison_state: AtomicU64::new(0),
+        }
     }
 
     /// Project vector onto hyperplanes, compute LSH bucket
@@ -215,7 +225,7 @@ impl LshBucketCapsule {
     /// let table1 = LshBucketCapsule::with_seed(0);
     /// let table2 = LshBucketCapsule::with_seed(1);
     /// ```
-    pub const fn with_seed(seed: u64) -> Self {
+    pub fn with_seed(seed: u64) -> Self {
         // XOR seed with each hyperplane for independence
         // This ensures L independent hash functions
         let seed_low = (seed & 0xFFFF) as i16;
@@ -240,7 +250,10 @@ impl LshBucketCapsule {
             [-256, 0, 0, 0],
         ];
 
-        Self { hyperplanes }
+        Self {
+            hyperplanes,
+            poison_state: AtomicU64::new(0),
+        }
     }
 }
 
@@ -256,15 +269,15 @@ impl LshBucketCapsule {
 /// - θ=10°: 92.9% recall (18× improvement)
 /// - θ=5°: 99.2% recall (54× improvement)
 ///
-/// # Layout (640 bytes, Cold Tier)
-/// - 5 independent tables: 5 × 128B = 640B
+/// # Layout (1280 bytes, Cold Tier)
+/// - 5 independent tables: 5 × 256B = 1280B (each table has poison_state)
 /// - Cache-aligned for sequential access
-/// - Total: 640 bytes (5 cache lines)
+/// - Total: 1280 bytes (10 cache lines)
 ///
 /// # Performance
 /// - Projection: <500ns (5 tables × <100ns each)
 /// - Collision check: <25ns (5 tables × <5ns each)
-/// - Memory: 640B per capsule (5× single-table overhead)
+/// - Memory: 1280B per capsule (5× single-table overhead)
 ///
 /// # Recall Improvement (Validated)
 ///
@@ -279,6 +292,7 @@ impl LshBucketCapsule {
 /// - `#VERIFY_INDEPENDENCE`: Each table projects differently (compile-time verified)
 /// - `#ASSUME_CACHE_ALIGNED`: 128-byte alignment per table
 /// - `#VERIFY_ALIGNMENT`: Enforced via #[repr(C, align(128))]
+/// - `#ASSUME_POISON_STATE_ATOMIC`: Each embedded table has its own poison_state
 ///
 /// # Examples
 /// ```
@@ -295,8 +309,8 @@ impl LshBucketCapsule {
 /// ```
 #[repr(C, align(128))]
 pub struct MultiTableLshCapsule {
-    /// L=5 independent hash tables (5 × 128B = 640B)
-    /// Each table uses different seed for independence
+    /// L=5 independent hash tables (5 × 256B = 1280B)
+    /// Each table uses different seed for independence and has its own poison_state
     tables: [LshBucketCapsule; 5],
 }
 
@@ -306,7 +320,7 @@ impl MultiTableLshCapsule {
     /// # Mathematical Justification
     /// - L=5 optimal for θ ≤ 10° (92-99% recall target)
     /// - Independent tables via seed diversification (0, 1, 2, 3, 4)
-    /// - Memory cost: 640B (acceptable for 18-54× recall improvement)
+    /// - Memory cost: 1280B (acceptable for 18-54× recall improvement)
     ///
     /// # Examples
     /// ```
@@ -314,7 +328,7 @@ impl MultiTableLshCapsule {
     ///
     /// let lsh = MultiTableLshCapsule::new();
     /// ```
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             tables: [
                 LshBucketCapsule::with_seed(0),
@@ -432,13 +446,22 @@ pub fn lsh_project(lsh: &LshBucketCapsule, vector: &[f32; 4]) -> u16 {
 }
 
 // Compile-time verification
+// NOTE: LshBucketCapsule size changed from 128B to 256B with poison_state
+// - hyperplanes: 16 × 4 × 2B = 128B
+// - poison_state: AtomicU64 = 8B
+// - Implicit padding to 128B alignment = 120B
+// - Total: 256 bytes (next multiple of 128)
 const _: () = {
-    assert!(core::mem::size_of::<LshBucketCapsule>() == 128);
+    assert!(core::mem::size_of::<LshBucketCapsule>() == 256);
     assert!(core::mem::align_of::<LshBucketCapsule>() == 128);
 };
 
+// NOTE: MultiTableLshCapsule size changed from 640B to 1280B with poison_state
+// - tables: 5 × 256B = 1280B
+// - poison_state: AtomicU64 = 8B (in MultiTableLshCapsule itself)
+// - Total: 1408 bytes (next multiple of 128)
 const _: () = {
-    assert!(core::mem::size_of::<MultiTableLshCapsule>() == 640);
+    assert!(core::mem::size_of::<MultiTableLshCapsule>() == 1280);
     assert!(core::mem::align_of::<MultiTableLshCapsule>() == 128);
 };
 
@@ -448,7 +471,8 @@ mod tests {
 
     #[test]
     fn test_lsh_layout() {
-        assert_eq!(core::mem::size_of::<LshBucketCapsule>(), 128);
+        // NOTE: Size increased from 128B to 256B with poison_state
+        assert_eq!(core::mem::size_of::<LshBucketCapsule>(), 256);
         assert_eq!(core::mem::align_of::<LshBucketCapsule>(), 128);
     }
 
@@ -479,8 +503,9 @@ mod tests {
 
     #[test]
     fn test_multi_table_layout() {
-        // Verify 640B total size (5 × 128B tables)
-        assert_eq!(core::mem::size_of::<MultiTableLshCapsule>(), 640);
+        // NOTE: Size increased from 640B to 1280B with poison_state in LshBucketCapsule
+        // 5 tables × 256B = 1280B
+        assert_eq!(core::mem::size_of::<MultiTableLshCapsule>(), 1280);
         assert_eq!(core::mem::align_of::<MultiTableLshCapsule>(), 128);
     }
 

@@ -431,7 +431,8 @@ impl HttpTransportCapsule {
             }
             _ => {
                 self.total_errors.fetch_add(1, Ordering::Relaxed);
-                return Ok((404, r#"{"error":"Not Found","message":"Invalid endpoint"}"#.to_string()));
+                // Note: Use "id":0 instead of null for Cursor compatibility (Zod validation)
+                return Ok((404, r#"{"jsonrpc":"2.0","id":0,"error":{"code":-32601,"message":"Not Found - Invalid endpoint"}}"#.to_string()));
             }
         }
 
@@ -496,7 +497,8 @@ impl HttpTransportCapsule {
             Ok(resp) => resp,
             Err(err) => {
                 self.total_errors.fetch_add(1, Ordering::Relaxed);
-                format!(r#"{{"jsonrpc":"2.0","error":{{"code":-32603,"message":"{}"}},"id":null}}"#, err)
+                // Note: Use "id":0 instead of null for Cursor compatibility (Zod validation)
+                format!(r#"{{"jsonrpc":"2.0","error":{{"code":-32603,"message":"{}"}},"id":0}}"#, err)
             }
         };
 
@@ -586,7 +588,8 @@ impl HttpTransportCapsule {
             }
             _ => {
                 self.total_errors.fetch_add(1, Ordering::Relaxed);
-                return Ok((404, r#"{"error":"Not Found","message":"Invalid endpoint"}"#.to_string(), HashMap::new()));
+                // Note: Use "id":0 instead of null for Cursor compatibility (Zod validation)
+                return Ok((404, r#"{"jsonrpc":"2.0","id":0,"error":{"code":-32601,"message":"Not Found - Invalid endpoint"}}"#.to_string(), HashMap::new()));
             }
         }
 
@@ -689,7 +692,8 @@ impl HttpTransportCapsule {
             Ok(resp) => resp,
             Err(err) => {
                 self.total_errors.fetch_add(1, Ordering::Relaxed);
-                format!(r#"{{"jsonrpc":"2.0","error":{{"code":-32603,"message":"{}"}},"id":null}}"#, err)
+                // Note: Use "id":0 instead of null for Cursor compatibility (Zod validation)
+                format!(r#"{{"jsonrpc":"2.0","error":{{"code":-32603,"message":"{}"}},"id":0}}"#, err)
             }
         };
 
@@ -796,7 +800,8 @@ impl HttpTransportCapsule {
         headers.insert("Content-Type".to_string(), "application/json".to_string());
 
         let body = format!(
-            r#"{{"jsonrpc":"2.0","error":{{"code":-32429,"message":"Rate limit exceeded. Retry after {} seconds"}},"id":null}}"#,
+            // Note: Use "id":0 instead of null for Cursor compatibility (Zod validation)
+            r#"{{"jsonrpc":"2.0","error":{{"code":-32429,"message":"Rate limit exceeded. Retry after {} seconds"}},"id":0}}"#,
             retry_after_secs
         );
 
@@ -831,7 +836,8 @@ impl HttpTransportCapsule {
         }
 
         let body = format!(
-            r#"{{"jsonrpc":"2.0","error":{{"code":-32429,"message":"Rate limit exceeded. Retry after {} seconds"}},"id":null}}"#,
+            // Note: Use "id":0 instead of null for Cursor compatibility (Zod validation)
+            r#"{{"jsonrpc":"2.0","error":{{"code":-32429,"message":"Rate limit exceeded. Retry after {} seconds"}},"id":0}}"#,
             retry_after_secs
         );
 

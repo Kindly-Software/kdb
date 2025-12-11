@@ -79,49 +79,67 @@ pub fn Pricing() -> impl IntoView {
         },
         PricingTier {
             name: "Pro",
-            price: "Coming Soon",
-            period: "",
+            price: "$19",
+            period: "/month",
             description: "Extended sessions for professional developers",
             features: vec![
-                "Unlimited sessions",
+                "100 sessions/month",
                 "Everything in Hobby",
+                "Unlimited time-travel",
                 "Extended snapshot retention",
                 "Priority support",
-                "REST API access",
             ],
-            cta_text: "Join Waitlist",
+            cta_text: "Subscribe",
             cta_url: "#signup",
             is_featured: false,
         },
         PricingTier {
-            name: "Team",
-            price: "Coming Soon",
-            period: "",
+            name: "Engineer",
+            price: "$49",
+            period: "/month",
+            description: "For professional developers who need advanced debugging",
+            features: vec![
+                "500 sessions/month",
+                "Everything in Pro",
+                "Full memory replay",
+                "LSH similar bug search",
+                "Read memory at snapshot",
+                "Priority support",
+            ],
+            cta_text: "Subscribe",
+            cta_url: "#signup",
+            is_featured: false,
+        },
+        PricingTier {
+            name: "Teams",
+            price: "$129",
+            period: "/month",
             description: "Collaboration features for development teams",
             features: vec![
-                "Everything in Pro",
-                "5 seat licenses",
+                "2,000 sessions/month",
+                "Everything in Engineer",
+                "5 seats included",
                 "Shared audit logs",
                 "Team management",
                 "SOC2/GDPR ready",
             ],
-            cta_text: "Join Waitlist",
+            cta_text: "Subscribe",
             cta_url: "#signup",
             is_featured: false,
         },
         PricingTier {
             name: "Enterprise",
-            price: "Custom",
-            period: "contact us",
+            price: "From $999",
+            period: "/month",
             description: "Full compliance for regulated industries",
             features: vec![
-                "Everything in Team",
+                "Everything in Teams",
+                "Unlimited sessions",
                 "Unlimited seats",
                 "HIPAA/SOX/FINRA",
                 "Dedicated infrastructure",
                 "Dedicated support",
                 "Custom integrations",
-                "Audit attestation",
             ],
             cta_text: "Contact Sales",
             cta_url: "mailto:sales@kindly.software?subject=Enterprise%20License",
@@ -153,9 +171,9 @@ pub fn Pricing() -> impl IntoView {
                     </p>
                 </div>
 
-                // First 3 tiers in grid
+                // First 4 tiers in grid
                 <div style=grid_style class="pricing-grid">
-                    {tiers[..3].iter().map(|tier| {
+                    {tiers[..4].iter().map(|tier| {
                         let card_style = if tier.is_featured {
                             "
                                 background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.05));
@@ -318,7 +336,7 @@ pub fn Pricing() -> impl IntoView {
 
                 // Enterprise tier (horizontal card)
                 {
-                    let enterprise = &tiers[3];
+                    let enterprise = &tiers[4];
                     view! {
                         <div style=enterprise_card_style class="pricing-card enterprise-card">
                             <div>

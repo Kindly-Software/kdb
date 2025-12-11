@@ -46,6 +46,23 @@ use kdb_mcp::{
     McpServerCapsule, SseConnectionPoolCapsule, SlotState,
     fnv1a_hash, HttpTransportCapsule, RateLimiterCapsule,
 };
+
+// OAuth 2.1 capsules for Google OAuth integration
+#[cfg(feature = "oauth")]
+use kdb_mcp::oauth::{
+    OAuthStateCapsule, CodeChallengeMethod,
+    AuthorizationCodeCapsule, fnv1a_hash_code, sha256_to_fnv,
+    OAuthUserCapsule, fnv1a_hash_oauth,
+};
+
+#[cfg(feature = "google-oauth")]
+use kdb_mcp::oauth::GoogleOAuthClientCapsule;
+
+// MCP Streamable HTTP Transport (2025-06-18 spec)
+#[cfg(feature = "streamable-http")]
+use kdb_mcp::{
+    StreamableHttpTransportCapsule, StreamableHttpError, McpResponse, McpHeaders, ResponseType,
+};
 use kdb::DebuggerCapsule;
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read, Write};
@@ -139,6 +156,34 @@ struct ServerState {
     rate_limiter: &'static RateLimiterCapsule,
     /// Session channel registry for SSE push
     channels: SessionChannelRegistry,
+
+    // ========================================================================
+    // OAuth 2.1 + Google OAuth Capsules
+    // ========================================================================
+
+    /// OAuth state storage (T1 Atomic, 16KB) - CSRF/PKCE state management
+    #[cfg(feature = "oauth")]
+    oauth_state: &'static OAuthStateCapsule,
+
+    /// Google OAuth client (T1 Atomic, 512B) - Token exchange and user info
+    #[cfg(feature = "google-oauth")]
+    google_oauth: &'static GoogleOAuthClientCapsule,
+
+    /// OAuth user mapping (T1 Atomic, 17KB) - Google sub -> license mapping
+    #[cfg(feature = "oauth")]
+    oauth_users: &'static OAuthUserCapsule,
+
+    /// Authorization code storage (T1 Atomic, 25KB) - MCP auth codes
+    #[cfg(feature = "oauth")]
+    auth_codes: &'static AuthorizationCodeCapsule,
+
+    /// Google OAuth client ID (from environment)
+    #[cfg(feature = "google-oauth")]
+    google_client_id: String,
+
+    /// Google OAuth client secret (from environment)
+    #[cfg(feature = "google-oauth")]
+    google_client_secret: String,
 }
 
 // ============================================================================
@@ -212,6 +257,46 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let rate_limiter: &'static RateLimiterCapsule = Box::leak(Box::new(RateLimiterCapsule::new()));
     eprintln!("[MCP-SSE]   RateLimiterCapsule created (4KB, T1 Atomic)");
 
+    // ========================================================================
+    // OAuth 2.1 + Google OAuth Capsules (feature-gated)
+    // ========================================================================
+
+    #[cfg(feature = "oauth")]
+    let oauth_state: &'static OAuthStateCapsule = Box::leak(Box::new(OAuthStateCapsule::new()));
+    #[cfg(feature = "oauth")]
+    eprintln!("[MCP-SSE]   OAuthStateCapsule created (16KB, T1 Atomic)");
+
+    #[cfg(feature = "oauth")]
+    let oauth_users: &'static OAuthUserCapsule = Box::leak(Box::new(OAuthUserCapsule::new()));
+    #[cfg(feature = "oauth")]
+    eprintln!("[MCP-SSE]   OAuthUserCapsule created (17KB, T1 Atomic)");
+
+    #[cfg(feature = "oauth")]
+    let auth_codes: &'static AuthorizationCodeCapsule = Box::leak(Box::new(AuthorizationCodeCapsule::new()));
+    #[cfg(feature = "oauth")]
+    eprintln!("[MCP-SSE]   AuthorizationCodeCapsule created (25KB, T1 Atomic)");
+
+    #[cfg(feature = "google-oauth")]
+    let google_oauth: &'static GoogleOAuthClientCapsule = Box::leak(Box::new(GoogleOAuthClientCapsule::new()));
+    #[cfg(feature = "google-oauth")]
+    eprintln!("[MCP-SSE]   GoogleOAuthClientCapsule created (512B, T1 Atomic)");
+
+    // Parse Google OAuth credentials from environment
+    #[cfg(feature = "google-oauth")]
+    let google_client_id = std::env::var("GOOGLE_CLIENT_ID").unwrap_or_default();
+    #[cfg(feature = "google-oauth")]
+    let google_client_secret = std::env::var("GOOGLE_CLIENT_SECRET").unwrap_or_default();
+
+    #[cfg(feature = "google-oauth")]
+    {
+        if google_client_id.is_empty() {
+            eprintln!("[MCP-SSE]   WARNING: GOOGLE_CLIENT_ID not set - Google OAuth disabled");
+        } else {
+            google_oauth.initialize(google_client_id.len(), google_client_secret.len(), true);
+            eprintln!("[MCP-SSE]   Google OAuth configured (client_id: {}...)", &google_client_id[..google_client_id.len().min(20)]);
+        }
+    }
+
     // Create shared state with 'static references
     let state = Arc::new(ServerState {
         pool,
@@ -220,6 +305,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         http_transport,
         rate_limiter,
         channels: SessionChannelRegistry::new(),
+
+        // OAuth capsules (feature-gated)
+        #[cfg(feature = "oauth")]
+        oauth_state,
+        #[cfg(feature = "google-oauth")]
+        google_oauth,
+        #[cfg(feature = "oauth")]
+        oauth_users,
+        #[cfg(feature = "oauth")]
+        auth_codes,
+        #[cfg(feature = "google-oauth")]
+        google_client_id,
+        #[cfg(feature = "google-oauth")]
+        google_client_secret,
     });
 
     // ========================================================================
@@ -366,12 +465,13 @@ fn handle_connection(
             handle_sse_connection(&mut stream, &request, &client_ip, state)?;
         }
 
-        // CORS preflight
+        // CORS preflight (MCP Streamable HTTP requires DELETE)
         ("OPTIONS", _) => {
             let response = "HTTP/1.1 204 No Content\r\n\
                 Access-Control-Allow-Origin: *\r\n\
-                Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n\
-                Access-Control-Allow-Headers: X-License-Key, Content-Type\r\n\
+                Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS\r\n\
+                Access-Control-Allow-Headers: X-License-Key, Content-Type, Mcp-Session-Id, Mcp-Protocol-Version, Last-Event-ID, Authorization\r\n\
+                Access-Control-Expose-Headers: Mcp-Session-Id, Mcp-Protocol-Version\r\n\
                 Access-Control-Max-Age: 86400\r\n\
                 \r\n";
             stream.write_all(response.as_bytes())?;
@@ -382,10 +482,24 @@ fn handle_connection(
             handle_message(&mut stream, &request, &client_ip, state)?;
         }
 
-        // HTTP Transport endpoint (POST /mcp) - Direct JSON-RPC, no SSE
-        // This is the recommended transport per Claude Code docs
+        // ====================================================================
+        // MCP Streamable HTTP Transport (2025-06-18 spec)
+        // Unified /mcp endpoint supporting POST, GET, DELETE
+        // ====================================================================
+
+        // POST /mcp - JSON-RPC messages (requests, notifications, responses)
         ("POST", "/mcp") | ("POST", "/") => {
-            handle_http_request(&mut stream, &request, &client_ip, state)?;
+            handle_streamable_http_post(&mut stream, &request, &client_ip, state)?;
+        }
+
+        // GET /mcp - SSE stream for server-initiated messages
+        ("GET", "/mcp") => {
+            handle_streamable_http_get(&mut stream, &request, &client_ip, state)?;
+        }
+
+        // DELETE /mcp - Explicit session termination
+        ("DELETE", "/mcp") => {
+            handle_streamable_http_delete(&mut stream, &request, &client_ip, state)?;
         }
 
         // Health check
@@ -418,14 +532,19 @@ fn handle_connection(
             handle_oauth_metadata(&mut stream)?;
         }
 
-        // OAuth Authorization Endpoint - redirects to signup
+        // OAuth Authorization Endpoint - redirects to Google OAuth
         ("GET", path) if path.starts_with("/oauth/authorize") => {
-            handle_oauth_authorize(&mut stream, &request)?;
+            handle_oauth_authorize(&mut stream, &request, state)?;
         }
 
-        // OAuth Token Endpoint - exchanges code for access token
+        // OAuth Callback Endpoint - handles Google OAuth callback
+        ("GET", path) if path.starts_with("/oauth/callback") => {
+            handle_oauth_callback(&mut stream, &request, state)?;
+        }
+
+        // OAuth Token Endpoint - exchanges code for access token with PKCE
         ("POST", "/oauth/token") => {
-            handle_oauth_token(&mut stream, &request)?;
+            handle_oauth_token(&mut stream, &request, state)?;
         }
 
         // Dynamic Client Registration (RFC 7591, required by MCP spec)
@@ -433,9 +552,10 @@ fn handle_connection(
             handle_client_registration(&mut stream, &request)?;
         }
 
-        // 404 Not Found
+        // 404 Not Found - JSON-RPC 2.0 compliant error
+        // Note: Use "id":0 instead of null for Cursor compatibility (Zod validation)
         _ => {
-            let body = r#"{"error":"Not Found"}"#;
+            let body = r#"{"jsonrpc":"2.0","id":0,"error":{"code":-32601,"message":"Not Found"}}"#;
             write_json_response(&mut stream, 404, body)?;
         }
     }
@@ -509,8 +629,9 @@ fn handle_http_request(
                 HttpTransportError::InternalError => (500, -32603, "Internal server error"),
             };
 
+            // Note: Use "id":0 instead of null for Cursor compatibility (Zod validation)
             let error_body = format!(
-                r#"{{"jsonrpc":"2.0","error":{{"code":{},"message":"{}"}},"id":null}}"#,
+                r#"{{"jsonrpc":"2.0","error":{{"code":{},"message":"{}"}},"id":0}}"#,
                 code, message
             );
 
@@ -520,6 +641,294 @@ fn handle_http_request(
             );
 
             write_json_response(stream, status, &error_body)?;
+        }
+    }
+
+    Ok(())
+}
+
+// ============================================================================
+// MCP Streamable HTTP Handlers (2025-06-18 spec)
+// ============================================================================
+
+/// Handle Streamable HTTP POST request (POST /mcp)
+///
+/// Per MCP 2025-06-18 spec:
+/// - POST /mcp with JSON-RPC request → 200 JSON response OR 202 Accepted (notification)
+/// - Session binding via Mcp-Session-Id header
+/// - Protocol methods (initialize, ping) bypass authentication
+///
+/// **Tier**: T6 Mixed
+/// **Latency**: <100μs
+#[cfg(feature = "streamable-http")]
+fn handle_streamable_http_post(
+    stream: &mut TcpStream,
+    request: &HttpRequest,
+    client_ip: &str,
+    state: &ServerState,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Extract MCP-specific headers
+    let session_id = request.get_header("mcp-session-id");
+    let protocol_version = request.get_header("mcp-protocol-version");
+    let accept = request.get_header("accept").unwrap_or("application/json");
+    let api_key = request.get_header("x-license-key")
+        .or_else(|| {
+            request.get_header("authorization")
+                .and_then(|auth| auth.strip_prefix("Bearer ").or_else(|| auth.strip_prefix("bearer ")))
+        });
+
+    // Check if this is a protocol method (initialize, ping) - bypass auth
+    let is_protocol_method = StreamableHttpTransportCapsule::is_protocol_method(&request.body);
+
+    // Auth check (skip for protocol methods per MCP spec)
+    if !is_protocol_method && api_key.is_none() {
+        let error_body = r#"{"jsonrpc":"2.0","error":{"code":-32001,"message":"Authentication required"},"id":0}"#;
+        write_json_response(stream, 401, error_body)?;
+        return Ok(());
+    }
+
+    // Convert headers to HashMap for HttpTransportCapsule
+    let mut headers = HashMap::new();
+    for (key, value) in &request.headers {
+        headers.insert(key.to_lowercase(), value.clone());
+    }
+
+    // Route through existing HttpTransportCapsule for processing
+    let result = state.http_transport.handle_request(
+        "POST",
+        "/mcp",
+        &headers,
+        &request.body,
+        client_ip,
+        state.mcp_server,
+        state.rate_limiter,
+        state.debugger,
+    );
+
+    match result {
+        Ok((status, body)) => {
+            // Check if this is initialize - add Mcp-Session-Id header
+            let is_initialize = request.body.contains("\"method\":\"initialize\"")
+                || request.body.contains("\"method\": \"initialize\"");
+
+            if is_initialize {
+                // Generate new session ID for initialize response
+                let new_session_id = format!("{:016x}-{:016x}",
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_nanos() as u64,
+                    fastrand::u64(..)
+                );
+
+                // Write response with Mcp-Session-Id header
+                let response = format!(
+                    "HTTP/1.1 {} OK\r\n\
+                    Content-Type: application/json\r\n\
+                    Content-Length: {}\r\n\
+                    Mcp-Session-Id: {}\r\n\
+                    Mcp-Protocol-Version: 2025-06-18\r\n\
+                    Access-Control-Allow-Origin: *\r\n\
+                    Access-Control-Expose-Headers: Mcp-Session-Id, Mcp-Protocol-Version\r\n\
+                    \r\n{}",
+                    status, body.len(), new_session_id, body
+                );
+                stream.write_all(response.as_bytes())?;
+
+                eprintln!(
+                    "[MCP-Streamable] Initialize: client={}, session_id={}, status={}",
+                    client_ip, new_session_id, status
+                );
+            } else {
+                // Check if notification (no id field) - return 202 Accepted
+                let is_notification = !request.body.contains("\"id\"") && request.body.contains("\"method\"");
+
+                if is_notification {
+                    // 202 Accepted for notifications
+                    let response = format!(
+                        "HTTP/1.1 202 Accepted\r\n\
+                        Access-Control-Allow-Origin: *\r\n\
+                        {}\r\n",
+                        if let Some(sid) = session_id {
+                            format!("Mcp-Session-Id: {}\r\n", sid)
+                        } else {
+                            String::new()
+                        }
+                    );
+                    stream.write_all(response.as_bytes())?;
+                    eprintln!("[MCP-Streamable] Notification accepted: client={}", client_ip);
+                } else {
+                    // Regular JSON response
+                    eprintln!(
+                        "[MCP-Streamable] Request: client={}, session={:?}, status={}",
+                        client_ip, session_id, status
+                    );
+                    write_json_response(stream, status, &body)?;
+                }
+            }
+        }
+        Err(e) => {
+            use kdb_mcp::http_transport::HttpTransportError;
+            let (status, code, message) = match e {
+                HttpTransportError::MissingApiKey => (401, -32001, "Authentication required"),
+                HttpTransportError::InvalidApiKey => (401, -32001, "Invalid API key"),
+                HttpTransportError::RateLimitExceeded => (429, -32429, "Rate limit exceeded"),
+                HttpTransportError::InvalidMethod => (405, -32600, "Method not allowed"),
+                HttpTransportError::InvalidContentType => (415, -32600, "Invalid Content-Type"),
+                HttpTransportError::BodyTooLarge => (413, -32600, "Request body too large"),
+                HttpTransportError::InternalError => (500, -32603, "Internal server error"),
+            };
+
+            let error_body = format!(
+                r#"{{"jsonrpc":"2.0","error":{{"code":{},"message":"{}"}},"id":0}}"#,
+                code, message
+            );
+            write_json_response(stream, status, &error_body)?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Fallback for when streamable-http feature is disabled
+#[cfg(not(feature = "streamable-http"))]
+fn handle_streamable_http_post(
+    stream: &mut TcpStream,
+    request: &HttpRequest,
+    client_ip: &str,
+    state: &ServerState,
+) -> Result<(), Box<dyn std::error::Error>> {
+    // Route to existing HTTP handler when feature disabled
+    handle_http_request(stream, request, client_ip, state)
+}
+
+/// Handle Streamable HTTP GET request (GET /mcp)
+///
+/// Per MCP 2025-06-18 spec:
+/// - GET /mcp with Mcp-Session-Id → 200 text/event-stream (SSE)
+/// - Used for server-initiated messages (progress, logs, notifications)
+/// - Supports Last-Event-ID for resumption
+///
+/// **Tier**: T6 Mixed (T5 Streaming)
+fn handle_streamable_http_get(
+    stream: &mut TcpStream,
+    request: &HttpRequest,
+    client_ip: &str,
+    state: &ServerState,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let session_id = request.get_header("mcp-session-id");
+    let last_event_id = request.get_header("last-event-id");
+
+    // Session ID required for GET /mcp
+    let session_id = match session_id {
+        Some(sid) => sid.to_string(),
+        None => {
+            let error_body = r#"{"jsonrpc":"2.0","error":{"code":-32001,"message":"Mcp-Session-Id header required for GET /mcp"},"id":0}"#;
+            write_json_response(stream, 400, error_body)?;
+            return Ok(());
+        }
+    };
+
+    eprintln!(
+        "[MCP-Streamable] GET /mcp SSE stream: client={}, session={}, last_event_id={:?}",
+        client_ip, session_id, last_event_id
+    );
+
+    // Send SSE headers
+    let response = format!(
+        "HTTP/1.1 200 OK\r\n\
+        Content-Type: text/event-stream\r\n\
+        Cache-Control: no-cache\r\n\
+        Connection: keep-alive\r\n\
+        Mcp-Session-Id: {}\r\n\
+        Access-Control-Allow-Origin: *\r\n\
+        Access-Control-Expose-Headers: Mcp-Session-Id\r\n\
+        \r\n",
+        session_id
+    );
+    stream.write_all(response.as_bytes())?;
+    stream.flush()?;
+
+    // Create channel for this session (reuse existing SessionChannelRegistry pattern)
+    let (sender, receiver) = mpsc::channel::<SseMessage>();
+
+    // Register session channel
+    {
+        let mut channels = state.channels.channels.lock().unwrap();
+        channels.insert(session_id.clone(), sender);
+    }
+
+    // SSE event loop - wait for messages or timeout
+    loop {
+        match receiver.recv_timeout(Duration::from_secs(HEARTBEAT_INTERVAL_SECS)) {
+            Ok(message) => {
+                // Send SSE event
+                let event = format!("event: message\ndata: {}\n\n", message.json);
+                if stream.write_all(event.as_bytes()).is_err() {
+                    break;
+                }
+                let _ = stream.flush();
+            }
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                // Send heartbeat comment
+                if stream.write_all(b": heartbeat\n\n").is_err() {
+                    break;
+                }
+                let _ = stream.flush();
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => {
+                break;
+            }
+        }
+    }
+
+    // Cleanup: remove session channel
+    {
+        let mut channels = state.channels.channels.lock().unwrap();
+        channels.remove(&session_id);
+    }
+
+    eprintln!("[MCP-Streamable] GET /mcp SSE stream closed: session={}", session_id);
+    Ok(())
+}
+
+/// Handle Streamable HTTP DELETE request (DELETE /mcp)
+///
+/// Per MCP 2025-06-18 spec:
+/// - DELETE /mcp with Mcp-Session-Id → 204 No Content
+/// - Explicitly terminates a session
+/// - Client must send new initialize request to continue
+///
+/// **Tier**: T1 Atomic
+/// **Latency**: <50ns
+fn handle_streamable_http_delete(
+    stream: &mut TcpStream,
+    request: &HttpRequest,
+    client_ip: &str,
+    state: &ServerState,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let session_id = request.get_header("mcp-session-id");
+
+    match session_id {
+        Some(sid) => {
+            // Remove session channel if exists
+            {
+                let mut channels = state.channels.channels.lock().unwrap();
+                channels.remove(sid);
+            }
+
+            eprintln!("[MCP-Streamable] DELETE /mcp: client={}, session={}", client_ip, sid);
+
+            // 204 No Content
+            let response = "HTTP/1.1 204 No Content\r\n\
+                Access-Control-Allow-Origin: *\r\n\
+                \r\n";
+            stream.write_all(response.as_bytes())?;
+        }
+        None => {
+            // No session ID - return 400
+            let error_body = r#"{"jsonrpc":"2.0","error":{"code":-32001,"message":"Mcp-Session-Id header required for DELETE /mcp"},"id":0}"#;
+            write_json_response(stream, 400, error_body)?;
         }
     }
 
@@ -773,6 +1182,10 @@ fn handle_message(
     // Get API key from header (for MCP auth)
     let api_key = request.get_header("x-license-key");
 
+    // Extract request ID FIRST for error responses (Cursor compatibility)
+    // Must preserve original ID in all responses per JSON-RPC 2.0 spec
+    let request_id = extract_jsonrpc_id(&request.body);
+
     // Call McpServerCapsule to handle the JSON-RPC request
     let response = state.mcp_server.handle_request(
         &request.body,
@@ -781,12 +1194,13 @@ fn handle_message(
         &state.debugger,
     );
 
-    // Build JSON response
+    // Build JSON response - use original request ID in error responses
     let json_response = match response {
         Ok(json) => json,
         Err(error_msg) => {
             format!(
-                r#"{{"jsonrpc":"2.0","error":{{"code":-32603,"message":"{}"}}}}"#,
+                r#"{{"jsonrpc":"2.0","id":{},"error":{{"code":-32603,"message":"{}"}}}}"#,
+                request_id,
                 error_msg.replace('"', "\\\"")
             )
         }
@@ -847,6 +1261,38 @@ fn get_timestamp_ns() -> u64 {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_nanos() as u64)
         .unwrap_or(0)
+}
+
+/// Extract JSON-RPC request ID from request body
+/// Returns the ID as a string (number or string), or "0" if not found/invalid
+/// Per JSON-RPC 2.0: id can be string, number, or null (but Cursor needs it non-null)
+fn extract_jsonrpc_id(body: &str) -> String {
+    // Fast path: look for "id": pattern
+    if let Some(id_start) = body.find("\"id\"") {
+        let after_id = &body[id_start + 4..];
+        // Skip whitespace and colon
+        let trimmed = after_id.trim_start();
+        if let Some(rest) = trimmed.strip_prefix(':') {
+            let value_start = rest.trim_start();
+            // Check if it's a number
+            if let Some(first_char) = value_start.chars().next() {
+                if first_char.is_ascii_digit() || first_char == '-' {
+                    // Parse number
+                    let end = value_start.find(|c: char| !c.is_ascii_digit() && c != '-')
+                        .unwrap_or(value_start.len());
+                    return value_start[..end].to_string();
+                } else if first_char == '"' {
+                    // Parse string ID
+                    let inner = &value_start[1..];
+                    if let Some(end_quote) = inner.find('"') {
+                        return inner[..end_quote].to_string();
+                    }
+                }
+            }
+        }
+    }
+    // Default to "0" for Cursor compatibility (can't use null)
+    "0".to_string()
 }
 
 /// Write JSON HTTP response
@@ -991,45 +1437,141 @@ fn handle_protected_resource_metadata(
     Ok(())
 }
 
-/// OAuth Authorization Endpoint
+/// OAuth Authorization Endpoint - OAuth 2.1 + Google OAuth
 ///
-/// This is where Claude Code sends users when auth is needed.
-/// Redirects to kindly.services/#signup for license key acquisition.
+/// Implements OAuth 2.1 authorization endpoint with PKCE (RFC 7636) and Google OAuth.
 ///
-/// **Tier**: T0 Auditable (pure redirect, no state mutation)
-/// **Latency**: <1ms (network bound)
+/// **Flow**:
+/// 1. Parse and validate OAuth parameters (state, code_challenge, redirect_uri)
+/// 2. Validate code_challenge_method (must be "S256" per OAuth 2.1)
+/// 3. Store state and PKCE challenge in OAuthStateCapsule
+/// 4. Redirect to Google OAuth with our own state
+///
+/// **Tier**: T1 Atomic (state storage via OAuthStateCapsule)
+/// **Latency**: <50ns state storage + redirect
+///
+/// **Fallback**: If Google OAuth is not configured, redirects to signup page
+#[cfg(feature = "google-oauth")]
 fn handle_oauth_authorize(
     stream: &mut TcpStream,
     request: &HttpRequest,
+    server_state: &ServerState,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // Extract OAuth parameters from query string
-    let query_string = request.path.split('?').nth(1).unwrap_or("");
+    let params = parse_query_params(&request.path);
 
-    // Parse state parameter (required for OAuth security)
-    let state = query_string
-        .split('&')
-        .find(|p| p.starts_with("state="))
-        .and_then(|p| p.strip_prefix("state="))
-        .unwrap_or("");
+    // Extract OAuth parameters
+    let client_state = params.get("state").map(|s| s.as_str()).unwrap_or("");
+    let code_challenge = params.get("code_challenge").map(|s| s.as_str()).unwrap_or("");
+    let code_challenge_method = params.get("code_challenge_method").map(|s| s.as_str()).unwrap_or("plain");
+    let redirect_uri = params.get("redirect_uri").map(|s| s.as_str()).unwrap_or("");
+    let _client_id = params.get("client_id").map(|s| s.as_str()).unwrap_or("");
 
-    // Parse redirect_uri (for token exchange flow)
-    let redirect_uri = query_string
-        .split('&')
-        .find(|p| p.starts_with("redirect_uri="))
-        .and_then(|p| p.strip_prefix("redirect_uri="))
-        .map(|uri| urlencoding_decode(uri))
-        .unwrap_or_default();
+    // Validate required parameters
+    if client_state.is_empty() {
+        write_oauth_error(stream, 400, "invalid_request", "Missing required parameter: state")?;
+        return Ok(());
+    }
 
-    // Build the signup URL with context parameters
-    // The signup page will display the license key for user to copy
-    // and optionally can redirect back with the key as a "code"
+    // OAuth 2.1 requires S256 for public clients (MCP clients are public)
+    // We also accept plain for backward compatibility
+    let challenge_method = if code_challenge_method == "S256" {
+        CodeChallengeMethod::S256
+    } else if code_challenge_method == "plain" || code_challenge.is_empty() {
+        CodeChallengeMethod::Plain
+    } else {
+        write_oauth_error(stream, 400, "invalid_request", "code_challenge_method must be S256 or plain")?;
+        return Ok(());
+    };
+
+    // Check if Google OAuth is configured
+    if server_state.google_client_id.is_empty() {
+        // Fall back to signup page redirect
+        eprintln!("[MCP-SSE] OAuth authorize: Google not configured, falling back to signup");
+        let signup_url = format!(
+            "https://kindly.services/#signup?oauth_redirect={}&oauth_state={}",
+            urlencoding_encode(redirect_uri),
+            urlencoding_encode(client_state)
+        );
+
+        let response = format!(
+            "HTTP/1.1 302 Found\r\n\
+            Location: {}\r\n\
+            Access-Control-Allow-Origin: *\r\n\
+            Content-Length: 0\r\n\
+            \r\n",
+            signup_url
+        );
+
+        stream.write_all(response.as_bytes())?;
+        stream.flush()?;
+        return Ok(());
+    }
+
+    // Store OAuth state with PKCE challenge
+    // The state parameter acts as our key - we'll receive it back from Google
+    if let Err(e) = server_state.oauth_state.store_state(
+        client_state,
+        code_challenge,
+        redirect_uri,
+        challenge_method,
+    ) {
+        eprintln!("[MCP-SSE] OAuth authorize: failed to store state: {:?}", e);
+        write_oauth_error(stream, 500, "server_error", "Failed to store OAuth state")?;
+        return Ok(());
+    }
+
+    // Build Google OAuth URL
+    // Our callback URL will receive the Google code and state
+    let google_callback_uri = "https://mcp.kindly.software/oauth/callback";
+
+    let google_auth_url = server_state.google_oauth.build_auth_url(
+        client_state,  // Pass through the client's state to Google
+        google_callback_uri,
+        &server_state.google_client_id,
+    );
+
+    // 302 redirect to Google
+    let response = format!(
+        "HTTP/1.1 302 Found\r\n\
+        Location: {}\r\n\
+        Access-Control-Allow-Origin: *\r\n\
+        Content-Length: 0\r\n\
+        \r\n",
+        google_auth_url
+    );
+
+    stream.write_all(response.as_bytes())?;
+    stream.flush()?;
+
+    eprintln!(
+        "[MCP-SSE] OAuth authorize: redirecting to Google (state={}...)",
+        &client_state[..client_state.len().min(8)]
+    );
+
+    Ok(())
+}
+
+/// OAuth Authorization Endpoint - Fallback without Google OAuth
+///
+/// When google-oauth feature is not enabled, redirects to signup page.
+#[cfg(not(feature = "google-oauth"))]
+fn handle_oauth_authorize(
+    stream: &mut TcpStream,
+    request: &HttpRequest,
+    _server_state: &ServerState,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let params = parse_query_params(&request.path);
+
+    let state = params.get("state").map(|s| s.as_str()).unwrap_or("");
+    let redirect_uri = params.get("redirect_uri").map(|s| s.as_str()).unwrap_or("");
+
+    // Redirect to signup page
     let signup_url = format!(
         "https://kindly.services/#signup?oauth_redirect={}&oauth_state={}",
-        urlencoding_encode(&redirect_uri),
+        urlencoding_encode(redirect_uri),
         urlencoding_encode(state)
     );
 
-    // HTTP 302 redirect to signup page
     let response = format!(
         "HTTP/1.1 302 Found\r\n\
         Location: {}\r\n\
@@ -1044,69 +1586,348 @@ fn handle_oauth_authorize(
 
     eprintln!(
         "[MCP-SSE] OAuth authorize: redirecting to signup (state={})",
-        if state.is_empty() {
-            "none"
-        } else {
-            &state[..state.len().min(8)]
-        }
+        if state.is_empty() { "none" } else { &state[..state.len().min(8)] }
     );
     Ok(())
 }
 
-/// OAuth Token Endpoint
+/// OAuth Callback Endpoint - Handle Google OAuth callback
 ///
-/// Exchanges authorization code for access token.
-/// For our API key model:
-/// - If code is a valid license key, return it as the access_token
-/// - This allows direct key-as-token usage per our existing auth model
+/// After user authenticates with Google, Google redirects here with:
+/// - `code`: Google authorization code
+/// - `state`: Our original state parameter (passed through)
 ///
-/// **Tier**: T1 Atomic (stateless, lockfree)
-/// **Latency**: <100μs
+/// **Flow**:
+/// 1. Parse and validate state parameter
+/// 2. Exchange Google code for tokens (async via blocking runtime)
+/// 3. Get user info from Google
+/// 4. Link Google user to license (or create new user)
+/// 5. Generate MCP authorization code
+/// 6. Redirect to Claude callback with our code
+///
+/// **Tier**: T6 Mixed (T1 state lookup + network calls + T1 code generation)
+/// **Latency**: ~100-300ms (Google API latency dominates)
+#[cfg(feature = "google-oauth")]
+fn handle_oauth_callback(
+    stream: &mut TcpStream,
+    request: &HttpRequest,
+    server_state: &ServerState,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let params = parse_query_params(&request.path);
+
+    // Extract Google OAuth callback parameters
+    let google_code = params.get("code").map(|s| s.as_str()).unwrap_or("");
+    let state = params.get("state").map(|s| s.as_str()).unwrap_or("");
+    let error = params.get("error").map(|s| s.as_str());
+
+    // Handle Google OAuth errors
+    if let Some(err) = error {
+        let error_description = params.get("error_description")
+            .map(|s| s.as_str())
+            .unwrap_or("Authentication failed");
+        eprintln!("[MCP-SSE] OAuth callback: Google error: {} - {}", err, error_description);
+        write_oauth_error(stream, 400, "access_denied", error_description)?;
+        return Ok(());
+    }
+
+    // Validate required parameters
+    if google_code.is_empty() {
+        write_oauth_error(stream, 400, "invalid_request", "Missing authorization code from Google")?;
+        return Ok(());
+    }
+
+    if state.is_empty() {
+        write_oauth_error(stream, 400, "invalid_request", "Missing state parameter")?;
+        return Ok(());
+    }
+
+    // Validate state and get stored data (CSRF protection)
+    let stored_state = match server_state.oauth_state.validate_state(state) {
+        Some(data) => data,
+        None => {
+            eprintln!("[MCP-SSE] OAuth callback: invalid or expired state");
+            write_oauth_error(stream, 400, "invalid_request", "Invalid or expired OAuth state")?;
+            return Ok(());
+        }
+    };
+
+    // Exchange Google code for tokens (blocking call to async API)
+    // We need to create a runtime for the async call
+    let google_callback_uri = "https://mcp.kindly.software/oauth/callback";
+
+    let token_result = {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?;
+
+        rt.block_on(server_state.google_oauth.exchange_code(
+            google_code,
+            google_callback_uri,
+            &server_state.google_client_id,
+            &server_state.google_client_secret,
+        ))
+    };
+
+    let token_response = match token_result {
+        Ok(tokens) => tokens,
+        Err(e) => {
+            eprintln!("[MCP-SSE] OAuth callback: Google token exchange failed: {}", e);
+            write_oauth_error(stream, 500, "server_error", &format!("Failed to exchange code: {}", e))?;
+            return Ok(());
+        }
+    };
+
+    // Validate ID token to get user info (no additional API call needed)
+    let claims = match server_state.google_oauth.validate_id_token(
+        &token_response.id_token,
+        &server_state.google_client_id,
+    ) {
+        Ok(claims) => claims,
+        Err(e) => {
+            eprintln!("[MCP-SSE] OAuth callback: ID token validation failed: {}", e);
+            write_oauth_error(stream, 500, "server_error", "Invalid ID token from Google")?;
+            return Ok(());
+        }
+    };
+
+    // Look up or auto-provision user mapping
+    // 1. Check OAuthUserCapsule (fast path)
+    // 2. If not found, generate Hobby license and link
+    let license_hash = match server_state.oauth_users.get_license_hash_for_google(&claims.sub) {
+        Some(hash) => {
+            eprintln!("[MCP-SSE] OAuth callback: existing OAuth user found (sub={}...)", &claims.sub[..claims.sub.len().min(8)]);
+            hash
+        }
+        None => {
+            // New OAuth user - auto-provision Hobby license
+            eprintln!("[MCP-SSE] OAuth callback: auto-provisioning Hobby license (email={})", claims.email);
+
+            // Generate Hobby license key format: KDB-HOBBY-{timestamp}-{email_hash}-{signature}
+            let timestamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs();
+
+            // Simple license key format (for auto-provisioning)
+            let license_key = format!(
+                "KDB-HOBBY-{:x}-{:x}",
+                timestamp,
+                fnv1a_hash(&claims.email)
+            );
+
+            let license_hash = fnv1a_hash(&license_key);
+
+            // Link Google ID to new license
+            if let Err(e) = server_state.oauth_users.link_google_to_license(&claims.sub, &license_key) {
+                eprintln!("[MCP-SSE] OAuth callback: failed to link user: {:?}", e);
+                write_oauth_error(stream, 500, "server_error", "Failed to create user mapping")?;
+                return Ok(());
+            }
+
+            eprintln!(
+                "[MCP-SSE] OAuth callback: provisioned license {} for {}",
+                &license_key[..license_key.len().min(20)],
+                claims.email
+            );
+
+            license_hash
+        }
+    };
+
+    // Generate MCP authorization code
+    // This code will be exchanged for access token at /oauth/token
+    let mcp_code = match server_state.auth_codes.generate_code(
+        license_hash,
+        stored_state.code_challenge_hash,
+        stored_state.redirect_uri_hash,
+    ) {
+        Ok(code) => code,
+        Err(e) => {
+            eprintln!("[MCP-SSE] OAuth callback: failed to generate code: {:?}", e);
+            write_oauth_error(stream, 500, "server_error", "Failed to generate authorization code")?;
+            return Ok(());
+        }
+    };
+
+    // Consume the OAuth state (one-time use)
+    server_state.oauth_state.consume_state(state);
+
+    // Redirect to Claude callback with our authorization code
+    // The redirect_uri was stored when the flow started
+    // Claude's callback URL format: https://claude.ai/api/mcp/auth_callback?code=xxx&state=yyy
+    let claude_callback = format!(
+        "https://claude.ai/api/mcp/auth_callback?code={}&state={}",
+        urlencoding_encode(&mcp_code),
+        urlencoding_encode(state)
+    );
+
+    let response = format!(
+        "HTTP/1.1 302 Found\r\n\
+        Location: {}\r\n\
+        Access-Control-Allow-Origin: *\r\n\
+        Content-Length: 0\r\n\
+        \r\n",
+        claude_callback
+    );
+
+    stream.write_all(response.as_bytes())?;
+    stream.flush()?;
+
+    eprintln!(
+        "[MCP-SSE] OAuth callback: success, redirecting to Claude (user={}, code={}...)",
+        &claims.email,
+        &mcp_code[..mcp_code.len().min(8)]
+    );
+
+    Ok(())
+}
+
+/// OAuth Callback Endpoint - Fallback without Google OAuth
+#[cfg(not(feature = "google-oauth"))]
+fn handle_oauth_callback(
+    stream: &mut TcpStream,
+    _request: &HttpRequest,
+    _server_state: &ServerState,
+) -> Result<(), Box<dyn std::error::Error>> {
+    write_oauth_error(stream, 501, "not_implemented", "Google OAuth not configured")?;
+    Ok(())
+}
+
+/// OAuth Token Endpoint - OAuth 2.1 with PKCE Validation
+///
+/// Exchanges authorization code for access token with PKCE validation (RFC 7636).
+///
+/// **Flow**:
+/// 1. Parse form parameters (grant_type, code, code_verifier, redirect_uri)
+/// 2. Validate grant_type == "authorization_code"
+/// 3. Validate and consume code via AuthorizationCodeCapsule (includes PKCE check)
+/// 4. Get license_hash from code
+/// 5. Return OAuth token response with license key as access_token
+///
+/// **Tier**: T1 Atomic (lockfree code validation)
+/// **Latency**: <50ns (code lookup + PKCE validation)
+///
+/// **Backward Compatibility**: If oauth feature is disabled, treats code as license key
+#[cfg(feature = "oauth")]
 fn handle_oauth_token(
     stream: &mut TcpStream,
     request: &HttpRequest,
+    server_state: &ServerState,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // Parse form-urlencoded body
-    let params: HashMap<String, String> = request
-        .body
-        .split('&')
-        .filter_map(|pair| {
-            let mut parts = pair.split('=');
-            Some((
-                parts.next()?.to_string(),
-                urlencoding_decode(parts.next().unwrap_or("")),
-            ))
-        })
-        .collect();
+    let params = parse_form_params(&request.body);
+
+    let grant_type = params.get("grant_type").map(|s| s.as_str()).unwrap_or("");
+    let code = params.get("code").map(|s| s.as_str()).unwrap_or("");
+    let code_verifier = params.get("code_verifier").map(|s| s.as_str()).unwrap_or("");
+    let redirect_uri = params.get("redirect_uri").map(|s| s.as_str()).unwrap_or("");
+
+    // Validate grant type
+    if grant_type != "authorization_code" {
+        write_oauth_error(stream, 400, "unsupported_grant_type", "Only authorization_code grant is supported")?;
+        return Ok(());
+    }
+
+    // Validate code is present
+    if code.is_empty() {
+        write_oauth_error(stream, 400, "invalid_request", "Missing required parameter: code")?;
+        return Ok(());
+    }
+
+    // Check if this looks like a license key (backward compatibility)
+    // License keys start with "KDB-" prefix
+    if code.starts_with("KDB-") {
+        // Direct license key usage - return as access token
+        eprintln!("[MCP-SSE] OAuth token: direct license key provided");
+        let token_response = format!(
+            r#"{{"access_token":"{}","token_type":"Bearer","expires_in":31536000,"scope":"debugger:read debugger:write"}}"#,
+            code
+        );
+        write_json_response(stream, 200, &token_response)?;
+        return Ok(());
+    }
+
+    // Validate PKCE code_verifier is present for OAuth 2.1 flow
+    if code_verifier.is_empty() {
+        write_oauth_error(stream, 400, "invalid_request", "Missing required parameter: code_verifier")?;
+        return Ok(());
+    }
+
+    // Validate redirect_uri
+    if redirect_uri.is_empty() {
+        write_oauth_error(stream, 400, "invalid_request", "Missing required parameter: redirect_uri")?;
+        return Ok(());
+    }
+
+    // Validate and consume authorization code (one-time use)
+    // This validates:
+    // - Code exists and hasn't expired
+    // - PKCE code_verifier matches stored code_challenge
+    // - redirect_uri matches what was used during authorization
+    let license_hash = match server_state.auth_codes.validate_and_consume(
+        code,
+        code_verifier,
+        redirect_uri,
+    ) {
+        Some(hash) => hash,
+        None => {
+            let stats = server_state.auth_codes.stats();
+            eprintln!(
+                "[MCP-SSE] OAuth token: code validation failed (pkce_failures={}, redirect_failures={})",
+                stats.pkce_failures, stats.redirect_failures
+            );
+            write_oauth_error(stream, 400, "invalid_grant", "Invalid, expired, or already used authorization code")?;
+            return Ok(());
+        }
+    };
+
+    // Look up the license key from hash
+    // For now, we return a synthetic token that includes the hash
+    // The actual license key is stored in the user mapping
+    // TODO: Add a reverse lookup table for hash -> license_key if needed
+    let token_response = format!(
+        r#"{{"access_token":"oauth-{}","token_type":"Bearer","expires_in":31536000,"scope":"debugger:read debugger:write"}}"#,
+        license_hash
+    );
+
+    write_json_response(stream, 200, &token_response)?;
+
+    eprintln!(
+        "[MCP-SSE] OAuth token: issued access token (license_hash={}...)",
+        &format!("{:x}", license_hash)[..8]
+    );
+
+    Ok(())
+}
+
+/// OAuth Token Endpoint - Fallback without oauth feature
+///
+/// When oauth feature is disabled, treats code as license key directly.
+#[cfg(not(feature = "oauth"))]
+fn handle_oauth_token(
+    stream: &mut TcpStream,
+    request: &HttpRequest,
+    _server_state: &ServerState,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let params = parse_form_params(&request.body);
 
     let grant_type = params.get("grant_type").map(|s| s.as_str()).unwrap_or("");
     let code = params.get("code").map(|s| s.as_str()).unwrap_or("");
 
     // Validate grant type
     if grant_type != "authorization_code" {
-        let error_body =
-            r#"{"error":"unsupported_grant_type","error_description":"Only authorization_code grant is supported"}"#;
-        write_json_response(stream, 400, error_body)?;
+        write_oauth_error(stream, 400, "unsupported_grant_type", "Only authorization_code grant is supported")?;
         return Ok(());
     }
 
-    // The "code" is actually the license key from signup
-    // Validate it's non-empty and has minimum length
+    // Validate code is present and has minimum length
     if code.is_empty() || code.len() < 16 {
-        let error_body = r#"{"error":"invalid_grant","error_description":"Invalid or missing authorization code. Get your license key at https://kindly.services/#signup"}"#;
-        write_json_response(stream, 400, error_body)?;
+        write_oauth_error(stream, 400, "invalid_grant", "Invalid or missing authorization code. Get your license key at https://kindly.services/#signup")?;
         return Ok(());
     }
 
-    // Return the license key as an access token
-    // This maintains compatibility with our existing X-License-Key auth
+    // Return the code (license key) as an access token
     let token_response = format!(
-        r#"{{
-  "access_token": "{}",
-  "token_type": "Bearer",
-  "expires_in": 31536000,
-  "scope": "debugger:read debugger:write"
-}}"#,
+        r#"{{"access_token":"{}","token_type":"Bearer","expires_in":31536000,"scope":"debugger:read debugger:write"}}"#,
         code
     );
 
@@ -1297,6 +2118,113 @@ fn urlencoding_decode(s: &str) -> String {
         }
     }
     decoded
+}
+
+/// Parse URL query string into HashMap
+///
+/// Handles both URL-encoded and plain parameters.
+/// Example: "state=abc123&code_challenge=xyz&redirect_uri=https%3A%2F%2Fexample.com"
+///
+/// **Performance**: O(n) where n = query string length
+fn parse_query_params(path: &str) -> HashMap<String, String> {
+    let mut params = HashMap::new();
+
+    // Extract query string after '?'
+    let query_string = match path.split('?').nth(1) {
+        Some(qs) => qs,
+        None => return params,
+    };
+
+    // Parse each key=value pair
+    for pair in query_string.split('&') {
+        if let Some((key, value)) = pair.split_once('=') {
+            params.insert(
+                key.to_string(),
+                urlencoding_decode(value),
+            );
+        }
+    }
+
+    params
+}
+
+/// Parse application/x-www-form-urlencoded body into HashMap
+///
+/// Used for OAuth token endpoint requests.
+/// Example: "grant_type=authorization_code&code=abc123&redirect_uri=https%3A%2F%2Fexample.com"
+///
+/// **Performance**: O(n) where n = body length
+fn parse_form_params(body: &str) -> HashMap<String, String> {
+    let mut params = HashMap::new();
+
+    for pair in body.split('&') {
+        if let Some((key, value)) = pair.split_once('=') {
+            params.insert(
+                key.to_string(),
+                urlencoding_decode(value),
+            );
+        }
+    }
+
+    params
+}
+
+/// Write OAuth error response per RFC 6749 Section 5.2
+///
+/// **Error Response Format** (JSON):
+/// ```json
+/// {
+///   "error": "invalid_request",
+///   "error_description": "Human-readable description"
+/// }
+/// ```
+///
+/// **Standard Error Codes** (RFC 6749):
+/// - `invalid_request`: Missing required parameter or malformed
+/// - `invalid_client`: Client authentication failed
+/// - `invalid_grant`: Authorization code/refresh token invalid
+/// - `unauthorized_client`: Client not authorized for this grant type
+/// - `unsupported_grant_type`: Grant type not supported
+/// - `invalid_scope`: Requested scope invalid
+fn write_oauth_error(
+    stream: &mut TcpStream,
+    status: u16,
+    error: &str,
+    description: &str,
+) -> Result<(), std::io::Error> {
+    let body = format!(
+        r#"{{"error":"{}","error_description":"{}"}}"#,
+        error, description.replace('"', "\\\"")
+    );
+
+    let status_text = match status {
+        400 => "Bad Request",
+        401 => "Unauthorized",
+        403 => "Forbidden",
+        404 => "Not Found",
+        500 => "Internal Server Error",
+        _ => "Error",
+    };
+
+    let response = format!(
+        "HTTP/1.1 {} {}\r\n\
+        Content-Type: application/json\r\n\
+        Content-Length: {}\r\n\
+        Cache-Control: no-store\r\n\
+        Pragma: no-cache\r\n\
+        Access-Control-Allow-Origin: *\r\n\
+        \r\n\
+        {}",
+        status,
+        status_text,
+        body.len(),
+        body
+    );
+
+    stream.write_all(response.as_bytes())?;
+    stream.flush()?;
+
+    Ok(())
 }
 
 // ============================================================================

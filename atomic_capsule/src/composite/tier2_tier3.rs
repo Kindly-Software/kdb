@@ -124,7 +124,7 @@ impl Mul for FixedQ16_16 {
     feature = "derive",
     derive(atomic_capsule_derive::ComputationalCapsule)
 )]
-#[cfg_attr(feature = "derive", capsule(alignment = 64, size = 64))]
+#[cfg_attr(feature = "derive", capsule(alignment = 64, size = 64, skip_self_destruct = true))]
 #[repr(C, align(64))]
 pub struct SimdFixedPointCapsule {
     /// T3: 8×Q16.16 fixed-point values
@@ -133,6 +133,8 @@ pub struct SimdFixedPointCapsule {
     /// Padding to 64 bytes
     _padding: [u8; 56],
 }
+// #ASSUME_SIMD_STATELESS: Pure SIMD+Fixed-Point composite with no coordination state.
+// #VERIFY_SIMD: Self-destruct not applicable - stateless Q16.16 array with deterministic arithmetic.
 
 impl SimdFixedPointCapsule {
     /// Create new composite capsule with zero-initialized state

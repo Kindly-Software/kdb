@@ -25,7 +25,7 @@
 //! - `#ASSUME_SOURCE_FILE_READABLE`: Source file exists and is readable at proc-macro compile time
 //! - `#VERIFY_SOURCE_READABLE`: Try file I/O, fall back to None if unavailable
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use syn;
 
 /// T0 Auditable Primitive: Field Size Calculator
@@ -52,7 +52,8 @@ pub struct FieldSizeCalculator {
 
     /// Const definitions cache (name -> value)
     /// Lazy-loaded from source file on first const reference
-    const_cache: HashMap<String, usize>,
+    /// UCE35: BTreeMap for deterministic ordering (Chaos compliance)
+    const_cache: BTreeMap<String, usize>,
 
     /// Source file content (lazy-loaded)
     source_content: Option<String>,
@@ -64,7 +65,7 @@ impl FieldSizeCalculator {
         Self {
             max_depth: 10,
             current_depth: 0,
-            const_cache: HashMap::new(),
+            const_cache: BTreeMap::new(),
             source_content: None,
         }
     }
@@ -74,7 +75,7 @@ impl FieldSizeCalculator {
         Self {
             max_depth: 10,
             current_depth: 0,
-            const_cache: HashMap::new(),
+            const_cache: BTreeMap::new(),
             source_content: Some(source),
         }
     }
@@ -601,7 +602,9 @@ mod tests {
     fn test_dual_atomic_u64() {
         let ty: syn::Type = parse_quote!(DualAtomicU64);
         let mut calc = FieldSizeCalculator::new();
-        assert_eq!(calc.calculate_size(&ty), Some(16)); // 2 × AtomicU64
+        // DualAtomicU64 is a 128-byte cache-aligned capsule (2 cache lines)
+        // Primary AtomicU64 (8B) + _padding1 (56B) + Secondary AtomicU64 (8B) + _padding2 (56B) = 128B
+        assert_eq!(calc.calculate_size(&ty), Some(128));
     }
 
     #[test]

@@ -31,6 +31,37 @@ pub struct CapsuleAttributes {
     /// Optional: Skip automatic Send + Sync trait generation (default: false)
     /// Use for GPU types with raw pointers (*mut T) that aren't thread-safe
     pub skip_send_sync: bool,
+
+    /// Q35: Skip self-destruct trait generation (default: false - self-destruct auto-enabled)
+    ///
+    /// When false (default), SelfDestructible trait is auto-generated for the capsule.
+    /// Use `skip_self_destruct = true` only for stateless capsules (pure SIMD) with
+    /// documented ASSUM justification.
+    ///
+    /// # ASSUM Framework
+    /// - `#ASSUME_STATELESS`: Pure SIMD/stateless capsule with no coordination state
+    /// - `#VERIFY_STATELESS`: Self-destruct not applicable - no shared state to poison
+    pub skip_self_destruct: bool,
+
+    /// Q35: Override cascade level (default: 0 = root capsule)
+    ///
+    /// Valid values: 0-15 (max cascade depth)
+    /// - 0: Root capsule (triggers cascade)
+    /// - 1-14: Intermediate capsule (receives and propagates)
+    /// - 15: Leaf capsule (terminal, no propagation)
+    pub cascade_level: Option<u8>,
+
+    /// Q35: Override priority (default: inferred from tier)
+    ///
+    /// Valid values: "P0" (Critical), "P1" (Important), "P2" (Enhanced)
+    /// - P0 (Critical): Data integrity critical, immediate self-destruct
+    /// - P1 (Important): Composite capsules that can degrade gracefully
+    /// - P2 (Enhanced): Optional protection, audit-only
+    ///
+    /// Default inference from tier:
+    /// - T0-T5 (Auditable, Atomic, SIMD, FixedPoint, Batch, Streaming): P0
+    /// - T6+ (Mixed, Heterogeneous, Network, Persistent, Probabilistic): P1
+    pub priority: Option<String>,
 }
 
 impl CapsuleAttributes {
@@ -94,6 +125,10 @@ impl CapsuleAttributes {
         let mut crypto_hash = None;
         let mut auto_pad = false;
         let mut skip_send_sync = false;
+        // Q35 self-destruct attributes
+        let mut skip_self_destruct = false;
+        let mut cascade_level = None;
+        let mut priority = None;
 
         // Parse nested meta using parse_nested_meta (syn 2.0 API)
         capsule_attr.parse_nested_meta(|meta| {
@@ -160,9 +195,31 @@ impl CapsuleAttributes {
                 let value: syn::LitBool = meta.value()?.parse()?;
                 skip_send_sync = value.value();
                 Ok(())
+            // Q35: Self-destruct attributes
+            } else if meta.path.is_ident("skip_self_destruct") {
+                if skip_self_destruct {
+                    return Err(meta.error("Duplicate `skip_self_destruct` parameter"));
+                }
+                let value: syn::LitBool = meta.value()?.parse()?;
+                skip_self_destruct = value.value();
+                Ok(())
+            } else if meta.path.is_ident("cascade_level") {
+                if cascade_level.is_some() {
+                    return Err(meta.error("Duplicate `cascade_level` parameter"));
+                }
+                let value: syn::LitInt = meta.value()?.parse()?;
+                cascade_level = Some(value.base10_parse()?);
+                Ok(())
+            } else if meta.path.is_ident("priority") {
+                if priority.is_some() {
+                    return Err(meta.error("Duplicate `priority` parameter"));
+                }
+                let value: syn::LitStr = meta.value()?.parse()?;
+                priority = Some(value.value());
+                Ok(())
             } else {
                 Err(meta.error(format!(
-                    "Unknown parameter `{}`. Valid: alignment, size, tier, auditable, verified, fast_hash, crypto_hash, auto_pad, skip_send_sync",
+                    "Unknown parameter `{}`. Valid: alignment, size, tier, auditable, verified, fast_hash, crypto_hash, auto_pad, skip_send_sync, skip_self_destruct, cascade_level, priority",
                     meta.path.get_ident().map(|i| i.to_string()).unwrap_or_default()
                 )))
             }
@@ -210,6 +267,10 @@ impl CapsuleAttributes {
             crypto_hash,
             auto_pad,
             skip_send_sync,
+            // Q35: Self-destruct attributes (auto-enabled by default)
+            skip_self_destruct,
+            cascade_level,
+            priority,
         })
     }
 }

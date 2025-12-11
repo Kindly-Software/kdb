@@ -891,6 +891,278 @@ fn generate_auto_pad_error(input: &DeriveInput, attrs: &CapsuleAttributes) -> To
     syn::Error::new_spanned(input, error_msg).to_compile_error()
 }
 
+// =============================================================================
+// Q35 SELF-DESTRUCT TRAIT GENERATION
+// =============================================================================
+
+/// Generate SelfDestructible trait implementation (UCE35 Q35)
+///
+/// # UCE35 Q35 Mandate
+/// ALL capsules implement `SelfDestructible` trait for tamper detection and
+/// cascade destruction. Auto-enabled unless `skip_self_destruct = true`.
+///
+/// # Generated Methods
+/// - `cascade_level()` - Return const cascade level (0-15)
+/// - `priority()` - Return Priority enum variant (P0/P1/P2)
+/// - `trigger_self_destruct(reason)` - Poison DualAtomicU64 fields, corrupt state
+/// - `corrupt_state()` - Zero all atomic fields
+/// - `propagate_poison(level)` - No-op (external propagation via orchestrator)
+/// - `is_poisoned()` - Check DualAtomicU64 poison flags
+/// - `poisoned_state()` - Return Option<Poisoned> with details
+///
+/// # ASSUM Framework
+/// - `#ASSUME_SELF_DESTRUCT_COMPLETE`: Generated impl covers all 7 methods
+/// - `#VERIFY_SELF_DESTRUCT_COMPLETE`: Code review + T28 tests
+/// - `#ASSUME_PROPAGATION_EXTERNAL`: Cascade propagation handled by orchestrator
+/// - `#VERIFY_PROPAGATION_EXTERNAL`: Individual capsules don't hold child refs
+///
+/// # Feature Flag
+/// All generated code wrapped in `#[cfg(feature = "self-destruct")]`
+///
+/// # Arguments
+/// * `input` - Derive input (struct definition)
+/// * `attrs` - Parsed capsule attributes
+/// * `fields` - Struct fields for atomic field detection
+///
+/// # Returns
+/// TokenStream with SelfDestructible trait implementation, or empty if skipped
+pub fn generate_self_destruct_impl(
+    input: &DeriveInput,
+    attrs: &CapsuleAttributes,
+    fields: &syn::Fields,
+) -> TokenStream {
+    // Skip if explicitly disabled
+    if attrs.skip_self_destruct {
+        return quote! {
+            // Q35: Self-destruct skipped via #[capsule(skip_self_destruct = true)]
+            // #ASSUME_STATELESS: Pure SIMD/stateless capsule with no coordination state
+            // #VERIFY_STATELESS: Self-destruct not applicable - no shared state to poison
+        };
+    }
+
+    let struct_name = &input.ident;
+
+    // Extract generics for impl block
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+
+    // Determine cascade level (from attr or default 0)
+    let cascade_level = attrs.cascade_level.unwrap_or(0);
+
+    // Determine priority (infer from tier or use override)
+    let priority_str = attrs
+        .priority
+        .as_deref()
+        .unwrap_or_else(|| crate::field_diagnostics::infer_priority_from_tier(&attrs.tier));
+
+    // Convert priority string to ident
+    let priority_ident = syn::Ident::new(priority_str, proc_macro2::Span::call_site());
+
+    // Detect field types using field_diagnostics module
+    let dual_atomic_fields = crate::field_diagnostics::get_dual_atomic_fields(fields);
+    let atomic_fields = crate::field_diagnostics::get_atomic_fields(fields);
+
+    // Generate corrupt_state() body: zero DualAtomicU64 secondaries
+    let corrupt_dual_atomics: Vec<_> = dual_atomic_fields
+        .iter()
+        .map(|f| {
+            quote! {
+                self.#f.terminate_secondary();
+            }
+        })
+        .collect();
+
+    // Generate corrupt_state() body: zero all atomic fields
+    let corrupt_atomics: Vec<_> = atomic_fields
+        .iter()
+        .map(|f| {
+            quote! {
+                self.#f.store(0, ::core::sync::atomic::Ordering::Release);
+            }
+        })
+        .collect();
+
+    // Generate is_poisoned() body: check DualAtomicU64 poison flags
+    let poison_checks = if !dual_atomic_fields.is_empty() {
+        let checks: Vec<_> = dual_atomic_fields
+            .iter()
+            .map(|f| {
+                quote! {
+                    if self.#f.is_poisoned() {
+                        return true;
+                    }
+                }
+            })
+            .collect();
+        quote! {
+            #(#checks)*
+            false
+        }
+    } else {
+        // No DualAtomicU64 - cannot track poison state (stateless capsule)
+        quote! {
+            // #ASSUME_STATELESS: No DualAtomicU64 fields for poison tracking
+            false
+        }
+    };
+
+    // Generate trigger_self_destruct() body
+    let trigger_body = if !dual_atomic_fields.is_empty() {
+        let poison_calls: Vec<_> = dual_atomic_fields
+            .iter()
+            .map(|f| {
+                quote! {
+                    self.#f.poison_secondary(#cascade_level);
+                }
+            })
+            .collect();
+        quote! {
+            // Check if already poisoned
+            if self.is_poisoned() {
+                return ::atomic_capsule::__private::protection::CascadeResult::AlreadyPoisoned;
+            }
+
+            // Poison all DualAtomicU64 fields
+            #(#poison_calls)*
+
+            // Corrupt state (zero all atomic fields)
+            self.corrupt_state();
+
+            // Propagate to children (if applicable)
+            self.propagate_poison(#cascade_level + 1);
+
+            ::atomic_capsule::__private::protection::CascadeResult::Triggered {
+                poisoned_count: 1,
+            }
+        }
+    } else {
+        // Minimal implementation for stateless capsules (no DualAtomicU64)
+        quote! {
+            // Stateless capsule - corrupt atomic state if present
+            self.corrupt_state();
+
+            ::atomic_capsule::__private::protection::CascadeResult::Terminal
+        }
+    };
+
+    // Full trait implementation wrapped in feature flag
+    quote! {
+        #[cfg(feature = "self-destruct")]
+        impl #impl_generics ::atomic_capsule::__private::protection::SelfDestructible for #struct_name #ty_generics #where_clause {
+            /// Return cascade level for this capsule
+            ///
+            /// # UCE35 Q35
+            /// Cascade level determines order in destruction cascade:
+            /// - 0: Root capsule (triggers cascade)
+            /// - 1-14: Intermediate capsule (receives and propagates)
+            /// - 15: Leaf capsule (terminal, no propagation)
+            #[inline]
+            fn cascade_level(&self) -> u8 {
+                #cascade_level
+            }
+
+            /// Return priority for this capsule
+            ///
+            /// # UCE35 Q35
+            /// Priority determines destruction order within cascade level:
+            /// - P0 (Critical): Immediate destruction, data integrity critical
+            /// - P1 (Important): Composite capsules, can degrade gracefully
+            /// - P2 (Enhanced): Optional protection, audit-only
+            #[inline]
+            fn priority(&self) -> ::atomic_capsule::__private::protection::Priority {
+                ::atomic_capsule::__private::protection::Priority::#priority_ident
+            }
+
+            /// Trigger self-destruction cascade
+            ///
+            /// # UCE35 Q35
+            /// Poisons DualAtomicU64 fields, corrupts atomic state, and returns
+            /// cascade result for orchestrator propagation.
+            ///
+            /// # Arguments
+            /// * `_reason` - Tamper detection reason (logged for audit)
+            ///
+            /// # Returns
+            /// - `CascadeResult::Triggered` - Successfully poisoned
+            /// - `CascadeResult::AlreadyPoisoned` - Already in poisoned state
+            /// - `CascadeResult::Terminal` - Stateless capsule (no cascade)
+            fn trigger_self_destruct(
+                &self,
+                _reason: ::atomic_capsule::__private::protection::TamperReason,
+            ) -> ::atomic_capsule::__private::protection::CascadeResult {
+                #trigger_body
+            }
+
+            /// Corrupt capsule state (zero all atomic fields)
+            ///
+            /// # UCE35 Q35
+            /// Called during self-destruction to invalidate capsule state.
+            /// Uses Release ordering to ensure corruption is visible.
+            ///
+            /// # Safety
+            /// Safe - uses atomic stores with Release ordering.
+            fn corrupt_state(&self) {
+                // Zero DualAtomicU64 secondaries
+                #(#corrupt_dual_atomics)*
+
+                // Zero all other atomic fields
+                #(#corrupt_atomics)*
+            }
+
+            /// Propagate poison to children (no-op for individual capsules)
+            ///
+            /// # UCE35 Q35
+            /// Individual capsules don't hold references to children. Cascade
+            /// propagation is handled by ProtectionOrchestratorCapsule or
+            /// UnifiedProtectionMetacapsule at the orchestration layer.
+            ///
+            /// # ASSUM Framework
+            /// - `#ASSUME_PROPAGATION_EXTERNAL`: Cascade propagation handled externally
+            /// - `#VERIFY_PROPAGATION_EXTERNAL`: Individual capsules are isolated
+            ///
+            /// # Arguments
+            /// * `_level` - Next cascade level (unused, for orchestrator)
+            fn propagate_poison(&self, _level: u8) {
+                // No-op: cascade propagation handled by orchestrator
+                // Individual capsules don't hold references to children
+            }
+
+            /// Check if capsule is in poisoned state
+            ///
+            /// # UCE35 Q35
+            /// Checks DualAtomicU64 poison flags. Returns false for capsules
+            /// without DualAtomicU64 fields (stateless).
+            ///
+            /// # Returns
+            /// - `true` if any DualAtomicU64 field is poisoned
+            /// - `false` otherwise (including stateless capsules)
+            fn is_poisoned(&self) -> bool {
+                #poison_checks
+            }
+
+            /// Get poisoned state details
+            ///
+            /// # UCE35 Q35
+            /// Returns detailed poison information for audit trail.
+            ///
+            /// # Returns
+            /// - `Some(Poisoned)` - Capsule is poisoned with details
+            /// - `None` - Capsule is not poisoned
+            fn poisoned_state(&self) -> ::core::option::Option<::atomic_capsule::__private::protection::Poisoned> {
+                if !self.is_poisoned() {
+                    return ::core::option::Option::None;
+                }
+
+                ::core::option::Option::Some(::atomic_capsule::__private::protection::Poisoned {
+                    cascade_level: self.cascade_level(),
+                    reason: ::atomic_capsule::__private::protection::TamperReason::CascadeReceived {
+                        source_level: self.cascade_level(),
+                    },
+                })
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -956,5 +1228,292 @@ mod tests {
         assert!(output.contains("unsafe impl Send"));
         assert!(output.contains("unsafe impl Sync"));
         assert!(output.contains("TestCapsule"));
+    }
+
+    // =========================================================================
+    // Q35 SELF-DESTRUCT CODE GENERATION TESTS
+    // =========================================================================
+
+    #[test]
+    fn test_generate_self_destruct_impl_basic() {
+        let input: DeriveInput = parse_quote! {
+            struct TestCapsule {
+                state: DualAtomicU64,
+                counter: AtomicU64,
+                _padding: [u8; 48],
+            }
+        };
+
+        let attrs = CapsuleAttributes {
+            alignment: 64,
+            size: Some(64),
+            tier: Some("Atomic".to_string()),
+            auditable: false,
+            verified: false,
+            fast_hash: None,
+            crypto_hash: None,
+            auto_pad: false,
+            skip_send_sync: false,
+            skip_self_destruct: false,
+            cascade_level: None,
+            priority: None,
+        };
+
+        let fields = match &input.data {
+            syn::Data::Struct(data) => &data.fields,
+            _ => panic!("Expected struct"),
+        };
+
+        let tokens = generate_self_destruct_impl(&input, &attrs, fields);
+        let output = tokens.to_string();
+
+        // Should generate SelfDestructible impl
+        assert!(output.contains("SelfDestructible"));
+        assert!(output.contains("cascade_level"));
+        assert!(output.contains("priority"));
+        assert!(output.contains("trigger_self_destruct"));
+        assert!(output.contains("corrupt_state"));
+        assert!(output.contains("is_poisoned"));
+        assert!(output.contains("poisoned_state"));
+        assert!(output.contains("propagate_poison"));
+        // Should be wrapped in feature flag
+        assert!(output.contains("cfg"));
+        assert!(output.contains("self-destruct"));
+    }
+
+    #[test]
+    fn test_generate_self_destruct_impl_skipped() {
+        let input: DeriveInput = parse_quote! {
+            struct TestCapsule {
+                data: [f32; 8],
+                _padding: [u8; 32],
+            }
+        };
+
+        let attrs = CapsuleAttributes {
+            alignment: 64,
+            size: Some(64),
+            tier: Some("SIMD".to_string()),
+            auditable: false,
+            verified: false,
+            fast_hash: None,
+            crypto_hash: None,
+            auto_pad: false,
+            skip_send_sync: false,
+            skip_self_destruct: true, // Explicitly skipped
+            cascade_level: None,
+            priority: None,
+        };
+
+        let fields = match &input.data {
+            syn::Data::Struct(data) => &data.fields,
+            _ => panic!("Expected struct"),
+        };
+
+        let tokens = generate_self_destruct_impl(&input, &attrs, fields);
+        let output = tokens.to_string();
+
+        // Should NOT generate SelfDestructible impl
+        assert!(!output.contains("SelfDestructible"));
+        // Output should be minimal (just a comment block, which may be empty after quote! processing)
+        // The key is that it doesn't contain the trait impl
+        assert!(!output.contains("trigger_self_destruct"));
+    }
+
+    #[test]
+    fn test_generate_self_destruct_impl_with_cascade_level() {
+        let input: DeriveInput = parse_quote! {
+            struct TestCapsule {
+                state: DualAtomicU64,
+                _padding: [u8; 56],
+            }
+        };
+
+        let attrs = CapsuleAttributes {
+            alignment: 64,
+            size: Some(64),
+            tier: None,
+            auditable: false,
+            verified: false,
+            fast_hash: None,
+            crypto_hash: None,
+            auto_pad: false,
+            skip_send_sync: false,
+            skip_self_destruct: false,
+            cascade_level: Some(5), // Custom cascade level
+            priority: None,
+        };
+
+        let fields = match &input.data {
+            syn::Data::Struct(data) => &data.fields,
+            _ => panic!("Expected struct"),
+        };
+
+        let tokens = generate_self_destruct_impl(&input, &attrs, fields);
+        let output = tokens.to_string();
+
+        // Should contain cascade level 5
+        assert!(output.contains("5"));
+        assert!(output.contains("cascade_level"));
+    }
+
+    #[test]
+    fn test_generate_self_destruct_impl_with_priority_override() {
+        let input: DeriveInput = parse_quote! {
+            struct TestCapsule {
+                state: AtomicU64,
+                _padding: [u8; 56],
+            }
+        };
+
+        let attrs = CapsuleAttributes {
+            alignment: 64,
+            size: Some(64),
+            tier: Some("Atomic".to_string()), // Would normally be P0
+            auditable: false,
+            verified: false,
+            fast_hash: None,
+            crypto_hash: None,
+            auto_pad: false,
+            skip_send_sync: false,
+            skip_self_destruct: false,
+            cascade_level: None,
+            priority: Some("P1".to_string()), // Override to P1
+        };
+
+        let fields = match &input.data {
+            syn::Data::Struct(data) => &data.fields,
+            _ => panic!("Expected struct"),
+        };
+
+        let tokens = generate_self_destruct_impl(&input, &attrs, fields);
+        let output = tokens.to_string();
+
+        // Should contain P1 priority
+        assert!(output.contains("P1"));
+    }
+
+    #[test]
+    fn test_generate_self_destruct_impl_stateless() {
+        let input: DeriveInput = parse_quote! {
+            struct StatelessCapsule {
+                data: [f32; 8],
+                _padding: [u8; 32],
+            }
+        };
+
+        let attrs = CapsuleAttributes {
+            alignment: 64,
+            size: Some(64),
+            tier: Some("SIMD".to_string()),
+            auditable: false,
+            verified: false,
+            fast_hash: None,
+            crypto_hash: None,
+            auto_pad: false,
+            skip_send_sync: false,
+            skip_self_destruct: false, // Auto-enabled, but no atomic fields
+            cascade_level: None,
+            priority: None,
+        };
+
+        let fields = match &input.data {
+            syn::Data::Struct(data) => &data.fields,
+            _ => panic!("Expected struct"),
+        };
+
+        let tokens = generate_self_destruct_impl(&input, &attrs, fields);
+        let output = tokens.to_string();
+
+        // Should still generate impl (stateless variant)
+        assert!(output.contains("SelfDestructible"));
+        // Should contain Terminal result for stateless (no DualAtomicU64)
+        assert!(output.contains("Terminal"));
+        // Stateless capsules still generate the impl but with minimal tracking
+        // The important thing is they still get the SelfDestructible trait
+        assert!(output.contains("is_poisoned"));
+    }
+
+    #[test]
+    fn test_generate_self_destruct_impl_multiple_dual_atomics() {
+        let input: DeriveInput = parse_quote! {
+            struct TestCapsule {
+                primary: DualAtomicU64,
+                secondary: DualAtomicU64,
+                counter: AtomicU64,
+                _padding: [u8; 40],
+            }
+        };
+
+        let attrs = CapsuleAttributes {
+            alignment: 64,
+            size: Some(64),
+            tier: Some("Mixed".to_string()),
+            auditable: false,
+            verified: false,
+            fast_hash: None,
+            crypto_hash: None,
+            auto_pad: false,
+            skip_send_sync: false,
+            skip_self_destruct: false,
+            cascade_level: None,
+            priority: None, // Should infer P1 for Mixed tier
+        };
+
+        let fields = match &input.data {
+            syn::Data::Struct(data) => &data.fields,
+            _ => panic!("Expected struct"),
+        };
+
+        let tokens = generate_self_destruct_impl(&input, &attrs, fields);
+        let output = tokens.to_string();
+
+        // Should reference both DualAtomicU64 fields
+        assert!(output.contains("primary"));
+        assert!(output.contains("secondary"));
+        // Should reference AtomicU64 field for corruption
+        assert!(output.contains("counter"));
+        // Should use P1 priority for Mixed tier
+        assert!(output.contains("P1"));
+    }
+
+    #[test]
+    fn test_generate_self_destruct_impl_generic_struct() {
+        let input: DeriveInput = parse_quote! {
+            struct GenericCapsule<T> {
+                state: AtomicU64,
+                phantom: core::marker::PhantomData<T>,
+                _padding: [u8; 48],
+            }
+        };
+
+        let attrs = CapsuleAttributes {
+            alignment: 64,
+            size: Some(64),
+            tier: Some("Atomic".to_string()),
+            auditable: false,
+            verified: false,
+            fast_hash: None,
+            crypto_hash: None,
+            auto_pad: false,
+            skip_send_sync: false,
+            skip_self_destruct: false,
+            cascade_level: None,
+            priority: None,
+        };
+
+        let fields = match &input.data {
+            syn::Data::Struct(data) => &data.fields,
+            _ => panic!("Expected struct"),
+        };
+
+        let tokens = generate_self_destruct_impl(&input, &attrs, fields);
+        let output = tokens.to_string();
+
+        // Should handle generics properly
+        assert!(output.contains("GenericCapsule"));
+        // Should have generic parameter in impl
+        assert!(output.contains("<"));
+        assert!(output.contains(">"));
     }
 }

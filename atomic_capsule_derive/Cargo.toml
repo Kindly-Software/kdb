@@ -26,16 +26,16 @@ nightly-specialization = []
 nightly-const-traits = []
 nightly-all = ["nightly-const-fn", "nightly-specialization", "nightly-const-traits"]
 
-# Optional parallelization for large capsules (100+ fields)
-parallel = ["rayon"]
+# UCE35 Chaos Compliance: Removed rayon for deterministic code generation
+# parallel = ["rayon"]  # REMOVED: Non-deterministic work-stealing violates Chaos mandate
 
 [dependencies]
 syn = { version = "2.0", features = ["full", "extra-traits"] }
 quote = "1.0"
 proc-macro2 = "1.0"
 
-# Optional dependencies
-rayon = { version = "1.10", optional = true }
+# UCE35 Chaos Compliance: Removed rayon dependency
+# rayon = { version = "1.10", optional = true }  # REMOVED: Violates deterministic generation
 
 [dev-dependencies]
 atomic_capsule = { path = "../atomic_capsule", features = ["std"], default-features = false }

@@ -354,8 +354,15 @@ impl McpServerCapsule {
                 // Set protocol state directly to Ready (MCP spec: initialize completes handshake)
                 self.protocol_state.store(2, Ordering::Release);
 
+                // Support both 2024-11-05 and 2025-06-18 protocol versions
+                // Return the version the client requested (or default to latest)
+                let client_version = req.params
+                    .get("protocolVersion")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("2025-06-18");
+
                 let response = serde_json::json!({
-                    "protocolVersion": "2024-11-05",
+                    "protocolVersion": client_version,
                     "capabilities": {
                         "tools": {},
                         "resources": {},

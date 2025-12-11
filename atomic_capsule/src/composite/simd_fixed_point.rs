@@ -110,8 +110,11 @@ use crate::primitives::fixed_point::Q16_16;
 /// let prices = SimdFixedQ16x8::from_floats([10.0; 8]);
 /// let pnl = positions.mul(&prices).expect("No overflow");
 /// ```
+/// Q35 Self-Destruct: skip_self_destruct = true
+/// #ASSUME_STATELESS: Pure SIMD data transformation capsule with no coordination state
+/// #VERIFY_STATELESS: Self-destruct not applicable - no shared state to poison
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
-#[cfg_attr(feature = "derive", capsule(alignment = 64, size = 64))]
+#[cfg_attr(feature = "derive", capsule(alignment = 64, size = 64, skip_self_destruct = true))]
 #[repr(C, align(64))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SimdFixedQ16x8 {
@@ -380,8 +383,11 @@ impl Default for SimdFixedQ16x8 {
 /// let total_pnl = calc.calculate_total_pnl()?;
 /// let vwap = calc.calculate_vwap()?;
 /// ```
+/// Q35 Self-Destruct: skip_self_destruct = true
+/// #ASSUME_STATELESS: Pure SIMD financial calculation capsule with no coordination state
+/// #VERIFY_STATELESS: Self-destruct not applicable - no shared state to poison
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
-#[cfg_attr(feature = "derive", capsule(alignment = 64, size = 256))]
+#[cfg_attr(feature = "derive", capsule(alignment = 64, size = 256, skip_self_destruct = true))]
 #[repr(C, align(64))]
 #[derive(Clone, Copy, Debug)]
 pub struct SimdFinancialCalc {
@@ -548,8 +554,11 @@ impl Default for SimdFinancialCalc {
 /// let outputs2 = layer.forward(&inputs)?;
 /// assert_eq!(outputs, outputs2);
 /// ```
+/// Q35 Self-Destruct: skip_self_destruct = true
+/// #ASSUME_STATELESS: Pure SIMD ML inference capsule with no coordination state
+/// #VERIFY_STATELESS: Self-destruct not applicable - no shared state to poison
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
-#[cfg_attr(feature = "derive", capsule(alignment = 64, size = 128))]
+#[cfg_attr(feature = "derive", capsule(alignment = 64, size = 128, skip_self_destruct = true))]
 #[repr(C, align(64))]
 #[derive(Clone, Copy, Debug)]
 pub struct SimdDeterministicML {

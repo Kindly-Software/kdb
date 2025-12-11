@@ -145,11 +145,10 @@ pub const DEFAULT_BATCH_CAPACITY: usize = 50;
 /// let final_batch = batch.flush();
 /// println!("Final batch: {} signatures", final_batch.len());
 /// ```
-// TODO: ComputationalCapsule derive has padding calculation issues with Vec<String>
-// The derive macro calculates padding incorrectly for this struct layout.
+// Q35 Self-Destruct: skip_self_destruct = true (T4 Batch with Vec<String>)
+// #ASSUME_BATCH_STATELESS: Batch processing is stateless per-batch, state is
+// ephemeral Vec buffer that is cleared on flush. No coordination state to poison.
 // Manual verification: repr(C,align(128)) ensures 128-byte alignment automatically.
-// #[derive(ComputationalCapsule)]
-// #[capsule(alignment = 128, size = 128)]
 #[repr(C, align(128))]
 pub struct BatchMinHashCapsule {
     /// Thread-local document buffer

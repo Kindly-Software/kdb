@@ -1,0 +1,25 @@
+error: Q35 violation: cascade_level must be 0-15 (4-bit constraint)
+
+       Got: 99
+
+       Cascade levels define self-destruct propagation hierarchy:
+       - 0: Root capsule (triggers cascade)
+       - 1-14: Intermediate capsule (receives and propagates)
+       - 15: Leaf capsule (terminal, no propagation)
+
+       Fix: Use cascade_level = 15 (clamped to 15)
+
+       Example:
+       #[capsule(alignment = 64, cascade_level = 0)]  // Root
+       #[capsule(alignment = 64, cascade_level = 1)]  // Child
+       #[capsule(alignment = 64, cascade_level = 15)] // Leaf
+  --> tests/compile_fail/q35_invalid_cascade_level.rs:11:1
+   |
+11 | / /// Capsule with invalid cascade_level - should FAIL Q35 validation
+12 | | #[derive(ComputationalCapsule)]
+13 | | #[capsule(alignment = 64, size = 64, cascade_level = 99)]
+14 | | #[repr(C, align(64))]
+...  |
+19 | |     _padding: [u8; 56],
+20 | | }
+   | |_^

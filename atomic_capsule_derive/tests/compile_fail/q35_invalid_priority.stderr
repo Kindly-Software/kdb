@@ -1,0 +1,29 @@
+error: Q35 violation: priority must be P0, P1, or P2
+
+       Got: "P99"
+
+       Priority levels for self-destruct:
+       - P0 (Critical): Data integrity critical, immediate self-destruct
+       - P1 (Important): Composite capsules that can degrade gracefully
+       - P2 (Enhanced): Optional protection, audit-only
+
+       Default inference from tier:
+       - T0-T5 (Auditable, Atomic, SIMD, FixedPoint, Batch, Streaming): P0
+       - T6+ (Mixed, Heterogeneous, Network, Persistent, Probabilistic): P1
+
+       Fix: Use priority = "P0" or "P1" or "P2"
+
+       Example:
+       #[capsule(alignment = 64, priority = "P0")]  // Critical
+       #[capsule(alignment = 64, priority = "P1")]  // Important
+       #[capsule(alignment = 64, priority = "P2")]  // Enhanced
+  --> tests/compile_fail/q35_invalid_priority.rs:11:1
+   |
+11 | / /// Capsule with invalid priority - should FAIL Q35 validation
+12 | | #[derive(ComputationalCapsule)]
+13 | | #[capsule(alignment = 64, size = 64, priority = "P99")]
+14 | | #[repr(C, align(64))]
+...  |
+19 | |     _padding: [u8; 56],
+20 | | }
+   | |_^

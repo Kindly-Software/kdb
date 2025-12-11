@@ -87,6 +87,10 @@ use core::f64::consts::PI;
 ///
 /// **T2 SIMD Tier**: Aligned to 64 bytes for optimal cache performance.
 /// Cache line boundary prevents false sharing in multi-threaded contexts.
+///
+/// **Q35 Self-Destruct**: skip_self_destruct = true
+/// #ASSUME_SIMD_STATELESS: Pure SIMD geometric primitive with no coordination state.
+/// Vec2 is Copy, immutable after construction, no shared mutable state to poison.
 #[repr(C, align(64))]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vec2 {
@@ -215,6 +219,10 @@ impl Vec2 {
 /// - ASSUM: All edge cases handled (degenerate curves, cusps)
 /// - B32: Performance validated <50ns target
 /// - T28: Unit tests for accuracy, degenerate cases
+///
+/// **Q35 Self-Destruct**: skip_self_destruct = true
+/// #ASSUME_SIMD_STATELESS: Pure SIMD geometric primitive with no coordination state.
+/// QuadraticBezier is Copy, immutable after construction, no shared mutable state.
 #[repr(C, align(64))]
 #[derive(Debug, Clone, Copy)]
 pub struct QuadraticBezier {

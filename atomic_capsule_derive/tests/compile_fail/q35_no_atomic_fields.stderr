@@ -1,0 +1,31 @@
+error: Q35 violation: Capsule 'NoAtomicFieldsCapsule' has no atomic fields for poison tracking.
+
+       Self-destruct requires at least one atomic field to track poison state.
+
+       Solutions:
+       1. Add `poison_state: AtomicU64` field (recommended)
+       2. Add `state: DualAtomicU64` field for full coordination
+       3. Use `#[capsule(skip_self_destruct = true)]` with ASSUM justification
+
+       Example fix (Option 1):
+       #[repr(C, align(64))]  // Adjust size as needed
+       struct NoAtomicFieldsCapsule {
+       poison_state: AtomicU64,  // Added for Q35
+       // ... existing fields ...
+       _padding: [u8; N],  // Adjust padding
+       }
+
+       Example fix (Option 3 - stateless capsule opt-out):
+       #[capsule(alignment = 64, skip_self_destruct = true)]
+       // #ASSUME_STATELESS: Pure SIMD/stateless capsule with no coordination state
+       // #VERIFY_STATELESS: Self-destruct not applicable - no shared state to poison
+  --> tests/compile_fail/q35_no_atomic_fields.rs:10:1
+   |
+10 | / /// Capsule without atomic fields - should FAIL Q35 validation
+11 | | /// (skip_self_destruct not set, so self-destruct is mandatory)
+12 | | #[derive(ComputationalCapsule)]
+13 | | #[capsule(alignment = 64, size = 64)]
+...  |
+17 | |     data: [u8; 64],
+18 | | }
+   | |_^

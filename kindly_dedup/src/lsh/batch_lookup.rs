@@ -95,8 +95,12 @@ thread_local! {
 /// - 64B: Single cache line access
 /// - No false sharing: Separate cache line per instance
 /// - Hot path: batch_size load (<1ns, Relaxed)
+/// Q35 Self-Destruct: skip_self_destruct = true
+/// #ASSUME_LSH_STATELESS: BatchLSHLookup holds only Arc<> reference to shared buckets
+/// and batch_size configuration. No mutable coordination state to poison.
+/// All operations are read-only lookups against shared ConcurrentMapCapsule.
 #[derive(ComputationalCapsule, Clone)]
-#[capsule(alignment = 64, size = 64)]
+#[capsule(alignment = 64, size = 64, skip_self_destruct = true)]
 #[repr(C, align(64))]
 pub struct BatchLSHLookup {
     /// Shared LSH buckets from pipeline

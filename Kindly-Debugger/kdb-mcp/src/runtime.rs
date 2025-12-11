@@ -353,7 +353,7 @@ impl McpRuntimeCapsule {
                             Err(e) => {
                                 self.total_errors.fetch_add(1, Ordering::Relaxed);
                                 let error_response = format!(
-                                    r#"{{"jsonrpc":"2.0","error":{{"code":-32600,"message":"{}"}}}}"#,
+                                    r#"{{"jsonrpc":"2.0","id":0,"error":{{"code":-32600,"message":"{}"}}}}"#,
                                     e
                                 );
                                 let _ = transport.write_line(&error_response);

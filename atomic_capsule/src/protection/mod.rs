@@ -51,6 +51,10 @@ pub mod audit_log_q34;
 pub mod q34_compliance;
 pub mod backup_coordinator;
 pub mod precommit_guard;
+#[cfg(feature = "anti-debug")]
+pub mod anti_debug;
+#[cfg(feature = "emulator-detection")]
+pub mod emulator_detection;
 #[cfg(feature = "encrypted-state")]
 pub mod encrypted_state;
 #[cfg(feature = "const-hashing")]
@@ -65,8 +69,16 @@ pub mod tpm_binding;
 pub mod fuzzy_extractor;
 #[cfg(feature = "portable_simd")]
 pub mod obfuscation;
+// T2 SIMD: Cache Partitioning for timing side-channel attack mitigation (95% timing variance masked)
+pub mod cache_partitioning;
 pub mod kernel_coordination;
+#[cfg(feature = "kernel-verify")]
+pub mod kernel_verification;
 pub mod orchestrator;
+// T0+T1: Poisoned Generation - Fractal self-destruct via generation counters
+pub mod poisoned_generation;
+// T1 Atomic Trait: SelfDestructible - Unified self-destruct interface for all protection capsules
+pub mod self_destruct;
 #[cfg(feature = "crypto-license")]
 pub mod quota_tracker;
 #[cfg(feature = "crypto-license")]
@@ -103,12 +115,26 @@ pub use tpm_binding::{TpmBindingCapsule, TpmError};
 pub use fuzzy_extractor::{FuzzyExtractorCapsule, ExtractorError};
 #[cfg(feature = "portable_simd")]
 pub use obfuscation::ObfuscationCapsule;
+pub use cache_partitioning::{CachePartitioningCapsule, CacheLine64};
 pub use kernel_coordination::{
     KernelProtectionCapsule, KernelError, TamperType, ProtectionLevel,
+};
+#[cfg(feature = "kernel-verify")]
+pub use kernel_verification::{
+    KernelVerificationCapsule, KernelVerifyError, KernelStatus, VerificationState,
+    EbpfHookInfo, EbpfHookType,
 };
 pub use orchestrator::{
     ProtectionOrchestratorCapsule, LayerStatus, NUM_LAYERS,
 };
+pub use poisoned_generation::PoisonedGeneration;
+pub use self_destruct::{
+    SelfDestructible, TamperReason, Priority, CascadeResult, Poisoned,
+};
+#[cfg(feature = "anti-debug")]
+pub use anti_debug::{AntiDebugCapsule, DebuggerStatus};
+#[cfg(feature = "emulator-detection")]
+pub use emulator_detection::{EmulatorDetectionCapsule, EmulationResult, VmType, Q8_8 as EmulatorQ8_8};
 #[cfg(feature = "crypto-license")]
 pub use quota_tracker::{QuotaTrackerCapsule, LicenseTier, QuotaStatus, QuotaError};
 #[cfg(feature = "crypto-license")]
@@ -561,5 +587,35 @@ pub mod runtime_integrity;
 pub use runtime_integrity::{
     RuntimeIntegrityCapsule, ProtectedRegion, AnomalyCondition,
     REGION_COUNT, ANOMALY_SCORE_WARNING, ANOMALY_SCORE_LOCKDOWN, ANOMALY_SCORE_PERMANENT,
+};
+
+// T0 Auditable: Protection Probability Tracking with Wilson Score CI and Bayesian Updates
+pub mod probability_tracking;
+pub use probability_tracking::{
+    ProtectionProbabilityCapsule, ProbabilityState, AttackCategory,
+    ProtectionLevel as ProbabilityProtectionLevel, ValidationResult, CategoryStats, Q16_48,
+    NUM_CATEGORIES, AUDIT_CHAIN_SIZE, TARGET_PROTECTION,
+};
+
+// T6 Mixed: UnifiedProtectionMetacapsule - The 26th protection capsule orchestrating all 25 existing capsules
+// Combines T0+T1+T2+T3+T10 sub-tiers for comprehensive protection coordination
+#[cfg(feature = "unified-protection")]
+pub mod unified_metacapsule;
+#[cfg(feature = "unified-protection")]
+pub use unified_metacapsule::{
+    UnifiedProtectionMetacapsule, MetacapsuleState, Subsystem, CapsuleId,
+    HealthSnapshot, DegradationReport, AuditSummary, UnifiedConfig,
+    NUM_SUBSYSTEMS, NUM_CAPSULES, UNIFIED_AUDIT_CHAIN_SIZE, UNIFIED_TARGET_PROTECTION,
+};
+
+// T6 Mixed: EnhancedBehavioralCapsule - 5-model ML ensemble for insider threat detection (90%+ detection rate)
+// Combines T1 Atomic (DualAtomicU64) + T2 SIMD (ensemble voting) + T3 Fixed-Point (Q16.16 weights) +
+// T5 Streaming (event window) + T0 Auditable (hash-chain audit trail)
+#[cfg(feature = "std")]
+pub mod enhanced_behavioral;
+#[cfg(feature = "std")]
+pub use enhanced_behavioral::{
+    EnhancedBehavioralCapsule, BehaviorEvent, EventType, AnomalyScore, Action,
+    f64_to_q16, q16_to_f64, NUM_FEATURES, NUM_MODELS, WINDOW_SIZE,
 };
 

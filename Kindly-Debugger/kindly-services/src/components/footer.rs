@@ -143,7 +143,7 @@ pub fn Footer() -> impl IntoView {
                         <h4 style=column_title_style>"Resources"</h4>
                         <ul style=link_list_style>
                             <li style=link_item_style>
-                                <a href="https://api.kindly.software" style=link_style target="_blank">"API"</a>
+                                <a href="#docs" style=link_style>"Documentation"</a>
                             </li>
                             <li style=link_item_style>
                                 <a href="mailto:support@kindly.software" style=link_style>"Support"</a>

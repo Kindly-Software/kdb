@@ -117,6 +117,17 @@ pub fn validate_capsule(input: &DeriveInput, attrs: &CapsuleAttributes) -> Resul
         validate_verified(input, attrs)?;
     }
 
+    // Q35: Self-destruct validation (100% protection mandate)
+    // Extract fields for validation
+    let fields = match &input.data {
+        syn::Data::Struct(data_struct) => &data_struct.fields,
+        _ => {
+            // Non-structs skip Q35 validation (enums, unions not supported)
+            return Ok(());
+        }
+    };
+    validate_self_destruct(input, attrs, fields)?;
+
     // TODO(Phase 2): DualAtomicU64 pattern check
     // validate_dual_atomic_pattern(input)?;
 
@@ -1171,6 +1182,183 @@ fn is_padding_field(ident: Option<&syn::Ident>) -> bool {
         .unwrap_or(false)
 }
 
+// ============================================================================
+// Q35 Self-Destruct Validation
+// ============================================================================
+
+/// Count atomic fields in struct (excludes padding fields)
+///
+/// # ASSUM Framework
+/// - `#ASSUME_ATOMIC_DETECTABLE`: Atomic types follow "Atomic*" naming pattern
+/// - `#VERIFY_ATOMIC_DETECTION`: Type string contains "Atomic" substring
+///
+/// # Returns
+/// Number of fields with atomic types (AtomicU64, AtomicU32, AtomicBool, DualAtomicU64, etc.)
+/// Excludes padding fields (_padding*, _pad*)
+fn count_atomic_fields(fields: &syn::Fields) -> usize {
+    match fields {
+        syn::Fields::Named(named) => named
+            .named
+            .iter()
+            .filter(|field| {
+                // Skip padding fields
+                if is_padding_field(field.ident.as_ref()) {
+                    return false;
+                }
+
+                // Check if type contains "Atomic" (covers AtomicU64, DualAtomicU64, etc.)
+                let ty_str = quote::quote!(#field.ty).to_string();
+                ty_str.contains("Atomic")
+            })
+            .count(),
+        _ => 0, // Unnamed or unit fields - no atomic detection
+    }
+}
+
+/// Validate Q35 self-destruct requirements
+///
+/// # UCE35 Q35 (Mandatory Self-Destruction)
+/// All capsules using `#[derive(ComputationalCapsule)]` must satisfy Q35 requirements:
+/// - At least one atomic field for poison state tracking (STRICT ENFORCEMENT)
+/// - Valid cascade_level (0-15, 4-bit constraint)
+/// - Valid priority (P0/P1/P2)
+///
+/// # ASSUM Framework
+/// - `#ASSUME_ATOMIC_REQUIRED`: Capsules need atomic fields for poison tracking
+/// - `#VERIFY_ATOMIC_PRESENT`: Checked by count_atomic_fields()
+/// - `#ASSUME_CASCADE_BOUNDED`: Cascade level fits in 4 bits (0-15)
+/// - `#VERIFY_CASCADE_RANGE`: Explicit range check
+/// - `#ASSUME_PRIORITY_VALID`: Priority is P0, P1, or P2
+/// - `#VERIFY_PRIORITY`: Explicit value check
+///
+/// # Validation Logic
+/// 1. If `skip_self_destruct = true`, skip validation (explicit opt-out)
+/// 2. Validate `cascade_level` is 0-15 (4 bits)
+/// 3. Validate `priority` is "P0", "P1", or "P2"
+/// 4. **STRICT**: Error if no atomic fields (100% protection mandate)
+///
+/// # User Decision (100% Protection Mandate)
+/// The user mandate is "100% capsules protected 100%". This means:
+/// - Every capsule MUST have atomic fields for poison tracking
+/// - Stateless capsules without atomics MUST use `skip_self_destruct = true` with ASSUM justification
+/// - No silent fallback to minimal implementations
+///
+/// # Errors
+/// Returns compile error if:
+/// - `cascade_level > 15` (out of 4-bit range)
+/// - `priority` is not "P0", "P1", or "P2"
+/// - No atomic fields present (STRICT ENFORCEMENT)
+pub fn validate_self_destruct(
+    input: &DeriveInput,
+    attrs: &CapsuleAttributes,
+    fields: &syn::Fields,
+) -> Result<()> {
+    // Skip validation if explicitly opted out
+    if attrs.skip_self_destruct {
+        return Ok(());
+    }
+
+    // Validate cascade_level if specified (must be 0-15, 4 bits)
+    if let Some(level) = attrs.cascade_level {
+        if level > 15 {
+            return Err(Error::new_spanned(
+                input,
+                format!(
+                    "Q35 violation: cascade_level must be 0-15 (4-bit constraint)\n\
+                     \n\
+                     Got: {}\n\
+                     \n\
+                     Cascade levels define self-destruct propagation hierarchy:\n\
+                     - 0: Root capsule (triggers cascade)\n\
+                     - 1-14: Intermediate capsule (receives and propagates)\n\
+                     - 15: Leaf capsule (terminal, no propagation)\n\
+                     \n\
+                     Fix: Use cascade_level = {} (clamped to 15)\n\
+                     \n\
+                     Example:\n\
+                     #[capsule(alignment = 64, cascade_level = 0)]  // Root\n\
+                     #[capsule(alignment = 64, cascade_level = 1)]  // Child\n\
+                     #[capsule(alignment = 64, cascade_level = 15)] // Leaf",
+                    level,
+                    level.min(15)
+                ),
+            ));
+        }
+    }
+
+    // Validate priority if specified (must be P0, P1, or P2)
+    if let Some(ref priority) = attrs.priority {
+        if !["P0", "P1", "P2"].contains(&priority.as_str()) {
+            return Err(Error::new_spanned(
+                input,
+                format!(
+                    "Q35 violation: priority must be P0, P1, or P2\n\
+                     \n\
+                     Got: \"{}\"\n\
+                     \n\
+                     Priority levels for self-destruct:\n\
+                     - P0 (Critical): Data integrity critical, immediate self-destruct\n\
+                     - P1 (Important): Composite capsules that can degrade gracefully\n\
+                     - P2 (Enhanced): Optional protection, audit-only\n\
+                     \n\
+                     Default inference from tier:\n\
+                     - T0-T5 (Auditable, Atomic, SIMD, FixedPoint, Batch, Streaming): P0\n\
+                     - T6+ (Mixed, Heterogeneous, Network, Persistent, Probabilistic): P1\n\
+                     \n\
+                     Fix: Use priority = \"P0\" or \"P1\" or \"P2\"\n\
+                     \n\
+                     Example:\n\
+                     #[capsule(alignment = 64, priority = \"P0\")]  // Critical\n\
+                     #[capsule(alignment = 64, priority = \"P1\")]  // Important\n\
+                     #[capsule(alignment = 64, priority = \"P2\")]  // Enhanced",
+                    priority
+                ),
+            ));
+        }
+    }
+
+    // STRICT ENFORCEMENT: Require at least one atomic field (100% protection mandate)
+    let atomic_count = count_atomic_fields(fields);
+
+    if atomic_count == 0 {
+        let struct_name = &input.ident;
+        let alignment = attrs.alignment;
+
+        return Err(Error::new_spanned(
+            input,
+            format!(
+                "Q35 violation: Capsule '{}' has no atomic fields for poison tracking.\n\
+                 \n\
+                 Self-destruct requires at least one atomic field to track poison state.\n\
+                 \n\
+                 Solutions:\n\
+                 1. Add `poison_state: AtomicU64` field (recommended)\n\
+                 2. Add `state: DualAtomicU64` field for full coordination\n\
+                 3. Use `#[capsule(skip_self_destruct = true)]` with ASSUM justification\n\
+                 \n\
+                 Example fix (Option 1):\n\
+                 #[repr(C, align({}))]  // Adjust size as needed\n\
+                 struct {} {{\n\
+                     poison_state: AtomicU64,  // Added for Q35\n\
+                     // ... existing fields ...\n\
+                     _padding: [u8; N],  // Adjust padding\n\
+                 }}\n\
+                 \n\
+                 Example fix (Option 3 - stateless capsule opt-out):\n\
+                 #[capsule(alignment = {}, skip_self_destruct = true)]\n\
+                 // #ASSUME_STATELESS: Pure SIMD/stateless capsule with no coordination state\n\
+                 // #VERIFY_STATELESS: Self-destruct not applicable - no shared state to poison",
+                struct_name,
+                alignment,
+                struct_name,
+                alignment
+            ),
+        ));
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1197,9 +1385,287 @@ mod tests {
             crypto_hash: None,
             auto_pad: false,
             skip_send_sync: false,
+            // Q35 self-destruct attributes
+            // NOTE: skip_self_destruct = true for legacy tests that don't test Q35
+            // Q35-specific tests should create their own CapsuleAttributes
+            skip_self_destruct: true,
+            cascade_level: None,
+            priority: None,
         };
 
         (input, attrs)
+    }
+
+    // ========================================================================
+    // Q35 Self-Destruct Validation Tests
+    // ========================================================================
+
+    #[test]
+    fn test_q35_skip_self_destruct_allows_no_atomic() {
+        // When skip_self_destruct = true, no atomic fields are required
+        let input: DeriveInput = parse_quote! {
+            struct StatelessCapsule {
+                data: [u8; 64],
+            }
+        };
+
+        let attrs = CapsuleAttributes {
+            alignment: 64,
+            size: Some(64),
+            tier: Some("SIMD".to_string()),
+            auditable: false,
+            verified: false,
+            fast_hash: None,
+            crypto_hash: None,
+            auto_pad: false,
+            skip_send_sync: false,
+            skip_self_destruct: true, // Explicit opt-out
+            cascade_level: None,
+            priority: None,
+        };
+
+        assert!(validate_capsule(&input, &attrs).is_ok());
+    }
+
+    #[test]
+    fn test_q35_requires_atomic_fields_when_enabled() {
+        // When skip_self_destruct = false, at least one atomic field required
+        let input: DeriveInput = parse_quote! {
+            struct StatelessCapsule {
+                data: [u8; 64],
+            }
+        };
+
+        let attrs = CapsuleAttributes {
+            alignment: 64,
+            size: Some(64),
+            tier: Some("SIMD".to_string()),
+            auditable: false,
+            verified: false,
+            fast_hash: None,
+            crypto_hash: None,
+            auto_pad: false,
+            skip_send_sync: false,
+            skip_self_destruct: false, // Self-destruct enabled
+            cascade_level: None,
+            priority: None,
+        };
+
+        let result = validate_capsule(&input, &attrs);
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("Q35 violation"));
+        assert!(err_msg.contains("no atomic fields"));
+    }
+
+    #[test]
+    fn test_q35_passes_with_atomic_field() {
+        // Capsule with atomic field should pass Q35 validation
+        let input: DeriveInput = parse_quote! {
+            struct StatefulCapsule {
+                state: AtomicU64,
+                _padding: [u8; 56],
+            }
+        };
+
+        let attrs = CapsuleAttributes {
+            alignment: 64,
+            size: Some(64),
+            tier: Some("Atomic".to_string()),
+            auditable: false,
+            verified: false,
+            fast_hash: None,
+            crypto_hash: None,
+            auto_pad: false,
+            skip_send_sync: false,
+            skip_self_destruct: false, // Self-destruct enabled
+            cascade_level: None,
+            priority: None,
+        };
+
+        // Note: This will still fail due to T1 Atomic tier requirements (generation counter)
+        // We test the atomic field detection separately
+        let fields = match &input.data {
+            syn::Data::Struct(data_struct) => &data_struct.fields,
+            _ => panic!("Expected struct"),
+        };
+        let atomic_count = count_atomic_fields(fields);
+        assert_eq!(atomic_count, 1);
+    }
+
+    #[test]
+    fn test_q35_cascade_level_valid() {
+        // Valid cascade_level (0-15)
+        let input: DeriveInput = parse_quote! {
+            struct TestCapsule {
+                state: AtomicU64,
+            }
+        };
+
+        let attrs = CapsuleAttributes {
+            alignment: 64,
+            size: None,
+            tier: None,
+            auditable: false,
+            verified: false,
+            fast_hash: None,
+            crypto_hash: None,
+            auto_pad: false,
+            skip_send_sync: false,
+            skip_self_destruct: false,
+            cascade_level: Some(15), // Max valid
+            priority: None,
+        };
+
+        let fields = match &input.data {
+            syn::Data::Struct(data_struct) => &data_struct.fields,
+            _ => panic!("Expected struct"),
+        };
+        assert!(validate_self_destruct(&input, &attrs, fields).is_ok());
+    }
+
+    #[test]
+    fn test_q35_cascade_level_invalid() {
+        // Invalid cascade_level (> 15)
+        let input: DeriveInput = parse_quote! {
+            struct TestCapsule {
+                state: AtomicU64,
+            }
+        };
+
+        let attrs = CapsuleAttributes {
+            alignment: 64,
+            size: None,
+            tier: None,
+            auditable: false,
+            verified: false,
+            fast_hash: None,
+            crypto_hash: None,
+            auto_pad: false,
+            skip_send_sync: false,
+            skip_self_destruct: false,
+            cascade_level: Some(16), // Invalid (> 15)
+            priority: None,
+        };
+
+        let fields = match &input.data {
+            syn::Data::Struct(data_struct) => &data_struct.fields,
+            _ => panic!("Expected struct"),
+        };
+        let result = validate_self_destruct(&input, &attrs, fields);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("cascade_level must be 0-15"));
+    }
+
+    #[test]
+    fn test_q35_priority_valid() {
+        // Valid priorities: P0, P1, P2
+        for priority in ["P0", "P1", "P2"] {
+            let input: DeriveInput = parse_quote! {
+                struct TestCapsule {
+                    state: AtomicU64,
+                }
+            };
+
+            let attrs = CapsuleAttributes {
+                alignment: 64,
+                size: None,
+                tier: None,
+                auditable: false,
+                verified: false,
+                fast_hash: None,
+                crypto_hash: None,
+                auto_pad: false,
+                skip_send_sync: false,
+                skip_self_destruct: false,
+                cascade_level: None,
+                priority: Some(priority.to_string()),
+            };
+
+            let fields = match &input.data {
+                syn::Data::Struct(data_struct) => &data_struct.fields,
+                _ => panic!("Expected struct"),
+            };
+            assert!(
+                validate_self_destruct(&input, &attrs, fields).is_ok(),
+                "Priority {} should be valid",
+                priority
+            );
+        }
+    }
+
+    #[test]
+    fn test_q35_priority_invalid() {
+        // Invalid priority
+        let input: DeriveInput = parse_quote! {
+            struct TestCapsule {
+                state: AtomicU64,
+            }
+        };
+
+        let attrs = CapsuleAttributes {
+            alignment: 64,
+            size: None,
+            tier: None,
+            auditable: false,
+            verified: false,
+            fast_hash: None,
+            crypto_hash: None,
+            auto_pad: false,
+            skip_send_sync: false,
+            skip_self_destruct: false,
+            cascade_level: None,
+            priority: Some("P99".to_string()), // Invalid
+        };
+
+        let fields = match &input.data {
+            syn::Data::Struct(data_struct) => &data_struct.fields,
+            _ => panic!("Expected struct"),
+        };
+        let result = validate_self_destruct(&input, &attrs, fields);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("priority must be P0, P1, or P2"));
+    }
+
+    #[test]
+    fn test_count_atomic_fields() {
+        // Test atomic field counting
+        let input: DeriveInput = parse_quote! {
+            struct TestCapsule {
+                state: AtomicU64,
+                counter: AtomicU32,
+                flag: AtomicBool,
+                dual: DualAtomicU64,
+                _padding: [u8; 32],
+            }
+        };
+
+        let fields = match &input.data {
+            syn::Data::Struct(data_struct) => &data_struct.fields,
+            _ => panic!("Expected struct"),
+        };
+
+        // Should count 4 atomic fields (state, counter, flag, dual)
+        // _padding is excluded
+        assert_eq!(count_atomic_fields(fields), 4);
+    }
+
+    #[test]
+    fn test_count_atomic_fields_excludes_padding() {
+        // Padding fields should not be counted even if they contain "Atomic" in name
+        let input: DeriveInput = parse_quote! {
+            struct TestCapsule {
+                data: [u8; 64],
+                _padding: [u8; 0],
+            }
+        };
+
+        let fields = match &input.data {
+            syn::Data::Struct(data_struct) => &data_struct.fields,
+            _ => panic!("Expected struct"),
+        };
+
+        assert_eq!(count_atomic_fields(fields), 0);
     }
 
     #[test]
@@ -1297,6 +1763,10 @@ mod tests {
             crypto_hash: None,
             auto_pad: false,
             skip_send_sync: false,
+            // Q35 self-destruct attributes (default values for tests)
+            skip_self_destruct: false,
+            cascade_level: None,
+            priority: None,
         };
 
         assert!(validate_capsule(&input, &attrs).is_ok());
@@ -1342,6 +1812,10 @@ mod tests {
             crypto_hash: None,
             auto_pad: false,
             skip_send_sync: false,
+            // Q35: Skip for legacy test (no atomic fields)
+            skip_self_destruct: true,
+            cascade_level: None,
+            priority: None,
         };
 
         assert!(validate_capsule(&input, &attrs).is_ok());
@@ -1388,6 +1862,10 @@ mod tests {
             crypto_hash: None,
             auto_pad: false,
             skip_send_sync: false,
+            // Q35: Skip for legacy test (no atomic fields)
+            skip_self_destruct: true,
+            cascade_level: None,
+            priority: None,
         };
         assert!(validate_capsule(&input, &attrs).is_ok());
     }

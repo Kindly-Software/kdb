@@ -45,6 +45,16 @@ flate2 = { version = "1.0", optional = true }
 dashmap = { version = "5.5", optional = true }
 memmap2 = { version = "0.9", optional = true }
 
+# Fast random number generation for session IDs (MCP Streamable HTTP)
+fastrand = "2.0"
+
+# OAuth 2.1 + Google (Phase 3)
+reqwest = { version = "0.12", features = ["json"], optional = true }
+tokio = { version = "1.0", features = ["rt", "macros"], optional = true }
+jsonwebtoken = { version = "9.0", optional = true }
+base64 = { version = "0.22", optional = true }
+urlencoding = { version = "2.1", optional = true }
+
 # PKCS#11 HSM Integration (Phase 5)
 cryptoki = { version = "0.6", optional = true }
 
@@ -122,6 +132,15 @@ json-export = ["json-rpc"]
 distributed-tracing = ["tracing"]
 derive = []
 
+# OAuth 2.1 authentication with Google
+oauth = ["std", "reqwest", "tokio", "jsonwebtoken", "base64", "urlencoding", "sha2", "ring"]
+
+# Google OAuth specific
+google-oauth = ["oauth"]
+
+# Full authentication suite
+full-auth = ["oauth", "google-oauth", "api-key-auth", "auth-guard"]
+
 # Phase 2C: Infrastructure & Transport Features (MIGRATED to atomic_capsule native runtime)
 runtime = ["std", "atomic-capsule-runtime"]
 http-transport = ["std", "atomic-capsule-runtime"]
@@ -131,6 +150,9 @@ stdio-transport = ["std", "atomic-capsule-runtime"]
 atomic-capsule-runtime = ["std"]
 connection-pool = ["std"]
 sse-transport = ["std"]
+
+# MCP Streamable HTTP transport (2025-06-18 spec)
+streamable-http = ["std", "json-rpc"]
 shared-state = ["std", "memmap2"]
 tool-executor = ["std"]
 feature-flags = ["std"]
@@ -190,7 +212,7 @@ required-features = ["std", "json-rpc", "runtime", "http-transport", "tool-execu
 [[bin]]
 name = "mcp_sse_server"
 path = "src/bin/mcp_sse_server.rs"
-required-features = ["std", "json-rpc", "sse-transport"]
+required-features = ["std", "json-rpc", "sse-transport", "streamable-http", "http-transport", "oauth"]
 
 [dev-dependencies]
 proptest = "1.4"

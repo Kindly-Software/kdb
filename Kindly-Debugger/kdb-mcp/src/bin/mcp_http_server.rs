@@ -294,7 +294,7 @@ fn write_error_response(socket: &mut TcpStream, status: u16, message: &str) -> R
     };
 
     let body = format!(
-        r#"{{"jsonrpc":"2.0","error":{{"code":{},"message":"{}"}}}}"#,
+        r#"{{"jsonrpc":"2.0","id":0,"error":{{"code":{},"message":"{}"}}}}"#,
         -(status as i32),
         message.replace('"', "\\\"")
     );

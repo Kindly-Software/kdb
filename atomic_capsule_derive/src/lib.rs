@@ -61,7 +61,7 @@ mod repr_validator;
 mod utils;
 mod validator;
 
-use codegen::generate_verification_code;
+use codegen::{generate_self_destruct_impl, generate_verification_code};
 use field_diagnostics::generate_field_diagnostics;
 use parser::CapsuleAttributes;
 use repr_validator::{validate_repr_alignment, validate_repr_c};
@@ -152,10 +152,25 @@ pub fn derive_computational_capsule(input: TokenStream) -> TokenStream {
     // Generate verification code (const assertions + trait impls)
     let verification = generate_verification_code(&input, &attributes);
 
-    // Combine diagnostics + verification
+    // Extract fields for Q35 self-destruct generation
+    let fields = match &input.data {
+        syn::Data::Struct(data_struct) => &data_struct.fields,
+        _ => {
+            // Should never reach here - validator catches non-structs
+            return syn::Error::new_spanned(&input, "ComputationalCapsule can only be derived for structs")
+                .to_compile_error()
+                .into();
+        }
+    };
+
+    // Generate Q35 self-destruct trait implementation
+    let self_destruct_impl = generate_self_destruct_impl(&input, &attributes, fields);
+
+    // Combine diagnostics + verification + self-destruct
     let output = quote::quote! {
         #diagnostics
         #verification
+        #self_destruct_impl
     };
 
     TokenStream::from(output)

@@ -134,7 +134,7 @@ pub fn Docs() -> impl IntoView {
     ";
 
     view! {
-        <div style=page_style>
+        <div id="docs" style=page_style>
             <div style=container_style>
                 // Header
                 <div style=header_style>
@@ -151,8 +151,7 @@ pub fn Docs() -> impl IntoView {
                         <li><a href="#getting-started" style=nav_link_style>"Getting Started"</a></li>
                         <li><a href="#installation" style=nav_link_style>"Installation"</a></li>
                         <li><a href="#usage" style=nav_link_style>"Basic Usage"</a></li>
-                        <li><a href="#mcp" style=nav_link_style>"MCP Integration"</a></li>
-                        <li><a href="#api" style=nav_link_style>"API Reference"</a></li>
+                        <li><a href="#mcp" style=nav_link_style>"MCP Tools (27)"</a></li>
                         <li><a href="#faq" style=nav_link_style>"FAQ"</a></li>
                     </ul>
                 </nav>
@@ -171,14 +170,13 @@ pub fn Docs() -> impl IntoView {
                         <li style=list_item_style>"Bidirectional execution replay (step forward and backward)"</li>
                         <li style=list_item_style>"Instant snapshots for time-travel debugging"</li>
                         <li style=list_item_style>"MCP protocol integration for AI assistants"</li>
-                        <li style=list_item_style>"REST API for remote debugging"</li>
                         <li style=list_item_style>"Audit trails for compliance workflows"</li>
                     </ul>
                 </section>
 
                 // Installation
                 <section id="installation" style=section_style>
-                    <h2 style=section_title_style>"Getting Started"</h2>
+                    <h2 style=section_title_style>"Installation"</h2>
 
                     <h3 style=subsection_title_style>"Step 1: Sign Up"</h3>
                     <p style=paragraph_style>
@@ -196,20 +194,23 @@ pub fn Docs() -> impl IntoView {
                         "Add KDB to your MCP client (Claude Code, Cursor, or any MCP-compatible tool):"
                     </p>
                     <pre style=code_block_style>
-{"# Claude Code: ~/.config/claude-code/mcp.json
+{"# Claude Code: ~/.claude.json
 # Cursor: Settings > MCP Servers
 
 {
   \"mcpServers\": {
     \"kdb\": {
-      \"command\": \"kdb-mcp\",
-      \"args\": [],
-      \"env\": {
-        \"KDB_LICENSE_KEY\": \"your-license-key\"
+      \"type\": \"http\",
+      \"url\": \"https://mcp.kindly.software/mcp\",
+      \"headers\": {
+        \"X-License-Key\": \"${KDB_LICENSE_KEY}\"
       }
     }
   }
-}"}
+}
+
+# Set environment variable (never commit your key!)
+export KDB_LICENSE_KEY=\"HOB-2025-12-14-a1b2c3d4...\""}
                     </pre>
 
                     <h3 style=subsection_title_style>"Step 3: Start Debugging"</h3>
@@ -278,101 +279,110 @@ quit"}
                     </pre>
                 </section>
 
-                // MCP Integration
+                // MCP Integration - All 27 Tools
                 <section id="mcp" style=section_style>
-                    <h2 style=section_title_style>"MCP Integration"</h2>
+                    <h2 style=section_title_style>"MCP Integration (27 Tools)"</h2>
 
                     <p style=paragraph_style>
-                        "Kindly Debugger supports the Model Context Protocol (MCP) for seamless integration with AI assistants like Claude Code."
+                        "Kindly Debugger supports the Model Context Protocol (MCP) for seamless integration with AI assistants. "
+                        "KDB provides 27 MCP tools organized into 6 categories."
                     </p>
 
                     <h3 style=subsection_title_style>"Configure Claude Code"</h3>
                     <p style=paragraph_style>
-                        "Add KDB as an MCP server in your Claude Code configuration:"
+                        "Add KDB as an MCP server using environment variables for security:"
                     </p>
                     <pre style=code_block_style>
-{"# ~/.config/claude-code/mcp.json
+{"# ~/.claude.json (recommended: use environment variable)
 {
   \"mcpServers\": {
     \"kdb\": {
-      \"command\": \"kdb\",
-      \"args\": [\"--mcp\"],
-      \"env\": {}
+      \"type\": \"http\",
+      \"url\": \"https://mcp.kindly.software/mcp\",
+      \"headers\": {
+        \"X-License-Key\": \"${KDB_LICENSE_KEY}\"
+      }
     }
   }
-}"}
-                    </pre>
-
-                    <h3 style=subsection_title_style>"Available MCP Tools"</h3>
-                    <ul style=list_style>
-                        <li style=list_item_style><code>"debugger/attach"</code>" - Attach to process"</li>
-                        <li style=list_item_style><code>"debugger/set_breakpoint"</code>" - Add breakpoint"</li>
-                        <li style=list_item_style><code>"debugger/continue"</code>" - Resume execution"</li>
-                        <li style=list_item_style><code>"debugger/step_forward"</code>" - Step forward"</li>
-                        <li style=list_item_style><code>"debugger/step_backward"</code>" - Step backward (time-travel)"</li>
-                        <li style=list_item_style><code>"debugger/get_stack_trace"</code>" - View stack"</li>
-                        <li style=list_item_style><code>"debugger/get_registers"</code>" - Read registers"</li>
-                    </ul>
-                </section>
-
-                // API Reference
-                <section id="api" style=section_style>
-                    <h2 style=section_title_style>"REST API Reference"</h2>
-
-                    <p style=paragraph_style>
-                        "Premium licenses include a REST API server for remote debugging (available at "
-                        <a href="https://api.kindly.software" style="color: #FFD700;">"api.kindly.software"</a>
-                        "):"
-                    </p>
-
-                    <h3 style=subsection_title_style>"Attach to Process"</h3>
-                    <pre style=code_block_style>
-{"POST /v1/debug/attach
-Content-Type: application/json
-
-{
-  \"pid\": 12345
 }
 
-Response:
-{
-  \"success\": true,
-  \"pid\": 12345,
-  \"message\": \"Attached to process\"
-}"}
+# Set environment variable (never commit your key!)
+export KDB_LICENSE_KEY=\"HOB-2025-12-14-a1b2c3d4...\""}
                     </pre>
 
-                    <h3 style=subsection_title_style>"Get Stack Trace"</h3>
+                    <h3 style=subsection_title_style>"Core Debugging (7 tools)"</h3>
+                    <p style=paragraph_style>"Essential debugging operations available to all tiers:"</p>
+                    <ul style=list_style>
+                        <li style=list_item_style><code>"debugger/attach"</code>" - Attach to process via ptrace"</li>
+                        <li style=list_item_style><code>"debugger/set_breakpoint"</code>" - Set breakpoint at memory address"</li>
+                        <li style=list_item_style><code>"debugger/continue"</code>" - Resume execution after breakpoint"</li>
+                        <li style=list_item_style><code>"debugger/step_forward"</code>" - Single-step forward one instruction"</li>
+                        <li style=list_item_style><code>"debugger/step_backward"</code>" - Time-travel backward [Hobby: 3/day]"</li>
+                        <li style=list_item_style><code>"debugger/get_stack_trace"</code>" - SIMD-accelerated stack unwinding"</li>
+                        <li style=list_item_style><code>"debugger/get_variables"</code>" - Read process memory at address"</li>
+                    </ul>
+
+                    <h3 style=subsection_title_style>"Session Management (7 tools)"</h3>
+                    <p style=paragraph_style>"Manage debugging sessions with tiered resource allocation:"</p>
+                    <ul style=list_style>
+                        <li style=list_item_style><code>"debugger/allocate_session"</code>" - Allocate tiered session (Light/Medium/Heavy)"</li>
+                        <li style=list_item_style><code>"debugger/release_session"</code>" - Release debugging session"</li>
+                        <li style=list_item_style><code>"debugger/get_session_tier"</code>" - Get current session tier"</li>
+                        <li style=list_item_style><code>"debugger/upgrade_session"</code>" - Upgrade to higher tier"</li>
+                        <li style=list_item_style><code>"debugger/get_pool_stats"</code>" - Pool statistics snapshot"</li>
+                        <li style=list_item_style><code>"debugger/quota_status"</code>" - Quota tier/limits/usage"</li>
+                        <li style=list_item_style><code>"debugger/license_info"</code>" - License tier/validation/expiry"</li>
+                    </ul>
+
+                    <h3 style=subsection_title_style>"Memory Replay (6 tools) [Pro+]"</h3>
+                    <p style=paragraph_style>"Copy-on-write memory tracking for time-travel debugging:"</p>
+                    <ul style=list_style>
+                        <li style=list_item_style><code>"debugger/enable_memory_replay"</code>" - Enable COW tracking"</li>
+                        <li style=list_item_style><code>"debugger/capture_memory_snapshot"</code>" - Capture snapshot"</li>
+                        <li style=list_item_style><code>"debugger/read_memory_at_snapshot"</code>" - Read historical memory [Engineer+]"</li>
+                        <li style=list_item_style><code>"debugger/navigate_to_snapshot"</code>" - Navigate to snapshot"</li>
+                        <li style=list_item_style><code>"debugger/get_memory_replay_stats"</code>" - Replay statistics"</li>
+                        <li style=list_item_style><code>"debugger/verify_memory_integrity"</code>" - Q34 hash-chain verification"</li>
+                    </ul>
+
+                    <h3 style=subsection_title_style>"Analysis (2 tools) [Engineer+]"</h3>
+                    <p style=paragraph_style>"Advanced bug detection and trace analysis:"</p>
+                    <ul style=list_style>
+                        <li style=list_item_style><code>"debugger/find_similar_bugs"</code>" - T10 probabilistic LSH bug search"</li>
+                        <li style=list_item_style><code>"debugger/export_trace"</code>" - T5 streaming execution trace export"</li>
+                    </ul>
+
+                    <h3 style=subsection_title_style>"Security (4 tools)"</h3>
+                    <p style=paragraph_style>"Observer/Operator access mode with Ed25519 authentication:"</p>
+                    <ul style=list_style>
+                        <li style=list_item_style><code>"debugger/get_access_mode"</code>" - Get Observer/Operator mode"</li>
+                        <li style=list_item_style><code>"debugger/request_operator_challenge"</code>" - Request Ed25519 challenge"</li>
+                        <li style=list_item_style><code>"debugger/elevate_to_operator"</code>" - Submit signature to elevate"</li>
+                        <li style=list_item_style><code>"debugger/revoke_operator"</code>" - Drop to Observer mode"</li>
+                    </ul>
+
+                    <h3 style=subsection_title_style>"Audit (1 tool)"</h3>
+                    <p style=paragraph_style>"Q34 compliance and audit trail:"</p>
+                    <ul style=list_style>
+                        <li style=list_item_style><code>"debugger/get_comprehensive_audit"</code>" - Q34 compliance audit"</li>
+                    </ul>
+
+                    <h3 style=subsection_title_style>"Tier Feature Matrix"</h3>
                     <pre style=code_block_style>
-{"GET /v1/debug/stack
-
-Response:
-{
-  \"success\": true,
-  \"frames\": [
-    {
-      \"address\": \"0x12345678\",
-      \"function\": \"main\",
-      \"file\": \"src/main.rs\",
-      \"line\": 42
-    }
-  ],
-  \"depth\": 5
-}"}
-                    </pre>
-
-                    <h3 style=subsection_title_style>"Step Backward (Time-Travel)"</h3>
-                    <pre style=code_block_style>
-{"POST /v1/debug/step-back
-
-Response:
-{
-  \"success\": true,
-  \"snapshot_id\": 127,
-  \"address\": \"0x12345670\"
-}"}
+{"Feature                    | Hobby | Pro  | Engineer | Teams | Enterprise
+---------------------------|-------|------|----------|-------|------------
+Core Debugging (7)         | Yes   | Yes  | Yes      | Yes   | Yes
+step_backward limit        | 3/day | Unlim| Unlim    | Unlim | Unlim
+Session Management (7)     | Yes   | Yes  | Yes      | Yes   | Yes
+Memory Replay (basic)      | No    | Yes  | Yes      | Yes   | Yes
+read_memory_at_snapshot    | No    | No   | Yes      | Yes   | Yes
+find_similar_bugs (LSH)    | No    | No   | Yes      | Yes   | Yes
+export_trace               | No    | No   | Yes      | Yes   | Yes
+Security Tools (4)         | Yes   | Yes  | Yes      | Yes   | Yes
+Audit (Q34 compliance)     | Yes   | Yes  | Yes      | Yes   | Yes"}
                     </pre>
                 </section>
+
 
                 // FAQ
                 <section id="faq" style=section_style>
@@ -434,7 +444,7 @@ Response:
                     <ul style=list_style>
                         <li style=list_item_style>"Email: support@kindly.software"</li>
                         <li style=list_item_style>"Website: kindly.software"</li>
-                        <li style=list_item_style>"API Documentation: api.kindly.software"</li>
+                        <li style=list_item_style>"Documentation: kindly.software/docs"</li>
                     </ul>
                 </section>
             </div>

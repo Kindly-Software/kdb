@@ -46,58 +46,59 @@ const LICENSE_TIERS: &[LicenseTier] = &[
         badge: None,
     },
     LicenseTier {
-        name: "Starter",
-        price: "$15",
-        price_period: "/month",
-        description: "For individual developers",
-        requests_per_month: "20 sessions",
-        seats: "1",
-        snapshot_retention: "7 days",
-        features: &[
-            "Enhanced audit logging",
-            "Multi-process attachment",
-            "Breakpoint persistence",
-            "Stack trace export",
-            "hash-chain integrity",
-        ],
-        support: "Email (48h SLA)",
-        is_featured: false,
-        badge: None,
-    },
-    LicenseTier {
-        name: "Developer",
-        price: "$39",
+        name: "Pro",
+        price: "$19",
         price_period: "/month",
         description: "For professional developers",
         requests_per_month: "100 sessions",
         seats: "1",
         snapshot_retention: "30 days",
         features: &[
-            "Remote debugging API",
+            "Unlimited time-travel",
             "MCP server integration",
             "Bi-directional replay",
             "Memory region inspection",
-            "Register state capture",
-            "Symbol table integration",
+            "Extended snapshot retention",
+            "Priority support",
         ],
         support: "Priority Email (24h SLA)",
         is_featured: true,
         badge: Some("MOST POPULAR"),
     },
     LicenseTier {
-        name: "Professional",
-        price: "$199",
+        name: "Engineer",
+        price: "$49",
+        price_period: "/month",
+        description: "For power users who need advanced debugging",
+        requests_per_month: "500 sessions",
+        seats: "1",
+        snapshot_retention: "60 days",
+        features: &[
+            "Everything in Pro",
+            "Full memory replay",
+            "LSH similar bug search",
+            "Read memory at snapshot",
+            "Export execution traces",
+            "Priority support",
+        ],
+        support: "Priority Email (12h SLA)",
+        is_featured: false,
+        badge: None,
+    },
+    LicenseTier {
+        name: "Teams",
+        price: "$129",
         price_period: "/month",
         description: "For teams and organizations",
-        requests_per_month: "Unlimited",
-        seats: "5",
+        requests_per_month: "2,000 sessions",
+        seats: "5 included",
         snapshot_retention: "90 days",
         features: &[
             "Team collaboration features",
             "Centralized audit dashboard",
             "SOC2/GDPR compliance reports",
             "Custom snapshot policies",
-            "API rate limit controls",
+            "Shared audit logs",
             "Dedicated support channel",
         ],
         support: "Slack/Discord (4h SLA)",
@@ -106,8 +107,8 @@ const LICENSE_TIERS: &[LicenseTier] = &[
     },
     LicenseTier {
         name: "Enterprise",
-        price: "Custom",
-        price_period: "",
+        price: "From $999",
+        price_period: "/month",
         description: "For regulated industries",
         requests_per_month: "Unlimited",
         seats: "Unlimited",
@@ -268,11 +269,11 @@ pub fn LicensePage() -> impl IntoView {
 {r#"KDB-[TIER]-[TIMESTAMP]-[ORG_HASH]-[SIGNATURE]
 
 Example:
-KDB-DEV-20251203-a8f2c91e-Ed25519:base64_signature
+KDB-PRO-20251203-a8f2c91e-Ed25519:base64_signature
 
 Components:
   KDB       - Product identifier (Kindly Debugger)
-  TIER      - License tier (HOB|STR|DEV|PRO|ENT)
+  TIER      - License tier (HOB|PRO|TEA|ENT)
   TIMESTAMP - Issue date (YYYYMMDD)
   ORG_HASH  - SHA256(organization_id)[0:8]
   SIGNATURE - Ed25519 signature over payload"#}
@@ -800,14 +801,14 @@ mod tests {
     #[test]
     fn test_license_tier_names() {
         let names: Vec<&str> = LICENSE_TIERS.iter().map(|t| t.name).collect();
-        assert_eq!(names, vec!["Hobby", "Starter", "Developer", "Professional", "Enterprise"]);
+        assert_eq!(names, vec!["Hobby", "Pro", "Engineer", "Teams", "Enterprise"]);
     }
 
     #[test]
-    fn test_featured_tier_is_developer() {
+    fn test_featured_tier_is_pro() {
         let featured = LICENSE_TIERS.iter().find(|t| t.is_featured);
         assert!(featured.is_some());
-        assert_eq!(featured.unwrap().name, "Developer");
+        assert_eq!(featured.unwrap().name, "Pro");
     }
 
     #[test]
@@ -832,10 +833,24 @@ mod tests {
     }
 
     #[test]
-    fn test_professional_tier_seats() {
-        let pro = LICENSE_TIERS.iter().find(|t| t.name == "Professional");
+    fn test_teams_tier_seats() {
+        let teams = LICENSE_TIERS.iter().find(|t| t.name == "Teams");
+        assert!(teams.is_some());
+        assert_eq!(teams.unwrap().seats, "5 included");
+    }
+
+    #[test]
+    fn test_pro_tier_sessions() {
+        let pro = LICENSE_TIERS.iter().find(|t| t.name == "Pro");
         assert!(pro.is_some());
-        assert_eq!(pro.unwrap().seats, "5");
+        assert_eq!(pro.unwrap().requests_per_month, "100 sessions");
+    }
+
+    #[test]
+    fn test_teams_tier_sessions() {
+        let teams = LICENSE_TIERS.iter().find(|t| t.name == "Teams");
+        assert!(teams.is_some());
+        assert_eq!(teams.unwrap().requests_per_month, "2,000 sessions");
     }
 
     #[test]

@@ -139,6 +139,12 @@
 #[cfg(feature = "std")]
 extern crate std;
 
+// Allow self-reference as `atomic_capsule` for derive macro compatibility
+// This enables generated code from #[derive(ComputationalCapsule)] to use
+// `::atomic_capsule::__private::protection::*` paths both inside and outside
+// this crate.
+extern crate self as atomic_capsule;
+
 // Panic handler for no_std mode (required by Rust)
 // #ASSUME_NO_STD_PANIC: In no_std mode, panics abort execution
 // #VERIFY_NO_STD_PANIC: Embedded targets must handle panics via linker
@@ -390,6 +396,11 @@ pub mod mux;
 #[cfg(feature = "std")]
 pub mod protection;
 
+// License Entanglement Capsules - T6 Mixed (T0+T1+T3) DRM where license IS computation
+// [TRADE SECRET] - Breakthrough DRM: wrong license = wrong computation = garbage output
+#[cfg(feature = "license-entanglement")]
+pub mod license;
+
 // Phase 2.6: Daemon Module - T1 Atomic Inter-Process Synchronization (requires std)
 #[cfg(feature = "std")]
 pub mod daemon;
@@ -487,6 +498,15 @@ pub use collections::{
 pub use protection::{
     AuditEntry, AuditTrailCapsule, BackupCoordinatorCapsule, BackupResult, BackupStatus,
     DataProtectionCapsule, PrecommitGuardCapsule, PrecommitResult,
+};
+
+// Re-export license entanglement capsules for convenience (requires license-entanglement)
+// [TRADE SECRET] - Breakthrough DRM: license IS computation, not gate around it
+#[cfg(feature = "license-entanglement")]
+pub use license::{
+    LicenseEntangledCapsule, License, LicenseError, LicenseFeatures, ComputationResult,
+    LicenseAuditCapsule, LicenseAuditEntry, AuditAnchor,
+    EntangledGeneration, RotationSchedule,
 };
 
 // Re-export daemon capsules for convenience (requires std)
@@ -587,5 +607,31 @@ mod tests {
         // Verify power of 2
         assert_eq!(MIN_ALIGNMENT.count_ones(), 1);
         assert_eq!(MAX_ALIGNMENT.count_ones(), 1);
+    }
+}
+
+// ============================================================================
+// Hidden module for derive macro support
+// ============================================================================
+//
+// This module provides a re-export of the crate that works both:
+// 1. When the derive macro is used INSIDE atomic_capsule (via `crate`)
+// 2. When the derive macro is used OUTSIDE atomic_capsule (via extern crate)
+//
+// The derive macro generates code like:
+//   ::atomic_capsule::__private::protection::CascadeResult
+//
+// This ensures consistent path resolution regardless of usage context.
+// See atomic_capsule_derive codegen for usage.
+#[doc(hidden)]
+pub mod __private {
+    // Re-export protection types for derive macro
+    #[cfg(feature = "std")]
+    pub use crate::protection;
+
+    // Placeholder for no_std builds
+    #[cfg(not(feature = "std"))]
+    pub mod protection {
+        //! Placeholder protection module for no_std builds
     }
 }

@@ -49,10 +49,11 @@ missing_capsule_verification = "deny"  # Fail compilation if capsule lacks verif
 # ============================================================================
 
 [features]
-# TIER 1: Core (BREAKING CHANGE: default = [] instead of ["std", "memmap2"])
-default = []  # ⚠️ BREAKING: Users must choose platform or enable std
+# TIER 1: Core (BREAKING CHANGE v0.11.0: default = ["self-destruct"] - UCE35 Q35 mandates self-destruction for ALL capsules)
+default = ["self-destruct"]  # UCE35 Q35: Self-destruct MANDATORY for ALL capsules (tamper-triggered cascade invalidation via PoisonedGeneration)
 alloc = []  # Heap allocation (Vec, Box, Arc) without full std
 std = ["alloc"]  # Standard library support
+test-helpers = []  # Enable test constructors (for_testing, for_testing_with_state) in integration tests
 
 # TIER 2: Platform Selection (choose ONE)
 # #ASSUME_PLATFORM_EXCLUSIVE: Only one platform feature enabled per build
@@ -71,6 +72,7 @@ capsule-os = ["std"]  # Future: Capsule OS native syscalls
 
 # T0: Auditable Foundation
 const-hashing = []  # Compile-time FNV-1a hash (0ns runtime, 100× vs dynamic)
+self-destruct = ["std"]  # UCE35 Q35 MANDATORY: Tamper-triggered cascade invalidation via PoisonedGeneration (56-bit gen + 4 flags: POISONED/CORRUPTED/PROPAGATING/TERMINAL)
 simd-hashing = ["nightly", "portable_simd"]  # SIMD field hashing (2-8× for 4+ fields)
 nightly-atomic = ["nightly"]  # AtomicFromMut (zero-copy atomic views, requires #76314)
 capsule-serialize = ["std", "dep:crc32fast", "dep:crc"]  # FixedPointSerialize trait (audit trails)
@@ -414,6 +416,7 @@ highway-hash = ["dep:highway"]  # High-performance SIMD hashing (2-4× faster)
 fips-compliant = ["audit-trail", "dep:sha2"]  # FIPS 140-2 compliance (SHA-256)
 keyed-hashing = ["fips-compliant", "std"]  # HMAC-based keyed hashing
 crypto-license = ["std", "dep:ed25519-dalek", "derive"]  # Ed25519 signature-based licensing (T1 Atomic + Ed25519)
+license-entanglement = ["std", "dep:ed25519-dalek", "dep:sha2", "derive"]  # T6 Mixed: License IS computation (T0+T1+T3 entangled, Ed25519+SHA256)
 
 # TIER 7: Feature Presets (optimized combinations)
 profile-development = ["fast-hash"]  # Development: Fast hash only (+8KB, <5ns)
@@ -470,6 +473,30 @@ cli = ["data-protection", "dep:clap", "dep:anyhow", "dep:glob"]  # Data protecti
 orchestrator = ["std"]  # T6 Mixed: 11-layer protection orchestration (lockfree coordination)
 runtime-integrity = ["std", "dep:sha2"]  # T0+T1: Runtime integrity verification with hash-chained code regions (Phase 12B)
 supply-chain-verifier = ["std", "dep:sha2", "dep:serde_json", "dep:strsim", "dep:ed25519-dalek", "dep:hex", "crypto-license"]  # T0+T1 Mixed: SLSA v1.0 + SBOM (SPDX 3.0, CycloneDX 1.6) + Sigstore verification (Nov 22, 2025) - PRODUCTION CRYPTO
+
+# Anti-Debug Protection (T1 Atomic - P0 Critical, blocks 80% of attacks)
+anti-debug = ["std"]  # T1 Atomic: Multi-method debugger detection (ptrace, TracerPid, RDTSC timing, Windows API)
+
+# Emulator Detection (T1 Atomic - P0 Critical, 90% VM/emulator detection)
+emulator-detection = ["std"]  # T1 Atomic: 5-method VM/emulator detection (CPUID timing, Red Pill SIDT, VMware backdoor, BIOS signatures, VirtualBox artifacts)
+
+# Kernel Verification (T1 Atomic + T0 Auditable - P0 Critical, kernel-level protection)
+kernel-verify = ["std"]  # T1+T0: Kernel module integrity verification (module signatures, syscall table, eBPF hooks, Q34 audit trail)
+kernel-verify-linux = ["kernel-verify"]  # Linux-specific: /sys/module + /proc/kallsyms parsing
+anti-debug-linux = ["anti-debug"]  # Linux-specific: ptrace + TracerPid (requires libc)
+anti-debug-windows = ["anti-debug"]  # Windows-specific: IsDebuggerPresent, CheckRemoteDebuggerPresent
+
+# Cache Partitioning (T2 SIMD - 95% cache timing protection)
+cache-partitioning = ["std", "nightly", "portable_simd"]  # T2 SIMD: Cache timing side-channel protection (<200ns, SIMD noise injection, constant-time memory access)
+
+# Enhanced Behavioral Analysis (T6 Mixed - 90% insider threat detection)
+enhanced-behavioral = ["std", "fixed-point"]  # T6 Mixed: 5-model ML ensemble anomaly detection (Statistical, Markov, Isolation Forest, LSTM-lite, Ensemble Voting, Q16.16 fixed-point)
+
+# Protection Probability Tracking (T0 Auditable - Mathematical verification)
+probability-tracking = ["std", "fixed-point"]  # T0 Auditable: Q16.48 precision probability tracking, Wilson score CI, Bayesian Beta-Binomial, Monte Carlo validation, Q34 FNV-1a audit chain
+
+# Unified Protection Metacapsule (T6 Mixed - 26th protection capsule orchestrating all 25 existing capsules)
+unified-protection = ["std", "fixed-point", "probability-tracking"]  # T6 Mixed: Combines T0+T1+T2+T3+T10 sub-tiers, 2048B capsule, <50ns snapshot, <500ns health check, Q34 audit trail
 
 # Security Protection System Capsules (T6 Mixed composite, Phase Nov 22, 2025)
 security-zero-trust = ["std"]  # ZeroTrustSessionCapsule: Continuous session verification with dynamic risk scoring (T0+T1+T3)

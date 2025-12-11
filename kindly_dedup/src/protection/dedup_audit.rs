@@ -63,8 +63,13 @@ pub enum DedupEventType {
 ///
 /// **Deterministic Serialization**: Manual binary serialization ensures
 /// hash chain integrity (SOX/SOC2/GDPR/HIPAA compliance).
+/// Q35 Self-Destruct: skip_self_destruct = true
+/// #ASSUME_AUDIT_IMMUTABLE: T0 Auditable events are write-once, read-many.
+/// Once created, event fields are immutable (Copy semantics). Hash chain
+/// integrity requires deterministic serialization, not coordination state.
+/// No poison_state needed - events have no mutable shared state to invalidate.
 #[derive(ComputationalCapsule, Clone, Copy, PartialEq, Debug)]
-#[capsule(alignment = 256, size = 256)]
+#[capsule(alignment = 256, size = 256, skip_self_destruct = true)]
 #[repr(C, align(256))]
 pub struct DedupAuditEvent {
     /// Event timestamp (Q16.16 for deterministic serialization)

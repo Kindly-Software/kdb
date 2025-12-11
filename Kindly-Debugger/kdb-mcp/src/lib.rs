@@ -98,6 +98,12 @@ pub mod trial_state;  // T1 Atomic trial period tracking (128B, 7-day trial with
 pub mod session_persistence;  // T1 Atomic + T9 Persistent session persistence (capsule_cache integration)
 
 // ============================================================================
+// OAuth 2.0 Authentication (CSRF + PKCE)
+// ============================================================================
+
+pub mod oauth;  // T1 Atomic OAuth state storage (4KB, CSRF/PKCE support)
+
+// ============================================================================
 // T28 Deterministic Testing Framework (Q8-Q14 Property Tests)
 // ============================================================================
 
@@ -204,6 +210,9 @@ pub mod sse_connection_pool;
 
 #[cfg(feature = "sse-transport")]
 pub mod sse_transport;
+
+#[cfg(feature = "streamable-http")]
+pub mod streamable_http;
 
 #[cfg(feature = "shared-state")]
 pub mod shared_state;
@@ -325,6 +334,52 @@ pub use session_persistence::{
     SessionMetadata,
     PersistenceError,
     PersistenceStats,
+};
+
+// OAuth types (oauth) - CSRF state and PKCE storage
+pub use oauth::{
+    OAuthStateCapsule,
+    OAuthStateSlot,
+    OAuthStateError,
+    OAuthStateStats,
+    StoredStateData,
+    CodeChallengeMethod,
+    fnv1a_hash as oauth_fnv1a_hash,
+};
+
+// Google OAuth client types (feature-gated)
+#[cfg(feature = "google-oauth")]
+pub use oauth::{
+    GoogleOAuthClientCapsule,
+    GoogleTokenResponse,
+    GoogleUserInfo,
+    IdTokenClaims,
+    GoogleTokenError,
+    GoogleOAuthError,
+    OAuthMetrics,
+    GOOGLE_AUTH_URL,
+    GOOGLE_TOKEN_URL,
+    GOOGLE_USERINFO_URL,
+    GOOGLE_JWKS_URL,
+    GOOGLE_SCOPES,
+};
+
+// OAuth user mapping types (oauth feature)
+#[cfg(feature = "oauth")]
+pub use oauth::{
+    OAuthUserCapsule,
+    OAuthUserError,
+    OAuthUserStats,
+    fnv1a_hash_oauth,
+    USER_TABLE_SLOTS,
+    AuthorizationCodeCapsule,
+    AuthCodeError,
+    AuthCodeStats,
+    fnv1a_hash_code,
+    sha256_to_fnv,
+    generate_secure_code,
+    CODE_TABLE_SLOTS,
+    CODE_TTL_SECS,
 };
 
 // Re-export Command from access_control if available
@@ -522,6 +577,28 @@ pub use sse_transport::{
     DEFAULT_MESSAGE_QUEUE_SIZE,
     DEFAULT_PORT as SSE_DEFAULT_PORT,
 };
+
+#[cfg(feature = "streamable-http")]
+pub use streamable_http::{
+    StreamableHttpTransportCapsule,
+    StreamableHttpError,
+    McpResponse,
+    McpHeaders,
+    ResponseType,
+    TransportState as StreamableHttpTransportState,
+    // Constants
+    DEFAULT_PORT as STREAMABLE_HTTP_DEFAULT_PORT,
+    DEFAULT_MAX_BODY_SIZE,
+    DEFAULT_REQUEST_TIMEOUT_MS,
+    MCP_PROTOCOL_VERSION,
+    MCP_PROTOCOL_VERSION_STR,
+    FLAG_CORS_ENABLED,
+    FLAG_STREAMING_ENABLED,
+};
+
+// OAuth 2.1 re-exports (all items exported via oauth::mod already)
+#[cfg(feature = "oauth")]
+pub use oauth::*;
 
 // Note: ab_testing module doesn't define AbTestingCapsule yet
 // #[cfg(feature = "ab-testing")]

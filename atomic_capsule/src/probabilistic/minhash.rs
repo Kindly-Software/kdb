@@ -45,11 +45,16 @@
 #[cfg(feature = "portable_simd")]
 use core::simd::{cmp::SimdPartialEq, u16x8};
 
+use core::sync::atomic::{AtomicU64, Ordering};
+
 /// MinHash signature capsule for Jaccard similarity estimation
 ///
-/// # Layout (256 bytes, Warm Tier) - Q8.8 Fixed-Point
+/// # Layout (512 bytes, Warm Tier) - Q8.8 Fixed-Point + Poison State
 /// - Signature: 128 × u16 = 256 bytes (128 minimum hash values)
-/// - **50% memory reduction** from previous Q16.16 (u32) implementation
+/// - poison_state: AtomicU64 = 8 bytes (Q35 self-destruct tracking)
+/// - Implicit padding to 256-byte alignment = 248 bytes
+/// - Total: 512 bytes (aligns to 256B boundary)
+/// - **Signature data is 50% smaller** than Q16.16 (u32) implementation
 ///
 /// # Performance
 /// - Signature computation: <1μs (1000 tokens, 128 hashes)
@@ -66,11 +71,13 @@ use core::simd::{cmp::SimdPartialEq, u16x8};
 /// - `#ASSUME_HASH_INDEPENDENCE`: MurmurHash3 seeds provide independence
 /// - `#VERIFY_HASH_QUALITY`: Collision rate <0.01% in practice
 /// - `#ASSUME_Q8_8_SUFFICIENT`: 37× precision margin over statistical error
+/// - `#ASSUME_POISON_STATE_ATOMIC`: AtomicU64 provides lockfree poison tracking
 #[repr(C, align(256))]
-#[derive(Clone)]
 pub struct MinHashSignatureCapsule {
     /// MinHash signature (128 minimum hash values, u16 for Q8.8 precision)
     signature: [u16; 128],
+    /// Q35: Self-destruct poison state tracking (0 = healthy)
+    poison_state: AtomicU64,
 }
 
 impl MinHashSignatureCapsule {
@@ -82,9 +89,10 @@ impl MinHashSignatureCapsule {
     ///
     /// let minhash = MinHashSignatureCapsule::new();
     /// ```
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             signature: [u16::MAX; 128],
+            poison_state: AtomicU64::new(0),
         }
     }
 
@@ -102,8 +110,11 @@ impl MinHashSignatureCapsule {
     /// let signature = [0u16; 128]; // Pre-computed signature
     /// let minhash = MinHashSignatureCapsule::from_signature(signature);
     /// ```
-    pub const fn from_signature(signature: [u16; 128]) -> Self {
-        Self { signature }
+    pub fn from_signature(signature: [u16; 128]) -> Self {
+        Self {
+            signature,
+            poison_state: AtomicU64::new(0),
+        }
     }
 
     /// Get signature slice
@@ -140,7 +151,10 @@ impl MinHashSignatureCapsule {
             }
         }
 
-        Self { signature }
+        Self {
+            signature,
+            poison_state: AtomicU64::new(0),
+        }
     }
 
     /// Update signature with new token
@@ -296,6 +310,15 @@ impl MinHashSignatureCapsule {
     }
 }
 
+impl Clone for MinHashSignatureCapsule {
+    fn clone(&self) -> Self {
+        Self {
+            signature: self.signature,
+            poison_state: AtomicU64::new(self.poison_state.load(Ordering::Relaxed)),
+        }
+    }
+}
+
 impl Default for MinHashSignatureCapsule {
     fn default() -> Self {
         Self::new()
@@ -421,9 +444,13 @@ fn murmur3_hash(data: &[u8], seed: u32) -> u32 {
     hash
 }
 
-// Compile-time verification (Q8.8 optimization)
+// Compile-time verification (Q8.8 optimization + poison_state)
+// NOTE: Size increased from 256B to 512B to accommodate poison_state: AtomicU64
+// - signature: 128 × u16 = 256B
+// - poison_state: AtomicU64 = 8B
+// - Padding to 512B alignment = 248B implicit
 const _: () = {
-    assert!(core::mem::size_of::<MinHashSignatureCapsule>() == 256);
+    assert!(core::mem::size_of::<MinHashSignatureCapsule>() == 512);
     assert!(core::mem::align_of::<MinHashSignatureCapsule>() == 256);
 };
 
@@ -435,6 +462,7 @@ const _: () = {
 /// - Maintain API compatibility during transition
 pub mod migration {
     use super::MinHashSignatureCapsule;
+    use core::sync::atomic::AtomicU64;
 
     /// Legacy Q16.16 signature format (deprecated, for migration only)
     ///
@@ -465,6 +493,7 @@ pub mod migration {
             }
             MinHashSignatureCapsule {
                 signature: new_signature,
+                poison_state: AtomicU64::new(0),
             }
         }
 
@@ -500,7 +529,8 @@ mod tests {
 
     #[test]
     fn test_minhash_layout() {
-        assert_eq!(core::mem::size_of::<MinHashSignatureCapsule>(), 256);
+        // NOTE: Size increased from 256B to 512B to accommodate poison_state: AtomicU64
+        assert_eq!(core::mem::size_of::<MinHashSignatureCapsule>(), 512);
         assert_eq!(core::mem::align_of::<MinHashSignatureCapsule>(), 256);
     }
 
@@ -595,13 +625,14 @@ mod tests {
     }
 
     #[test]
-    fn test_memory_reduction() {
-        // Verify 50% memory reduction (512B → 256B)
-        let old_size = 512; // Previous Q16.16 implementation
+    fn test_memory_size() {
+        // NOTE: With poison_state: AtomicU64, size is now 512B (same as old Q16.16)
+        // - signature: 128 × u16 = 256B (was 128 × u32 = 512B in Q16.16)
+        // - poison_state: AtomicU64 = 8B
+        // - Padding to 256B alignment = 248B implicit
+        // Net: Same size but different layout (signature data is half the size + atomic field)
         let new_size = core::mem::size_of::<MinHashSignatureCapsule>();
-
-        assert_eq!(new_size, 256);
-        assert_eq!(new_size, old_size / 2); // Exactly 50% reduction
+        assert_eq!(new_size, 512);
     }
 
     #[test]

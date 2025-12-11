@@ -85,7 +85,7 @@ use atomic_capsule_derive::ComputationalCapsule;
 /// assert_eq!(result.to_array(), [1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5]);
 /// ```
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
-#[cfg_attr(feature = "derive", capsule(alignment = 64, size = 64))]
+#[cfg_attr(feature = "derive", capsule(alignment = 64, size = 64, skip_self_destruct = true))]
 #[repr(C, align(64))]
 #[derive(Clone, Copy, Debug)]
 pub struct SimdF32x8Capsule {
@@ -94,6 +94,8 @@ pub struct SimdF32x8Capsule {
     /// Cache line padding (complete 64-byte alignment)
     _padding: [u8; 32],
 }
+// #ASSUME_SIMD_STATELESS: Pure SIMD primitive with no coordination state.
+// #VERIFY_SIMD: Self-destruct not applicable - immutable Copy type with f32 array only.
 
 impl SimdF32x8Capsule {
     /// Create from array (zero-cost)
@@ -246,7 +248,7 @@ impl Default for SimdF32x8Capsule {
 /// - `#ASSUME_RESOURCE_CLEANUP`: Trivially droppable (Copy type)
 /// - `#VERIFY_DROP_SAFE`: N/A (no manual Drop)
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
-#[cfg_attr(feature = "derive", capsule(alignment = 64, size = 64))]
+#[cfg_attr(feature = "derive", capsule(alignment = 64, size = 64, skip_self_destruct = true))]
 #[repr(C, align(64))]
 #[derive(Clone, Copy, Debug)]
 pub struct SimdI32x8Capsule {
@@ -255,6 +257,8 @@ pub struct SimdI32x8Capsule {
     /// Cache line padding
     _padding: [u8; 32],
 }
+// #ASSUME_SIMD_STATELESS: Pure SIMD primitive with no coordination state.
+// #VERIFY_SIMD: Self-destruct not applicable - immutable Copy type with i32 array only.
 
 impl SimdI32x8Capsule {
     /// Create from array (zero-cost)
@@ -430,7 +434,7 @@ impl Default for SimdI32x8Capsule {
 /// assert_eq!(result.to_f32(), [1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5]);
 /// ```
 #[cfg_attr(feature = "derive", derive(ComputationalCapsule))]
-#[cfg_attr(feature = "derive", capsule(alignment = 64, size = 64))]
+#[cfg_attr(feature = "derive", capsule(alignment = 64, size = 64, skip_self_destruct = true))]
 #[repr(C, align(64))]
 #[derive(Clone, Copy, Debug)]
 pub struct SimdFixedPointQ16x8Capsule {
@@ -439,6 +443,8 @@ pub struct SimdFixedPointQ16x8Capsule {
     /// Cache line padding
     _padding: [u8; 32],
 }
+// #ASSUME_SIMD_STATELESS: Pure SIMD+Fixed-Point primitive with no coordination state.
+// #VERIFY_SIMD: Self-destruct not applicable - immutable Copy type with Q16.16 i32 array only.
 
 /// Q16.16 scale factor (2^16 = 65536)
 const Q16_16_SCALE_F32: f32 = 65536.0;

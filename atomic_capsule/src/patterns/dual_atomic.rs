@@ -38,6 +38,11 @@ use core::sync::atomic::{AtomicU64, Ordering};
 #[cfg(feature = "derive")]
 use atomic_capsule_derive::ComputationalCapsule;
 
+#[cfg(feature = "self-destruct")]
+use crate::protection::poisoned_generation::PoisonedGeneration;
+#[cfg(feature = "self-destruct")]
+use crate::protection::self_destruct::{Poisoned, TamperReason};
+
 /// DualAtomicU64 - Two cache-line-separated atomic channels
 ///
 /// Primary (offset 0): Hot path operations
@@ -467,6 +472,186 @@ impl DualAtomicU64 {
     pub fn fetch_add_secondary(&self, value: u64, order: Ordering) -> u64 {
         self.secondary.fetch_add(value, order)
     }
+
+    // ========================================================================
+    // Poison-Aware Secondary Channel Operations (Fractal Self-Destruct)
+    // ========================================================================
+
+    /// Load secondary with poison check
+    ///
+    /// Returns Ok(value) if generation is healthy, Err(Poisoned) if poisoned.
+    /// This should be the PRIMARY way to read generation counters in protection code.
+    ///
+    /// # Performance
+    /// - Typical: ~12ns (load + bit check)
+    ///
+    /// # Example
+    /// ```rust,ignore
+    /// match dual.load_secondary_checked(Ordering::Acquire) {
+    ///     Ok(gen) => process(gen),
+    ///     Err(poisoned) => handle_tamper(poisoned),
+    /// }
+    /// ```
+    #[cfg(feature = "self-destruct")]
+    #[inline]
+    pub fn load_secondary_checked(&self, order: Ordering) -> Result<u64, Poisoned> {
+        let val = self.load_secondary(order);
+        let gen = PoisonedGeneration::from_raw(val);
+        if gen.is_poisoned() {
+            Err(Poisoned {
+                cascade_level: gen.cascade_level(),
+                reason: TamperReason::GenerationMismatch,
+            })
+        } else {
+            Ok(val)
+        }
+    }
+
+    /// Check if secondary channel is poisoned
+    ///
+    /// # Performance
+    /// - Typical: ~10ns (load + bit test)
+    #[cfg(feature = "self-destruct")]
+    #[inline]
+    pub fn is_poisoned(&self) -> bool {
+        let val = self.load_secondary(Ordering::Acquire);
+        PoisonedGeneration::from_raw(val).is_poisoned()
+    }
+
+    /// Check if secondary channel is terminal (no recovery)
+    #[cfg(feature = "self-destruct")]
+    #[inline]
+    pub fn is_terminal(&self) -> bool {
+        let val = self.load_secondary(Ordering::Acquire);
+        PoisonedGeneration::from_raw(val).is_terminal()
+    }
+
+    /// Atomically poison the secondary channel (generation counter)
+    ///
+    /// This is an IRREVERSIBLE operation. Once poisoned, the capsule cannot recover.
+    /// Uses CAS loop to ensure atomic poisoning even under contention.
+    ///
+    /// # Arguments
+    /// * `level` - Cascade level (0-15), used for propagation tracking
+    ///
+    /// # Performance
+    /// - Typical: ~20ns (CAS loop, usually succeeds first try)
+    ///
+    /// # ASSUM Framework
+    /// - #ASSUME_POISON_IRREVERSIBLE: Once set, POISONED bit cannot be cleared
+    /// - #VERIFY_POISON_IRREVERSIBLE: No API exists to clear poison flags
+    #[cfg(feature = "self-destruct")]
+    #[inline]
+    pub fn poison_secondary(&self, level: u8) {
+        loop {
+            let current = self.load_secondary(Ordering::Acquire);
+            let mut gen = PoisonedGeneration::from_raw(current);
+
+            // Already poisoned? We're done
+            if gen.is_poisoned() {
+                return;
+            }
+
+            gen.poison(level);
+
+            match self.compare_exchange_secondary(
+                current,
+                gen.into_raw(),
+                Ordering::Release,
+                Ordering::Relaxed,
+            ) {
+                Ok(_) => return,
+                Err(_) => continue, // Retry on contention
+            }
+        }
+    }
+
+    /// Atomically mark secondary channel as terminal (no recovery possible)
+    ///
+    /// Sets TERMINAL | CORRUPTED | PROPAGATING | POISONED flags atomically.
+    /// This is the strongest form of self-destruct.
+    ///
+    /// # Performance
+    /// - Typical: ~20ns (CAS loop)
+    #[cfg(feature = "self-destruct")]
+    #[inline]
+    pub fn terminate_secondary(&self) {
+        loop {
+            let current = self.load_secondary(Ordering::Acquire);
+            let mut gen = PoisonedGeneration::from_raw(current);
+
+            // Already terminal? We're done
+            if gen.is_terminal() {
+                return;
+            }
+
+            gen.terminate();
+
+            match self.compare_exchange_secondary(
+                current,
+                gen.into_raw(),
+                Ordering::Release,
+                Ordering::Relaxed,
+            ) {
+                Ok(_) => return,
+                Err(_) => continue,
+            }
+        }
+    }
+
+    /// Atomically set propagating flag on secondary channel
+    ///
+    /// Indicates cascade is in progress. Other capsules should check this
+    /// to know if they should expect incoming poison propagation.
+    #[cfg(feature = "self-destruct")]
+    #[inline]
+    pub fn set_propagating(&self) {
+        loop {
+            let current = self.load_secondary(Ordering::Acquire);
+            let mut gen = PoisonedGeneration::from_raw(current);
+            gen.propagate();
+
+            match self.compare_exchange_secondary(
+                current,
+                gen.into_raw(),
+                Ordering::Release,
+                Ordering::Relaxed,
+            ) {
+                Ok(_) => return,
+                Err(_) => continue,
+            }
+        }
+    }
+
+    /// Safe increment that respects poison state
+    ///
+    /// Returns Ok(old_value) on success, Err(Poisoned) if the generation is poisoned.
+    /// Use this instead of raw increment_secondary when poison-awareness is needed.
+    ///
+    /// # Performance
+    /// - Typical: ~15ns (check + increment)
+    #[cfg(feature = "self-destruct")]
+    #[inline]
+    pub fn increment_secondary_checked(&self, order: Ordering) -> Result<u64, Poisoned> {
+        let current = self.load_secondary(Ordering::Acquire);
+        let gen = PoisonedGeneration::from_raw(current);
+
+        if gen.is_poisoned() {
+            return Err(Poisoned {
+                cascade_level: gen.cascade_level(),
+                reason: TamperReason::GenerationMismatch,
+            });
+        }
+
+        Ok(self.increment_secondary(order))
+    }
+
+    /// Get the current poison state as a PoisonedGeneration
+    #[cfg(feature = "self-destruct")]
+    #[inline]
+    pub fn poison_state(&self) -> PoisonedGeneration {
+        PoisonedGeneration::from_raw(self.load_secondary(Ordering::Acquire))
+    }
 }
 
 // Implement Default for convenience
@@ -643,5 +828,140 @@ mod tests {
         // Verify results
         assert_eq!(dual.load_primary(Ordering::SeqCst), 4000);
         assert_eq!(dual.load_secondary(Ordering::SeqCst), 4000);
+    }
+
+    // ========================================================================
+    // Poison-Aware Tests (Fractal Self-Destruct)
+    // ========================================================================
+
+    #[cfg(feature = "self-destruct")]
+    mod poison_tests {
+        use super::*;
+        #[allow(unused_imports)]
+        use crate::protection::poisoned_generation::PoisonedGeneration;
+        use crate::protection::self_destruct::TamperReason;
+
+        #[test]
+        fn test_load_secondary_checked_healthy() {
+            let dual = DualAtomicU64::new(42, 0);
+            // Initial generation is healthy (not poisoned)
+            let result = dual.load_secondary_checked(Ordering::Acquire);
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), 0);
+        }
+
+        #[test]
+        fn test_load_secondary_checked_poisoned() {
+            let dual = DualAtomicU64::new(42, 0);
+            // Manually poison the secondary channel
+            dual.poison_secondary(3);
+
+            let result = dual.load_secondary_checked(Ordering::Acquire);
+            assert!(result.is_err());
+
+            let poisoned = result.unwrap_err();
+            assert_eq!(poisoned.cascade_level, 3);
+            assert!(matches!(poisoned.reason, TamperReason::GenerationMismatch));
+        }
+
+        #[test]
+        fn test_poison_secondary() {
+            let dual = DualAtomicU64::new(0, 100);
+            assert!(!dual.is_poisoned());
+
+            // Poison with cascade level 5
+            dual.poison_secondary(5);
+
+            assert!(dual.is_poisoned());
+            let state = dual.poison_state();
+            assert!(state.is_poisoned());
+            assert_eq!(state.cascade_level(), 5);
+            assert_eq!(state.generation(), 100);
+        }
+
+        #[test]
+        fn test_poison_secondary_idempotent() {
+            let dual = DualAtomicU64::new(0, 50);
+
+            // First poison with level 3
+            dual.poison_secondary(3);
+            let state1 = dual.poison_state();
+            assert!(state1.is_poisoned());
+            assert_eq!(state1.cascade_level(), 3);
+
+            // Second poison attempt should not change anything (already poisoned)
+            dual.poison_secondary(10); // Try different level
+            let state2 = dual.poison_state();
+            assert!(state2.is_poisoned());
+            assert_eq!(state2.cascade_level(), 3); // Still 3, not 10
+        }
+
+        #[test]
+        fn test_terminate_secondary() {
+            let dual = DualAtomicU64::new(0, 200);
+            assert!(!dual.is_terminal());
+
+            dual.terminate_secondary();
+
+            assert!(dual.is_terminal());
+            assert!(dual.is_poisoned()); // Terminal implies poisoned
+
+            let state = dual.poison_state();
+            assert!(state.is_terminal());
+            assert!(state.is_corrupted());
+            assert!(state.is_propagating());
+            assert!(state.is_poisoned());
+        }
+
+        #[test]
+        fn test_is_poisoned() {
+            let dual = DualAtomicU64::new(0, 0);
+            assert!(!dual.is_poisoned());
+
+            dual.poison_secondary(1);
+            assert!(dual.is_poisoned());
+        }
+
+        #[test]
+        fn test_is_terminal() {
+            let dual = DualAtomicU64::new(0, 0);
+            assert!(!dual.is_terminal());
+
+            // Poisoning alone is not terminal
+            dual.poison_secondary(1);
+            assert!(!dual.is_terminal());
+
+            // Create another capsule and terminate it
+            let dual2 = DualAtomicU64::new(0, 0);
+            dual2.terminate_secondary();
+            assert!(dual2.is_terminal());
+        }
+
+        #[test]
+        fn test_increment_secondary_checked() {
+            let dual = DualAtomicU64::new(0, 10);
+
+            // Should succeed when healthy
+            let result = dual.increment_secondary_checked(Ordering::SeqCst);
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), 10); // Returns old value
+            assert_eq!(dual.load_secondary(Ordering::Relaxed), 11);
+
+            // Poison the channel
+            dual.poison_secondary(2);
+
+            // Should fail when poisoned
+            let result = dual.increment_secondary_checked(Ordering::SeqCst);
+            assert!(result.is_err());
+
+            let poisoned = result.unwrap_err();
+            assert_eq!(poisoned.cascade_level, 2);
+
+            // Secondary should NOT have been incremented
+            // Note: The check happens first, so if poisoned, we return early
+            let state = dual.poison_state();
+            // Generation is preserved from before poisoning
+            assert_eq!(state.generation(), 11);
+        }
     }
 }

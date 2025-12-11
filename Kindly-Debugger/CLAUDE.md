@@ -169,6 +169,39 @@
   <build name="kdb-api-landing">cd kdb-api-landing && trunk build</build>
 </quick-start>
 
+<!-- ============================================================================
+     DEPLOYMENT (CRITICAL)
+     ============================================================================ -->
+<deployment-guide>
+  <frontend project="kindly-services" domain="www.kindly.software">
+    <build>cd kindly-services && trunk build --release</build>
+    <deploy-production>
+      <command>npx wrangler pages deploy dist --project-name=kindly-services --branch=main</command>
+      <critical>ALWAYS use --branch=main to deploy to production (not --branch=clean-readme)</critical>
+      <reason>Cloudflare Pages infers deployment environment from branch name. main=Production, others=Preview</reason>
+    </deploy-production>
+    <verify>
+      <check>npx wrangler pages deployment list --project-name=kindly-services | head -4</check>
+      <expect>Latest deployment shows "Production │ main"</expect>
+      <url>https://www.kindly.software</url>
+    </verify>
+  </frontend>
+
+  <backend project="kdb-mcp" service="mcp_sse_server">
+    <build>cd kdb-mcp && source ~/.cargo/env && cargo build --release --bin mcp_sse_server --features 'std,json-rpc'</build>
+    <deploy-production>
+      <stop>kill $(pgrep -f mcp_sse_server)</stop>
+      <backup>cp /home/samuel/mcp_servers/kdb-mcp/bin/mcp_sse_server /home/samuel/mcp_servers/kdb-mcp/bin/mcp_sse_server.backup</backup>
+      <copy>scp target/release/mcp_sse_server samuel@kindly-hub:/home/samuel/mcp_servers/kdb-mcp/bin/</copy>
+      <start>ssh samuel@kindly-hub "nohup /home/samuel/mcp_servers/kdb-mcp/bin/mcp_sse_server > /tmp/mcp_sse_server.log 2>&1 &"</start>
+    </deploy-production>
+    <verify>
+      <check>curl -s https://mcp.kindly.software/sse | head -5</check>
+      <expect>event: endpoint</expect>
+    </verify>
+  </backend>
+</deployment-guide>
+
 <framework-compliance>
   <uce34>Q10 T6 Mixed tier | Q33 lockfree atomics | Q34 audit trails</uce34>
   <coca>100% computational capsules, zero mutex, cache-aligned</coca>
