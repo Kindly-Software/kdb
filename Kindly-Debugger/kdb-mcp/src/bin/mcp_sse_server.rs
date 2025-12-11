@@ -1412,7 +1412,7 @@ fn handle_oauth_metadata(stream: &mut TcpStream) -> Result<(), Box<dyn std::erro
   "code_challenge_methods_supported": ["S256", "plain"],
   "token_endpoint_auth_methods_supported": ["none", "client_secret_post"],
   "scopes_supported": ["debugger:read", "debugger:write", "debugger:admin"],
-  "service_documentation": "https://kindly.services"
+  "service_documentation": "https://www.kindly.software"
 }}"#,
         ISSUER, ISSUER, ISSUER, ISSUER
     );
@@ -1453,7 +1453,7 @@ fn handle_protected_resource_metadata(
   "authorization_servers": ["{}"],
   "scopes_supported": ["debugger:read", "debugger:write", "debugger:admin"],
   "bearer_methods_supported": ["header"],
-  "resource_documentation": "https://kindly.services"
+  "resource_documentation": "https://www.kindly.software"
 }}"#,
         ISSUER, ISSUER
     );
@@ -1528,7 +1528,7 @@ fn handle_oauth_authorize(
         // Fall back to signup page redirect
         eprintln!("[MCP-SSE] OAuth authorize: Google not configured, falling back to signup");
         let signup_url = format!(
-            "https://kindly.services/#signup?oauth_redirect={}&oauth_state={}",
+            "https://www.kindly.software/#signup?oauth_redirect={}&oauth_state={}",
             urlencoding_encode(redirect_uri),
             urlencoding_encode(client_state)
         );
@@ -1827,7 +1827,7 @@ fn handle_oauth_callback(
                 claims.email
             );
             format!(
-                "https://kindly.software/#dashboard?token={}&callback={}",
+                "https://www.kindly.software/#dashboard?token={}&callback={}",
                 urlencoding_encode(&token_response.id_token),
                 urlencoding_encode(&claude_callback)
             )
@@ -1994,7 +1994,7 @@ fn handle_oauth_token(
 
     // Validate code is present and has minimum length
     if code.is_empty() || code.len() < 16 {
-        write_oauth_error(stream, 400, "invalid_grant", "Invalid or missing authorization code. Get your license key at https://kindly.services/#signup")?;
+        write_oauth_error(stream, 400, "invalid_grant", "Invalid or missing authorization code. Get your license key at https://www.kindly.software/#signup")?;
         return Ok(());
     }
 
