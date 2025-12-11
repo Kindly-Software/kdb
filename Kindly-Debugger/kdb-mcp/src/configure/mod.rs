@@ -36,11 +36,11 @@ pub mod platform;
 pub mod env;
 pub mod permission;
 pub mod merger;
-
-// Future modules (Phase 2+)
-// pub mod detectors;
-// pub mod generators;
-// pub mod orchestrator;
+pub mod detectors;
+pub mod generators;
+pub mod orchestrator;
+pub mod rollback;
+pub mod audit;
 
 // ============================================================================
 // Re-exports for convenience
@@ -115,4 +115,106 @@ pub use merger::{
     ConfigChange,
     KdbConfig,
     MergerStats,
+};
+
+// Detector registry capsule and types
+pub use detectors::{
+    // Core capsule
+    DetectorRegistryCapsule,
+    // Trait
+    McpClientDetector,
+    // Types
+    ConfigFormat,
+    TransportType,
+    DetectionMethod,
+    DetectedClient,
+    DetectorEntry,
+    DetectorHandle,
+    RegistryStats as DetectorRegistryStats,
+    DetectionResult,
+    // Constants
+    MAX_DETECTORS,
+    // Utilities
+    fnv1a_hash as detector_fnv1a_hash,
+    // Built-in detectors
+    ClaudeCodeDetector,
+    ClaudeDesktopDetector,
+    CursorDetector,
+    VSCodeDetector,
+    GenericHttpDetector,
+    // Static detector instances
+    CURSOR_DETECTOR,
+    VSCODE_DETECTOR,
+    GENERIC_HTTP_DETECTOR,
+};
+
+// Config generators (pure utilities, not capsules)
+pub use generators::{
+    // Core functions
+    generate_stdio_config,
+    generate_http_config,
+    generate_mcp_config_file,
+    // Merge utilities
+    merge_kdb_into_config,
+    merge_kdb_into_config_with_transport,
+    // Constants
+    KDB_MCP_BASE_URL,
+    KDB_NPM_PACKAGE,
+    LICENSE_KEY_ENV_VAR,
+};
+
+// Orchestrator capsule and types (T6 Mixed, 1024B)
+pub use orchestrator::{
+    // Core capsule
+    AutoConfigOrchestratorCapsule,
+    // Types
+    OrchestratorState,
+    ConfigOptions,
+    ConfigReport,
+    ConfigError,
+    OrchestratorStats,
+};
+
+// Rollback capsule and types (T1 Atomic, 64B)
+pub use rollback::{
+    // Core capsule
+    BackupManagerCapsule,
+    // Session
+    BackupSession,
+    // Types
+    Manifest,
+    ClientBackup,
+    BackupInfo,
+    BackupState,
+    BackupStats,
+    RollbackResult,
+    VerifyResult,
+    RollbackError,
+    // Constants
+    MAX_BACKUP_COUNT,
+    BACKUP_DIR_NAME,
+    MANIFEST_FILENAME,
+    CHECKSUMS_FILENAME,
+    KDB_VERSION,
+    // Utility
+    sha256_hash,
+};
+
+// Audit logger capsule and types (T0+T1, 64B)
+pub use audit::{
+    // Core capsule
+    AuditLoggerCapsule,
+    // Types
+    AuditEntry,
+    AuditOperation,
+    AuditStats,
+    AuditError,
+    // Constants
+    AUDIT_DIR_NAME,
+    MAX_ENTRIES_PER_FILE,
+    MAX_LOG_FILES,
+    GENESIS_HASH,
+    // Utility
+    fnv1a_hash as audit_fnv1a_hash,
+    hash_with_prev,
 };

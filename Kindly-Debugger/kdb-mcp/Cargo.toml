@@ -45,6 +45,9 @@ flate2 = { version = "1.0", optional = true }
 dashmap = { version = "5.5", optional = true }
 memmap2 = { version = "0.9", optional = true }
 
+# Binary path detection (for client auto-configuration)
+which = { version = "6.0", optional = true }
+
 # Fast random number generation for session IDs (MCP Streamable HTTP)
 fastrand = "2.0"
 
@@ -158,7 +161,7 @@ sse-transport = ["std"]
 streamable-http = ["std", "json-rpc"]
 
 # Multi-source configuration resolution (T0 Auditable, Q34 audit trail)
-configure = ["std"]
+configure = ["std", "which"]
 # Auto-configure alias (same as configure, for clarity in documentation)
 auto-configure = ["configure"]
 # Full auto-configuration with config format support
@@ -267,6 +270,11 @@ required-features = ["std", "client", "client-metrics", "client-retry", "client-
 name = "kdb_sse_bridge"
 path = "src/bin/kdb_sse_bridge.rs"
 required-features = ["std", "client"]
+
+[[bin]]
+name = "kdb_configure"
+path = "src/bin/kdb_configure.rs"
+required-features = ["configure", "std", "json-rpc"]
 
 [dev-dependencies]
 proptest = "1.4"

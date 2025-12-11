@@ -158,8 +158,12 @@ impl IdempotencyCacheCapsule {
     }
 
     /// Check if idempotency key exists using a custom timestamp offset (for testing)
-    #[cfg(test)]
-    fn get_with_offset(&self, key: &str, now_offset: u32) -> Option<bool> {
+    ///
+    /// # Note
+    /// This method is exposed for integration tests (T28 Q8-Q14 property tests).
+    /// Not intended for production use.
+    #[doc(hidden)]
+    pub fn get_with_offset(&self, key: &str, now_offset: u32) -> Option<bool> {
         let hash = fnv1a_hash(key);
         let key_hash_high = (hash >> 32) as u32;
         let index = (hash as usize) % CACHE_SIZE;
@@ -202,7 +206,12 @@ impl IdempotencyCacheCapsule {
     }
 
     /// Insert with custom timestamp offset (for testing)
-    fn insert_with_offset(&self, key: &str, now_offset: u32) -> bool {
+    ///
+    /// # Note
+    /// This method is exposed for integration tests (T28 Q8-Q14 property tests).
+    /// Not intended for production use.
+    #[doc(hidden)]
+    pub fn insert_with_offset(&self, key: &str, now_offset: u32) -> bool {
         let hash = fnv1a_hash(key);
         let key_hash_high = (hash >> 32) as u32;
         let index = (hash as usize) % CACHE_SIZE;

@@ -89,11 +89,11 @@ pub enum SubscriptionTier {
     /// 60 RPM, 10 burst, 1 token/sec refill
     Hobby = 0,
     /// 300 RPM, 30 burst, 5 tokens/sec refill
-    Starter = 1,
+    Pro = 1,
     /// 1,000 RPM, 100 burst, ~16.7 tokens/sec refill
-    Developer = 2,
+    Engineer = 2,
     /// 5,000 RPM, 500 burst, ~83.3 tokens/sec refill
-    Professional = 3,
+    Teams = 3,
     /// Unlimited (u64::MAX for all limits)
     Enterprise = 4,
 }
@@ -104,9 +104,9 @@ impl SubscriptionTier {
     pub const fn from_index(index: u8) -> Option<Self> {
         match index {
             0 => Some(Self::Hobby),
-            1 => Some(Self::Starter),
-            2 => Some(Self::Developer),
-            3 => Some(Self::Professional),
+            1 => Some(Self::Pro),
+            2 => Some(Self::Engineer),
+            3 => Some(Self::Teams),
             4 => Some(Self::Enterprise),
             _ => None,
         }
@@ -123,9 +123,9 @@ impl SubscriptionTier {
     pub const fn name(self) -> &'static str {
         match self {
             Self::Hobby => "Hobby",
-            Self::Starter => "Starter",
-            Self::Developer => "Developer",
-            Self::Professional => "Professional",
+            Self::Pro => "Pro",
+            Self::Engineer => "Engineer",
+            Self::Teams => "Teams",
             Self::Enterprise => "Enterprise",
         }
     }
@@ -135,9 +135,9 @@ impl SubscriptionTier {
     pub const fn rpm_limit(self) -> u64 {
         match self {
             Self::Hobby => HOBBY_RPM,
-            Self::Starter => STARTER_RPM,
-            Self::Developer => DEVELOPER_RPM,
-            Self::Professional => PROFESSIONAL_RPM,
+            Self::Pro => STARTER_RPM,
+            Self::Engineer => DEVELOPER_RPM,
+            Self::Teams => PROFESSIONAL_RPM,
             Self::Enterprise => ENTERPRISE_RPM,
         }
     }
@@ -147,9 +147,9 @@ impl SubscriptionTier {
     pub const fn burst_limit(self) -> u64 {
         match self {
             Self::Hobby => HOBBY_BURST,
-            Self::Starter => STARTER_BURST,
-            Self::Developer => DEVELOPER_BURST,
-            Self::Professional => PROFESSIONAL_BURST,
+            Self::Pro => STARTER_BURST,
+            Self::Engineer => DEVELOPER_BURST,
+            Self::Teams => PROFESSIONAL_BURST,
             Self::Enterprise => ENTERPRISE_BURST,
         }
     }
@@ -159,9 +159,9 @@ impl SubscriptionTier {
     pub const fn refill_rate_per_sec(self) -> u64 {
         match self {
             Self::Hobby => 1,         // 1 token/sec
-            Self::Starter => 5,       // 5 tokens/sec
-            Self::Developer => 17,    // ~16.67 tokens/sec (rounded)
-            Self::Professional => 83, // ~83.33 tokens/sec (rounded)
+            Self::Pro => 5,           // 5 tokens/sec
+            Self::Engineer => 17,     // ~16.67 tokens/sec (rounded)
+            Self::Teams => 83,        // ~83.33 tokens/sec (rounded)
             Self::Enterprise => u64::MAX, // Unlimited
         }
     }
@@ -635,9 +635,9 @@ mod tests {
     #[test]
     fn test_subscription_tier_values() {
         assert_eq!(SubscriptionTier::Hobby.to_index(), 0);
-        assert_eq!(SubscriptionTier::Starter.to_index(), 1);
-        assert_eq!(SubscriptionTier::Developer.to_index(), 2);
-        assert_eq!(SubscriptionTier::Professional.to_index(), 3);
+        assert_eq!(SubscriptionTier::Pro.to_index(), 1);
+        assert_eq!(SubscriptionTier::Engineer.to_index(), 2);
+        assert_eq!(SubscriptionTier::Teams.to_index(), 3);
         assert_eq!(SubscriptionTier::Enterprise.to_index(), 4);
     }
 
@@ -646,14 +646,14 @@ mod tests {
         assert_eq!(SubscriptionTier::Hobby.rpm_limit(), 60);
         assert_eq!(SubscriptionTier::Hobby.burst_limit(), 10);
 
-        assert_eq!(SubscriptionTier::Starter.rpm_limit(), 300);
-        assert_eq!(SubscriptionTier::Starter.burst_limit(), 30);
+        assert_eq!(SubscriptionTier::Pro.rpm_limit(), 300);
+        assert_eq!(SubscriptionTier::Pro.burst_limit(), 30);
 
-        assert_eq!(SubscriptionTier::Developer.rpm_limit(), 1_000);
-        assert_eq!(SubscriptionTier::Developer.burst_limit(), 100);
+        assert_eq!(SubscriptionTier::Engineer.rpm_limit(), 1_000);
+        assert_eq!(SubscriptionTier::Engineer.burst_limit(), 100);
 
-        assert_eq!(SubscriptionTier::Professional.rpm_limit(), 5_000);
-        assert_eq!(SubscriptionTier::Professional.burst_limit(), 500);
+        assert_eq!(SubscriptionTier::Teams.rpm_limit(), 5_000);
+        assert_eq!(SubscriptionTier::Teams.burst_limit(), 500);
 
         assert_eq!(SubscriptionTier::Enterprise.rpm_limit(), u64::MAX);
         assert_eq!(SubscriptionTier::Enterprise.burst_limit(), u64::MAX);
@@ -662,9 +662,9 @@ mod tests {
     #[test]
     fn test_tier_names() {
         assert_eq!(SubscriptionTier::Hobby.name(), "Hobby");
-        assert_eq!(SubscriptionTier::Starter.name(), "Starter");
-        assert_eq!(SubscriptionTier::Developer.name(), "Developer");
-        assert_eq!(SubscriptionTier::Professional.name(), "Professional");
+        assert_eq!(SubscriptionTier::Pro.name(), "Pro");
+        assert_eq!(SubscriptionTier::Engineer.name(), "Engineer");
+        assert_eq!(SubscriptionTier::Teams.name(), "Teams");
         assert_eq!(SubscriptionTier::Enterprise.name(), "Enterprise");
     }
 
@@ -723,7 +723,7 @@ mod tests {
     fn test_rate_limit_info_structure() {
         let limiter = TierRateLimiterCapsule::new();
 
-        let result = limiter.check(SubscriptionTier::Developer, 1);
+        let result = limiter.check(SubscriptionTier::Engineer, 1);
         assert!(result.is_ok());
 
         let info = result.unwrap();
@@ -757,8 +757,8 @@ mod tests {
 
         // Use some tokens from each tier
         let _ = limiter.check(SubscriptionTier::Hobby, 5);
-        let _ = limiter.check(SubscriptionTier::Starter, 10);
-        let _ = limiter.check(SubscriptionTier::Developer, 50);
+        let _ = limiter.check(SubscriptionTier::Pro, 10);
+        let _ = limiter.check(SubscriptionTier::Engineer, 50);
 
         let stats_before = limiter.get_stats();
         assert_eq!(stats_before.total_passed, 3);
@@ -772,8 +772,8 @@ mod tests {
 
         // All tiers should be at full capacity
         assert_eq!(limiter.get_tier_tokens(SubscriptionTier::Hobby), 10);
-        assert_eq!(limiter.get_tier_tokens(SubscriptionTier::Starter), 30);
-        assert_eq!(limiter.get_tier_tokens(SubscriptionTier::Developer), 100);
+        assert_eq!(limiter.get_tier_tokens(SubscriptionTier::Pro), 30);
+        assert_eq!(limiter.get_tier_tokens(SubscriptionTier::Engineer), 100);
     }
 
     #[test]
@@ -861,10 +861,10 @@ mod tests {
         }
 
         // Starter tier should still work
-        assert!(limiter.check(SubscriptionTier::Starter, 1).is_ok());
+        assert!(limiter.check(SubscriptionTier::Pro, 1).is_ok());
 
         // Developer tier should still work
-        assert!(limiter.check(SubscriptionTier::Developer, 1).is_ok());
+        assert!(limiter.check(SubscriptionTier::Engineer, 1).is_ok());
 
         // Hobby should be exhausted
         assert!(limiter.check(SubscriptionTier::Hobby, 1).is_err());
@@ -883,10 +883,10 @@ mod tests {
             let _ = limiter.check(SubscriptionTier::Hobby, 1);
         }
         for _ in 0..10 {
-            let _ = limiter.check(SubscriptionTier::Starter, 1);
+            let _ = limiter.check(SubscriptionTier::Pro, 1);
         }
         for _ in 0..15 {
-            let _ = limiter.check(SubscriptionTier::Developer, 1);
+            let _ = limiter.check(SubscriptionTier::Engineer, 1);
         }
 
         let stats = limiter.get_stats();
@@ -924,12 +924,12 @@ mod tests {
 
         // Developer tier: burst 100
         for i in 0..100 {
-            let result = limiter.check(SubscriptionTier::Developer, 1);
+            let result = limiter.check(SubscriptionTier::Engineer, 1);
             assert!(result.is_ok(), "Request {} should pass", i);
         }
 
         // Request 101 should fail
-        assert!(limiter.check(SubscriptionTier::Developer, 1).is_err());
+        assert!(limiter.check(SubscriptionTier::Engineer, 1).is_err());
     }
 
     #[test]

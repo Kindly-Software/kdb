@@ -1,6 +1,8 @@
 #!/usr/bin/env rustc
 //! kdb_sse_bridge - T1 Atomic SSE-to-stdio bridge for Claude Code MCP
 //!
+//! Requires `client` feature: `cargo build --bin kdb_sse_bridge --features client`
+//!
 //! # Purpose
 //! Bridges Claude Code's stdio transport to kdb-mcp SSE server at https://mcp.kindly.software/sse
 //!

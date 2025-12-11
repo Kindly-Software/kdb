@@ -1,6 +1,6 @@
 {
   "name": "@kindly-software-inc/kdb",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Production-grade MCP client for kdb debugger with enterprise-grade reliability, caching, and security",
   "main": "index.js",
   "type": "module",

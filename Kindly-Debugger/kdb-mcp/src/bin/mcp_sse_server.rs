@@ -651,6 +651,24 @@ fn handle_http_request(
 // MCP Streamable HTTP Handlers (2025-06-18 spec)
 // ============================================================================
 
+/// Extract JSON-RPC method name from request body (simple string parsing)
+fn extract_method(body: &str) -> Option<String> {
+    // Simple regex-free extraction
+    if let Some(start) = body.find("\"method\"") {
+        let after_method = &body[start..];
+        if let Some(colon) = after_method.find(':') {
+            let after_colon = &after_method[colon+1..];
+            if let Some(quote_start) = after_colon.find('"') {
+                let after_quote = &after_colon[quote_start+1..];
+                if let Some(quote_end) = after_quote.find('"') {
+                    return Some(after_quote[..quote_end].to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
 /// Handle Streamable HTTP POST request (POST /mcp)
 ///
 /// Per MCP 2025-06-18 spec:
@@ -680,8 +698,25 @@ fn handle_streamable_http_post(
     // Check if this is a protocol method (initialize, ping) - bypass auth
     let is_protocol_method = StreamableHttpTransportCapsule::is_protocol_method(&request.body);
 
+    // Phase 1 logging: comprehensive request details
+    eprintln!(
+        "[MCP-Streamable] POST /mcp: client={}, body_len={}, is_protocol={}, has_api_key={}, headers={:?}",
+        client_ip,
+        request.body.len(),
+        is_protocol_method,
+        api_key.is_some(),
+        request.headers.iter().map(|(k,_)| k).collect::<Vec<_>>()
+    );
+
     // Auth check (skip for protocol methods per MCP spec)
     if !is_protocol_method && api_key.is_none() {
+        eprintln!(
+            "[MCP-Auth] 401 Auth Required: method={:?}, is_protocol={}, has_api_key=false, client={}, body_preview={}",
+            extract_method(&request.body),
+            is_protocol_method,
+            client_ip,
+            &request.body.chars().take(100).collect::<String>()
+        );
         let error_body = r#"{"jsonrpc":"2.0","error":{"code":-32001,"message":"Authentication required"},"id":0}"#;
         write_json_response(stream, 401, error_body)?;
         return Ok(());
@@ -823,6 +858,7 @@ fn handle_streamable_http_get(
     let session_id = match session_id {
         Some(sid) => sid.to_string(),
         None => {
+            eprintln!("[MCP-Streamable] GET /mcp: 400 Missing Mcp-Session-Id header, client={}", client_ip);
             let error_body = r#"{"jsonrpc":"2.0","error":{"code":-32001,"message":"Mcp-Session-Id header required for GET /mcp"},"id":0}"#;
             write_json_response(stream, 400, error_body)?;
             return Ok(());
@@ -927,8 +963,12 @@ fn handle_streamable_http_delete(
         }
         None => {
             // No session ID - return 400
-            let error_body = r#"{"jsonrpc":"2.0","error":{"code":-32001,"message":"Mcp-Session-Id header required for DELETE /mcp"},"id":0}"#;
-            write_json_response(stream, 400, error_body)?;
+            eprintln!("[MCP-Streamable] DELETE /mcp: 400 Missing Mcp-Session-Id header, client={}", client_ip);
+            let response = "HTTP/1.1 400 Bad Request\r\n\
+                Content-Type: application/json\r\n\
+                Access-Control-Allow-Origin: *\r\n\
+                \r\n{\"error\":\"Mcp-Session-Id header required\"}";
+            stream.write_all(response.as_bytes())?;
         }
     }
 

@@ -767,18 +767,18 @@ mod tests {
         assert_eq!(SubscriptionTier::Hobby.retention_days(), 7);
 
         // Starter: 1K base, 1.2K with grace
-        assert_eq!(SubscriptionTier::Starter.snapshot_limit(), 1_000);
-        assert_eq!(SubscriptionTier::Starter.snapshot_hard_limit(), 1_200);
+        assert_eq!(SubscriptionTier::Pro.snapshot_limit(), 1_000);
+        assert_eq!(SubscriptionTier::Pro.snapshot_hard_limit(), 1_200);
 
         // Developer: 10K base, 12K with grace
-        assert_eq!(SubscriptionTier::Developer.snapshot_limit(), 10_000);
-        assert_eq!(SubscriptionTier::Developer.snapshot_hard_limit(), 12_000);
-        assert_eq!(SubscriptionTier::Developer.retention_days(), 30);
+        assert_eq!(SubscriptionTier::Engineer.snapshot_limit(), 10_000);
+        assert_eq!(SubscriptionTier::Engineer.snapshot_hard_limit(), 12_000);
+        assert_eq!(SubscriptionTier::Engineer.retention_days(), 30);
 
         // Professional: 100K base, 120K with grace
-        assert_eq!(SubscriptionTier::Professional.snapshot_limit(), 100_000);
-        assert_eq!(SubscriptionTier::Professional.snapshot_hard_limit(), 120_000);
-        assert_eq!(SubscriptionTier::Professional.retention_days(), 90);
+        assert_eq!(SubscriptionTier::Teams.snapshot_limit(), 100_000);
+        assert_eq!(SubscriptionTier::Teams.snapshot_hard_limit(), 120_000);
+        assert_eq!(SubscriptionTier::Teams.retention_days(), 90);
 
         // Enterprise: unlimited (u32::MAX for retention_days in canonical SubscriptionTier)
         assert_eq!(SubscriptionTier::Enterprise.snapshot_limit(), u64::MAX);
@@ -788,12 +788,12 @@ mod tests {
 
     #[test]
     fn test_for_tier_initialization() {
-        let capsule = SnapshotQuotaCapsule::for_tier(SubscriptionTier::Developer);
+        let capsule = SnapshotQuotaCapsule::for_tier(SubscriptionTier::Engineer);
         let status = capsule.get_status();
 
         assert_eq!(status.snapshots_limit, 10_000);
         assert_eq!(status.snapshots_hard_limit, 12_000);
-        assert_eq!(status.tier, SubscriptionTier::Developer);
+        assert_eq!(status.tier, SubscriptionTier::Engineer);
         assert_eq!(status.enforcement_stage, EnforcementStage::Normal);
         assert_eq!(status.snapshots_used, 0);
     }
@@ -869,13 +869,13 @@ mod tests {
         assert_eq!(stage, EnforcementStage::Warning);
 
         // Upgrade to Developer
-        capsule.upgrade_tier(SubscriptionTier::Developer);
+        capsule.upgrade_tier(SubscriptionTier::Engineer);
 
         // Same 90 snapshots is now only 0.9% of Developer limit (10K)
         let status = capsule.get_status();
         assert_eq!(status.snapshots_used, 90);
         assert_eq!(status.snapshots_limit, 10_000);
-        assert_eq!(status.tier, SubscriptionTier::Developer);
+        assert_eq!(status.tier, SubscriptionTier::Engineer);
 
         // Should be back to Normal stage
         let stage = capsule.check_capture_allowed().unwrap();
@@ -950,13 +950,13 @@ mod tests {
         assert_eq!(SubscriptionTier::Hobby.snapshot_hard_limit(), 120);
 
         // Starter: 1000 + 200 = 1200
-        assert_eq!(SubscriptionTier::Starter.snapshot_hard_limit(), 1_200);
+        assert_eq!(SubscriptionTier::Pro.snapshot_hard_limit(), 1_200);
 
         // Developer: 10000 + 2000 = 12000
-        assert_eq!(SubscriptionTier::Developer.snapshot_hard_limit(), 12_000);
+        assert_eq!(SubscriptionTier::Engineer.snapshot_hard_limit(), 12_000);
 
         // Professional: 100000 + 20000 = 120000
-        assert_eq!(SubscriptionTier::Professional.snapshot_hard_limit(), 120_000);
+        assert_eq!(SubscriptionTier::Teams.snapshot_hard_limit(), 120_000);
     }
 
     #[test]
@@ -968,7 +968,7 @@ mod tests {
         let gen1 = capsule.generation();
         assert!(gen1 > gen0, "Generation should increment on capture");
 
-        capsule.upgrade_tier(SubscriptionTier::Developer);
+        capsule.upgrade_tier(SubscriptionTier::Engineer);
         let gen2 = capsule.generation();
         assert!(gen2 > gen1, "Generation should increment on upgrade");
 
@@ -983,15 +983,15 @@ mod tests {
 
         // Test snapshot_hard_limit (20% grace)
         assert_eq!(SubscriptionTier::Hobby.snapshot_hard_limit(), 120);
-        assert_eq!(SubscriptionTier::Starter.snapshot_hard_limit(), 1_200);
-        assert_eq!(SubscriptionTier::Developer.snapshot_hard_limit(), 12_000);
-        assert_eq!(SubscriptionTier::Professional.snapshot_hard_limit(), 120_000);
+        assert_eq!(SubscriptionTier::Pro.snapshot_hard_limit(), 1_200);
+        assert_eq!(SubscriptionTier::Engineer.snapshot_hard_limit(), 12_000);
+        assert_eq!(SubscriptionTier::Teams.snapshot_hard_limit(), 120_000);
         assert_eq!(SubscriptionTier::Enterprise.snapshot_hard_limit(), u64::MAX);
 
         // Test retention_secs
         assert_eq!(SubscriptionTier::Hobby.retention_secs(), 7 * 86400);
-        assert_eq!(SubscriptionTier::Developer.retention_secs(), 30 * 86400);
-        assert_eq!(SubscriptionTier::Professional.retention_secs(), 90 * 86400);
+        assert_eq!(SubscriptionTier::Engineer.retention_secs(), 30 * 86400);
+        assert_eq!(SubscriptionTier::Teams.retention_secs(), 90 * 86400);
     }
 
     #[test]

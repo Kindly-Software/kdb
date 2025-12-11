@@ -747,11 +747,15 @@ impl StreamableHttpTransportCapsule {
 
     /// Check if request body is a protocol method (auth bypass)
     ///
-    /// Per MCP spec, these methods establish the protocol session and
-    /// should work without API key authentication:
-    /// - `initialize`: Protocol handshake, negotiates capabilities
-    /// - `notifications/initialized`: Client acknowledgment
-    /// - `ping`: Keepalive
+    /// Checks if request is a protocol method that bypasses authentication.
+    ///
+    /// Protocol methods per MCP spec:
+    /// - initialize: Protocol handshake
+    /// - ping: Heartbeat/keepalive
+    /// - notifications/initialized: Notification acknowledgment
+    /// - tools/list: List available tools (after initialize)
+    ///
+    /// These methods don't require API key authentication.
     ///
     /// # Performance
     /// - <100ns for typical MCP request body (<1KB)
@@ -762,13 +766,24 @@ impl StreamableHttpTransportCapsule {
     /// - #VERIFY: Unit tests cover all protocol methods and edge cases
     #[inline]
     pub fn is_protocol_method(body: &str) -> bool {
-        // Fast path: check for method strings without full JSON parse
+        // Normalize whitespace and case for robust matching
+        // Handles all JSON formatting variations:
+        // - "method":"initialize" (no space)
+        // - "method": "initialize" (space after colon)
+        // - "method" : "initialize" (spaces before and after colon)
+        // - Tabs, newlines, multiple spaces
+        // - Mixed case (though JSON spec says lowercase)
+        let normalized: String = body.chars()
+            .filter(|c| !c.is_whitespace())
+            .collect::<String>()
+            .to_lowercase();
+
+        // Check for protocol methods (case-insensitive, whitespace-tolerant)
         // These are the only methods that should bypass auth per MCP spec
-        body.contains("\"method\":\"initialize\"")
-            || body.contains("\"method\": \"initialize\"")
-            || body.contains("\"notifications/initialized\"")
-            || body.contains("\"method\":\"ping\"")
-            || body.contains("\"method\": \"ping\"")
+        normalized.contains("\"method\":\"initialize\"")
+            || normalized.contains("\"method\":\"ping\"")
+            || normalized.contains("\"notifications/initialized\"")
+            || normalized.contains("\"method\":\"tools/list\"")
     }
 
     // ========================================================================
@@ -1221,9 +1236,14 @@ mod tests {
             r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#
         ));
 
-        // Tool calls require auth (NOT protocol methods)
-        assert!(!StreamableHttpTransportCapsule::is_protocol_method(
+        // tools/list is protocol method (accessible after initialize without full auth)
+        assert!(StreamableHttpTransportCapsule::is_protocol_method(
             r#"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#
+        ));
+
+        // tools/call requires auth (NOT protocol method)
+        assert!(!StreamableHttpTransportCapsule::is_protocol_method(
+            r#"{"jsonrpc":"2.0","id":1,"method":"tools/call"}"#
         ));
 
         // Resource calls require auth

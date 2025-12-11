@@ -22,6 +22,14 @@
     <endpoint>https://mcp.kindly.software/sse (SSE - legacy)</endpoint>
   </live-endpoints>
   <auth-methods>OAuth 2.1 + Google | API Key (X-License-Key) | Bearer Token</auth-methods>
+
+  <npm-client version="2.0.1" published="2025-12-11" status="RECOMMENDED">
+    <package>@kindly-software-inc/kdb</package>
+    <why>Claude Code HTTP transport broken - stdio bridge is the ONLY way to access kdb from Claude Code</why>
+    <install>npm install @kindly-software-inc/kdb</install>
+    <features>Retry, Circuit breaker, Caching (100× faster), Offline mode, P0 Protection, 224 tests</features>
+    <size>2.7MB binary | 11,000 LOC | UNLICENSED (Proprietary)</size>
+  </npm-client>
 </metadata>
 
 <commercial-model>

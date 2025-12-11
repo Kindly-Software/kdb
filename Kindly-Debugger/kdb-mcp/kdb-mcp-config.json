@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "kdb": {
+      "args": [
+        "@kindly-software-inc/kdb"
+      ],
+      "command": "npx",
+      "env": {
+        "KDB_LICENSE_KEY": "${KDB_LICENSE_KEY}"
+      }
+    }
+  }
+}

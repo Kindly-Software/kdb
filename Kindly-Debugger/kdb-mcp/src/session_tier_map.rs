@@ -484,11 +484,11 @@ mod tests {
         let map = SessionTierMapCapsule::new();
 
         // Set tier for session
-        assert!(map.set_tier(12345, SubscriptionTier::Developer).is_ok());
+        assert!(map.set_tier(12345, SubscriptionTier::Engineer).is_ok());
 
         // Get tier
         let tier = map.get_tier(12345);
-        assert_eq!(tier, Some(SubscriptionTier::Developer));
+        assert_eq!(tier, Some(SubscriptionTier::Engineer));
 
         // Active count
         assert_eq!(map.active_count(), 1);
@@ -503,8 +503,8 @@ mod tests {
         assert_eq!(map.get_tier(12345), Some(SubscriptionTier::Hobby));
 
         // Update tier
-        map.set_tier(12345, SubscriptionTier::Professional).unwrap();
-        assert_eq!(map.get_tier(12345), Some(SubscriptionTier::Professional));
+        map.set_tier(12345, SubscriptionTier::Teams).unwrap();
+        assert_eq!(map.get_tier(12345), Some(SubscriptionTier::Teams));
 
         // Should still be 1 session (update, not insert)
         assert_eq!(map.active_count(), 1);
@@ -514,7 +514,7 @@ mod tests {
     fn test_remove_session() {
         let map = SessionTierMapCapsule::new();
 
-        map.set_tier(12345, SubscriptionTier::Developer).unwrap();
+        map.set_tier(12345, SubscriptionTier::Engineer).unwrap();
         assert_eq!(map.active_count(), 1);
 
         // Remove
@@ -532,7 +532,7 @@ mod tests {
 
         assert!(!map.contains(12345));
 
-        map.set_tier(12345, SubscriptionTier::Starter).unwrap();
+        map.set_tier(12345, SubscriptionTier::Pro).unwrap();
         assert!(map.contains(12345));
 
         map.remove_session(12345);
@@ -544,7 +544,7 @@ mod tests {
         let map = SessionTierMapCapsule::new();
 
         // Zero session ID should be rejected
-        assert!(map.set_tier(0, SubscriptionTier::Developer).is_err());
+        assert!(map.set_tier(0, SubscriptionTier::Engineer).is_err());
         assert_eq!(map.get_tier(0), None);
         assert!(!map.remove_session(0));
     }
@@ -570,13 +570,13 @@ mod tests {
     fn test_get_session_meta() {
         let map = SessionTierMapCapsule::new();
 
-        map.set_tier(12345, SubscriptionTier::Professional).unwrap();
+        map.set_tier(12345, SubscriptionTier::Teams).unwrap();
 
         let meta = map.get_session_meta(12345);
         assert!(meta.is_some());
 
         let (tier, _created_days, _gen) = meta.unwrap();
-        assert_eq!(tier, SubscriptionTier::Professional);
+        assert_eq!(tier, SubscriptionTier::Teams);
     }
 
     #[test]
@@ -596,7 +596,7 @@ mod tests {
     #[test]
     fn test_metadata_packing() {
         // Test pack/unpack roundtrip
-        let tier = SubscriptionTier::Professional;
+        let tier = SubscriptionTier::Teams;
         let days = 19000u32; // ~52 years
         let gen = 0xDEADBEEFu32;
 
@@ -628,7 +628,7 @@ mod tests {
             handles.push(thread::spawn(move || {
                 for i in 0..100 {
                     let session_id = (t * 1000 + i + 1) as u64;
-                    let _ = map_clone.set_tier(session_id, SubscriptionTier::Developer);
+                    let _ = map_clone.set_tier(session_id, SubscriptionTier::Engineer);
                 }
             }));
         }
@@ -649,7 +649,7 @@ mod tests {
 
         // Pre-populate with sessions
         for i in 1..=100 {
-            map.set_tier(i, SubscriptionTier::Professional).unwrap();
+            map.set_tier(i, SubscriptionTier::Teams).unwrap();
         }
 
         let mut handles = vec![];
@@ -661,7 +661,7 @@ mod tests {
                 for _ in 0..1000 {
                     for i in 1..=100 {
                         let tier = map_clone.get_tier(i);
-                        assert_eq!(tier, Some(SubscriptionTier::Professional));
+                        assert_eq!(tier, Some(SubscriptionTier::Teams));
                     }
                 }
             }));
@@ -690,7 +690,7 @@ mod tests {
         let map1 = Arc::clone(&map);
         handles.push(thread::spawn(move || {
             for i in 51..=100 {
-                let _ = map1.set_tier(i, SubscriptionTier::Starter);
+                let _ = map1.set_tier(i, SubscriptionTier::Pro);
             }
         }));
 
@@ -698,7 +698,7 @@ mod tests {
         let map2 = Arc::clone(&map);
         handles.push(thread::spawn(move || {
             for i in 1..=50 {
-                let _ = map2.set_tier(i, SubscriptionTier::Developer);
+                let _ = map2.set_tier(i, SubscriptionTier::Engineer);
             }
         }));
 

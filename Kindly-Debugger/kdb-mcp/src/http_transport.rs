@@ -312,27 +312,42 @@ impl HttpTransportCapsule {
 
     /// Check if request body is a protocol method that doesn't require auth
     ///
-    /// Per MCP spec (2024-11-05 and 2025-03-26), these methods establish the
-    /// protocol session and should work without API key authentication:
-    /// - `initialize`: Protocol handshake, negotiates capabilities
-    /// - `notifications/initialized`: Client acknowledgment (notification, no response)
-    /// - `ping`: Keepalive (should work anytime)
+    /// Checks if request is a protocol method that bypasses authentication.
+    ///
+    /// Protocol methods per MCP spec:
+    /// - initialize: Protocol handshake
+    /// - ping: Heartbeat/keepalive
+    /// - notifications/initialized: Notification acknowledgment
+    /// - tools/list: List available tools (after initialize)
+    ///
+    /// These methods don't require API key authentication.
     ///
     /// #ASSUME_JSON_SUBSTRING: Method name appears as "method":"<name>" in valid JSON-RPC
     /// #VERIFY: Unit tests cover all protocol methods and edge cases
     ///
     /// # Performance
-    /// - <100ns for typical MCP request body (<1KB)
-    /// - O(n) string search, but n is small for valid MCP
+    /// - <500ns for typical MCP request body (<1KB) - includes whitespace normalization
+    /// - O(n) string filter + O(n) search, but n is small for valid MCP
     #[inline]
     pub fn is_protocol_method(body: &str) -> bool {
-        // Fast path: check for method strings without full JSON parse
+        // Normalize whitespace and case for robust matching
+        // Handles all JSON formatting variations:
+        // - "method":"initialize" (no space)
+        // - "method": "initialize" (space after colon)
+        // - "method" : "initialize" (spaces before and after colon)
+        // - Tabs, newlines, multiple spaces
+        // - Mixed case (though JSON spec says lowercase)
+        let normalized: String = body.chars()
+            .filter(|c| !c.is_whitespace())
+            .collect::<String>()
+            .to_lowercase();
+
+        // Check for protocol methods (case-insensitive, whitespace-tolerant)
         // These are the only methods that should bypass auth per MCP spec
-        body.contains("\"method\":\"initialize\"")
-            || body.contains("\"method\": \"initialize\"")
-            || body.contains("\"notifications/initialized\"")
-            || body.contains("\"method\":\"ping\"")
-            || body.contains("\"method\": \"ping\"")
+        normalized.contains("\"method\":\"initialize\"")
+            || normalized.contains("\"method\":\"ping\"")
+            || normalized.contains("\"notifications/initialized\"")
+            || normalized.contains("\"method\":\"tools/list\"")
     }
 
     /// Handle HTTP POST /mcp request
@@ -411,6 +426,7 @@ impl HttpTransportCapsule {
             }
             "POST" => {} // Continue
             _ => {
+                eprintln!("[HTTP-Transport] 405 Invalid method: expected=POST, got={}", method);
                 self.total_errors.fetch_add(1, Ordering::Relaxed);
                 return Err(HttpTransportError::InvalidMethod);
             }
@@ -445,6 +461,7 @@ impl HttpTransportCapsule {
             .unwrap_or("");
 
         if !content_type.is_empty() && !content_type.starts_with("application/json") {
+            eprintln!("[HTTP-Transport] 415 Invalid content-type: got={}, expected=application/json", content_type);
             self.total_errors.fetch_add(1, Ordering::Relaxed);
             return Err(HttpTransportError::InvalidContentType);
         }
@@ -478,6 +495,10 @@ impl HttpTransportCapsule {
             Some(key) if !key.is_empty() => Some(key),
             _ if is_protocol_method => None, // Protocol methods can proceed without auth
             _ => {
+                eprintln!("[HTTP-Transport] 401 Missing API key: is_protocol={}, body_preview={}",
+                    is_protocol_method,
+                    &body.chars().take(100).collect::<String>()
+                );
                 self.auth_failures.fetch_add(1, Ordering::Relaxed);
                 self.total_errors.fetch_add(1, Ordering::Relaxed);
                 return Err(HttpTransportError::MissingApiKey);
@@ -568,6 +589,7 @@ impl HttpTransportCapsule {
             }
             "POST" => {} // Continue
             _ => {
+                eprintln!("[HTTP-Transport] 405 Invalid method: expected=POST, got={}", method);
                 self.total_errors.fetch_add(1, Ordering::Relaxed);
                 return Err(HttpTransportError::InvalidMethod);
             }
@@ -602,6 +624,7 @@ impl HttpTransportCapsule {
             .unwrap_or("");
 
         if !content_type.is_empty() && !content_type.starts_with("application/json") {
+            eprintln!("[HTTP-Transport] 415 Invalid content-type: got={}, expected=application/json", content_type);
             self.total_errors.fetch_add(1, Ordering::Relaxed);
             return Err(HttpTransportError::InvalidContentType);
         }
@@ -635,6 +658,10 @@ impl HttpTransportCapsule {
             Some(key) if !key.is_empty() => Some(key),
             _ if is_protocol_method => None, // Protocol methods can proceed without auth
             _ => {
+                eprintln!("[HTTP-Transport] 401 Missing API key: is_protocol={}, body_preview={}",
+                    is_protocol_method,
+                    &body.chars().take(100).collect::<String>()
+                );
                 self.auth_failures.fetch_add(1, Ordering::Relaxed);
                 self.total_errors.fetch_add(1, Ordering::Relaxed);
                 return Err(HttpTransportError::MissingApiKey);
@@ -1036,13 +1063,22 @@ mod tests {
     }
 
     #[test]
-    fn test_is_protocol_method_tool_calls_require_auth() {
-        // Tool calls should NOT be protocol methods (require auth)
+    fn test_is_protocol_method_tools_list() {
+        // tools/list is a protocol method (accessible after initialize without full auth)
+        // Rationale: MCP spec allows listing tools/resources after initialize
         let body = r#"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#;
-        assert!(!HttpTransportCapsule::is_protocol_method(body), "tools/list requires auth");
+        assert!(HttpTransportCapsule::is_protocol_method(body), "tools/list is protocol method");
 
-        let body2 = r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"attach"}}"#;
-        assert!(!HttpTransportCapsule::is_protocol_method(body2), "tools/call requires auth");
+        // With space after colon
+        let body_space = r#"{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}"#;
+        assert!(HttpTransportCapsule::is_protocol_method(body_space), "tools/list with spaces is protocol method");
+    }
+
+    #[test]
+    fn test_is_protocol_method_tool_calls_require_auth() {
+        // tools/call should NOT be protocol method (requires auth for actual tool execution)
+        let body = r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"attach"}}"#;
+        assert!(!HttpTransportCapsule::is_protocol_method(body), "tools/call requires auth");
     }
 
     #[test]

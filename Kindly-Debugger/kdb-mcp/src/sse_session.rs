@@ -1048,9 +1048,9 @@ mod tests {
         assert_eq!(session.user_hash(), 0);
         assert_eq!(session.tier(), SubscriptionTier::Hobby);
 
-        session.set_auth(0xDEADBEEF, SubscriptionTier::Professional);
+        session.set_auth(0xDEADBEEF, SubscriptionTier::Teams);
         assert_eq!(session.user_hash(), 0xDEADBEEF);
-        assert_eq!(session.tier(), SubscriptionTier::Professional);
+        assert_eq!(session.tier(), SubscriptionTier::Teams);
     }
 
     #[test]
@@ -1089,7 +1089,7 @@ mod tests {
         assert_eq!(session.generation(), initial_gen + 2);
 
         // set_auth should increment generation
-        session.set_auth(123, SubscriptionTier::Developer);
+        session.set_auth(123, SubscriptionTier::Engineer);
         assert_eq!(session.generation(), initial_gen + 3);
 
         // force_expire should increment generation
@@ -1101,7 +1101,7 @@ mod tests {
     fn test_snapshot() {
         let session = SseSessionCapsule::new();
         session.link_socket(42).unwrap();
-        session.set_auth(0xCAFE, SubscriptionTier::Developer);
+        session.set_auth(0xCAFE, SubscriptionTier::Engineer);
         session.record_message_received(1024);
         session.record_message_pushed(512);
 
@@ -1110,7 +1110,7 @@ mod tests {
         assert_eq!(snap.state, SessionState::Linked);
         assert_eq!(snap.socket_fd, 42);
         assert_eq!(snap.user_hash, 0xCAFE);
-        assert_eq!(snap.tier, SubscriptionTier::Developer);
+        assert_eq!(snap.tier, SubscriptionTier::Engineer);
         assert_eq!(snap.messages_received, 1);
         assert_eq!(snap.messages_pushed, 1);
         assert_eq!(snap.bytes_received, 1024);
