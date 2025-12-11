@@ -76,17 +76,74 @@ impl LicenseValidatorCapsule {
     }
 
     /// Validate with specific license key (slower, ~100ns)
+    ///
+    /// **Validation Modes**:
+    /// 1. If admin license is set (via set_license), validates against stored hash
+    /// 2. If no admin license, accepts ANY properly formatted KDB-* license
+    ///
+    /// **Format**: `KDB-{TIER}-{...}` where TIER is one of:
+    /// - HOBBY (free tier)
+    /// - PRO (was STARTER)
+    /// - ENGINEER (was DEVELOPER)
+    /// - TEAMS (was PROFESSIONAL)
+    /// - ENTERPRISE
+    /// - ADMIN (admin override)
     pub fn validate_key(&self, license_key: &str) -> bool {
-        let hash = self.fnv1a_hash(license_key.as_bytes());
         let stored_hash = self.license_hash.load(Ordering::Acquire);
 
-        if hash == stored_hash {
-            self.validate()
-        } else {
-            self.validation_count.fetch_add(1, Ordering::Relaxed);
-            self.validation_failed.fetch_add(1, Ordering::Relaxed);
-            false
+        // Mode 1: Admin license override - exact hash match
+        if stored_hash != 0 {
+            let hash = self.fnv1a_hash(license_key.as_bytes());
+            if hash == stored_hash {
+                return self.validate();
+            }
+            // Fall through to format validation below
         }
+
+        // Mode 2: Format-based validation (for OAuth-provisioned licenses)
+        // Accept any KDB-{TIER}-* formatted license
+        if self.is_valid_format(license_key) {
+            self.validation_count.fetch_add(1, Ordering::Relaxed);
+            self.validation_success.fetch_add(1, Ordering::Relaxed);
+            eprintln!("[License] Format-based validation passed: {}...", &license_key[..license_key.len().min(20)]);
+            return true;
+        }
+
+        // Invalid format or no match
+        self.validation_count.fetch_add(1, Ordering::Relaxed);
+        self.validation_failed.fetch_add(1, Ordering::Relaxed);
+        eprintln!("[License] Validation failed: {}...", &license_key[..license_key.len().min(20)]);
+        false
+    }
+
+    /// Check if license key matches valid format: `KDB-{TIER}-{...}`
+    ///
+    /// **Performance**: <10ns (string prefix check)
+    ///
+    /// **Valid Tiers**: HOBBY, PRO, ENGINEER, TEAMS, ENTERPRISE, ADMIN
+    fn is_valid_format(&self, license_key: &str) -> bool {
+        // Must start with "KDB-"
+        if !license_key.starts_with("KDB-") {
+            return false;
+        }
+
+        // Must have at least KDB-X-Y format (minimum 8 chars)
+        if license_key.len() < 8 {
+            return false;
+        }
+
+        // Extract tier (second component)
+        let parts: Vec<&str> = license_key.splitn(3, '-').collect();
+        if parts.len() < 3 {
+            return false;
+        }
+
+        // Validate tier matches known tiers
+        let tier = parts[1];
+        matches!(
+            tier,
+            "HOBBY" | "PRO" | "ENGINEER" | "TEAMS" | "ENTERPRISE" | "ADMIN"
+        )
     }
 
     /// FNV-1a hash (fast, lockfree)
@@ -194,5 +251,157 @@ mod tests {
 
         let stats = validator.get_stats();
         assert_eq!(stats.validation_failed, 1);
+    }
+
+    // ========================================================================
+    // Format-Based Validation Tests (OAuth-provisioned licenses)
+    // ========================================================================
+
+    #[test]
+    fn test_format_validation_hobby() {
+        let validator = LicenseValidatorCapsule::new();
+        // No admin license set - should accept format-based validation
+
+        assert!(validator.validate_key("KDB-HOBBY-693ace9a-1"));
+        assert!(validator.validate_key("KDB-HOBBY-abc123-456"));
+
+        let stats = validator.get_stats();
+        assert_eq!(stats.validation_success, 2);
+        assert_eq!(stats.validation_failed, 0);
+    }
+
+    #[test]
+    fn test_format_validation_all_tiers() {
+        let validator = LicenseValidatorCapsule::new();
+
+        // All tier formats should pass
+        assert!(validator.validate_key("KDB-HOBBY-abc-123"));
+        assert!(validator.validate_key("KDB-PRO-xyz-789"));
+        assert!(validator.validate_key("KDB-ENGINEER-dev-456"));
+        assert!(validator.validate_key("KDB-TEAMS-team-001"));
+        assert!(validator.validate_key("KDB-ENTERPRISE-ent-999"));
+        assert!(validator.validate_key("KDB-ADMIN-adm-root"));
+
+        let stats = validator.get_stats();
+        assert_eq!(stats.validation_success, 6);
+        assert_eq!(stats.validation_failed, 0);
+    }
+
+    #[test]
+    fn test_format_validation_invalid_prefix() {
+        let validator = LicenseValidatorCapsule::new();
+
+        // Wrong prefix
+        assert!(!validator.validate_key("NOTDB-HOBBY-123"));
+        assert!(!validator.validate_key("KD-HOBBY-123"));
+        assert!(!validator.validate_key("hobby-123"));
+
+        let stats = validator.get_stats();
+        assert_eq!(stats.validation_success, 0);
+        assert_eq!(stats.validation_failed, 3);
+    }
+
+    #[test]
+    fn test_format_validation_invalid_tier() {
+        let validator = LicenseValidatorCapsule::new();
+
+        // Unknown tier
+        assert!(!validator.validate_key("KDB-UNKNOWN-123"));
+        assert!(!validator.validate_key("KDB-FREE-123"));
+        assert!(!validator.validate_key("KDB-STARTER-123")); // Old tier name
+
+        let stats = validator.get_stats();
+        assert_eq!(stats.validation_success, 0);
+        assert_eq!(stats.validation_failed, 3);
+    }
+
+    #[test]
+    fn test_format_validation_too_short() {
+        let validator = LicenseValidatorCapsule::new();
+
+        // Too short (< 8 chars)
+        assert!(!validator.validate_key("KDB-"));
+        assert!(!validator.validate_key("KDB-H-1"));
+        assert!(!validator.validate_key("KDB"));
+
+        let stats = validator.get_stats();
+        assert_eq!(stats.validation_success, 0);
+        assert_eq!(stats.validation_failed, 3);
+    }
+
+    #[test]
+    fn test_format_validation_missing_components() {
+        let validator = LicenseValidatorCapsule::new();
+
+        // Missing third component
+        assert!(!validator.validate_key("KDB-HOBBY"));
+        assert!(!validator.validate_key("KDB-PRO-"));
+
+        let stats = validator.get_stats();
+        assert_eq!(stats.validation_success, 0);
+        assert_eq!(stats.validation_failed, 2);
+    }
+
+    #[test]
+    fn test_admin_override_takes_precedence() {
+        let validator = LicenseValidatorCapsule::new();
+
+        // Set admin license
+        let admin_key = "KDB-ADMIN-special-override";
+        let expiry = 2000000000; // Year 2033
+        validator.set_license(admin_key, expiry);
+
+        // Admin key should pass via hash match
+        assert!(validator.validate_key(admin_key));
+
+        // Other KDB-* keys should ALSO pass via format validation (fallback)
+        assert!(validator.validate_key("KDB-HOBBY-user-123"));
+        assert!(validator.validate_key("KDB-PRO-user-456"));
+
+        let stats = validator.get_stats();
+        assert_eq!(stats.validation_success, 3);
+        assert_eq!(stats.validation_failed, 0);
+    }
+
+    #[test]
+    fn test_oauth_provisioned_license_example() {
+        let validator = LicenseValidatorCapsule::new();
+        // No admin license set - simulates production OAuth flow
+
+        // OAuth provisions license like this (see mcp_sse_server.rs line 1752)
+        let timestamp = 1234567890u64;
+        let email_hash = 0xabcd1234u64;
+        let oauth_license = format!("KDB-HOBBY-{:x}-{:x}", timestamp, email_hash);
+
+        // Should pass format validation
+        assert!(validator.validate_key(&oauth_license));
+
+        let stats = validator.get_stats();
+        assert_eq!(stats.validation_success, 1);
+        assert_eq!(stats.validation_failed, 0);
+    }
+
+    #[test]
+    fn test_empty_license_key() {
+        let validator = LicenseValidatorCapsule::new();
+
+        assert!(!validator.validate_key(""));
+
+        let stats = validator.get_stats();
+        assert_eq!(stats.validation_failed, 1);
+    }
+
+    #[test]
+    fn test_case_sensitive_tier() {
+        let validator = LicenseValidatorCapsule::new();
+
+        // Tier must be uppercase
+        assert!(validator.validate_key("KDB-HOBBY-123"));
+        assert!(!validator.validate_key("KDB-hobby-123")); // Lowercase tier
+        assert!(!validator.validate_key("KDB-Hobby-123")); // Mixed case
+
+        let stats = validator.get_stats();
+        assert_eq!(stats.validation_success, 1);
+        assert_eq!(stats.validation_failed, 2);
     }
 }

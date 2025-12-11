@@ -504,8 +504,16 @@ impl McpServerCapsule {
 
         // Authentication succeeded - continue with existing checks
 
-        // 4. Validate license (<10ns cached)
-        if !self.license.validate() {
+        // 4. Validate license (<10ns cached, ~100ns with key validation)
+        let license_valid = if let Some(key) = api_key {
+            // Validate specific API key (format-based or admin override)
+            self.license.validate_key(key)
+        } else {
+            // Fall back to cached validation (admin license only)
+            self.license.validate()
+        };
+
+        if !license_valid {
             self.failed_requests.fetch_add(1, Ordering::Relaxed);
             self.add_rejection_jitter(); // SOTA 2024-2025 timing attack defense
             return self.json_rpc.format_error(req.id, -32001, "Invalid license".to_string())

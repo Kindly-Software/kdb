@@ -94,8 +94,18 @@ pub mod daily_limit;  // T1 Atomic daily usage tracking (64B, Hobby tier step_ba
 pub mod monthly_quota;  // T1 Atomic monthly session tracking (128B, auto-reset at month boundary)
 pub mod trial_state;  // T1 Atomic trial period tracking (128B, 7-day trial with all features)
 
+#[cfg(feature = "configure")]
+pub mod configure;  // T0 Auditable multi-source configuration resolution (4KB EnvResolutionCapsule)
+
 #[cfg(feature = "session-persistence")]
 pub mod session_persistence;  // T1 Atomic + T9 Persistent session persistence (capsule_cache integration)
+
+// ============================================================================
+// Client-Side Features (stdio->HTTP bridge, resilience)
+// ============================================================================
+
+#[cfg(feature = "client")]
+pub mod client;  // T1+T3 client resilience capsules (metrics, retry, circuit breaker)
 
 // ============================================================================
 // OAuth 2.0 Authentication (CSRF + PKCE)
@@ -621,6 +631,19 @@ pub use kdb::session_pool::{
 pub use kdb::memory_replay::{
     MemoryReplayCapsule, ReplayConfig, ReplayError, ReplayState, ReplayStats,
     MAX_TRACKED_PAGES, MAX_DELTAS_PER_SNAPSHOT,
+};
+
+// ============================================================================
+// Public Re-exports (Configuration - T0 Auditable)
+// ============================================================================
+
+#[cfg(feature = "configure")]
+pub use configure::{
+    EnvResolutionCapsule,
+    EnvSource,
+    ResolvedVariable,
+    EnvStats,
+    EnvResolutionError,
 };
 
 #[cfg(test)]

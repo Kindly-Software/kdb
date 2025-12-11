@@ -11,7 +11,7 @@ categories = ["development-tools::debugging", "development-tools::build-utils"]
 
 [dependencies]
 # Core dependencies
-atomic_capsule = { version = "0.9", path = "../../atomic_capsule", features = ["std", "native", "histogram", "http-simd", "cache", "probabilistic", "streaming-stats"] }
+atomic_capsule = { version = "0.9", path = "../../atomic_capsule", features = ["std", "native", "histogram", "http-simd", "cache", "probabilistic", "streaming-stats", "circuit-breaker-standard64"] }
 atomic_capsule_derive = { version = "0.9", path = "../../atomic_capsule_derive" }
 kdb = { version = "0.1", path = "../kdb", features = ["std", "simd", "operator-challenge"] }
 
@@ -47,6 +47,9 @@ memmap2 = { version = "0.9", optional = true }
 
 # Fast random number generation for session IDs (MCP Streamable HTTP)
 fastrand = "2.0"
+
+# HTTP client for stdio->HTTP bridge (client feature)
+ureq = { version = "2.9", optional = true }
 
 # OAuth 2.1 + Google (Phase 3)
 reqwest = { version = "0.12", features = ["json"], optional = true }
@@ -153,6 +156,14 @@ sse-transport = ["std"]
 
 # MCP Streamable HTTP transport (2025-06-18 spec)
 streamable-http = ["std", "json-rpc"]
+
+# Multi-source configuration resolution (T0 Auditable, Q34 audit trail)
+configure = ["std"]
+# Auto-configure alias (same as configure, for clarity in documentation)
+auto-configure = ["configure"]
+# Full auto-configuration with config format support
+auto-configure-full = ["auto-configure", "json-rpc"]
+
 shared-state = ["std", "memmap2"]
 tool-executor = ["std"]
 feature-flags = ["std"]
@@ -160,6 +171,38 @@ ab-testing = ["std"]
 
 # All features (MIGRATED to native async runtime)
 all = ["std", "json-rpc", "api-key-auth", "auth-guard", "auth-token", "totp", "access-control", "operator-challenge", "zero-trust", "capability-checker", "dynamic-pid", "secrets", "memory-encryption", "hsm", "key-rotation", "tls", "acme", "intrusion-detection", "anomaly-detection", "session", "metrics", "tracing", "audit", "audit-rotation", "rate-limiting", "runtime", "http-transport", "stdio-transport", "sse-transport", "connection-pool", "shared-state", "tool-executor", "feature-flags", "ab-testing"]
+
+# =============================================================================
+# CLIENT-SIDE FEATURES (for kdb-mcp-client and third-party integrations)
+# =============================================================================
+
+# Phase 1: Essential Resilience (ACTIVE)
+client = ["std", "client-metrics", "client-retry", "client-circuit-breaker", "ureq"]
+client-metrics = ["std"]
+client-retry = ["std"]
+client-circuit-breaker = ["std"]
+
+# Phase 2: Performance (coming soon)
+client-cache = ["std"]
+client-dedup = ["std"]
+
+# Phase 3: Advanced (coming soon)
+client-offline = ["std"]
+client-batching = ["std"]
+
+# Phase 4: Protection
+# Note: crypto-license excluded due to unrelated issue in zero_trust_policy.rs
+# P0ProtectionLayer uses FNV-1a based license validation internally
+client-protection = ["std", "anti-debug", "emulator-detection"]
+
+# Client feature bundles (hierarchical)
+client-minimal = ["client-metrics", "client-retry", "client-circuit-breaker"]
+client-standard = ["client-minimal", "client-cache", "client-dedup"]
+client-full = ["client-standard", "client-offline", "client-batching", "client-protection"]
+
+# Protection features (used by client-protection)
+anti-debug = ["std"]
+emulator-detection = ["std"]
 
 [profile.release]
 opt-level = 3
@@ -213,6 +256,17 @@ required-features = ["std", "json-rpc", "runtime", "http-transport", "tool-execu
 name = "mcp_sse_server"
 path = "src/bin/mcp_sse_server.rs"
 required-features = ["std", "json-rpc", "sse-transport", "streamable-http", "http-transport", "oauth"]
+
+[[bin]]
+name = "kdb_client_bridge"
+path = "src/bin/kdb_client_bridge.rs"
+# Phase 3 features (client-offline, client-batching) are optional via conditional compilation
+required-features = ["std", "client", "client-metrics", "client-retry", "client-circuit-breaker", "client-cache", "client-dedup"]
+
+[[bin]]
+name = "kdb_sse_bridge"
+path = "src/bin/kdb_sse_bridge.rs"
+required-features = ["std", "client"]
 
 [dev-dependencies]
 proptest = "1.4"
