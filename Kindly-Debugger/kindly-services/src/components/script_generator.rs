@@ -1,0 +1,606 @@
+//! Platform-Specific Setup Script Generator
+//!
+//! Generates executable setup scripts for each platform (macOS, Linux, Windows)
+//! that automate the KDB installation and configuration process.
+//!
+//! T0 Auditable tier - pure functions with deterministic output.
+//!
+//! ## Security Notes
+//! - License keys are embedded in heredoc blocks (bash) or echo statements (batch)
+//! - Special characters are properly escaped for each platform
+//! - Scripts set restrictive permissions (chmod 600) on license files
+
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
+
+/// Supported operating system platforms
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Platform {
+    /// macOS - generates .command file (double-clickable in Finder)
+    MacOS,
+    /// Linux - generates .sh file
+    Linux,
+    /// Windows - generates .bat file
+    Windows,
+    /// Unknown platform - defaults to Linux/bash
+    Unknown,
+}
+
+impl Platform {
+    /// Detect the current platform from browser user agent
+    ///
+    /// Uses navigator.userAgent to detect the operating system.
+    /// Falls back to `Unknown` if detection fails.
+    ///
+    /// # Returns
+    /// The detected platform
+    pub fn detect() -> Self {
+        let user_agent = web_sys::window()
+            .and_then(|w| w.navigator().user_agent().ok())
+            .unwrap_or_default();
+
+        Self::detect_from_user_agent(&user_agent)
+    }
+
+    /// Detect platform from a user agent string
+    ///
+    /// # Arguments
+    /// * `user_agent` - The browser's user agent string
+    ///
+    /// # Returns
+    /// The detected platform
+    pub fn detect_from_user_agent(user_agent: &str) -> Self {
+        let ua_lower = user_agent.to_lowercase();
+
+        if ua_lower.contains("mac") || ua_lower.contains("darwin") {
+            Platform::MacOS
+        } else if ua_lower.contains("win") {
+            Platform::Windows
+        } else if ua_lower.contains("linux") || ua_lower.contains("x11") {
+            Platform::Linux
+        } else {
+            Platform::Unknown
+        }
+    }
+
+    /// Get the appropriate file extension for this platform
+    ///
+    /// # Returns
+    /// - macOS: `.command` (double-clickable in Finder)
+    /// - Linux: `.sh`
+    /// - Windows: `.bat`
+    /// - Unknown: `.sh` (default to bash)
+    pub fn script_extension(&self) -> &'static str {
+        match self {
+            Platform::MacOS => ".command",
+            Platform::Linux => ".sh",
+            Platform::Windows => ".bat",
+            Platform::Unknown => ".sh",
+        }
+    }
+
+    /// Get the complete filename for the setup script
+    ///
+    /// # Returns
+    /// The filename including extension (e.g., `kdb-setup.command`)
+    pub fn script_filename(&self) -> String {
+        format!("kdb-setup{}", self.script_extension())
+    }
+
+    /// Get the MIME type for downloading the script
+    pub fn mime_type(&self) -> &'static str {
+        match self {
+            Platform::MacOS | Platform::Linux | Platform::Unknown => "application/x-sh",
+            Platform::Windows => "application/x-bat",
+        }
+    }
+
+    /// Get a human-readable name for this platform
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Platform::MacOS => "macOS",
+            Platform::Linux => "Linux",
+            Platform::Windows => "Windows",
+            Platform::Unknown => "Unknown",
+        }
+    }
+}
+
+/// Escape special characters in license key for Windows batch files
+///
+/// Batch file special characters that need escaping: % ^ & < > | ( )
+fn escape_for_batch(license_key: &str) -> String {
+    license_key
+        .replace('%', "%%")
+        .replace('^', "^^")
+        .replace('&', "^&")
+        .replace('<', "^<")
+        .replace('>', "^>")
+        .replace('|', "^|")
+        .replace('(', "^(")
+        .replace(')', "^)")
+}
+
+/// Generate a platform-specific setup script
+///
+/// # Arguments
+/// * `license_key` - The user's license key to embed in the script
+/// * `platform` - The target platform for the script
+///
+/// # Returns
+/// The complete script contents as a string
+pub fn generate_setup_script(license_key: &str, platform: Platform) -> String {
+    match platform {
+        Platform::MacOS => generate_macos_script(license_key),
+        Platform::Linux => generate_linux_script(license_key),
+        Platform::Windows => generate_windows_script(license_key),
+        Platform::Unknown => generate_linux_script(license_key),
+    }
+}
+
+/// Generate macOS setup script (.command file)
+///
+/// The .command extension makes the file double-clickable in Finder,
+/// automatically opening Terminal.app to execute it.
+fn generate_macos_script(license_key: &str) -> String {
+    // Using heredoc with single-quoted delimiter prevents variable expansion
+    // This safely handles any special characters in the license key
+    format!(
+        r#"#!/bin/bash
+# kdb-setup.command
+# KDB Auto-Setup Script for macOS
+# Double-click this file to run setup
+#
+# Generated by https://kindly.software
+
+set -e
+
+echo ""
+echo "========================================"
+echo "  KDB Auto-Setup"
+echo "========================================"
+echo ""
+
+# Create config directory
+echo "[1/4] Creating configuration directory..."
+mkdir -p ~/.kdb
+
+# Save license key using heredoc (safely handles special chars)
+echo "[2/4] Saving license key..."
+cat > ~/.kdb/license << 'EOF'
+{license_key}
+EOF
+chmod 600 ~/.kdb/license
+echo "      License saved to ~/.kdb/license"
+
+# Install kdb npm package
+echo ""
+echo "[3/4] Installing kdb MCP client..."
+echo "      This may take a moment..."
+npm install -g @kindly-software-inc/kdb
+
+# Auto-configure MCP clients
+echo ""
+echo "[4/4] Configuring MCP clients..."
+npx kdb-configure --auto
+
+echo ""
+echo "========================================"
+echo "  Setup Complete!"
+echo "========================================"
+echo ""
+echo "KDB is now configured for:"
+echo "  - Claude Code"
+echo "  - Cursor"
+echo "  - VS Code"
+echo ""
+echo "Start debugging by asking Claude:"
+echo "  'What KDB tools are available?'"
+echo ""
+echo "Documentation: https://kindly.software/#docs"
+echo ""
+read -n 1 -s -r -p "Press any key to close..."
+echo ""
+"#
+    )
+}
+
+/// Generate Linux setup script (.sh file)
+fn generate_linux_script(license_key: &str) -> String {
+    format!(
+        r#"#!/bin/bash
+# kdb-setup.sh
+# KDB Auto-Setup Script for Linux
+#
+# Usage: chmod +x kdb-setup.sh && ./kdb-setup.sh
+#
+# Generated by https://kindly.software
+
+set -e
+
+echo ""
+echo "========================================"
+echo "  KDB Auto-Setup"
+echo "========================================"
+echo ""
+
+# Create config directory
+echo "[1/4] Creating configuration directory..."
+mkdir -p ~/.kdb
+
+# Save license key using heredoc (safely handles special chars)
+echo "[2/4] Saving license key..."
+cat > ~/.kdb/license << 'EOF'
+{license_key}
+EOF
+chmod 600 ~/.kdb/license
+echo "      License saved to ~/.kdb/license"
+
+# Install kdb npm package
+echo ""
+echo "[3/4] Installing kdb MCP client..."
+echo "      This may take a moment..."
+npm install -g @kindly-software-inc/kdb
+
+# Auto-configure MCP clients
+echo ""
+echo "[4/4] Configuring MCP clients..."
+npx kdb-configure --auto
+
+echo ""
+echo "========================================"
+echo "  Setup Complete!"
+echo "========================================"
+echo ""
+echo "KDB is now configured for:"
+echo "  - Claude Code"
+echo "  - Cursor"
+echo "  - VS Code"
+echo ""
+echo "Start debugging by asking Claude:"
+echo "  'What KDB tools are available?'"
+echo ""
+echo "Documentation: https://kindly.software/#docs"
+echo ""
+"#
+    )
+}
+
+/// Generate Windows setup script (.bat file)
+fn generate_windows_script(license_key: &str) -> String {
+    let escaped_key = escape_for_batch(license_key);
+    format!(
+        r#"@echo off
+REM kdb-setup.bat
+REM KDB Auto-Setup Script for Windows
+REM
+REM Double-click this file or run from Command Prompt
+REM
+REM Generated by https://kindly.software
+
+echo.
+echo ========================================
+echo   KDB Auto-Setup
+echo ========================================
+echo.
+
+REM Create config directory
+echo [1/4] Creating configuration directory...
+if not exist "%USERPROFILE%\.kdb" mkdir "%USERPROFILE%\.kdb"
+
+REM Save license key
+echo [2/4] Saving license key...
+echo {escaped_key}> "%USERPROFILE%\.kdb\license"
+echo       License saved to %USERPROFILE%\.kdb\license
+
+REM Install kdb npm package
+echo.
+echo [3/4] Installing kdb MCP client...
+echo       This may take a moment...
+call npm install -g @kindly-software-inc/kdb
+
+REM Auto-configure MCP clients
+echo.
+echo [4/4] Configuring MCP clients...
+call npx kdb-configure --auto
+
+echo.
+echo ========================================
+echo   Setup Complete!
+echo ========================================
+echo.
+echo KDB is now configured for:
+echo   - Claude Code
+echo   - Cursor
+echo   - VS Code
+echo.
+echo Start debugging by asking Claude:
+echo   'What KDB tools are available?'
+echo.
+echo Documentation: https://kindly.software/#docs
+echo.
+pause
+"#
+    )
+}
+
+/// Trigger a file download in the browser
+///
+/// Creates a Blob URL and programmatically clicks a download link.
+///
+/// # Arguments
+/// * `content` - The file contents
+/// * `filename` - The filename for the download
+/// * `mime_type` - The MIME type of the file
+pub fn download_script(content: &str, filename: &str, mime_type: &str) {
+    if let Some(window) = web_sys::window() {
+        if let Some(document) = window.document() {
+            // Create blob from content
+            let blob_parts = js_sys::Array::new();
+            blob_parts.push(&JsValue::from_str(content));
+
+            let options = web_sys::BlobPropertyBag::new();
+            options.set_type(mime_type);
+
+            if let Ok(blob) =
+                web_sys::Blob::new_with_str_sequence_and_options(&blob_parts, &options)
+            {
+                // Create object URL
+                if let Ok(url) = web_sys::Url::create_object_url_with_blob(&blob) {
+                    // Create hidden download link
+                    if let Ok(a) = document.create_element("a") {
+                        if let Some(anchor) = a.dyn_ref::<web_sys::HtmlAnchorElement>() {
+                            anchor.set_href(&url);
+                            anchor.set_download(filename);
+
+                            // Append to body, click, and remove
+                            if let Some(body) = document.body() {
+                                let _ = body.append_child(&a);
+                                anchor.click();
+                                let _ = body.remove_child(&a);
+                            }
+
+                            // Revoke object URL to free memory
+                            let _ = web_sys::Url::revoke_object_url(&url);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Generate and download a setup script for the detected platform
+///
+/// Automatically detects the user's platform and generates the appropriate script.
+///
+/// # Arguments
+/// * `license_key` - The user's license key
+///
+/// # Returns
+/// The detected platform (useful for UI feedback)
+pub fn download_setup_script(license_key: &str) -> Platform {
+    let platform = Platform::detect();
+    let script = generate_setup_script(license_key, platform);
+    let filename = platform.script_filename();
+    let mime_type = platform.mime_type();
+
+    download_script(&script, &filename, mime_type);
+
+    platform
+}
+
+/// Generate and download a setup script for a specific platform
+///
+/// Use this when the user manually selects a platform.
+///
+/// # Arguments
+/// * `license_key` - The user's license key
+/// * `platform` - The target platform
+pub fn download_setup_script_for_platform(license_key: &str, platform: Platform) {
+    let script = generate_setup_script(license_key, platform);
+    let filename = platform.script_filename();
+    let mime_type = platform.mime_type();
+
+    download_script(&script, &filename, mime_type);
+}
+
+// ============================================================================
+// Tests
+// ============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Test 1: Platform detection from user agent
+    #[test]
+    fn test_platform_detection() {
+        // macOS detection
+        assert_eq!(
+            Platform::detect_from_user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"),
+            Platform::MacOS
+        );
+        assert_eq!(
+            Platform::detect_from_user_agent("Mozilla/5.0 (Mac; Intel)"),
+            Platform::MacOS
+        );
+
+        // Windows detection
+        assert_eq!(
+            Platform::detect_from_user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64)"),
+            Platform::Windows
+        );
+
+        // Linux detection
+        assert_eq!(
+            Platform::detect_from_user_agent("Mozilla/5.0 (X11; Linux x86_64)"),
+            Platform::Linux
+        );
+        assert_eq!(
+            Platform::detect_from_user_agent("Mozilla/5.0 (X11; Ubuntu; Linux)"),
+            Platform::Linux
+        );
+
+        // Unknown
+        assert_eq!(
+            Platform::detect_from_user_agent("Unknown Browser"),
+            Platform::Unknown
+        );
+    }
+
+    // Test 2: Script extensions are correct
+    #[test]
+    fn test_script_extension() {
+        assert_eq!(Platform::MacOS.script_extension(), ".command");
+        assert_eq!(Platform::Linux.script_extension(), ".sh");
+        assert_eq!(Platform::Windows.script_extension(), ".bat");
+        assert_eq!(Platform::Unknown.script_extension(), ".sh");
+    }
+
+    // Test 3: macOS script has valid bash syntax
+    #[test]
+    fn test_generate_macos_script() {
+        let license = "test-macos-license-12345";
+        let script = generate_macos_script(license);
+
+        // Check bash shebang
+        assert!(script.starts_with("#!/bin/bash"));
+
+        // Check heredoc structure for safe license embedding
+        assert!(script.contains("cat > ~/.kdb/license << 'EOF'"));
+        assert!(script.contains(license));
+        assert!(script.contains("\nEOF\n"));
+
+        // Check required commands
+        assert!(script.contains("mkdir -p ~/.kdb"));
+        assert!(script.contains("chmod 600 ~/.kdb/license"));
+        assert!(script.contains("npm install -g @kindly-software-inc/kdb"));
+        assert!(script.contains("npx kdb-configure --auto"));
+
+        // Check it's a .command file reference
+        assert!(script.contains("kdb-setup.command"));
+    }
+
+    // Test 4: Windows script has valid batch syntax
+    #[test]
+    fn test_generate_windows_script() {
+        let license = "test-windows-license";
+        let script = generate_windows_script(license);
+
+        // Check batch file start
+        assert!(script.starts_with("@echo off"));
+
+        // Check REM comments
+        assert!(script.contains("REM"));
+
+        // Check Windows paths
+        assert!(script.contains("%USERPROFILE%"));
+
+        // Check license is present
+        assert!(script.contains(license));
+
+        // Check call prefix for npm
+        assert!(script.contains("call npm"));
+        assert!(script.contains("call npx"));
+
+        // Check pause at end
+        assert!(script.contains("pause"));
+    }
+
+    // Test 5: License is properly embedded in heredoc
+    #[test]
+    fn test_license_embedded() {
+        let license = "Ed25519:abc123XYZ+/=special-chars_here";
+        let macos_script = generate_macos_script(license);
+
+        // License should appear between heredoc markers
+        assert!(macos_script.contains("<< 'EOF'"));
+        assert!(macos_script.contains(license));
+        assert!(macos_script.contains("\nEOF\n"));
+
+        // Single-quoted EOF prevents variable expansion, so special chars are safe
+        let linux_script = generate_linux_script(license);
+        assert!(linux_script.contains(license));
+    }
+
+    // Test 6: Special characters are properly escaped
+    #[test]
+    fn test_script_escaping() {
+        // Test batch escaping
+        assert_eq!(escape_for_batch("key%value"), "key%%value");
+        assert_eq!(escape_for_batch("a&b"), "a^&b");
+        assert_eq!(escape_for_batch("a|b"), "a^|b");
+        assert_eq!(escape_for_batch("a<b>c"), "a^<b^>c");
+        assert_eq!(escape_for_batch("(test)"), "^(test^)");
+        assert_eq!(escape_for_batch("a^b"), "a^^b");
+
+        // Test that special chars in Windows script are escaped
+        let special_license = "key%with&special|chars";
+        let windows_script = generate_windows_script(special_license);
+        // The escaped version should be in the script
+        assert!(windows_script.contains("key%%with^&special^|chars"));
+    }
+
+    // Additional tests for completeness
+
+    #[test]
+    fn test_script_filename() {
+        assert_eq!(Platform::MacOS.script_filename(), "kdb-setup.command");
+        assert_eq!(Platform::Linux.script_filename(), "kdb-setup.sh");
+        assert_eq!(Platform::Windows.script_filename(), "kdb-setup.bat");
+        assert_eq!(Platform::Unknown.script_filename(), "kdb-setup.sh");
+    }
+
+    #[test]
+    fn test_mime_types() {
+        assert_eq!(Platform::MacOS.mime_type(), "application/x-sh");
+        assert_eq!(Platform::Linux.mime_type(), "application/x-sh");
+        assert_eq!(Platform::Windows.mime_type(), "application/x-bat");
+        assert_eq!(Platform::Unknown.mime_type(), "application/x-sh");
+    }
+
+    #[test]
+    fn test_display_names() {
+        assert_eq!(Platform::MacOS.display_name(), "macOS");
+        assert_eq!(Platform::Linux.display_name(), "Linux");
+        assert_eq!(Platform::Windows.display_name(), "Windows");
+        assert_eq!(Platform::Unknown.display_name(), "Unknown");
+    }
+
+    #[test]
+    fn test_generate_setup_script_routing() {
+        let license = "routing-test";
+
+        // Verify correct routing
+        let macos = generate_setup_script(license, Platform::MacOS);
+        assert!(macos.contains("kdb-setup.command"));
+        assert!(macos.starts_with("#!/bin/bash"));
+
+        let linux = generate_setup_script(license, Platform::Linux);
+        assert!(linux.contains("kdb-setup.sh"));
+        assert!(linux.starts_with("#!/bin/bash"));
+
+        let windows = generate_setup_script(license, Platform::Windows);
+        assert!(windows.contains("kdb-setup.bat"));
+        assert!(windows.starts_with("@echo off"));
+
+        // Unknown defaults to Linux
+        let unknown = generate_setup_script(license, Platform::Unknown);
+        assert!(unknown.contains("kdb-setup.sh"));
+    }
+
+    #[test]
+    fn test_linux_script_valid_syntax() {
+        let license = "linux-test";
+        let script = generate_linux_script(license);
+
+        // Check bash best practices
+        assert!(script.contains("set -e")); // Exit on error
+        assert!(script.contains("mkdir -p")); // Create parent dirs
+        assert!(script.contains("chmod 600")); // Secure permissions
+
+        // Should NOT have "Press any key" since Linux terminals don't wait
+        assert!(!script.contains("Press any key"));
+    }
+}

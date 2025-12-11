@@ -4,6 +4,9 @@
   "description": "Production-grade MCP client for kdb debugger with enterprise-grade reliability, caching, and security",
   "main": "index.js",
   "type": "module",
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js"
+  },
   "bin": {
     "kdb-mcp-bridge": "bin/kdb_client_bridge",
     "kdb-configure": "bin/kdb_configure"

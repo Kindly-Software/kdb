@@ -1,12 +1,20 @@
 //! OAuth Success Page Component
 //!
-//! Shown after OAuth completes with license key display and download.
+//! Shown after OAuth completes with license key display and setup script download.
 //! Handles #oauth-success?license=XXX&callback=YYY URL hash format.
 //! Matches Byzantine Royal theme with glassmorphism styling.
+//!
+//! Features:
+//! - Auto-downloads platform-specific setup script (.command/.sh/.bat)
+//! - Auto-downloads .kdb-license file
+//! - Platform detection from User-Agent
+//! - Clear, platform-specific instructions
 
 use leptos::prelude::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+
+use super::script_generator::{generate_setup_script, Platform};
 
 /// Parse query parameters from a URL hash string
 /// Handles format: #oauth-success?license=XXX&callback=YYY
@@ -62,8 +70,18 @@ fn urlencoding_decode(s: &str) -> String {
     result
 }
 
-/// Trigger browser download of the license file
-fn trigger_license_download(license: &str) {
+/// Detect platform from browser User-Agent
+fn detect_platform() -> Platform {
+    if let Some(window) = web_sys::window() {
+        if let Ok(user_agent) = window.navigator().user_agent() {
+            return Platform::detect_from_user_agent(&user_agent);
+        }
+    }
+    Platform::Unknown
+}
+
+/// Trigger browser download of a file with given content and filename
+fn trigger_download(content: &str, filename: &str, mime_type: &str) {
     let window = match web_sys::window() {
         Some(w) => w,
         None => return,
@@ -74,13 +92,12 @@ fn trigger_license_download(license: &str) {
         None => return,
     };
 
-    // Create Blob from license text using JavaScript interop
-    // web-sys Blob API can be complex, use js_sys for simplicity
+    // Create Blob from content
     let array = js_sys::Array::new();
-    array.push(&JsValue::from_str(license));
+    array.push(&JsValue::from_str(content));
 
     let blob_opts = web_sys::BlobPropertyBag::new();
-    blob_opts.set_type("text/plain");
+    blob_opts.set_type(mime_type);
 
     let blob = match web_sys::Blob::new_with_str_sequence_and_options(&array, &blob_opts) {
         Ok(b) => b,
@@ -97,7 +114,7 @@ fn trigger_license_download(license: &str) {
     if let Ok(elem) = document.create_element("a") {
         if let Some(anchor) = elem.dyn_ref::<web_sys::HtmlAnchorElement>() {
             anchor.set_href(&url);
-            anchor.set_download(".kdb-license");
+            anchor.set_download(filename);
 
             // Append to body, click, then remove
             if let Some(body) = document.body() {
@@ -110,6 +127,25 @@ fn trigger_license_download(license: &str) {
             let _ = web_sys::Url::revoke_object_url(&url);
         }
     }
+}
+
+/// Trigger browser download of the license file
+fn trigger_license_download(license: &str) {
+    trigger_download(license, ".kdb-license", "text/plain");
+}
+
+/// Trigger browser download of the setup script
+fn trigger_script_download(license: &str, platform: Platform) {
+    let script = generate_setup_script(license, platform);
+    let filename = platform.script_filename();
+
+    // Use appropriate MIME type
+    let mime_type = match platform {
+        Platform::Windows => "application/x-bat",
+        _ => "application/x-sh",
+    };
+
+    trigger_download(&script, &filename, mime_type);
 }
 
 /// Copy text to clipboard
@@ -127,10 +163,16 @@ pub fn OAuthSuccess() -> impl IntoView {
     let (license, set_license) = signal(String::new());
     let (callback_url, set_callback_url) = signal(None::<String>);
     let (download_triggered, set_download_triggered) = signal(false);
+    let (script_downloaded, set_script_downloaded) = signal(false);
     let (copied, set_copied) = signal(false);
+    let (platform, set_platform) = signal(Platform::Unknown);
 
     // Parse URL on mount
     Effect::new(move |_| {
+        // Detect platform first
+        let detected_platform = detect_platform();
+        set_platform.set(detected_platform);
+
         if let Some(window) = web_sys::window() {
             if let Ok(hash) = window.location().hash() {
                 let params = parse_hash_params(&hash);
@@ -139,10 +181,26 @@ pub fn OAuthSuccess() -> impl IntoView {
                     if !lic.is_empty() {
                         set_license.set(lic.clone());
 
-                        // Auto-trigger download (only once)
+                        // Auto-trigger downloads (only once)
                         if !download_triggered.get() {
                             set_download_triggered.set(true);
+
+                            // Download license file
                             trigger_license_download(lic);
+
+                            // Small delay, then download setup script
+                            let lic_clone = lic.clone();
+                            let set_script_downloaded_clone = set_script_downloaded;
+                            let timeout_callback = Closure::wrap(Box::new(move || {
+                                trigger_script_download(&lic_clone, detected_platform);
+                                set_script_downloaded_clone.set(true);
+                            }) as Box<dyn FnMut()>);
+
+                            let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+                                timeout_callback.as_ref().unchecked_ref(),
+                                500, // 500ms delay between downloads
+                            );
+                            std::mem::forget(timeout_callback);
                         }
                     }
                 }
@@ -186,10 +244,16 @@ pub fn OAuthSuccess() -> impl IntoView {
         }
     };
 
-    // Re-download handler
-    let on_redownload = move |_| {
+    // Re-download license handler
+    let on_redownload_license = move |_| {
         let license_val = license.get();
         trigger_license_download(&license_val);
+    };
+
+    // Re-download script handler
+    let on_redownload_script = move |_| {
+        let license_val = license.get();
+        trigger_script_download(&license_val, platform.get());
     };
 
     // Styles - Byzantine Royal purple theme with glassmorphism
@@ -210,7 +274,7 @@ pub fn OAuthSuccess() -> impl IntoView {
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 24px;
         padding: 3rem;
-        max-width: 800px;
+        max-width: 900px;
         width: 100%;
     ";
 
@@ -240,12 +304,46 @@ pub fn OAuthSuccess() -> impl IntoView {
         margin-bottom: 2rem;
     ";
 
+    let download_notice_style = "
+        background: rgba(76, 175, 80, 0.15);
+        border: 1px solid rgba(76, 175, 80, 0.4);
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        color: #4CAF50;
+        font-size: 0.9375rem;
+    ";
+
+    let download_icon_style = "
+        font-size: 1.5rem;
+        line-height: 1;
+    ";
+
+    let download_text_container_style = "
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    ";
+
+    let download_main_text_style = "
+        font-weight: 600;
+        color: #4CAF50;
+    ";
+
+    let download_sub_text_style = "
+        color: rgba(76, 175, 80, 0.8);
+        font-size: 0.8125rem;
+    ";
+
     let license_box_style = "
         background: rgba(26, 0, 51, 0.6);
         border: 2px solid rgba(110, 63, 255, 0.5);
         border-radius: 12px;
         padding: 1.5rem;
-        margin: 2rem 0;
+        margin: 1.5rem 0;
         position: relative;
     ";
 
@@ -259,7 +357,7 @@ pub fn OAuthSuccess() -> impl IntoView {
 
     let license_key_style = "
         font-family: 'JetBrains Mono', monospace;
-        font-size: 1rem;
+        font-size: 0.9375rem;
         color: #FFD700;
         word-break: break-all;
         line-height: 1.5;
@@ -296,49 +394,92 @@ pub fn OAuthSuccess() -> impl IntoView {
         font-weight: 500;
     ";
 
-    let setup_section_style = "
+    let instructions_section_style = "
         background: rgba(255, 255, 255, 0.03);
         border-radius: 16px;
         padding: 1.5rem;
         margin-top: 2rem;
     ";
 
-    let setup_title_style = "
+    let instructions_title_style = "
         font-family: 'Space Grotesk', sans-serif;
         font-size: 1.25rem;
         font-weight: 600;
         color: #fff;
-        margin-bottom: 1.5rem;
-    ";
-
-    let option_style = "
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        padding: 1.25rem;
-        margin-bottom: 1rem;
-    ";
-
-    let option_title_style = "
-        font-family: 'Space Grotesk', sans-serif;
-        font-size: 1rem;
-        font-weight: 600;
-        color: #FFD700;
-        margin-bottom: 0.75rem;
+        margin-bottom: 1.25rem;
         display: flex;
         align-items: center;
         gap: 0.5rem;
     ";
 
-    let recommended_badge_style = "
-        background: linear-gradient(135deg, #4CAF50, #45a049);
+    let platform_badge_style = "
+        background: linear-gradient(135deg, #6e3fff, #8e5fff);
         color: #fff;
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-        font-size: 0.625rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.05em;
+    ";
+
+    let step_list_style = "
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    ";
+
+    let step_item_style = "
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    ";
+
+    let step_number_style = "
+        background: linear-gradient(135deg, #6e3fff, #8e5fff);
+        color: #fff;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.875rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    ";
+
+    let step_content_style = "
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.9375rem;
+        line-height: 1.5;
+    ";
+
+    let code_inline_style = "
+        background: rgba(10, 0, 21, 0.6);
+        color: #FFD700;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8125rem;
+    ";
+
+    let alternative_section_style = "
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-top: 1.5rem;
+    ";
+
+    let alternative_title_style = "
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 0.75rem;
     ";
 
     let command_style = "
@@ -351,30 +492,6 @@ pub fn OAuthSuccess() -> impl IntoView {
         overflow-x: auto;
         white-space: pre-wrap;
         line-height: 1.6;
-    ";
-
-    let env_command_style = "
-        background: rgba(10, 0, 21, 0.8);
-        color: #00ff00;
-        padding: 1rem;
-        border-radius: 8px;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.8125rem;
-        overflow-x: auto;
-        white-space: pre-wrap;
-        line-height: 1.6;
-    ";
-
-    let option_text_style = "
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 0.9375rem;
-        line-height: 1.5;
-    ";
-
-    let link_style = "
-        color: #FFD700;
-        text-decoration: none;
-        font-weight: 600;
     ";
 
     let continue_section_style = "
@@ -402,17 +519,10 @@ pub fn OAuthSuccess() -> impl IntoView {
         font-size: 0.9375rem;
     ";
 
-    let download_notice_style = "
-        background: rgba(76, 175, 80, 0.1);
-        border: 1px solid rgba(76, 175, 80, 0.3);
-        border-radius: 8px;
-        padding: 0.75rem 1rem;
-        margin-bottom: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: #4CAF50;
-        font-size: 0.875rem;
+    let link_style = "
+        color: #FFD700;
+        text-decoration: none;
+        font-weight: 600;
     ";
 
     view! {
@@ -447,6 +557,10 @@ pub fn OAuthSuccess() -> impl IntoView {
                     font-size: 0.6875rem !important;
                     padding: 0.75rem !important;
                 }
+                .oauth-step-item {
+                    flex-direction: column;
+                    gap: 0.5rem !important;
+                }
             }"
         </style>
 
@@ -454,17 +568,47 @@ pub fn OAuthSuccess() -> impl IntoView {
             <div style=card_style class="oauth-card">
                 // Header
                 <div style="text-align: center;">
-                    <div style="font-size: 4rem; margin-bottom: 1rem;">"🎉"</div>
+                    <div style="font-size: 4rem; margin-bottom: 1rem;">"\u{1F389}"</div>
                     <span style=success_badge_style>"Account Connected"</span>
                     <h1 style=title_style class="oauth-title">"Welcome to KDB!"</h1>
-                    <h2 style=subtitle_style>"Your account is ready to use"</h2>
+                    <h2 style=subtitle_style>"Your debugger is almost ready"</h2>
                 </div>
 
-                // Download notice
-                <div style=download_notice_style>
-                    <span>"✓"</span>
-                    <span>"Your license file (.kdb-license) is downloading automatically"</span>
-                </div>
+                // Download status notice
+                {move || {
+                    if script_downloaded.get() {
+                        view! {
+                            <div style=download_notice_style>
+                                <span style=download_icon_style>"\u{2705}"</span>
+                                <div style=download_text_container_style>
+                                    <span style=download_main_text_style>
+                                        "Setup files downloaded!"
+                                    </span>
+                                    <span style=download_sub_text_style>
+                                        "Check your Downloads folder for "
+                                        <code style=code_inline_style>
+                                            {move || platform.get().script_filename()}
+                                        </code>
+                                    </span>
+                                </div>
+                            </div>
+                        }.into_any()
+                    } else {
+                        view! {
+                            <div style=download_notice_style>
+                                <span style=download_icon_style>"\u{2B07}\u{FE0F}"</span>
+                                <div style=download_text_container_style>
+                                    <span style=download_main_text_style>
+                                        "Downloading setup files..."
+                                    </span>
+                                    <span style=download_sub_text_style>
+                                        "License and setup script downloading automatically"
+                                    </span>
+                                </div>
+                            </div>
+                        }.into_any()
+                    }
+                }}
 
                 // License key box
                 <div style=license_box_style>
@@ -478,54 +622,140 @@ pub fn OAuthSuccess() -> impl IntoView {
                             class="oauth-copy-btn"
                             on:click=on_copy
                         >
-                            {move || if copied.get() { "Copied!" } else { "Copy Key" }}
+                            {move || if copied.get() { "\u{2705} Copied!" } else { "\u{1F4CB} Copy Key" }}
                         </button>
                         <button
                             style=download_button_style
                             class="oauth-download-btn"
-                            on:click=on_redownload
+                            on:click=on_redownload_license
                         >
-                            "Download Again"
+                            "\u{1F4BE} Download License"
+                        </button>
+                        <button
+                            style=download_button_style
+                            class="oauth-download-btn"
+                            on:click=on_redownload_script
+                        >
+                            "\u{1F4DC} Download Script"
                         </button>
                     </div>
                 </div>
 
-                // Setup instructions
-                <div style=setup_section_style>
-                    <h3 style=setup_title_style>"Quick Setup (Choose One)"</h3>
+                // Platform-specific setup instructions
+                <div style=instructions_section_style>
+                    <h3 style=instructions_title_style>
+                        "\u{1F4E5} Quick Setup"
+                        <span style=platform_badge_style>
+                            {move || platform.get().display_name()}
+                        </span>
+                    </h3>
 
-                    // Option 1: Auto-Configure
-                    <div style=option_style>
-                        <div style=option_title_style>
-                            <span>"Option 1: Auto-Configure"</span>
-                            <span style=recommended_badge_style>"Recommended"</span>
-                        </div>
+                    // Platform-specific steps
+                    {move || {
+                        let p = platform.get();
+                        match p {
+                            Platform::MacOS => view! {
+                                <ol style=step_list_style>
+                                    <li style=step_item_style class="oauth-step-item">
+                                        <span style=step_number_style>"1"</span>
+                                        <span style=step_content_style>
+                                            "Find "
+                                            <code style=code_inline_style>"kdb-setup.command"</code>
+                                            " in your Downloads folder"
+                                        </span>
+                                    </li>
+                                    <li style=step_item_style class="oauth-step-item">
+                                        <span style=step_number_style>"2"</span>
+                                        <span style=step_content_style>
+                                            "Double-click to run (Terminal will open automatically)"
+                                        </span>
+                                    </li>
+                                    <li style=step_item_style class="oauth-step-item">
+                                        <span style=step_number_style>"3"</span>
+                                        <span style=step_content_style>
+                                            "If macOS blocks it: Right-click \u{2192} Open \u{2192} Open anyway"
+                                        </span>
+                                    </li>
+                                    <li class="oauth-step-item" style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 0;">
+                                        <span style=step_number_style>"4"</span>
+                                        <span style=step_content_style>
+                                            "Restart your terminal or IDE"
+                                        </span>
+                                    </li>
+                                </ol>
+                            }.into_any(),
+
+                            Platform::Windows => view! {
+                                <ol style=step_list_style>
+                                    <li style=step_item_style class="oauth-step-item">
+                                        <span style=step_number_style>"1"</span>
+                                        <span style=step_content_style>
+                                            "Find "
+                                            <code style=code_inline_style>"kdb-setup.bat"</code>
+                                            " in your Downloads folder"
+                                        </span>
+                                    </li>
+                                    <li style=step_item_style class="oauth-step-item">
+                                        <span style=step_number_style>"2"</span>
+                                        <span style=step_content_style>
+                                            "Double-click to run (Command Prompt will open)"
+                                        </span>
+                                    </li>
+                                    <li style=step_item_style class="oauth-step-item">
+                                        <span style=step_number_style>"3"</span>
+                                        <span style=step_content_style>
+                                            "If Windows blocks it: Click \"More info\" \u{2192} \"Run anyway\""
+                                        </span>
+                                    </li>
+                                    <li class="oauth-step-item" style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 0;">
+                                        <span style=step_number_style>"4"</span>
+                                        <span style=step_content_style>
+                                            "Restart your terminal or IDE"
+                                        </span>
+                                    </li>
+                                </ol>
+                            }.into_any(),
+
+                            Platform::Linux | Platform::Unknown => view! {
+                                <ol style=step_list_style>
+                                    <li style=step_item_style class="oauth-step-item">
+                                        <span style=step_number_style>"1"</span>
+                                        <span style=step_content_style>
+                                            "Open a terminal in your Downloads folder"
+                                        </span>
+                                    </li>
+                                    <li style=step_item_style class="oauth-step-item">
+                                        <span style=step_number_style>"2"</span>
+                                        <span style=step_content_style>
+                                            "Make the script executable: "
+                                            <code style=code_inline_style>"chmod +x kdb-setup.sh"</code>
+                                        </span>
+                                    </li>
+                                    <li style=step_item_style class="oauth-step-item">
+                                        <span style=step_number_style>"3"</span>
+                                        <span style=step_content_style>
+                                            "Run the script: "
+                                            <code style=code_inline_style>"./kdb-setup.sh"</code>
+                                        </span>
+                                    </li>
+                                    <li class="oauth-step-item" style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 0;">
+                                        <span style=step_number_style>"4"</span>
+                                        <span style=step_content_style>
+                                            "Restart your terminal or run: "
+                                            <code style=code_inline_style>"source ~/.bashrc"</code>
+                                        </span>
+                                    </li>
+                                </ol>
+                            }.into_any(),
+                        }
+                    }}
+
+                    // Alternative method
+                    <div style=alternative_section_style>
+                        <h4 style=alternative_title_style>"\u{26A1} Alternative: One-Line Setup"</h4>
                         <pre style=command_style class="oauth-command">
-                            {"# Move downloaded file\nmkdir -p ~/.kdb\nmv ~/Downloads/.kdb-license ~/.kdb/license\n\n# Auto-configure all MCP clients\nnpx kdb-configure --auto"}
+                            {move || format!("npx kdb-configure --auto --license \"{}\"", license.get())}
                         </pre>
-                    </div>
-
-                    // Option 2: Environment Variable
-                    <div style=option_style>
-                        <div style=option_title_style>
-                            "Option 2: Environment Variable"
-                        </div>
-                        <pre style=env_command_style class="oauth-command">
-                            {move || format!("export KDB_LICENSE_KEY=\"{}\"\nnpx kdb-configure --auto", license.get())}
-                        </pre>
-                    </div>
-
-                    // Option 3: Manual Configuration
-                    <div style=option_style>
-                        <div style=option_title_style>
-                            "Option 3: Manual Configuration"
-                        </div>
-                        <p style=option_text_style>
-                            "See full instructions at: "
-                            <a href="#docs" style=link_style class="oauth-link">
-                                "kindly.software/docs"
-                            </a>
-                        </p>
                     </div>
                 </div>
 
@@ -539,7 +769,7 @@ pub fn OAuthSuccess() -> impl IntoView {
                                     class="oauth-primary-btn"
                                     on:click=on_continue
                                 >
-                                    "Continue to Claude Desktop"
+                                    "Continue to Claude Desktop \u{2192}"
                                 </button>
                             }.into_any()
                         } else {

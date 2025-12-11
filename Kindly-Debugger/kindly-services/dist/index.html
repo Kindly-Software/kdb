@@ -31,8 +31,8 @@
     <!-- Build the WASM target (wasm-opt skipped via Trunk.toml) -->
     
 <script type="module">
-import init, * as bindings from '/kindly-services-81f169b337e42d7b.js';
-const wasm = await init({ module_or_path: '/kindly-services-81f169b337e42d7b_bg.wasm' });
+import init, * as bindings from '/kindly-services-ad0bcdc08224756.js';
+const wasm = await init({ module_or_path: '/kindly-services-ad0bcdc08224756_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -530,7 +530,7 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
             }
         }
     </style>
-<link rel="modulepreload" href="/kindly-services-81f169b337e42d7b.js" crossorigin="anonymous" integrity="sha384-YYFXhvF71iVJ3Obq60uPZhf4USZ9WfkUiG3BskwfzEMn/ptSndVgVDar1W2gku6w"><link rel="preload" href="/kindly-services-81f169b337e42d7b_bg.wasm" crossorigin="anonymous" integrity="sha384-VVJyMQZd3v/IANlFxJAqVqxi+bJIPulfmQ3f1hdqRDRtXKOYmpNKc4sH8hr59h5I" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/kindly-services-ad0bcdc08224756.js" crossorigin="anonymous" integrity="sha384-Rbu5TLTyqtLbhvEnN+GvFavcuYg3isWzEoyyQ/op2a7mwEefiX5loLdyZnt7gzmt"><link rel="preload" href="/kindly-services-ad0bcdc08224756_bg.wasm" crossorigin="anonymous" integrity="sha384-CEeSSUlm7QI378m9kpOtC/gL0i3QTdNIaIL3uTGQo38LXpjQj+VuvvRnwQe6AxIs" as="fetch" type="application/wasm"></head>
 <body>
     <canvas id="webgl-bg"></canvas>
     <div id="app" class="loading">Loading kindly.software</div>
