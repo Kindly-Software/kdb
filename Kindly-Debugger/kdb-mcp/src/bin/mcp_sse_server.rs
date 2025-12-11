@@ -1607,7 +1607,7 @@ fn handle_oauth_authorize(
 
     // Redirect to signup page
     let signup_url = format!(
-        "https://kindly.services/#signup?oauth_redirect={}&oauth_state={}",
+        "https://www.kindly.software/#signup?oauth_redirect={}&oauth_state={}",
         urlencoding_encode(redirect_uri),
         urlencoding_encode(state)
     );
@@ -1809,13 +1809,13 @@ fn handle_oauth_callback(
     let redirect_url = match new_user_license_key {
         Some(license_key) => {
             // New user: Show success page with license key, then continue to Claude
-            // Success page URL format: https://kindly.software/#oauth-success?license=xxx&callback=yyy
+            // Success page URL format: https://www.kindly.software/#oauth-success?license=xxx&callback=yyy
             eprintln!(
                 "[MCP-SSE] OAuth callback: new user, redirecting via success page (email={})",
                 claims.email
             );
             format!(
-                "https://kindly.software/#oauth-success?license={}&callback={}",
+                "https://www.kindly.software/#oauth-success?license={}&callback={}",
                 urlencoding_encode(&license_key),
                 urlencoding_encode(&claude_callback)
             )
