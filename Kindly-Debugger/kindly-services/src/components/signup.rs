@@ -238,8 +238,8 @@ pub fn Signup() -> impl IntoView {
 
         // Build OAuth URL
         let oauth_url = format!(
-            "https://mcp.kindly.services/oauth/authorize?response_type=code&client_id=kdb-web-client&redirect_uri={}&scope=openid%20email%20profile&state={}",
-            "https%3A%2F%2Fmcp.kindly.services%2Foauth%2Fcallback",
+            "https://mcp.kindly.software/oauth/authorize?response_type=code&client_id=kdb-web-client&redirect_uri={}&scope=openid%20email%20profile&state={}",
+            "https%3A%2F%2Fmcp.kindly.software%2Foauth%2Fcallback",
             state
         );
 
