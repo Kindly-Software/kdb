@@ -14,7 +14,9 @@ use leptos::prelude::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-use super::script_generator::{generate_enhanced_setup_script, Platform, ScriptOptions};
+use super::script_generator::{
+    generate_enhanced_setup_script, generate_linux_desktop_file, Platform, ScriptOptions,
+};
 
 /// Parse query parameters from a URL hash string
 /// Handles format: #oauth-success?license=XXX&callback=YYY
@@ -135,19 +137,74 @@ fn trigger_license_download(license: &str) {
 }
 
 /// Trigger browser download of the setup script (enhanced version)
+///
+/// For Linux: Downloads BOTH .sh script AND .desktop launcher file.
+/// The .desktop file enables double-click installation (no terminal commands needed).
 fn trigger_script_download(license: &str, platform: Platform) {
     // Use enhanced script with full UX improvements
     let options = ScriptOptions::default();
-    let script = generate_enhanced_setup_script(license, platform, options);
-    let filename = platform.script_filename();
+    let script = generate_enhanced_setup_script(license, platform, options.clone());
 
-    // Use appropriate MIME type
-    let mime_type = match platform {
-        Platform::Windows => "application/x-bat",
-        _ => "application/x-sh",
-    };
+    match platform {
+        Platform::Linux | Platform::Unknown => {
+            // For Linux: Download BOTH .sh script AND .desktop launcher
+            // 1. First download the .sh script (contains the license and setup logic)
+            trigger_download(&script, "kdb-setup.sh", "application/x-sh");
 
-    trigger_download(&script, &filename, mime_type);
+            // 2. Download the .desktop launcher after a 500ms delay
+            // This ensures both files land in Downloads folder
+            if let Some(window) = web_sys::window() {
+                let desktop_content = generate_linux_desktop_file();
+                let callback = Closure::once(Box::new(move || {
+                    // Create and trigger the .desktop file download
+                    if let Some(window) = web_sys::window() {
+                        if let Some(document) = window.document() {
+                            let array = js_sys::Array::new();
+                            array.push(&JsValue::from_str(&desktop_content));
+
+                            let blob_opts = web_sys::BlobPropertyBag::new();
+                            blob_opts.set_type("application/x-desktop");
+
+                            if let Ok(blob) =
+                                web_sys::Blob::new_with_str_sequence_and_options(&array, &blob_opts)
+                            {
+                                if let Ok(url) = web_sys::Url::create_object_url_with_blob(&blob) {
+                                    if let Ok(elem) = document.create_element("a") {
+                                        if let Some(anchor) =
+                                            elem.dyn_ref::<web_sys::HtmlAnchorElement>()
+                                        {
+                                            anchor.set_href(&url);
+                                            anchor.set_download("kdb-setup.desktop");
+
+                                            if let Some(body) = document.body() {
+                                                let _ = body.append_child(anchor);
+                                                anchor.click();
+                                                let _ = body.remove_child(anchor);
+                                            }
+
+                                            let _ = web_sys::Url::revoke_object_url(&url);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }) as Box<dyn FnOnce()>);
+
+                let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+                    callback.as_ref().unchecked_ref(),
+                    500, // 500ms delay between downloads
+                );
+                callback.forget();
+            }
+        }
+        Platform::MacOS => {
+            trigger_download(&script, "kdb-setup.command", "application/x-sh");
+        }
+        Platform::Windows => {
+            trigger_download(&script, "kdb-setup.bat", "application/x-bat");
+        }
+    }
 }
 
 /// Copy text to clipboard
@@ -643,6 +700,11 @@ pub fn OAuthSuccess() -> impl IntoView {
 
                 // Download status notice
                 {move || {
+                    let p = platform.get();
+                    let files_text = match p {
+                        Platform::Linux | Platform::Unknown => "kdb-setup.desktop and kdb-setup.sh".to_string(),
+                        _ => platform.get().script_filename(),
+                    };
                     if script_downloaded.get() {
                         view! {
                             <div style=download_notice_style>
@@ -654,7 +716,7 @@ pub fn OAuthSuccess() -> impl IntoView {
                                     <span style=download_sub_text_style>
                                         "Check your Downloads folder for "
                                         <code style=code_inline_style>
-                                            {move || platform.get().script_filename()}
+                                            {files_text}
                                         </code>
                                     </span>
                                 </div>
@@ -788,28 +850,32 @@ pub fn OAuthSuccess() -> impl IntoView {
                                     <li style=step_item_style class="oauth-step-item">
                                         <span style=step_number_style>"1"</span>
                                         <span style=step_content_style>
-                                            "Open a terminal in your Downloads folder"
+                                            "Find "
+                                            <code style=code_inline_style>"kdb-setup.desktop"</code>
+                                            " and "
+                                            <code style=code_inline_style>"kdb-setup.sh"</code>
+                                            " in Downloads"
                                         </span>
                                     </li>
                                     <li style=step_item_style class="oauth-step-item">
                                         <span style=step_number_style>"2"</span>
                                         <span style=step_content_style>
-                                            "Make the script executable: "
-                                            <code style=code_inline_style>"chmod +x kdb-setup.sh"</code>
+                                            "Double-click "
+                                            <code style=code_inline_style>"kdb-setup.desktop"</code>
+                                            " (Terminal opens automatically)"
                                         </span>
                                     </li>
                                     <li style=step_item_style class="oauth-step-item">
                                         <span style=step_number_style>"3"</span>
                                         <span style=step_content_style>
-                                            "Run the script: "
-                                            <code style=code_inline_style>"./kdb-setup.sh"</code>
+                                            "Or manually: "
+                                            <code style=code_inline_style>"chmod +x ~/Downloads/kdb-setup.sh && ~/Downloads/kdb-setup.sh"</code>
                                         </span>
                                     </li>
                                     <li class="oauth-step-item" style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 0;">
                                         <span style=step_number_style>"4"</span>
                                         <span style=step_content_style>
-                                            "Restart your terminal or run: "
-                                            <code style=code_inline_style>"source ~/.bashrc"</code>
+                                            "Restart your terminal or IDE"
                                         </span>
                                     </li>
                                 </ol>

@@ -1305,6 +1305,38 @@ pause
     script
 }
 
+/// Generate a .desktop file for Linux (double-clickable application launcher)
+///
+/// The .desktop file format is standardized by freedesktop.org and works across
+/// GNOME, KDE, XFCE, and other Linux desktop environments.
+///
+/// When double-clicked, it:
+/// 1. Opens the user's default terminal
+/// 2. Changes to Downloads directory
+/// 3. Makes the script executable (chmod +x)
+/// 4. Runs the setup script
+///
+/// # Security
+/// - License key embedded in separate .sh file (not in .desktop)
+/// - .desktop file only contains launcher config
+pub fn generate_linux_desktop_file() -> String {
+    // Note: The .desktop file launches the .sh script which contains the license
+    // This separation keeps the .desktop file clean and reusable
+    r#"[Desktop Entry]
+Version=1.0
+Type=Application
+Name=KDB Setup
+GenericName=Kindly Debugger Installation
+Comment=Install and configure Kindly Debugger MCP client
+Exec=sh -c 'cd "$HOME/Downloads" && chmod +x kdb-setup.sh && ./kdb-setup.sh; read -p "Press Enter to close..."'
+Terminal=true
+Icon=utilities-terminal
+Categories=Utility;Development;
+StartupNotify=true
+"#
+    .to_string()
+}
+
 /// Generate enhanced setup script with improved UX
 ///
 /// Automatically selects the appropriate platform-specific script generator.

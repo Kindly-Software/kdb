@@ -18,7 +18,9 @@ use leptos::prelude::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-use super::script_generator::{generate_setup_script, Platform};
+use super::script_generator::{
+    generate_enhanced_setup_script, generate_linux_desktop_file, Platform, ScriptOptions,
+};
 
 /// Dashboard state machine
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -168,17 +170,71 @@ fn trigger_license_download(license: &str) {
 }
 
 /// Trigger browser download of the setup script
+///
+/// For Linux: Downloads BOTH .sh script AND .desktop launcher file.
+/// The .desktop file enables double-click installation (no terminal commands needed).
 fn trigger_script_download(license: &str, platform: Platform) {
-    let script = generate_setup_script(license, platform);
-    let filename = platform.script_filename();
+    let options = ScriptOptions::default();
+    let script = generate_enhanced_setup_script(license, platform, options);
 
-    // Use appropriate MIME type
-    let mime_type = match platform {
-        Platform::Windows => "application/x-bat",
-        _ => "application/x-sh",
-    };
+    match platform {
+        Platform::Linux | Platform::Unknown => {
+            // For Linux: Download BOTH .sh script AND .desktop launcher
+            // 1. First download the .sh script (contains the license and setup logic)
+            trigger_download(&script, "kdb-setup.sh", "application/x-sh");
 
-    trigger_download(&script, &filename, mime_type);
+            // 2. Download the .desktop launcher after a 500ms delay
+            if let Some(window) = web_sys::window() {
+                let desktop_content = generate_linux_desktop_file();
+                let callback = Closure::once(Box::new(move || {
+                    if let Some(window) = web_sys::window() {
+                        if let Some(document) = window.document() {
+                            let array = js_sys::Array::new();
+                            array.push(&JsValue::from_str(&desktop_content));
+
+                            let blob_opts = web_sys::BlobPropertyBag::new();
+                            blob_opts.set_type("application/x-desktop");
+
+                            if let Ok(blob) =
+                                web_sys::Blob::new_with_str_sequence_and_options(&array, &blob_opts)
+                            {
+                                if let Ok(url) = web_sys::Url::create_object_url_with_blob(&blob) {
+                                    if let Ok(elem) = document.create_element("a") {
+                                        if let Some(anchor) =
+                                            elem.dyn_ref::<web_sys::HtmlAnchorElement>()
+                                        {
+                                            anchor.set_href(&url);
+                                            anchor.set_download("kdb-setup.desktop");
+
+                                            if let Some(body) = document.body() {
+                                                let _ = body.append_child(anchor);
+                                                anchor.click();
+                                                let _ = body.remove_child(anchor);
+                                            }
+
+                                            let _ = web_sys::Url::revoke_object_url(&url);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }) as Box<dyn FnOnce()>);
+
+                let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+                    callback.as_ref().unchecked_ref(),
+                    500,
+                );
+                callback.forget();
+            }
+        }
+        Platform::MacOS => {
+            trigger_download(&script, "kdb-setup.command", "application/x-sh");
+        }
+        Platform::Windows => {
+            trigger_download(&script, "kdb-setup.bat", "application/x-bat");
+        }
+    }
 }
 
 /// Copy text to clipboard
