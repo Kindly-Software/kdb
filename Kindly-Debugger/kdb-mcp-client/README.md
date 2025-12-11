@@ -2,9 +2,17 @@
 
 Production-grade MCP client for **KDB - The Kindly Debugger**, an AI-powered time-travel debugger with enterprise-grade reliability, caching, and security.
 
-## v2.1.0 Features
+## v2.2.1 Features
 
-### NEW: Auto-Configuration
+### NEW: One-Click Terminal Setup (With Full P0 Protection)
+- 🖱️ **Protocol handler** - Click `kdb://` link in browser, terminal opens automatically
+- ⚡ **Zero-command setup** - Browser → Terminal → Press Y → Done!
+- 🔄 **Hybrid approach** - Falls back to script download if protocol not registered
+- ✅ **Enhanced scripts** - Y/N prompts, progress spinners, prerequisite checks
+
+### v2.1.0 Features
+
+### Auto-Configuration
 - 🚀 **One-command setup** - `npx kdb-configure --auto`
 - 🔍 **Auto-detection** - Finds Claude Code, Cursor, VS Code, and 90+ MCP clients
 - 💾 **Safe configuration** - Creates backups before modifying
@@ -53,7 +61,22 @@ Sign up for free at **[kindly.software](https://kindly.software)**
 
 **Free 7-day trial** with ALL features unlocked (Enterprise-level access)!
 
-### 2. Auto-Configure (NEW in v2.1.0!)
+### 2. One-Click Setup (NEW in v2.2.1!)
+
+**The fastest way** - Click "Sign in with Google" on [kindly.software](https://kindly.software):
+
+1. Sign in with Google OAuth
+2. Browser opens terminal automatically (via `kdb://` protocol)
+3. Press **Y** to confirm
+4. Done! KDB configured for Claude Code, Cursor, and VS Code
+
+**Fallback** - If protocol handler not registered, scripts auto-download with:
+- ✅ Y/N confirmation prompts
+- ✅ Progress spinners
+- ✅ Prerequisite checks (Node.js ≥18)
+- ✅ Color support
+
+### 3. Auto-Configure (NEW in v2.1.0!)
 
 **One-command setup** for Claude Code, Cursor, VS Code, and more:
 
@@ -70,7 +93,7 @@ This automatically:
 
 **Or configure manually:**
 
-### 3. Manual Configuration (Alternative)
+### 4. Manual Configuration (Alternative)
 
 **For Claude Code / Cursor:**
 
@@ -128,7 +151,7 @@ npx kdb-configure --list-backups
 npx kdb-configure --rollback 2025-12-11T14-30-00
 ```
 
-### 4. Start Debugging!
+### 5. Start Debugging!
 
 Talk to your AI assistant:
 

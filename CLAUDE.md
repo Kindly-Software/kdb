@@ -10,6 +10,41 @@ See `/home/samuel/CLAUDE.md` § Mandatory Capsule Architecture for:
 - Foundation crate (`atomic_capsule/`: tiered alignment, `#[derive(ComputationalCapsule)]`, zero deps)
 - Requirements (UCE34/ASSUM/B32/T28/I20/Q34 compliance)
 
+## Mandatory P0 Protection for All Binaries
+
+<mandatory-p0-protection priority="CRITICAL">
+<rule>EVERY binary that contains capsule architecture, trade secret logic, or proprietary patterns MUST have full P0 protection (18 layers) before distribution.</rule>
+
+<enforcement>
+  <rule>NO binary shall be published to npm, deployed to production, or distributed without P0 protection verification</rule>
+  <rule>Protection includes: AntiDebug (13 methods), Emulator Detection, License Validation, Self-Destruct</rule>
+  <rule>EVERY binary build command MUST include --features client-protection or equivalent</rule>
+  <rule>Pre-publish checklist: Verify protection with objdump, strings, binary size increase (~15-20%)</rule>
+</enforcement>
+
+<protected-binaries>
+  <binary name="kdb_client_bridge">✅ P0 Protected (2.7MB)</binary>
+  <binary name="kdb_configure">✅ P0 Protected (658KB)</binary>
+  <binary name="kdb_handler">❌ MUST ADD (472KB → ~550KB with protection)</binary>
+  <binary name="mcp_sse_server">❌ Server-side only, protection optional</binary>
+</protected-binaries>
+
+<rationale>
+  Unprotected binaries expose:
+  - Capsule architecture patterns (trade secret)
+  - Detector logic and priority systems (trade secret)
+  - URL parsing and validation algorithms (trade secret)
+  - Terminal launch patterns (trade secret)
+  - License format validation (security risk)
+</rationale>
+
+<violation-consequences>
+  <immediate>Unpublish vulnerable version</immediate>
+  <short-term>Add protection and republish</short-term>
+  <long-term>Mandatory pre-publish protection verification in CI/CD</long-term>
+</violation-consequences>
+</mandatory-p0-protection>
+
 ## Mandatory Internal Dependency Usage
 
 <mandatory-internal-dependencies priority="ABSOLUTE">

@@ -16,6 +16,7 @@ pub mod verified;
 pub mod signup;
 pub mod oauth_success;
 pub mod script_generator;
+pub mod dashboard;
 
 pub use hero::Hero;
 pub use navbar::Navbar;
@@ -30,4 +31,13 @@ pub use license::LicensePage;
 pub use verified::Verified;
 pub use signup::Signup;
 pub use oauth_success::OAuthSuccess;
-pub use script_generator::{Platform, generate_setup_script, download_setup_script, download_setup_script_for_platform};
+pub use script_generator::{
+    Platform,
+    ScriptOptions,
+    generate_setup_script,
+    generate_enhanced_setup_script,
+    download_setup_script,
+    download_setup_script_for_platform,
+    download_enhanced_setup_script,
+};
+pub use dashboard::Dashboard;

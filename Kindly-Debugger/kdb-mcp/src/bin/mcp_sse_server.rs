@@ -1821,12 +1821,16 @@ fn handle_oauth_callback(
             )
         }
         None => {
-            // Existing user: Redirect directly to Claude
+            // Existing user: Show dashboard first, then continue to Claude
             eprintln!(
-                "[MCP-SSE] OAuth callback: existing user, redirecting directly to Claude (email={})",
+                "[MCP-SSE] OAuth callback: existing user, redirecting via dashboard (email={})",
                 claims.email
             );
-            claude_callback.clone()
+            format!(
+                "https://kindly.software/#dashboard?token={}&callback={}",
+                urlencoding_encode(&token_response.id_token),
+                urlencoding_encode(&claude_callback)
+            )
         }
     };
 

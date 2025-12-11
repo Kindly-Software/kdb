@@ -276,6 +276,11 @@ name = "kdb_configure"
 path = "src/bin/kdb_configure.rs"
 required-features = ["configure", "std", "json-rpc", "client", "client-protection"]
 
+[[bin]]
+name = "kdb_handler"
+path = "src/bin/kdb_handler.rs"
+required-features = ["std"]
+
 [dev-dependencies]
 proptest = "1.4"
 fastrand = "2.0"

@@ -14,7 +14,7 @@ pub mod components;
 pub mod effects;
 pub mod utils;
 
-use components::{Cta, Docs, Features, Footer, Hero, LicensePage, Navbar, OAuthSuccess, Pricing, PrivacyPage, Signup, TermsPage, Verified};
+use components::{Cta, Dashboard, Docs, Features, Footer, Hero, LicensePage, Navbar, OAuthSuccess, Pricing, PrivacyPage, Signup, TermsPage, Verified};
 use effects::{MeshGradient, RenderBackend};
 
 /// Get current page from URL hash
@@ -260,6 +260,7 @@ pub fn App() -> impl IntoView {
                     "signup" => view! { <Signup /> }.into_any(),
                     _ if page.starts_with("verified?") => view! { <Verified /> }.into_any(),
                     _ if page.starts_with("oauth-success") => view! { <OAuthSuccess /> }.into_any(),
+                    _ if page.starts_with("dashboard") => view! { <Dashboard /> }.into_any(),
                     _ => view! {
                         <Hero />
                         <Features />

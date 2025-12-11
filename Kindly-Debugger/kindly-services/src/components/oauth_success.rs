@@ -14,7 +14,7 @@ use leptos::prelude::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-use super::script_generator::{generate_setup_script, Platform};
+use super::script_generator::{generate_enhanced_setup_script, Platform, ScriptOptions};
 
 /// Parse query parameters from a URL hash string
 /// Handles format: #oauth-success?license=XXX&callback=YYY
@@ -134,9 +134,11 @@ fn trigger_license_download(license: &str) {
     trigger_download(license, ".kdb-license", "text/plain");
 }
 
-/// Trigger browser download of the setup script
+/// Trigger browser download of the setup script (enhanced version)
 fn trigger_script_download(license: &str, platform: Platform) {
-    let script = generate_setup_script(license, platform);
+    // Use enhanced script with full UX improvements
+    let options = ScriptOptions::default();
+    let script = generate_enhanced_setup_script(license, platform, options);
     let filename = platform.script_filename();
 
     // Use appropriate MIME type
@@ -153,6 +155,74 @@ fn copy_to_clipboard(text: &str) {
     if let Some(window) = web_sys::window() {
         let clipboard = window.navigator().clipboard();
         let _ = clipboard.write_text(text);
+    }
+}
+
+/// Try kdb:// protocol handler with fallback to script download
+///
+/// Creates a hidden iframe to trigger the kdb:// protocol.
+/// If the handler is registered, the terminal will open automatically.
+/// After 2 seconds, falls back to downloading scripts (in case handler isn't registered).
+///
+/// # Arguments
+/// * `window` - Web window object
+/// * `license` - License key to pass to handler
+/// * `fallback` - Closure to execute after timeout (downloads scripts)
+fn try_protocol_handler<F>(window: &web_sys::Window, license: &str, fallback: F)
+where
+    F: FnOnce() + 'static,
+{
+    let document = match window.document() {
+        Some(d) => d,
+        None => {
+            fallback();
+            return;
+        }
+    };
+
+    // Create hidden iframe to try kdb:// protocol
+    let iframe = match document.create_element("iframe") {
+        Ok(elem) => elem,
+        Err(_) => {
+            fallback();
+            return;
+        }
+    };
+
+    // Hide the iframe
+    let _ = iframe.set_attribute("style", "display: none; width: 0; height: 0; border: 0;");
+
+    // Build kdb:// URL
+    let protocol_url = format!("kdb://setup?license={}", license);
+    let _ = iframe.set_attribute("src", &protocol_url);
+
+    // Append iframe to body (this triggers the protocol handler if registered)
+    if let Some(body) = document.body() {
+        let _ = body.append_child(&iframe);
+
+        // Set 2 second timeout for fallback
+        // If protocol handler opens, user gets terminal; if not, we download scripts
+        let body_clone = body.clone();
+        let iframe_clone = iframe.clone();
+
+        let fallback_callback = Closure::once(Box::new(move || {
+            // Remove the iframe
+            let _ = body_clone.remove_child(&iframe_clone);
+
+            // Execute fallback (download scripts)
+            fallback();
+        }) as Box<dyn FnOnce()>);
+
+        let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+            fallback_callback.as_ref().unchecked_ref(),
+            2000, // 2 second timeout
+        );
+
+        // Leak the closure so it stays alive for the timeout
+        fallback_callback.forget();
+    } else {
+        // No body, just run fallback immediately
+        fallback();
     }
 }
 
@@ -181,26 +251,23 @@ pub fn OAuthSuccess() -> impl IntoView {
                     if !lic.is_empty() {
                         set_license.set(lic.clone());
 
-                        // Auto-trigger downloads (only once)
+                        // Auto-trigger setup (only once)
                         if !download_triggered.get() {
                             set_download_triggered.set(true);
 
-                            // Download license file
-                            trigger_license_download(lic);
-
-                            // Small delay, then download setup script
-                            let lic_clone = lic.clone();
+                            // Try protocol handler first (kdb://setup?license=XXX)
+                            // If handler is registered, terminal opens automatically
+                            // After 2s timeout, fall back to script download
+                            let lic_for_protocol = lic.clone();
+                            let lic_for_fallback = lic.clone();
                             let set_script_downloaded_clone = set_script_downloaded;
-                            let timeout_callback = Closure::wrap(Box::new(move || {
-                                trigger_script_download(&lic_clone, detected_platform);
-                                set_script_downloaded_clone.set(true);
-                            }) as Box<dyn FnMut()>);
 
-                            let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
-                                timeout_callback.as_ref().unchecked_ref(),
-                                500, // 500ms delay between downloads
-                            );
-                            std::mem::forget(timeout_callback);
+                            try_protocol_handler(&window, &lic_for_protocol, move || {
+                                // Fallback: download license file and setup script
+                                trigger_license_download(&lic_for_fallback);
+                                trigger_script_download(&lic_for_fallback, detected_platform);
+                                set_script_downloaded_clone.set(true);
+                            });
                         }
                     }
                 }
