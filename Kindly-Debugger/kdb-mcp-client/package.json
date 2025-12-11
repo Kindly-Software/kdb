@@ -1,20 +1,31 @@
 {
   "name": "@kindly-software-inc/kdb",
-  "version": "1.0.1",
-  "description": "MCP client for KDB - The AI Time-Travel Debugger",
+  "version": "2.0.1",
+  "description": "Production-grade MCP client for kdb debugger with enterprise-grade reliability, caching, and security",
   "main": "index.js",
   "type": "module",
+  "bin": {
+    "kdb-mcp-bridge": "bin/kdb_client_bridge"
+  },
   "keywords": [
     "mcp",
     "model-context-protocol",
     "debugger",
+    "kdb",
     "time-travel",
-    "ai",
-    "claude",
-    "cursor"
+    "ptrace",
+    "retry",
+    "circuit-breaker",
+    "resilience",
+    "production",
+    "audit-compliant"
   ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "author": "Kindly Software <support@kindly.software>",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "repository": {
     "type": "git",
     "url": "https://github.com/kindly-software/kdb"
