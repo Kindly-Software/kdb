@@ -1,11 +1,12 @@
 {
   "name": "@kindly-software-inc/kdb",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "description": "Production-grade MCP client for kdb debugger with enterprise-grade reliability, caching, and security",
   "main": "index.js",
   "type": "module",
   "bin": {
-    "kdb-mcp-bridge": "bin/kdb_client_bridge"
+    "kdb-mcp-bridge": "bin/kdb_client_bridge",
+    "kdb-configure": "bin/kdb_configure"
   },
   "keywords": [
     "mcp",

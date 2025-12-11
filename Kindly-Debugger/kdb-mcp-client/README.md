@@ -2,7 +2,16 @@
 
 Production-grade MCP client for **KDB - The Kindly Debugger**, an AI-powered time-travel debugger with enterprise-grade reliability, caching, and security.
 
-## v2.0.0 Features
+## v2.1.0 Features
+
+### NEW: Auto-Configuration
+- 🚀 **One-command setup** - `npx kdb-configure --auto`
+- 🔍 **Auto-detection** - Finds Claude Code, Cursor, VS Code, and 90+ MCP clients
+- 💾 **Safe configuration** - Creates backups before modifying
+- ↩️ **Rollback capability** - Restore previous configs anytime
+- 🎯 **Selective configuration** - Choose specific clients to configure
+
+### v2.0 Features
 
 ### Resilience
 - ⚡ **Retry with exponential backoff** - 5 attempts, 1-256ms backoff
@@ -44,7 +53,24 @@ Sign up for free at **[kindly.software](https://kindly.software)**
 
 **Free 7-day trial** with ALL features unlocked (Enterprise-level access)!
 
-### 2. Configure Your MCP Client
+### 2. Auto-Configure (NEW in v2.1.0!)
+
+**One-command setup** for Claude Code, Cursor, VS Code, and more:
+
+```bash
+export KDB_LICENSE_KEY="your-license-key"
+npx kdb-configure --auto
+```
+
+This automatically:
+- ✅ Detects installed MCP clients (Claude Code, Cursor, VS Code, etc.)
+- ✅ Configures kdb for each client
+- ✅ Creates backups for safety
+- ✅ Sets up environment variables
+
+**Or configure manually:**
+
+### 3. Manual Configuration (Alternative)
 
 **For Claude Code / Cursor:**
 
@@ -80,7 +106,29 @@ Add to `~/.config/claude-code/mcp.json`:
 }
 ```
 
-### 3. Start Debugging!
+## Auto-Configure Commands (v2.1.0)
+
+```bash
+# Detect installed MCP clients
+npx kdb-configure --detect
+
+# Preview configuration changes
+npx kdb-configure --dry-run
+
+# Auto-configure all detected clients
+npx kdb-configure --auto
+
+# Configure specific clients only
+npx kdb-configure --clients=claude_code,cursor
+
+# List backups
+npx kdb-configure --list-backups
+
+# Rollback to previous configuration
+npx kdb-configure --rollback 2025-12-11T14-30-00
+```
+
+### 4. Start Debugging!
 
 Talk to your AI assistant:
 
