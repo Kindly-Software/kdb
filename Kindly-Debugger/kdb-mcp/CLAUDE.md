@@ -1,23 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- kdb-mcp - MCP Debugging Server for kdb (T6 Mixed) -->
-<!-- Version: 0.2.2 | Updated: 2025-12-09 -->
+<!-- Version: 0.3.0 | Updated: 2025-12-10 -->
 <!-- COMMERCIAL PRODUCT - NOT OPEN SOURCE -->
-<project name="kdb-mcp" version="0.2.2">
+<project name="kdb-mcp" version="0.3.0">
 
 <metadata>
-  <description>T6 Mixed JSON-RPC MCP server orchestrating kdb debugger with sub-10μs latency and tier-based subscription enforcement</description>
+  <description>T6 Mixed JSON-RPC MCP server with OAuth 2.1 + Google, Streamable HTTP, and tier-based subscription enforcement</description>
   <role>PRIMARY USER INTERFACE - This is how users interact with KDB</role>
   <delivery-model>MCP (Model Context Protocol) - Platform agnostic access from any OS</delivery-model>
   <location>/home/samuel/Primitives/Kindly-Debugger/kdb-mcp/</location>
-  <size>76,500+ LOC | 60 modules | 27 MCP tools</size>
+  <size>80,000+ LOC | 64 modules | 27 MCP tools | 4 OAuth capsules</size>
   <tier>T6 Mixed (T0+T1+T2+T4+T5+T8+T10)</tier>
-  <framework>UCE34, Chaos 100% lockfree, 99.99% ASSUM safe</framework>
-  <performance>&lt;10μs RPC orchestration | &lt;200ns tier enforcement</performance>
+  <framework>UCE35, Chaos 100% lockfree, 99.99% ASSUM safe</framework>
+  <performance>&lt;10μs RPC orchestration | &lt;50ns OAuth state lookup</performance>
   <commercial-status>PROPRIETARY - NOT OPEN SOURCE</commercial-status>
   <trade-secret>YES - MCP server implementation protected</trade-secret>
-  <status>Production Ready | 333/334 tests passing (7 new SSE transport tests)</status>
+  <status>Production Ready | 427+ tests (333 existing + 94 OAuth)</status>
   <signup-url>https://api.kindly.software/api/v1/signup</signup-url>
-  <live-endpoint>https://mcp.kindly.software/sse</live-endpoint>
+  <live-endpoints>
+    <endpoint>https://mcp.kindly.software/mcp (Streamable HTTP - recommended)</endpoint>
+    <endpoint>https://mcp.kindly.software/sse (SSE - legacy)</endpoint>
+  </live-endpoints>
+  <auth-methods>OAuth 2.1 + Google | API Key (X-License-Key) | Bearer Token</auth-methods>
 </metadata>
 
 <commercial-model>
@@ -165,6 +169,246 @@
     <test name="test_is_protocol_method_edge_cases">key ordering variations</test>
   </tests>
 </sse-transport>
+
+<!-- ============================================================================
+     STREAMABLE HTTP TRANSPORT (NEW - 2025-12-10)
+     ============================================================================ -->
+<streamable-http-transport version="1.0" status="PRODUCTION" spec="MCP 2025-06-18">
+  <description>T6 Mixed Streamable HTTP transport - unified /mcp endpoint replacing SSE</description>
+  <live-status>✅ LIVE at https://mcp.kindly.software/mcp</live-status>
+
+  <protocol-summary>
+    <endpoint path="/mcp" methods="POST, GET, DELETE">Unified endpoint for MCP protocol</endpoint>
+    <session-management>Mcp-Session-Id header (not query param)</session-management>
+    <content-negotiation>JSON (immediate) or SSE (streaming) based on Accept header</content-negotiation>
+    <protocol-version>Mcp-Protocol-Version: 2025-06-18 header</protocol-version>
+  </protocol-summary>
+
+  <protocol-flow>
+    <step order="1" method="POST" path="/mcp" body="initialize request">
+      Client initializes with protocolVersion, capabilities, clientInfo
+    </step>
+    <step order="2" response="200 JSON + Mcp-Session-Id header">
+      Server responds with session ID, capabilities, serverInfo
+    </step>
+    <step order="3" method="POST" path="/mcp" headers="Mcp-Session-Id, Authorization">
+      Client sends subsequent requests with session binding
+    </step>
+    <step order="4" response="200 JSON or 202 Accepted">
+      Server returns immediate JSON or 202 for notifications
+    </step>
+    <step order="5" method="GET" path="/mcp" headers="Mcp-Session-Id, Accept: text/event-stream">
+      Client opens SSE stream for server-initiated messages (optional)
+    </step>
+    <step order="6" method="DELETE" path="/mcp" headers="Mcp-Session-Id">
+      Client explicitly terminates session (returns 204 No Content)
+    </step>
+  </protocol-flow>
+
+  <capsule name="StreamableHttpTransportCapsule" file="streamable_http.rs" tier="T6 Mixed" size="768B" alignment="256B">
+    <loc>1,564 lines</loc>
+    <tests>20 unit tests</tests>
+    <latency>&lt;100μs per request</latency>
+    <purpose>Unified /mcp endpoint handler with content negotiation</purpose>
+    <features>
+      <feature>POST /mcp: JSON-RPC messages (requests, notifications, responses)</feature>
+      <feature>GET /mcp: SSE stream for server→client push</feature>
+      <feature>DELETE /mcp: Explicit session termination</feature>
+      <feature>Mcp-Session-Id header for session binding</feature>
+      <feature>Mcp-Protocol-Version header (2025-06-18)</feature>
+      <feature>Dynamic protocol version negotiation</feature>
+      <feature>Content negotiation: Accept header determines response type</feature>
+      <feature>202 Accepted for notifications (no response expected)</feature>
+    </features>
+  </capsule>
+
+  <mcp-spec-compliance spec="2025-06-18">
+    <requirement name="Unified endpoint" status="✅">Single /mcp endpoint for all methods</requirement>
+    <requirement name="Session header" status="✅">Mcp-Session-Id in header (not query param)</requirement>
+    <requirement name="Content negotiation" status="✅">JSON or SSE based on Accept header</requirement>
+    <requirement name="Protocol version negotiation" status="✅">Server echoes client's requested version</requirement>
+    <requirement name="DELETE support" status="✅">Explicit session termination</requirement>
+  </mcp-spec-compliance>
+
+  <backwards-compatibility>
+    <note>Both /sse (legacy) and /mcp (new) endpoints supported simultaneously</note>
+    <deprecation-timeline>
+      <phase>Now: /mcp available alongside /sse</phase>
+      <phase>+3 months: Deprecation warning in /sse responses</phase>
+      <phase>+12 months: Move /sse to legacy-sse feature flag</phase>
+    </deprecation-timeline>
+  </backwards-compatibility>
+</streamable-http-transport>
+
+<!-- ============================================================================
+     OAUTH 2.1 + GOOGLE AUTHENTICATION (NEW - 2025-12-10)
+     ============================================================================ -->
+<oauth-authentication version="1.0" status="PRODUCTION" spec="OAuth 2.1 + RFC 7636 PKCE">
+  <description>Complete OAuth 2.1 implementation with Google as identity provider</description>
+  <google-oauth-status>✅ CONFIGURED (client_id: 895635138024-8elt5mbuut1vj4n5kko0kdh38rbl0kee)</google-oauth-status>
+
+  <oauth-flow>
+    <step order="1">Client discovers OAuth endpoints via /.well-known/oauth-authorization-server</step>
+    <step order="2">Client redirects to /oauth/authorize with state + PKCE code_challenge</step>
+    <step order="3">Server stores state/PKCE, redirects to Google OAuth</step>
+    <step order="4">User authenticates with Google</step>
+    <step order="5">Google redirects to /oauth/callback with authorization code</step>
+    <step order="6">Server exchanges Google code for tokens, validates ID token</step>
+    <step order="7">Server auto-provisions Hobby license for new users OR links Google ID to existing license</step>
+    <step order="8">Server generates MCP authorization code, redirects to Claude callback</step>
+    <step order="9">Client exchanges MCP code for access token at /oauth/token with PKCE verification</step>
+    <step order="10">Client uses Bearer token for authenticated MCP requests</step>
+  </oauth-flow>
+
+  <oauth-capsules total="4" lines="3,600+" tests="94">
+    <capsule name="OAuthStateCapsule" file="oauth/state_capsule.rs" tier="T1 Atomic" size="16KB" alignment="64B">
+      <loc>~900 lines</loc>
+      <tests>24 unit tests</tests>
+      <slots>256 concurrent OAuth flows</slots>
+      <latency>&lt;50ns lookup, &lt;100ns insert</latency>
+      <ttl>600 seconds (10 minutes)</ttl>
+      <purpose>CSRF state parameter storage with PKCE code_challenge</purpose>
+      <security>
+        <csrf>256-bit random state parameter prevents cross-site request forgery</csrf>
+        <pkce>SHA-256 S256 code challenge prevents authorization code interception</pkce>
+        <one-time-use>State consumed after validation (replay attack prevention)</one-time-use>
+      </security>
+    </capsule>
+
+    <capsule name="GoogleOAuthClientCapsule" file="oauth/google_client.rs" tier="T1 Atomic" size="512B" alignment="64B">
+      <loc>~600 lines</loc>
+      <tests>17 unit tests</tests>
+      <latency>&lt;1ms URL generation, ~500ms token exchange (network)</latency>
+      <purpose>Google OAuth 2.0 integration for token exchange and user info</purpose>
+      <google-endpoints>
+        <auth>https://accounts.google.com/o/oauth2/v2/auth</auth>
+        <token>https://oauth2.googleapis.com/token</token>
+        <userinfo>https://www.googleapis.com/oauth2/v2/userinfo</userinfo>
+        <scopes>openid email profile</scopes>
+      </google-endpoints>
+      <security>
+        <id-token-validation>JWT RS256 signature verification with Google's public keys</id-token-validation>
+        <claims-validation>iss, aud, exp validation per OpenID Connect spec</claims-validation>
+      </security>
+    </capsule>
+
+    <capsule name="OAuthUserCapsule" file="oauth/user_mapping.rs" tier="T1 Atomic" size="17KB" alignment="256B">
+      <loc>916 lines</loc>
+      <tests>25 unit tests</tests>
+      <slots>1,024 user mappings</slots>
+      <latency>&lt;50ns lookup, &lt;100ns link</latency>
+      <purpose>Maps Google user IDs (sub) to license keys</purpose>
+      <auto-provisioning>
+        <new-users>Generates KDB-HOBBY-{timestamp}-{email_hash} license</new-users>
+        <existing-users>Links Google ID to existing license via email lookup</existing-users>
+      </auto-provisioning>
+    </capsule>
+
+    <capsule name="AuthorizationCodeCapsule" file="oauth/authorization_codes.rs" tier="T1 Atomic" size="25KB" alignment="256B">
+      <loc>787 lines</loc>
+      <tests>28 unit tests</tests>
+      <slots>512 authorization codes</slots>
+      <latency>&lt;100ns generate, &lt;50ns validate</latency>
+      <ttl>60 seconds (OAuth 2.1 recommendation)</ttl>
+      <purpose>MCP authorization codes with PKCE validation</purpose>
+      <security>
+        <one-time-use>Code consumed on validation (replay prevention)</one-time-use>
+        <pkce-verification>S256 code_verifier must match code_challenge</pkce-verification>
+        <redirect-uri-binding>redirect_uri validated on token exchange</redirect-uri-binding>
+        <cryptographic-random>256-bit codes via ring::rand::SystemRandom</cryptographic-random>
+      </security>
+    </capsule>
+  </oauth-capsules>
+
+  <oauth-endpoints>
+    <metadata path="/.well-known/oauth-authorization-server" status="✅">
+      Returns issuer, authorization_endpoint, token_endpoint, code_challenge_methods_supported
+    </metadata>
+    <metadata path="/.well-known/oauth-protected-resource" status="✅">
+      Returns authorization_servers array pointing to OAuth server
+    </metadata>
+    <authorize path="/oauth/authorize" method="GET" status="✅">
+      Stores state/PKCE, redirects to Google OAuth
+    </authorize>
+    <callback path="/oauth/callback" method="GET" status="✅">
+      Exchanges Google code for tokens, provisions user, redirects to Claude
+    </callback>
+    <token path="/oauth/token" method="POST" status="✅">
+      Validates PKCE, returns access token (1-year expiry)
+    </token>
+    <register path="/register" method="POST" status="✅">
+      Dynamic Client Registration per RFC 7591
+    </register>
+  </oauth-endpoints>
+
+  <google-cloud-setup>
+    <project>kindly (project ID: kindly-465221)</project>
+    <client-id>895635138024-8elt5mbuut1vj4n5kko0kdh38rbl0kee.apps.googleusercontent.com</client-id>
+    <redirect-uri>https://mcp.kindly.software/oauth/callback</redirect-uri>
+    <scopes>openid email profile</scopes>
+    <consent-screen>External, production-ready</consent-screen>
+  </google-cloud-setup>
+
+  <environment-variables>
+    <var name="GOOGLE_CLIENT_ID">895635138024-8elt5mbuut1vj4n5kko0kdh38rbl0kee.apps.googleusercontent.com</var>
+    <var name="GOOGLE_CLIENT_SECRET">GOCSPX-*** (stored in /etc/kdb/oauth.env, mode 0600)</var>
+    <var name="OAUTH_CALLBACK_URL">https://mcp.kindly.software/oauth/callback</var>
+  </environment-variables>
+
+  <known-issues>
+    <issue severity="high" platform="Claude Desktop">
+      <name>OAuth flow completes but connection fails (GitHub #5826)</name>
+      <symptom>OAuth completes in browser, redirects to Claude Desktop, but shows "Disconnected"</symptom>
+      <root-cause>Claude Desktop infrastructure bug - server never receives requests after OAuth</root-cause>
+      <workaround>Use API key authentication (X-License-Key header) instead of OAuth</workaround>
+      <status>Anthropic aware, no ETA for fix</status>
+    </issue>
+    <issue severity="medium" platform="Claude Code CLI">
+      <name>HTTP transport requires API key in headers</name>
+      <symptom>Initialize succeeds, tools/list fails with 401</symptom>
+      <fix>Add X-License-Key to headers in MCP config</fix>
+    </issue>
+  </known-issues>
+
+  <authentication-methods>
+    <method name="OAuth 2.1 + Google" status="✅ Implemented">
+      <flow>Authorization Code with PKCE (S256)</flow>
+      <auto-provision>Yes - creates Hobby license for new Google users</auto-provision>
+      <claude-desktop-status>❌ Blocked by Anthropic bug #5826</claude-desktop-status>
+      <claude-code-status>⚠️ Requires local bridge for full compatibility</claude-code-status>
+    </method>
+    <method name="API Key (X-License-Key)" status="✅ Production">
+      <header>X-License-Key: KDB-{TIER}-{timestamp}-{hash}</header>
+      <validation>&lt;10ns cached FNV-1a + Ed25519 validation</validation>
+      <claude-desktop-status>✅ Works</claude-desktop-status>
+      <claude-code-status>✅ Works</claude-code-status>
+    </method>
+    <method name="Bearer Token (Authorization)" status="✅ Production">
+      <header>Authorization: Bearer {license-key or oauth-token}</header>
+      <validation>&lt;10ns cached FNV-1a validation</validation>
+      <claude-desktop-status>✅ Works</claude-desktop-status>
+      <claude-code-status>✅ Works</claude-code-status>
+    </method>
+  </authentication-methods>
+
+  <uce35-compliance>
+    <q10-tier>T1 Atomic for all OAuth capsules</q10-tier>
+    <q33-lockfree>100% lockfree (AtomicU64, FNV-1a hash tables, CAS operations)</q33-lockfree>
+    <q34-audit>OAuth events logged (authorize, callback, token, failures)</q34-audit>
+    <cache-alignment>64B/256B alignment prevents false sharing</cache-alignment>
+    <generation-counters>TOCTOU prevention on all state transitions</generation-counters>
+  </uce35-compliance>
+
+  <performance-targets>
+    <operation name="Content negotiation" latency="&lt;50ns"/>
+    <operation name="OAuth state storage" latency="&lt;50ns"/>
+    <operation name="PKCE S256 validation" latency="&lt;100ns (SHA-256)"/>
+    <operation name="Session lookup" latency="&lt;50ns (FNV-1a hash)"/>
+    <operation name="Google token exchange" latency="~500ms (network bound)"/>
+    <operation name="ID token validation" latency="&lt;1ms (JWT RS256)"/>
+    <operation name="License auto-provision" latency="&lt;100ns (hash table insert)"/>
+  </performance-targets>
+</oauth-authentication>
 
 <!-- ============================================================================
      TIER ENFORCEMENT SYSTEM (NEW - 2025-12-06)
