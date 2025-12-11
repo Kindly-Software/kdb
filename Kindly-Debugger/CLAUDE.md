@@ -68,36 +68,52 @@
     <note>Access through Claude Code, Cursor, or any MCP-compatible client</note>
   </platform-access>
 
-  <npm-client version="2.0.1" published="2025-12-11">
+  <npm-client version="2.1.0" published="2025-12-11">
     <package>@kindly-software-inc/kdb</package>
-    <description>Production-grade stdio→HTTP MCP bridge with retry, caching, offline mode, and 18-layer protection</description>
+    <description>Production-grade MCP client with auto-configuration, retry, caching, and 18-layer protection</description>
     <license>UNLICENSED (Proprietary)</license>
-    <binary-size>2.7MB (stripped, LTO-optimized)</binary-size>
-    <source-lines>~11,000 LOC (13 modules)</source-lines>
-    <tests>224 comprehensive tests (T28 Q1-Q28)</tests>
+    <binaries>
+      <binary name="kdb_client_bridge" size="2.7MB">Runtime MCP stdio→HTTP bridge</binary>
+      <binary name="kdb_configure" size="658KB">One-command auto-configuration CLI</binary>
+    </binaries>
+    <source-lines>~14,300 LOC (auto-config: 11,300 + client: 11,000 - shared: ~8,000)</source-lines>
+    <tests>341 comprehensive tests (auto-config: 272 + client: 224 - overlap: ~155)</tests>
     <registry>https://registry.npmjs.org/@kindly-software-inc/kdb</registry>
 
     <features>
-      <phase1>Retry (5×), Circuit breaker (99.9% uptime), Q16.16 metrics</phase1>
+      <auto-configure>One-command setup for 90+ MCP clients (Claude Code, Cursor, VS Code, JetBrains, etc.)</auto-configure>
+      <oauth-integration>Google OAuth signup with auto-download of license + setup script</oauth-integration>
+      <smart-postinstall>Auto-configures on npm install if license detected (opt-in)</smart-postinstall>
+      <phase1>Retry (5×), Circuit breaker (99.9% uptime), High-precision metrics</phase1>
       <phase2>Response caching (100× faster), Request deduplication (1M× faster)</phase2>
       <phase3>Offline queue (100 requests), Request batching (10-100× throughput)</phase3>
-      <phase4>P0 Protection (AntiDebug, Emulator, License, Self-destruct)</phase4>
+      <phase4>P0 Protection (AntiDebug, Emulator, License, Self-destruct) on BOTH binaries</phase4>
     </features>
 
     <installation>
-      <command>npm install @kindly-software-inc/kdb</command>
-      <config-claude-code>
+      <quick-setup>npm install @kindly-software-inc/kdb &amp;&amp; npx kdb-configure --auto</quick-setup>
+      <zero-command-oauth>Sign in with Google → Double-click setup script → Done!</zero-command-oauth>
+      <manual-config>
         {
           "kdb": {
             "command": "npx",
             "args": ["@kindly-software-inc/kdb"],
-            "env": {"KDB_LICENSE_KEY": "your-key"}
+            "env": {"KDB_LICENSE_KEY": "${KDB_LICENSE_KEY}"}
           }
         }
-      </config-claude-code>
+      </manual-config>
     </installation>
 
-    <architecture tier="T6-Mixed">
+    <auto-config-system tier="T6-Mixed" loc="11,300" tests="272">
+      <orchestrator>AutoConfigOrchestratorCapsule (1KB, 256B-aligned, 12-state FSM)</orchestrator>
+      <detectors>DetectorRegistryCapsule (16KB) with 5 built-in + extensible plugin system</detectors>
+      <clients-supported>Claude Code, Claude Desktop, Cursor, VS Code, JetBrains, Zed, Windsurf, Continue, Amazon Q, +90 more</clients-supported>
+      <env-resolution>7-layer priority (.env files, shell env, API fetch, interactive prompt)</env-resolution>
+      <backup-rollback>SHA-256 verified backups with Q34 audit trail</backup-rollback>
+      <platform-support>Linux (XDG), macOS (Library), Windows (AppData) cross-platform</platform-support>
+    </auto-config-system>
+
+    <client-architecture tier="T6-Mixed" loc="11,000" tests="224">
       <orchestrator>McpClientMetacapsule (4KB, 256B-aligned)</orchestrator>
       <capsules>11 reused from atomic_capsule + 6 new client capsules</capsules>
       <memory-budget>~160KB peak runtime (L2 cache-friendly)</memory-budget>
@@ -106,10 +122,10 @@
         <cache-miss>~100ms (network-bound)</cache-miss>
         <protection-overhead>&lt;500ns (amortized)</protection-overhead>
       </performance>
-    </architecture>
+    </client-architecture>
 
     <why-stdio-not-http>
-      <issue>Claude Code HTTP MCP transport has a bug - doesn't send requests to remote servers</issue>
+      <issue>Claude Code HTTP MCP transport has a bug - doesn't send custom headers</issue>
       <solution>npm package uses stdio transport (works with Claude Code) + bridges to remote HTTPS server</solution>
       <pattern>Same as Prometheus, Docker, Stripe, Paddle MCP servers (all use stdio)</pattern>
     </why-stdio-not-http>
