@@ -44,6 +44,8 @@ web-sys = { version = "0.3", features = [
     "HtmlElement",
     "HtmlCanvasElement",
     "HtmlInputElement",
+    "HtmlAnchorElement",
+    "HtmlBodyElement",
     "CssStyleDeclaration",
     "WebGlRenderingContext",
     "WebGl2RenderingContext",
@@ -72,6 +74,10 @@ web-sys = { version = "0.3", features = [
     "Request",
     "RequestInit",
     "Response",
+    # Blob/File download API for OAuth success
+    "Blob",
+    "BlobPropertyBag",
+    "Url",
 ] }
 js-sys = "0.3"
 

@@ -1733,10 +1733,13 @@ fn handle_oauth_callback(
     // Look up or auto-provision user mapping
     // 1. Check OAuthUserCapsule (fast path)
     // 2. If not found, generate Hobby license and link
-    let license_hash = match server_state.oauth_users.get_license_hash_for_google(&claims.sub) {
+    //
+    // For new users: We have the license key and will show success page
+    // For existing users: We only have hash, redirect directly to Claude
+    let (license_hash, new_user_license_key): (u64, Option<String>) = match server_state.oauth_users.get_license_hash_for_google(&claims.sub) {
         Some(hash) => {
             eprintln!("[MCP-SSE] OAuth callback: existing OAuth user found (sub={}...)", &claims.sub[..claims.sub.len().min(8)]);
-            hash
+            (hash, None) // Existing user - no license key to show
         }
         None => {
             // New OAuth user - auto-provision Hobby license
@@ -1770,7 +1773,7 @@ fn handle_oauth_callback(
                 claims.email
             );
 
-            license_hash
+            (license_hash, Some(license_key)) // New user - show license key on success page
         }
     };
 
@@ -1792,8 +1795,7 @@ fn handle_oauth_callback(
     // Consume the OAuth state (one-time use)
     server_state.oauth_state.consume_state(state);
 
-    // Redirect to Claude callback with our authorization code
-    // The redirect_uri was stored when the flow started
+    // Build Claude callback URL (always needed, either as direct redirect or as callback param)
     // Claude's callback URL format: https://claude.ai/api/mcp/auth_callback?code=xxx&state=yyy
     let claude_callback = format!(
         "https://claude.ai/api/mcp/auth_callback?code={}&state={}",
@@ -1801,20 +1803,47 @@ fn handle_oauth_callback(
         urlencoding_encode(state)
     );
 
+    // Determine final redirect URL based on whether this is a new user
+    // - New users: Redirect to success page so they can see their license key
+    // - Existing users: Redirect directly to Claude (they already have their key)
+    let redirect_url = match new_user_license_key {
+        Some(license_key) => {
+            // New user: Show success page with license key, then continue to Claude
+            // Success page URL format: https://kindly.software/#oauth-success?license=xxx&callback=yyy
+            eprintln!(
+                "[MCP-SSE] OAuth callback: new user, redirecting via success page (email={})",
+                claims.email
+            );
+            format!(
+                "https://kindly.software/#oauth-success?license={}&callback={}",
+                urlencoding_encode(&license_key),
+                urlencoding_encode(&claude_callback)
+            )
+        }
+        None => {
+            // Existing user: Redirect directly to Claude
+            eprintln!(
+                "[MCP-SSE] OAuth callback: existing user, redirecting directly to Claude (email={})",
+                claims.email
+            );
+            claude_callback.clone()
+        }
+    };
+
     let response = format!(
         "HTTP/1.1 302 Found\r\n\
         Location: {}\r\n\
         Access-Control-Allow-Origin: *\r\n\
         Content-Length: 0\r\n\
         \r\n",
-        claude_callback
+        redirect_url
     );
 
     stream.write_all(response.as_bytes())?;
     stream.flush()?;
 
     eprintln!(
-        "[MCP-SSE] OAuth callback: success, redirecting to Claude (user={}, code={}...)",
+        "[MCP-SSE] OAuth callback: success (user={}, code={}...)",
         &claims.email,
         &mcp_code[..mcp_code.len().min(8)]
     );

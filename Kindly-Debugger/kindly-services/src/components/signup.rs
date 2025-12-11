@@ -185,6 +185,70 @@ pub fn Signup() -> impl IntoView {
         text-decoration: none;
     ";
 
+    // Google OAuth button style
+    let google_button_style = "
+        width: 100%;
+        padding: 1rem;
+        background: #fff;
+        color: #333;
+        border: 2px solid rgba(255, 215, 0, 0.4);
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+        box-sizing: border-box;
+    ";
+
+    // "or" separator style
+    let separator_style = "
+        display: flex;
+        align-items: center;
+        text-align: center;
+        margin: 1.5rem 0;
+    ";
+
+    let separator_line_style = "
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.4), transparent);
+    ";
+
+    let separator_text_style = "
+        padding: 0 1rem;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.875rem;
+    ";
+
+    // Generate CSRF state for OAuth
+    let generate_oauth_state = || -> String {
+        use getrandom::getrandom;
+        let mut bytes = [0u8; 16];
+        let _ = getrandom(&mut bytes);
+        bytes.iter().map(|b| format!("{:02x}", b)).collect()
+    };
+
+    // Google OAuth click handler
+    let handle_google_signin = move |_: web_sys::MouseEvent| {
+        let state = generate_oauth_state();
+
+        // Build OAuth URL
+        let oauth_url = format!(
+            "https://mcp.kindly.software/oauth/authorize?response_type=code&client_id=kdb-web-client&redirect_uri={}&scope=openid%20email%20profile&state={}",
+            "https%3A%2F%2Fmcp.kindly.software%2Foauth%2Fcallback",
+            state
+        );
+
+        // Redirect to OAuth flow
+        if let Some(window) = web_sys::window() {
+            let _ = window.location().set_href(&oauth_url);
+        }
+    };
+
     view! {
         <style>
             ".signup-input:focus {
@@ -214,6 +278,18 @@ pub fn Signup() -> impl IntoView {
                 animation: spin 0.8s linear infinite;
                 margin-right: 8px;
                 vertical-align: middle;
+            }
+            .google-signin-btn:hover {
+                background: #f5f5f5 !important;
+                border-color: rgba(255, 215, 0, 0.6) !important;
+                transform: translateY(-2px);
+            }
+            .google-signin-btn:active {
+                transform: translateY(0);
+            }
+            .google-signin-btn img {
+                width: 20px;
+                height: 20px;
             }"
         </style>
 
@@ -288,6 +364,24 @@ pub fn Signup() -> impl IntoView {
                             " and "
                             <a href="#privacy" style=link_style>"Privacy Policy"</a>
                         </p>
+
+                        // "or" separator
+                        <div style=separator_style>
+                            <div style=separator_line_style></div>
+                            <span style=separator_text_style>"or"</span>
+                            <div style=separator_line_style></div>
+                        </div>
+
+                        // Google Sign-In button
+                        <button
+                            type="button"
+                            style=google_button_style
+                            class="google-signin-btn"
+                            on:click=handle_google_signin
+                        >
+                            <img src="/google-icon.svg" alt="Google" />
+                            <span>"Sign in with Google"</span>
+                        </button>
                     }.into_any(),
 
                     SignupState::Success => view! {

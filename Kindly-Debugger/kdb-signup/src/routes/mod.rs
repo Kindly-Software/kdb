@@ -8,6 +8,7 @@
 //! - `POST /api/v1/signup` - Register new user
 //! - `GET /api/v1/verify/:token` - Email verification
 //! - `POST /api/v1/resend-verification` - Resend verification email
+//! - `GET /api/v1/my-license` - Get license via OAuth token
 //!
 //! # Framework Compliance
 //!
@@ -17,6 +18,7 @@
 //! - UCE34: Q10 route handlers using T1 Atomic capsules
 //! - Chaos: All state via capsule atomics, no mutex in handlers
 
+pub mod my_license;
 pub mod signup;
 
 use axum::http::StatusCode;
@@ -29,6 +31,9 @@ pub use signup::{
     signup_router, AppState, ErrorResponse, ResendRequest, ResendResponse, SignupRequest,
     SignupResponse,
 };
+
+// Re-export my_license handler
+pub use my_license::{get_my_license, MyLicenseResponse};
 
 /// Health check response
 #[derive(Serialize)]

@@ -147,7 +147,7 @@ pub struct ErrorResponse {
 
 impl ErrorResponse {
     /// Create a new error response
-    fn new(error: impl Into<String>, code: impl Into<String>) -> Self {
+    pub fn new(error: impl Into<String>, code: impl Into<String>) -> Self {
         Self {
             error: error.into(),
             code: code.into(),
@@ -165,11 +165,13 @@ impl ErrorResponse {
 /// - `POST /api/v1/signup` - Register new user
 /// - `GET /api/v1/verify/:token` - Verify email token
 /// - `POST /api/v1/resend-verification` - Resend verification email
+/// - `GET /api/v1/my-license` - Get user's license via OAuth token
 pub fn signup_router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/v1/signup", post(signup_handler))
         .route("/api/v1/verify/:token", get(verify_handler))
         .route("/api/v1/resend-verification", post(resend_handler))
+        .route("/api/v1/my-license", get(super::my_license::get_my_license))
 }
 
 // ============================================================================

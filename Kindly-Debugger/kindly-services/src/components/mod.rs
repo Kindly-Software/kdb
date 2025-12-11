@@ -14,6 +14,7 @@ pub mod terms;
 pub mod license;
 pub mod verified;
 pub mod signup;
+pub mod oauth_success;
 
 pub use hero::Hero;
 pub use navbar::Navbar;
@@ -27,3 +28,4 @@ pub use terms::TermsPage;
 pub use license::LicensePage;
 pub use verified::Verified;
 pub use signup::Signup;
+pub use oauth_success::OAuthSuccess;

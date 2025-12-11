@@ -176,7 +176,7 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::info!(
         address = %addr,
-        endpoints = "/health, /metrics, /api/v1/signup, /api/v1/verify/:token, /api/v1/resend-verification",
+        endpoints = "/health, /metrics, /api/v1/signup, /api/v1/verify/:token, /api/v1/resend-verification, /api/v1/my-license",
         "Server listening"
     );
 
