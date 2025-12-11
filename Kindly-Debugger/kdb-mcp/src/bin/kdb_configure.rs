@@ -7,6 +7,7 @@
 //! - Safe configuration merging with backup and rollback
 //! - Dry-run mode for preview without changes
 //! - Environment variable and dotenv resolution
+//! - P0 Protection Layer (Phase 4: anti-debug, emulator detection, license validation)
 //!
 //! ## Usage
 //! ```bash
@@ -20,11 +21,13 @@
 //! - **T6 Mixed Orchestrator**: Multi-stage configuration pipeline
 //! - **T1 Atomic Detectors**: Client detection capsules
 //! - **T0 Auditable**: Config generation with Q34 audit trail
+//! - **P0 Protection**: Anti-debug, emulator detection, license validation (Q35)
 //!
 //! ## UCE35 Compliance
 //! - Q10: T6 Mixed tier for orchestration
 //! - Q33: 100% lockfree operations
 //! - Q34: Backup hash verification for audit compliance
+//! - Q35: P0 Protection with self-destruct on tamper detection
 
 use std::collections::HashMap;
 use std::env;
@@ -52,6 +55,13 @@ use kdb_mcp::configure::{
     CURSOR_DETECTOR,
     VSCODE_DETECTOR,
     GENERIC_HTTP_DETECTOR,
+};
+
+// Phase 4: Protection capsules (conditionally compiled)
+#[cfg(feature = "client-protection")]
+use kdb_mcp::client::{
+    P0ProtectionLayer, ProtectionError,
+    SelfDestructHandler, TamperReason,
 };
 
 // ============================================================================
@@ -191,6 +201,65 @@ fn main() {
     println!("{}", "=".repeat(40));
     println!();
 
+    // =========================================================================
+    // Phase 4: P0 Protection Check (BEFORE any capsule operations)
+    // =========================================================================
+    // Resolve license key early for protection initialization
+    let license_key_for_protection = env::var("KDB_LICENSE_KEY").unwrap_or_default();
+
+    #[cfg(feature = "client-protection")]
+    let protection = P0ProtectionLayer::new(&license_key_for_protection);
+
+    #[cfg(feature = "client-protection")]
+    let self_destruct = SelfDestructHandler::new();
+
+    #[cfg(feature = "client-protection")]
+    {
+        match protection.check_all() {
+            Ok(()) => {
+                if options.verbose {
+                    println!(
+                        "{}[Protection]{} All security checks passed",
+                        colors::DIM,
+                        colors::RESET
+                    );
+                    let stats = protection.stats();
+                    println!(
+                        "{}  Checks:{} {} | {}Failures:{} {}",
+                        colors::DIM,
+                        colors::RESET,
+                        stats.total_checks,
+                        colors::DIM,
+                        colors::RESET,
+                        stats.total_failures
+                    );
+                    println!();
+                }
+            }
+            Err(e) => {
+                eprintln!(
+                    "{}[Protection]{} Security check failed: {:?}",
+                    colors::RED,
+                    colors::RESET,
+                    e
+                );
+
+                // Map ProtectionError to TamperReason for self-destruct
+                let tamper_reason = match e {
+                    ProtectionError::LicenseInvalid => TamperReason::LicenseViolation,
+                    ProtectionError::DebuggerDetected => TamperReason::DebuggerAttached,
+                    ProtectionError::EmulatorDetected => TamperReason::EmulatorDetected,
+                    ProtectionError::TamperDetected => TamperReason::IntegrityViolation,
+                };
+
+                // Trigger self-destruct (this does NOT return - process exits)
+                self_destruct.trigger(tamper_reason);
+                // Note: Code never reaches here because trigger() calls std::process::exit()
+                std::process::exit(137); // SIGKILL simulation (backup, should never reach)
+            }
+        }
+    }
+
     // Handle backup operations
     if options.list_backups {
         list_backups();
@@ -231,7 +300,15 @@ fn main() {
     }
 
     // Run auto-configuration
-    run_auto_configure(&registry, &env_resolver, &merger, &platform, &options);
+    run_auto_configure(
+        &registry,
+        &env_resolver,
+        &merger,
+        &platform,
+        &options,
+        #[cfg(feature = "client-protection")]
+        &protection,
+    );
 }
 
 // ============================================================================
@@ -432,6 +509,8 @@ fn run_auto_configure(
     merger: &ConfigMergerCapsule,
     platform: &PlatformInfo,
     options: &CliOptions,
+    #[cfg(feature = "client-protection")]
+    protection: &P0ProtectionLayer,
 ) {
     let start = Instant::now();
 
@@ -516,11 +595,43 @@ fn run_auto_configure(
         colors::RESET
     );
 
+    // Rate-limited protection check during configuration (every 10ms)
+    #[cfg(feature = "client-protection")]
+    let mut last_protection_check = Instant::now();
+    #[cfg(feature = "client-protection")]
+    const PROTECTION_CHECK_INTERVAL_MS: u128 = 10;
+
     let mut configured_count = 0;
     let mut skipped_count = 0;
     let mut error_count = 0;
 
     for client in &clients {
+        // Rate-limited protection check before each client configuration
+        #[cfg(feature = "client-protection")]
+        {
+            if last_protection_check.elapsed().as_millis() >= PROTECTION_CHECK_INTERVAL_MS {
+                if let Err(e) = protection.check_all() {
+                    eprintln!(
+                        "{}[Protection]{} Check failed during configuration: {:?}",
+                        colors::RED,
+                        colors::RESET,
+                        e
+                    );
+                    let tamper_reason = match e {
+                        ProtectionError::LicenseInvalid => TamperReason::LicenseViolation,
+                        ProtectionError::DebuggerDetected => TamperReason::DebuggerAttached,
+                        ProtectionError::EmulatorDetected => TamperReason::EmulatorDetected,
+                        ProtectionError::TamperDetected => TamperReason::IntegrityViolation,
+                    };
+                    // Self-destruct handler is in main scope, create new one here
+                    let self_destruct = SelfDestructHandler::new();
+                    self_destruct.trigger(tamper_reason);
+                    std::process::exit(137);
+                }
+                last_protection_check = Instant::now();
+            }
+        }
+
         let result = configure_client(
             client,
             merger,
@@ -598,6 +709,19 @@ fn run_auto_configure(
     println!("  Errors:     {}", error_count);
     println!("  Duration:   {:.2}ms", duration.as_secs_f64() * 1000.0);
     println!("  Backups:    {}", backup_dir.display());
+
+    // Show protection stats in verbose mode
+    #[cfg(feature = "client-protection")]
+    if options.verbose {
+        let stats = protection.stats();
+        println!(
+            "  {}Protection:{} {} checks, {} failures",
+            colors::DIM,
+            colors::RESET,
+            stats.total_checks,
+            stats.total_failures
+        );
+    }
 
     if configured_count > 0 {
         println!("\n{}Next steps:{}", colors::BOLD, colors::RESET);
@@ -1023,6 +1147,13 @@ fn print_help() {
     println!("    - Cursor");
     println!("    - VS Code (with MCP extension)");
     println!("    - Continue.dev");
+    println!();
+    println!("{}SECURITY:{}", colors::BOLD, colors::RESET);
+    println!("    This binary is protected by P0 Protection Layer:");
+    println!("    - Anti-debug detection (80%+ detection rate)");
+    println!("    - Emulator/VM detection (90%+ detection rate)");
+    println!("    - License validation (FNV-1a + Ed25519)");
+    println!("    - UCE35 Q35 self-destruct on tamper detection");
     println!();
     println!("For more information, visit:");
     println!("    {}https://kindly.software/docs/setup{}", colors::CYAN, colors::RESET);

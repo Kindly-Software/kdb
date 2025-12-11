@@ -274,7 +274,7 @@ required-features = ["std", "client"]
 [[bin]]
 name = "kdb_configure"
 path = "src/bin/kdb_configure.rs"
-required-features = ["configure", "std", "json-rpc"]
+required-features = ["configure", "std", "json-rpc", "client", "client-protection"]
 
 [dev-dependencies]
 proptest = "1.4"
