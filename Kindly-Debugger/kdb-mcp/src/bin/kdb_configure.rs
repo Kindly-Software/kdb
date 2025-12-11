@@ -107,6 +107,8 @@ struct CliOptions {
     rollback: Option<String>,
     /// Verbose output
     verbose: bool,
+    /// License key passed via command line
+    license_key: Option<String>,
 }
 
 // ============================================================================
@@ -205,7 +207,10 @@ fn main() {
     // Phase 4: P0 Protection Check (BEFORE any capsule operations)
     // =========================================================================
     // Resolve license key early for protection initialization
-    let license_key_for_protection = env::var("KDB_LICENSE_KEY").unwrap_or_default();
+    // Priority: 1. --license CLI arg, 2. KDB_LICENSE_KEY env var
+    let license_key_for_protection = options.license_key.clone()
+        .or_else(|| env::var("KDB_LICENSE_KEY").ok())
+        .unwrap_or_default();
 
     #[cfg(feature = "client-protection")]
     let protection = P0ProtectionLayer::new(&license_key_for_protection);
@@ -237,25 +242,48 @@ fn main() {
                 }
             }
             Err(e) => {
-                eprintln!(
-                    "{}[Protection]{} Security check failed: {:?}",
-                    colors::RED,
-                    colors::RESET,
-                    e
-                );
+                // For kdb-configure (a SETUP tool), we distinguish between:
+                // 1. LicenseInvalid - Expected during setup! User is TRYING to configure their license.
+                //    Just warn and continue - the tool will help them set it up.
+                // 2. DebuggerDetected/EmulatorDetected/TamperDetected - Actual security threats.
+                //    These should trigger self-destruct.
 
-                // Map ProtectionError to TamperReason for self-destruct
-                let tamper_reason = match e {
-                    ProtectionError::LicenseInvalid => TamperReason::LicenseViolation,
-                    ProtectionError::DebuggerDetected => TamperReason::DebuggerAttached,
-                    ProtectionError::EmulatorDetected => TamperReason::EmulatorDetected,
-                    ProtectionError::TamperDetected => TamperReason::IntegrityViolation,
-                };
+                match e {
+                    ProtectionError::LicenseInvalid => {
+                        // This is EXPECTED for a setup tool - user hasn't configured license yet!
+                        // Just warn and continue - the tool will help them set up their license.
+                        if options.verbose {
+                            eprintln!(
+                                "{}[Protection]{} No valid license detected (expected during setup)",
+                                colors::DIM,
+                                colors::RESET
+                            );
+                        }
+                        // Continue execution - this tool helps users SET UP their license
+                    }
+                    ProtectionError::DebuggerDetected |
+                    ProtectionError::EmulatorDetected |
+                    ProtectionError::TamperDetected => {
+                        // Actual security threat - trigger self-destruct
+                        eprintln!(
+                            "{}[Protection]{} Security check failed: {:?}",
+                            colors::RED,
+                            colors::RESET,
+                            e
+                        );
 
-                // Trigger self-destruct (this does NOT return - process exits)
-                self_destruct.trigger(tamper_reason);
-                // Note: Code never reaches here because trigger() calls std::process::exit()
-                std::process::exit(137); // SIGKILL simulation (backup, should never reach)
+                        let tamper_reason = match e {
+                            ProtectionError::DebuggerDetected => TamperReason::DebuggerAttached,
+                            ProtectionError::EmulatorDetected => TamperReason::EmulatorDetected,
+                            ProtectionError::TamperDetected => TamperReason::IntegrityViolation,
+                            _ => unreachable!(), // LicenseInvalid handled above
+                        };
+
+                        // Trigger self-destruct for actual security threats
+                        self_destruct.trigger(tamper_reason);
+                        std::process::exit(137);
+                    }
+                }
             }
         }
     }
@@ -348,6 +376,16 @@ fn parse_args(args: &[String]) -> CliOptions {
                 i += 1;
                 if i < args.len() {
                     opts.rollback = Some(args[i].clone());
+                }
+            }
+            _ if arg.starts_with("--license=") => {
+                opts.license_key = Some(arg.strip_prefix("--license=").unwrap().to_string());
+            }
+            "--license" => {
+                // Next arg is the license key
+                i += 1;
+                if i < args.len() {
+                    opts.license_key = Some(args[i].clone());
                 }
             }
             _ => {
@@ -565,7 +603,7 @@ fn run_auto_configure(
         colors::CYAN,
         colors::RESET
     );
-    let license_key = resolve_license_key(env_resolver, options.verbose);
+    let license_key = resolve_license_key(env_resolver, options.license_key.as_deref(), options.verbose);
     if let Some(ref key) = license_key {
         let masked = mask_license_key(key);
         println!("  License key: {}", masked);
@@ -879,20 +917,35 @@ fn confirm_configure(client: &DetectedClient) -> bool {
 /// Resolves license key from multiple sources with priority ordering.
 ///
 /// Priority order (highest first):
-/// 1. Environment variable KDB_LICENSE_KEY (explicit override)
-/// 2. License file ~/.kdb/license (from OAuth download or manual creation)
-/// 3. API fetch with OAuth token (if oauth_token exists)
-/// 4. Interactive prompt (last resort)
+/// 1. CLI --license argument (explicit command-line override)
+/// 2. Environment variable KDB_LICENSE_KEY (explicit override)
+/// 3. License file ~/.kdb/license (from OAuth download or manual creation)
+/// 4. API fetch with OAuth token (if oauth_token exists)
+/// 5. Interactive prompt (last resort)
 ///
 /// # Arguments
 /// * `env_resolver` - Environment variable resolver capsule
+/// * `cli_license` - Optional license key from --license CLI argument
 /// * `verbose` - Whether to print verbose output about resolution process
 ///
 /// # Returns
 /// * `Some(license_key)` - If a valid license key was found
 /// * `None` - If no license key could be resolved
-fn resolve_license_key(env_resolver: &EnvResolutionCapsule, verbose: bool) -> Option<String> {
-    // Priority 1: Environment variable (explicit override)
+fn resolve_license_key(env_resolver: &EnvResolutionCapsule, cli_license: Option<&str>, verbose: bool) -> Option<String> {
+    // Priority 1: CLI --license argument (highest priority)
+    if let Some(key) = cli_license {
+        if !key.is_empty() && key.starts_with("KDB-") {
+            if verbose {
+                println!(
+                    "  {}[License]{} Found in --license CLI argument",
+                    colors::DIM,
+                    colors::RESET
+                );
+            }
+            return Some(key.to_string());
+        }
+    }
+    // Priority 2: Environment variable (explicit override)
     if let Some(resolved) = env_resolver.resolve("KDB_LICENSE_KEY") {
         if !resolved.value.is_empty() && !resolved.value.starts_with("${") {
             if verbose {
@@ -1461,6 +1514,7 @@ fn print_help() {
     println!("    kdb-configure [OPTIONS]\n");
     println!("{}OPTIONS:{}", colors::BOLD, colors::RESET);
     println!("    {}--auto, -a{}          Auto-approve all prompts", colors::CYAN, colors::RESET);
+    println!("    {}--license <key>{}     Your KDB license key (from OAuth or signup)", colors::CYAN, colors::RESET);
     println!("    {}--force, -f{}         Overwrite existing kdb configs", colors::CYAN, colors::RESET);
     println!("    {}--dry-run, -n{}       Show changes without applying", colors::CYAN, colors::RESET);
     println!("    {}--detect, -d{}        Detection only (don't modify)", colors::CYAN, colors::RESET);
@@ -1483,8 +1537,8 @@ fn print_help() {
     println!("    # Preview changes without applying");
     println!("    kdb-configure --dry-run");
     println!();
-    println!("    # Auto-configure all detected clients");
-    println!("    kdb-configure --auto");
+    println!("    # Auto-configure with license key (one-line setup)");
+    println!("    kdb-configure --auto --license \"KDB-HOBBY-12345678-abcdef\"");
     println!();
     println!("    # Configure specific clients only");
     println!("    kdb-configure --clients=claude_code,cursor");
@@ -1568,6 +1622,40 @@ mod tests {
         ];
         let opts = parse_args(&args);
         assert_eq!(opts.rollback, Some("2025-12-11_14-30-00".to_string()));
+    }
+
+    #[test]
+    fn test_parse_args_license() {
+        let args = vec![
+            "kdb-configure".to_string(),
+            "--license".to_string(),
+            "KDB-HOBBY-12345678-abcdef".to_string(),
+        ];
+        let opts = parse_args(&args);
+        assert_eq!(opts.license_key, Some("KDB-HOBBY-12345678-abcdef".to_string()));
+    }
+
+    #[test]
+    fn test_parse_args_license_equals() {
+        let args = vec![
+            "kdb-configure".to_string(),
+            "--license=KDB-PRO-87654321-xyz123".to_string(),
+        ];
+        let opts = parse_args(&args);
+        assert_eq!(opts.license_key, Some("KDB-PRO-87654321-xyz123".to_string()));
+    }
+
+    #[test]
+    fn test_parse_args_auto_with_license() {
+        let args = vec![
+            "kdb-configure".to_string(),
+            "--auto".to_string(),
+            "--license".to_string(),
+            "KDB-HOBBY-12345678-abcdef".to_string(),
+        ];
+        let opts = parse_args(&args);
+        assert!(opts.auto_approve);
+        assert_eq!(opts.license_key, Some("KDB-HOBBY-12345678-abcdef".to_string()));
     }
 
     #[test]

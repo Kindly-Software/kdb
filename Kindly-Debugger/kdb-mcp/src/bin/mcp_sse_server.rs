@@ -1821,16 +1821,13 @@ fn handle_oauth_callback(
             )
         }
         None => {
-            // Existing user: Show dashboard first, then continue to Claude
+            // Existing user: Redirect directly to Claude (no need to show license again)
             eprintln!(
-                "[MCP-SSE] OAuth callback: existing user, redirecting via dashboard (email={})",
+                "[MCP-SSE] OAuth callback: existing user, redirecting directly to Claude (email={})",
                 claims.email
             );
-            format!(
-                "https://www.kindly.software/#dashboard?token={}&callback={}",
-                urlencoding_encode(&token_response.id_token),
-                urlencoding_encode(&claude_callback)
-            )
+            // Skip the success page for existing users - they already know their license
+            claude_callback.clone()
         }
     };
 

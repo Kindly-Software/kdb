@@ -15,7 +15,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 use super::script_generator::{
-    generate_enhanced_setup_script, generate_linux_desktop_file, Platform, ScriptOptions,
+    generate_enhanced_setup_script, Platform, ScriptOptions,
 };
 
 /// Parse query parameters from a URL hash string
@@ -138,8 +138,8 @@ fn trigger_license_download(license: &str) {
 
 /// Trigger browser download of the setup script (enhanced version)
 ///
-/// For Linux: Downloads BOTH .sh script AND .desktop launcher file.
-/// The .desktop file enables double-click installation (no terminal commands needed).
+/// For Linux: No script download (browser downloads lack execute permissions).
+/// Linux users should use the npx one-line command instead.
 fn trigger_script_download(license: &str, platform: Platform) {
     // Use enhanced script with full UX improvements
     let options = ScriptOptions::default();
@@ -147,56 +147,9 @@ fn trigger_script_download(license: &str, platform: Platform) {
 
     match platform {
         Platform::Linux | Platform::Unknown => {
-            // For Linux: Download BOTH .sh script AND .desktop launcher
-            // 1. First download the .sh script (contains the license and setup logic)
-            trigger_download(&script, "kdb-setup.sh", "application/x-sh");
-
-            // 2. Download the .desktop launcher after a 500ms delay
-            // This ensures both files land in Downloads folder
-            if let Some(window) = web_sys::window() {
-                let desktop_content = generate_linux_desktop_file();
-                let callback = Closure::once(Box::new(move || {
-                    // Create and trigger the .desktop file download
-                    if let Some(window) = web_sys::window() {
-                        if let Some(document) = window.document() {
-                            let array = js_sys::Array::new();
-                            array.push(&JsValue::from_str(&desktop_content));
-
-                            let blob_opts = web_sys::BlobPropertyBag::new();
-                            blob_opts.set_type("application/x-desktop");
-
-                            if let Ok(blob) =
-                                web_sys::Blob::new_with_str_sequence_and_options(&array, &blob_opts)
-                            {
-                                if let Ok(url) = web_sys::Url::create_object_url_with_blob(&blob) {
-                                    if let Ok(elem) = document.create_element("a") {
-                                        if let Some(anchor) =
-                                            elem.dyn_ref::<web_sys::HtmlAnchorElement>()
-                                        {
-                                            anchor.set_href(&url);
-                                            anchor.set_download("kdb-setup.desktop");
-
-                                            if let Some(body) = document.body() {
-                                                let _ = body.append_child(anchor);
-                                                anchor.click();
-                                                let _ = body.remove_child(anchor);
-                                            }
-
-                                            let _ = web_sys::Url::revoke_object_url(&url);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }) as Box<dyn FnOnce()>);
-
-                let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
-                    callback.as_ref().unchecked_ref(),
-                    500, // 500ms delay between downloads
-                );
-                callback.forget();
-            }
+            // Linux: Don't download scripts - browser downloads lack execute permissions
+            // Users should use the npx one-line command instead
+            // No-op for Linux
         }
         Platform::MacOS => {
             trigger_download(&script, "kdb-setup.command", "application/x-sh");
@@ -292,6 +245,7 @@ pub fn OAuthSuccess() -> impl IntoView {
     let (download_triggered, set_download_triggered) = signal(false);
     let (script_downloaded, set_script_downloaded) = signal(false);
     let (copied, set_copied) = signal(false);
+    let (command_copied, set_command_copied) = signal(false);
     let (platform, set_platform) = signal(Platform::Unknown);
 
     // Parse URL on mount
@@ -378,6 +332,28 @@ pub fn OAuthSuccess() -> impl IntoView {
     let on_redownload_script = move |_| {
         let license_val = license.get();
         trigger_script_download(&license_val, platform.get());
+    };
+
+    // Copy command handler
+    let on_copy_command = move |_| {
+        let license_val = license.get();
+        let command = format!("npx -p @kindly-software-inc/kdb kdb-configure --auto --license \"{}\"", license_val);
+        copy_to_clipboard(&command);
+        set_command_copied.set(true);
+
+        // Reset after 2 seconds
+        if let Some(window) = web_sys::window() {
+            let set_command_copied_clone = set_command_copied;
+            let reset_callback = Closure::wrap(Box::new(move || {
+                set_command_copied_clone.set(false);
+            }) as Box<dyn FnMut()>);
+
+            let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+                reset_callback.as_ref().unchecked_ref(),
+                2000,
+            );
+            std::mem::forget(reset_callback);
+        }
     };
 
     // Styles - Byzantine Royal purple theme with glassmorphism
@@ -608,7 +584,7 @@ pub fn OAuthSuccess() -> impl IntoView {
 
     let command_style = "
         background: rgba(10, 0, 21, 0.8);
-        color: #00ff00;
+        color: #FFD700;
         padding: 1rem;
         border-radius: 8px;
         font-family: 'JetBrains Mono', monospace;
@@ -616,6 +592,25 @@ pub fn OAuthSuccess() -> impl IntoView {
         overflow-x: auto;
         white-space: pre-wrap;
         line-height: 1.6;
+    ";
+
+    let command_container_style = "
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    ";
+
+    let command_copy_button_style = "
+        align-self: flex-end;
+        background: rgba(255, 215, 0, 0.2);
+        border: 1px solid rgba(255, 215, 0, 0.3);
+        border-radius: 6px;
+        padding: 0.5rem 1rem;
+        color: #FFD700;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: background 0.2s ease;
+        font-weight: 500;
     ";
 
     let continue_section_style = "
@@ -656,6 +651,9 @@ pub fn OAuthSuccess() -> impl IntoView {
             }
             .oauth-download-btn:hover {
                 background: rgba(110, 63, 255, 0.3) !important;
+            }
+            .oauth-cmd-copy-btn:hover {
+                background: rgba(255, 215, 0, 0.3) !important;
             }
             .oauth-primary-btn:hover {
                 transform: translateY(-2px);
@@ -698,44 +696,49 @@ pub fn OAuthSuccess() -> impl IntoView {
                     <h2 style=subtitle_style>"Your debugger is almost ready"</h2>
                 </div>
 
-                // Download status notice
+                // Download status notice (macOS/Windows only - Linux uses npx)
                 {move || {
                     let p = platform.get();
-                    let files_text = match p {
-                        Platform::Linux | Platform::Unknown => "kdb-setup.desktop and kdb-setup.sh".to_string(),
-                        _ => platform.get().script_filename(),
-                    };
-                    if script_downloaded.get() {
-                        view! {
-                            <div style=download_notice_style>
-                                <span style=download_icon_style>"\u{2705}"</span>
-                                <div style=download_text_container_style>
-                                    <span style=download_main_text_style>
-                                        "Setup files downloaded!"
-                                    </span>
-                                    <span style=download_sub_text_style>
-                                        "Check your Downloads folder for "
-                                        <code style=code_inline_style>
-                                            {files_text}
-                                        </code>
-                                    </span>
-                                </div>
-                            </div>
-                        }.into_any()
-                    } else {
-                        view! {
-                            <div style=download_notice_style>
-                                <span style=download_icon_style>"\u{2B07}\u{FE0F}"</span>
-                                <div style=download_text_container_style>
-                                    <span style=download_main_text_style>
-                                        "Downloading setup files..."
-                                    </span>
-                                    <span style=download_sub_text_style>
-                                        "License and setup script downloading automatically"
-                                    </span>
-                                </div>
-                            </div>
-                        }.into_any()
+                    match p {
+                        Platform::Linux | Platform::Unknown => {
+                            // Linux: No download notice since we use npx
+                            view! { <div></div> }.into_any()
+                        }
+                        _ => {
+                            let files_text = p.script_filename();
+                            if script_downloaded.get() {
+                                view! {
+                                    <div style=download_notice_style>
+                                        <span style=download_icon_style>"\u{2705}"</span>
+                                        <div style=download_text_container_style>
+                                            <span style=download_main_text_style>
+                                                "Setup files downloaded!"
+                                            </span>
+                                            <span style=download_sub_text_style>
+                                                "Check your Downloads folder for "
+                                                <code style=code_inline_style>
+                                                    {files_text}
+                                                </code>
+                                            </span>
+                                        </div>
+                                    </div>
+                                }.into_any()
+                            } else {
+                                view! {
+                                    <div style=download_notice_style>
+                                        <span style=download_icon_style>"\u{2B07}\u{FE0F}"</span>
+                                        <div style=download_text_container_style>
+                                            <span style=download_main_text_style>
+                                                "Downloading setup files..."
+                                            </span>
+                                            <span style=download_sub_text_style>
+                                                "License and setup script downloading automatically"
+                                            </span>
+                                        </div>
+                                    </div>
+                                }.into_any()
+                            }
+                        }
                     }
                 }}
 
@@ -770,126 +773,133 @@ pub fn OAuthSuccess() -> impl IntoView {
                     </div>
                 </div>
 
-                // Platform-specific setup instructions
+                // Setup instructions - One-Line Command is PRIMARY
                 <div style=instructions_section_style>
                     <h3 style=instructions_title_style>
-                        "\u{1F4E5} Quick Setup"
+                        "\u{1F680} Quick Setup"
                         <span style=platform_badge_style>
                             {move || platform.get().display_name()}
                         </span>
                     </h3>
 
-                    // Platform-specific steps
+                    // Primary method: One-line npx command
+                    <div style="margin-bottom: 1.5rem;">
+                        <ol style=step_list_style>
+                            <li style=step_item_style class="oauth-step-item">
+                                <span style=step_number_style>"1"</span>
+                                <span style=step_content_style>
+                                    "Open a terminal"
+                                </span>
+                            </li>
+                            <li style=step_item_style class="oauth-step-item">
+                                <span style=step_number_style>"2"</span>
+                                <span style=step_content_style>
+                                    "Run this command:"
+                                </span>
+                            </li>
+                        </ol>
+
+                        <div style=command_container_style>
+                            <pre style=command_style class="oauth-command">
+                                {move || format!("npx -p @kindly-software-inc/kdb kdb-configure --auto --license \"{}\"", license.get())}
+                            </pre>
+                            <button
+                                style=command_copy_button_style
+                                class="oauth-cmd-copy-btn"
+                                on:click=on_copy_command
+                            >
+                                {move || if command_copied.get() { "\u{2705} Copied!" } else { "\u{1F4CB} Copy" }}
+                            </button>
+                        </div>
+
+                        <ol style=step_list_style start="3">
+                            <li class="oauth-step-item" style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 0;">
+                                <span style=step_number_style>"3"</span>
+                                <span style=step_content_style>
+                                    "Restart your terminal or IDE"
+                                </span>
+                            </li>
+                        </ol>
+                    </div>
+
+                    // Alternative method: Downloaded script (macOS/Windows only)
                     {move || {
                         let p = platform.get();
                         match p {
                             Platform::MacOS => view! {
-                                <ol style=step_list_style>
-                                    <li style=step_item_style class="oauth-step-item">
-                                        <span style=step_number_style>"1"</span>
-                                        <span style=step_content_style>
-                                            "Find "
-                                            <code style=code_inline_style>"kdb-setup.command"</code>
-                                            " in your Downloads folder"
-                                        </span>
-                                    </li>
-                                    <li style=step_item_style class="oauth-step-item">
-                                        <span style=step_number_style>"2"</span>
-                                        <span style=step_content_style>
-                                            "Double-click to run (Terminal will open automatically)"
-                                        </span>
-                                    </li>
-                                    <li style=step_item_style class="oauth-step-item">
-                                        <span style=step_number_style>"3"</span>
-                                        <span style=step_content_style>
-                                            "If macOS blocks it: Right-click \u{2192} Open \u{2192} Open anyway"
-                                        </span>
-                                    </li>
-                                    <li class="oauth-step-item" style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 0;">
-                                        <span style=step_number_style>"4"</span>
-                                        <span style=step_content_style>
-                                            "Restart your terminal or IDE"
-                                        </span>
-                                    </li>
-                                </ol>
+                                <div style=alternative_section_style>
+                                    <h4 style=alternative_title_style>"\u{1F4C1} Alternative: Downloaded Script"</h4>
+                                    <ol style=step_list_style>
+                                        <li style=step_item_style class="oauth-step-item">
+                                            <span style=step_number_style>"1"</span>
+                                            <span style=step_content_style>
+                                                "Find "
+                                                <code style=code_inline_style>"kdb-setup.command"</code>
+                                                " in your Downloads folder"
+                                            </span>
+                                        </li>
+                                        <li style=step_item_style class="oauth-step-item">
+                                            <span style=step_number_style>"2"</span>
+                                            <span style=step_content_style>
+                                                "Double-click to run (Terminal will open automatically)"
+                                            </span>
+                                        </li>
+                                        <li style=step_item_style class="oauth-step-item">
+                                            <span style=step_number_style>"3"</span>
+                                            <span style=step_content_style>
+                                                "If macOS blocks it: Right-click \u{2192} Open \u{2192} Open anyway"
+                                            </span>
+                                        </li>
+                                        <li class="oauth-step-item" style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 0;">
+                                            <span style=step_number_style>"4"</span>
+                                            <span style=step_content_style>
+                                                "Restart your terminal or IDE"
+                                            </span>
+                                        </li>
+                                    </ol>
+                                </div>
                             }.into_any(),
 
                             Platform::Windows => view! {
-                                <ol style=step_list_style>
-                                    <li style=step_item_style class="oauth-step-item">
-                                        <span style=step_number_style>"1"</span>
-                                        <span style=step_content_style>
-                                            "Find "
-                                            <code style=code_inline_style>"kdb-setup.bat"</code>
-                                            " in your Downloads folder"
-                                        </span>
-                                    </li>
-                                    <li style=step_item_style class="oauth-step-item">
-                                        <span style=step_number_style>"2"</span>
-                                        <span style=step_content_style>
-                                            "Double-click to run (Command Prompt will open)"
-                                        </span>
-                                    </li>
-                                    <li style=step_item_style class="oauth-step-item">
-                                        <span style=step_number_style>"3"</span>
-                                        <span style=step_content_style>
-                                            "If Windows blocks it: Click \"More info\" \u{2192} \"Run anyway\""
-                                        </span>
-                                    </li>
-                                    <li class="oauth-step-item" style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 0;">
-                                        <span style=step_number_style>"4"</span>
-                                        <span style=step_content_style>
-                                            "Restart your terminal or IDE"
-                                        </span>
-                                    </li>
-                                </ol>
+                                <div style=alternative_section_style>
+                                    <h4 style=alternative_title_style>"\u{1F4C1} Alternative: Downloaded Script"</h4>
+                                    <ol style=step_list_style>
+                                        <li style=step_item_style class="oauth-step-item">
+                                            <span style=step_number_style>"1"</span>
+                                            <span style=step_content_style>
+                                                "Find "
+                                                <code style=code_inline_style>"kdb-setup.bat"</code>
+                                                " in your Downloads folder"
+                                            </span>
+                                        </li>
+                                        <li style=step_item_style class="oauth-step-item">
+                                            <span style=step_number_style>"2"</span>
+                                            <span style=step_content_style>
+                                                "Double-click to run (Command Prompt will open)"
+                                            </span>
+                                        </li>
+                                        <li style=step_item_style class="oauth-step-item">
+                                            <span style=step_number_style>"3"</span>
+                                            <span style=step_content_style>
+                                                "If Windows blocks it: Click \"More info\" \u{2192} \"Run anyway\""
+                                            </span>
+                                        </li>
+                                        <li class="oauth-step-item" style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 0;">
+                                            <span style=step_number_style>"4"</span>
+                                            <span style=step_content_style>
+                                                "Restart your terminal or IDE"
+                                            </span>
+                                        </li>
+                                    </ol>
+                                </div>
                             }.into_any(),
 
-                            Platform::Linux | Platform::Unknown => view! {
-                                <ol style=step_list_style>
-                                    <li style=step_item_style class="oauth-step-item">
-                                        <span style=step_number_style>"1"</span>
-                                        <span style=step_content_style>
-                                            "Find "
-                                            <code style=code_inline_style>"kdb-setup.desktop"</code>
-                                            " and "
-                                            <code style=code_inline_style>"kdb-setup.sh"</code>
-                                            " in Downloads"
-                                        </span>
-                                    </li>
-                                    <li style=step_item_style class="oauth-step-item">
-                                        <span style=step_number_style>"2"</span>
-                                        <span style=step_content_style>
-                                            "Double-click "
-                                            <code style=code_inline_style>"kdb-setup.desktop"</code>
-                                            " (Terminal opens automatically)"
-                                        </span>
-                                    </li>
-                                    <li style=step_item_style class="oauth-step-item">
-                                        <span style=step_number_style>"3"</span>
-                                        <span style=step_content_style>
-                                            "Or manually: "
-                                            <code style=code_inline_style>"chmod +x ~/Downloads/kdb-setup.sh && ~/Downloads/kdb-setup.sh"</code>
-                                        </span>
-                                    </li>
-                                    <li class="oauth-step-item" style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 0;">
-                                        <span style=step_number_style>"4"</span>
-                                        <span style=step_content_style>
-                                            "Restart your terminal or IDE"
-                                        </span>
-                                    </li>
-                                </ol>
-                            }.into_any(),
+                            Platform::Linux | Platform::Unknown => {
+                                // Linux: No alternative - npx is the only method
+                                view! { <div></div> }.into_any()
+                            }
                         }
                     }}
-
-                    // Alternative method
-                    <div style=alternative_section_style>
-                        <h4 style=alternative_title_style>"\u{26A1} Alternative: One-Line Setup"</h4>
-                        <pre style=command_style class="oauth-command">
-                            {move || format!("npx kdb-configure --auto --license \"{}\"", license.get())}
-                        </pre>
-                    </div>
                 </div>
 
                 // Continue section
