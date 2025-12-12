@@ -1,134 +1,137 @@
-# KDB - The Kindly Debugger
+<p align="center">
+  <img src="https://www.kindly.software/kdb-logo.jpg" alt="Kindly Debugger" width="120" height="120" style="border-radius: 50%"/>
+</p>
 
-**Give your AI the superpower of time-travel debugging.**
+<h1 align="center">✨ KDB - The Kindly Debugger ✨</h1>
 
-Rewind execution, find what went wrong, fix the bug timeline.
+<p align="center">
+  <strong>Give your AI the superpower of <span style="color: #FFD700;">traveling back in time</span> to find what went wrong and fix the timeline.</strong>
+</p>
 
-[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-purple.svg)](LICENSE)
-[![Pricing: Free Tier](https://img.shields.io/badge/Pricing-Free%20Tier%20Available-gold.svg)](https://kindly.software)
-
----
-
-## What is KDB?
-
-KDB is a **time-travel debugger** that connects to Claude, Cursor, or any MCP-compatible AI assistant. Instead of reading code and guessing, your AI can now:
-
-- **Attach** to running processes
-- **Set breakpoints** and catch crashes in action
-- **Step forward** through execution
-- **Step BACKWARD** through time to find the root cause
-- **Inspect memory** and variables at any point in history
-
-All through natural language. Just ask Claude to debug your code.
+<p align="center">
+  <a href="https://www.kindly.software">🌐 Website</a> •
+  <a href="https://www.kindly.software/#signup">🎉 Start Free</a> •
+  <a href="https://www.kindly.software/#docs">📖 Docs</a>
+</p>
 
 ---
 
-## Quick Start
+## 🚀 Quick Start (30 seconds)
 
-### 1. Get Your License Key
-
+### Option 1: One-Line Setup
+```bash
+npx -p @kindly-software-inc/kdb kdb-configure --auto
 ```
-https://kindly.software
+Follow the prompts to sign in with Google and auto-configure your MCP client.
+
+### Option 2: With License Key
+```bash
+npx -p @kindly-software-inc/kdb kdb-configure --auto --license "YOUR-LICENSE-KEY"
 ```
 
-Free Hobby tier available. **Launch promo: unlimited sessions for 7 days.**
-
-### 2. Add to Claude Code
-
+### Option 3: Manual Config
+Add to your MCP client config (Claude Code, Cursor, etc.):
 ```json
 {
   "mcpServers": {
     "kdb": {
-      "transport": "sse",
-      "url": "https://mcp.kindly.software/sse",
-      "headers": {
-        "X-License-Key": "YOUR_LICENSE_KEY"
-      }
+      "command": "npx",
+      "args": ["@kindly-software-inc/kdb"]
     }
   }
 }
 ```
 
-**Or install via npm:**
-
-```bash
-npm install -g @kindly-software-inc/kdb
-```
-
-### 3. Debug
-
-```
-"Claude, attach to process 12345 and find why it's crashing"
-```
-
-That's it. Time-travel debugging via conversation.
+**That's it!** 🎊 Ask your AI: *"Debug my crashing program"*
 
 ---
 
-## Features
+## ⏱️ What It Does
+
+**Time-travel debugging for AI workflows.** Step forward. Step backward. Debug as if the bug never existed.
 
 | Feature | Description |
 |---------|-------------|
-| **Time-Travel** | Step backward through execution history |
-| **Breakpoints** | Hardware breakpoints with hit counting |
-| **Stack Traces** | SIMD-accelerated unwinding (5000x faster than GDB) |
-| **Memory Inspection** | Read variables at any point in time |
-| **Audit Trail** | Cryptographic hash-chain for compliance (SOX/SOC2) |
+| ⏪ **Step Backward** | Rewind execution to find root causes |
+| ⏩ **Step Forward** | Resume from any checkpoint |
+| 🎯 **Breakpoints** | Hardware-level with hit counting |
+| 📚 **Stack Traces** | SIMD-accelerated unwinding |
+| 🔐 **Audit Trail** | Hash-chain integrity for compliance |
 
 ---
 
-## Pricing
+## 💜 How It Works
+
+```
+┌─────────────────┐     MCP      ┌─────────────────┐
+│  Your Machine   │◄────────────►│  Kindly Server  │
+│  (any OS)       │              │  (Linux x86_64) │
+│                 │              │                 │
+│  Claude Code    │              │  🔮 Time-Travel │
+│  Cursor         │              │  🎯 Breakpoints │
+│  Any AI         │              │  📊 Analysis    │
+└─────────────────┘              └─────────────────┘
+```
+
+**No local installation.** Works on macOS, Windows, Linux via MCP.
+
+---
+
+## 🏷️ Pricing
 
 | Tier | Price | Sessions |
 |------|-------|----------|
-| **Hobby** | Free | 5/month (unlimited during launch week) |
-| **Pro** | Coming Soon | Extended |
-| **Enterprise** | Contact | Unlimited + Priority Support |
+| 🆓 **Hobby** | Free | 5/month (unlimited during 7-day trial!) |
+| 💎 **Pro** | $19/mo | 100/month + unlimited time-travel |
+| 🔧 **Engineer** | $49/mo | 500/month + memory replay + LSH bug search |
+| 👥 **Teams** | $129/mo | 2,000/month + team audit logs |
+| 🏢 **Enterprise** | Custom | Unlimited + SOX/SOC2/GDPR/HIPAA compliance |
+
+**[Start Free →](https://www.kindly.software/#signup)**
 
 ---
 
-## MCP Tools
+## 🛠️ MCP Tools
 
+Your AI gets these debugging superpowers:
+
+- `debugger_attach` - Connect to a process
+- `debugger_set_breakpoint` - Set breakpoints
+- `debugger_continue` - Resume execution
+- `debugger_step_forward` - Step forward
+- `debugger_step_backward` - ⏪ Step backward in time
+- `debugger_get_stack_trace` - Get stack trace
+- `debugger_get_variables` - Read memory
+- `debugger_export_trace` - Export execution trace
+
+---
+
+## 💬 Example
+
+**You:** "My Rust program crashes at runtime. PID is 12345"
+
+**AI:**
 ```
-debugger/attach          - Attach to process
-debugger/set_breakpoint  - Add breakpoint
-debugger/continue        - Resume execution
-debugger/step_forward    - Step one instruction
-debugger/step_backward   - TIME TRAVEL
-debugger/get_stack_trace - Get call stack
-debugger/get_variables   - Read memory
-debugger/export_trace    - Export audit trail
+I'll attach and debug that for you.
+
+📎 Attached to process 12345
+📸 Captured snapshot
+🔍 Stack trace shows crash at unwrap() on None in process_data()
+
+The issue is at line 47 in src/main.rs. Here's the fix:
+[code suggestion]
 ```
 
 ---
 
-## Requirements
+## 📞 Support
 
-- **Platform**: Linux x86_64 (server-side)
-- **Access**: Users on any OS connect via MCP
-- **Permissions**: Same UID as target process (or CAP_SYS_PTRACE)
-
----
-
-## License
-
-**Proprietary Commercial License** - See [LICENSE](LICENSE)
-
-- Free Hobby tier available
-- Use via MCP interface
-- [Terms of Service](https://kindly.software/terms)
-
----
-
-## Links
-
-- **Website**: [kindly.software](https://kindly.software)
-- **Sign Up**: [Get License Key](https://kindly.software)
-- **Support**: support@kindly.software
+- 🌐 [kindly.software](https://www.kindly.software)
+- 📖 [Documentation](https://www.kindly.software/#docs)
+- 💬 [Discord](https://discord.gg/kindly) *(coming soon)*
 
 ---
 
 <p align="center">
-  <strong>Kindly Software</strong><br>
-  <em>Debug smarter. Ship faster.</em>
+  <strong>Built with 💜 by <a href="https://www.kindly.software">Kindly Software</a></strong>
 </p>
