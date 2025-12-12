@@ -138,14 +138,14 @@ json-export = ["json-rpc"]
 distributed-tracing = ["tracing"]
 derive = []
 
-# OAuth 2.1 authentication with Google
-oauth = ["std", "reqwest", "tokio", "jsonwebtoken", "base64", "urlencoding", "sha2", "ring"]
+# OAuth 2.1 authentication with Google (google-oauth always enabled with oauth)
+oauth = ["std", "reqwest", "tokio", "jsonwebtoken", "base64", "urlencoding", "sha2", "ring", "google-oauth"]
 
-# Google OAuth specific
-google-oauth = ["oauth"]
+# Google OAuth specific (marker feature, enabled by default with oauth)
+google-oauth = []
 
 # Full authentication suite
-full-auth = ["oauth", "google-oauth", "api-key-auth", "auth-guard"]
+full-auth = ["oauth", "api-key-auth", "auth-guard"]
 
 # Phase 2C: Infrastructure & Transport Features (MIGRATED to atomic_capsule native runtime)
 runtime = ["std", "atomic-capsule-runtime"]

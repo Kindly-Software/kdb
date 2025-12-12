@@ -84,14 +84,23 @@ pub fn fnv1a_hash_code(s: &str) -> u64 {
     hash
 }
 
-/// SHA-256 hash for PKCE code_challenge verification
-/// Returns FNV-1a hash of the SHA-256 digest (for compact storage)
+/// SHA-256 hash for PKCE code_challenge verification (S256 method)
+/// Computes: FNV-1a(base64url_no_padding(SHA256(code_verifier)))
+/// This matches what the client sends as code_challenge per RFC 7636
 #[cfg(feature = "oauth")]
 pub fn sha256_to_fnv(data: &[u8]) -> u64 {
     use sha2::{Sha256, Digest};
+    use base64::Engine;
+
+    // Step 1: Compute SHA256(code_verifier)
     let digest = Sha256::digest(data);
+
+    // Step 2: Base64url encode without padding (per RFC 7636)
+    let base64url = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(digest);
+
+    // Step 3: FNV-1a hash of the base64url string (matches stored code_challenge hash)
     let mut hash = FNV_OFFSET;
-    for byte in digest.as_slice() {
+    for byte in base64url.as_bytes() {
         hash ^= *byte as u64;
         hash = hash.wrapping_mul(FNV_PRIME);
     }

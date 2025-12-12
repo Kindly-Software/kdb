@@ -177,6 +177,16 @@ struct ServerState {
     #[cfg(feature = "oauth")]
     auth_codes: &'static AuthorizationCodeCapsule,
 
+    /// Redirect URI storage (state -> redirect_uri mapping)
+    /// OAuth is human-speed, so RwLock is acceptable here
+    #[cfg(feature = "oauth")]
+    redirect_uri_store: std::sync::RwLock<std::collections::HashMap<String, String>>,
+
+    /// License key store (license_hash -> license_key string)
+    /// Used to return actual license key at /oauth/token instead of just hash
+    #[cfg(feature = "oauth")]
+    license_key_store: std::sync::RwLock<std::collections::HashMap<u64, String>>,
+
     /// Google OAuth client ID (from environment)
     #[cfg(feature = "google-oauth")]
     google_client_id: String,
@@ -315,6 +325,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         oauth_users,
         #[cfg(feature = "oauth")]
         auth_codes,
+        #[cfg(feature = "oauth")]
+        redirect_uri_store: std::sync::RwLock::new(std::collections::HashMap::new()),
+        #[cfg(feature = "oauth")]
+        license_key_store: std::sync::RwLock::new(std::collections::HashMap::new()),
         #[cfg(feature = "google-oauth")]
         google_client_id,
         #[cfg(feature = "google-oauth")]
@@ -1560,6 +1574,15 @@ fn handle_oauth_authorize(
         return Ok(());
     }
 
+    // Store redirect_uri separately (we only store hash in OAuthStateCapsule for efficiency,
+    // but need the actual string for redirecting back to Claude)
+    if !redirect_uri.is_empty() {
+        if let Ok(mut store) = server_state.redirect_uri_store.write() {
+            store.insert(client_state.to_string(), redirect_uri.to_string());
+            eprintln!("[MCP-SSE] OAuth authorize: stored redirect_uri for state={}...", &client_state[..client_state.len().min(8)]);
+        }
+    }
+
     // Build Google OAuth URL
     // Our callback URL will receive the Google code and state
     let google_callback_uri = "https://mcp.kindly.software/oauth/callback";
@@ -1777,6 +1800,13 @@ fn handle_oauth_callback(
         }
     };
 
+    // Store license_key in reverse lookup table (for /oauth/token to return actual key)
+    if let Some(ref key) = new_user_license_key {
+        if let Ok(mut store) = server_state.license_key_store.write() {
+            store.insert(license_hash, key.clone());
+        }
+    }
+
     // Generate MCP authorization code
     // This code will be exchanged for access token at /oauth/token
     let mcp_code = match server_state.auth_codes.generate_code(
@@ -1795,39 +1825,88 @@ fn handle_oauth_callback(
     // Consume the OAuth state (one-time use)
     server_state.oauth_state.consume_state(state);
 
-    // Build Claude callback URL (always needed, either as direct redirect or as callback param)
-    // Claude's callback URL format: https://claude.ai/api/mcp/auth_callback?code=xxx&state=yyy
-    let claude_callback = format!(
-        "https://claude.ai/api/mcp/auth_callback?code={}&state={}",
-        urlencoding_encode(&mcp_code),
-        urlencoding_encode(state)
+    // Retrieve the stored redirect_uri for this state
+    // This is the URL Claude Code sent us during /oauth/authorize
+    let stored_redirect_uri = server_state.redirect_uri_store
+        .read()
+        .ok()
+        .and_then(|store| store.get(state).cloned());
+
+    // Clean up the stored redirect_uri
+    if let Ok(mut store) = server_state.redirect_uri_store.write() {
+        store.remove(state);
+    }
+
+    // Build callback URL with code and state
+    // Use stored redirect_uri if available, otherwise fall back to Claude's default
+    let base_redirect_uri = stored_redirect_uri
+        .as_deref()
+        .unwrap_or("https://claude.ai/api/mcp/auth_callback");
+
+    eprintln!(
+        "[MCP-SSE] OAuth callback: using redirect_uri={} (stored={})",
+        base_redirect_uri,
+        stored_redirect_uri.is_some()
     );
 
-    // Determine final redirect URL based on whether this is a new user
-    // - New users: Redirect to success page so they can see their license key
-    // - Existing users: Redirect directly to Claude (they already have their key)
-    let redirect_url = match new_user_license_key {
-        Some(license_key) => {
-            // New user: Show success page with license key, then continue to Claude
-            // Success page URL format: https://www.kindly.software/#oauth-success?license=xxx&callback=yyy
-            eprintln!(
-                "[MCP-SSE] OAuth callback: new user, redirecting via success page (email={})",
-                claims.email
-            );
-            format!(
-                "https://www.kindly.software/#oauth-success?license={}&callback={}",
-                urlencoding_encode(&license_key),
-                urlencoding_encode(&claude_callback)
-            )
-        }
-        None => {
-            // Existing user: Redirect directly to Claude (no need to show license again)
-            eprintln!(
-                "[MCP-SSE] OAuth callback: existing user, redirecting directly to Claude (email={})",
-                claims.email
-            );
-            // Skip the success page for existing users - they already know their license
-            claude_callback.clone()
+    // Build the full callback URL with code and state parameters
+    let claude_callback = if base_redirect_uri.contains('?') {
+        // URL already has query params, append with &
+        format!(
+            "{}&code={}&state={}",
+            base_redirect_uri,
+            urlencoding_encode(&mcp_code),
+            urlencoding_encode(state)
+        )
+    } else {
+        // URL has no query params, start with ?
+        format!(
+            "{}?code={}&state={}",
+            base_redirect_uri,
+            urlencoding_encode(&mcp_code),
+            urlencoding_encode(state)
+        )
+    };
+
+    // Determine final redirect URL based on:
+    // 1. If redirect_uri is localhost (CLI client like Claude Code) - ALWAYS redirect directly
+    // 2. If browser client (claude.ai) - show success page for new users, direct for existing
+    let is_cli_client = base_redirect_uri.starts_with("http://localhost");
+
+    let redirect_url = if is_cli_client {
+        // CLI client (Claude Code): Always redirect directly to local callback
+        // The CLI doesn't render HTML pages, it needs a direct redirect with the code
+        eprintln!(
+            "[MCP-SSE] OAuth callback: CLI client detected, redirecting directly to {} (email={})",
+            base_redirect_uri,
+            claims.email
+        );
+        claude_callback.clone()
+    } else {
+        // Browser client (claude.ai): Use success page logic
+        match new_user_license_key {
+            Some(license_key) => {
+                // New user: Show success page with license key, then continue to Claude
+                // Success page URL format: https://www.kindly.software/#oauth-success?license=xxx&callback=yyy
+                eprintln!(
+                    "[MCP-SSE] OAuth callback: new user, redirecting via success page (email={})",
+                    claims.email
+                );
+                format!(
+                    "https://www.kindly.software/#oauth-success?license={}&callback={}",
+                    urlencoding_encode(&license_key),
+                    urlencoding_encode(&claude_callback)
+                )
+            }
+            None => {
+                // Existing user: Redirect directly to Claude (no need to show license again)
+                eprintln!(
+                    "[MCP-SSE] OAuth callback: existing user, redirecting directly to Claude (email={})",
+                    claims.email
+                );
+                // Skip the success page for existing users - they already know their license
+                claude_callback.clone()
+            }
         }
     };
 
@@ -1950,20 +2029,34 @@ fn handle_oauth_token(
         }
     };
 
-    // Look up the license key from hash
-    // For now, we return a synthetic token that includes the hash
-    // The actual license key is stored in the user mapping
-    // TODO: Add a reverse lookup table for hash -> license_key if needed
+    // Look up the actual license key from the reverse lookup store
+    let access_token = match server_state.license_key_store.read() {
+        Ok(store) => store.get(&license_hash).cloned(),
+        Err(_) => None,
+    };
+
+    let access_token = match access_token {
+        Some(key) => {
+            eprintln!("[MCP-SSE] OAuth token: found license key in store ({}...)", &key[..key.len().min(20)]);
+            key
+        }
+        None => {
+            // Fallback: return oauth-{hash} format (will fail license validation but at least continues)
+            eprintln!("[MCP-SSE] OAuth token: license key not found in store, using fallback oauth-{}", &format!("{:x}", license_hash)[..8]);
+            format!("oauth-{}", license_hash)
+        }
+    };
+
     let token_response = format!(
-        r#"{{"access_token":"oauth-{}","token_type":"Bearer","expires_in":31536000,"scope":"debugger:read debugger:write"}}"#,
-        license_hash
+        r#"{{"access_token":"{}","token_type":"Bearer","expires_in":31536000,"scope":"debugger:read debugger:write"}}"#,
+        access_token
     );
 
     write_json_response(stream, 200, &token_response)?;
 
     eprintln!(
-        "[MCP-SSE] OAuth token: issued access token (license_hash={}...)",
-        &format!("{:x}", license_hash)[..8]
+        "[MCP-SSE] OAuth token: issued access token ({}...)",
+        &access_token[..access_token.len().min(20)]
     );
 
     Ok(())
