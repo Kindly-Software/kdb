@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://www.kindly.software/kdb-logo.jpg" alt="Kindly Debugger" width="120" height="120" style="border-radius: 50%"/>
+  <img src="kdb_transparent.png" alt="Kindly Debugger" width="120" height="120" style="border-radius: 50%"/>
 </p>
 
 <h1 align="center">✨ KDB - The Kindly Debugger ✨</h1>
