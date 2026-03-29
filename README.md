@@ -135,3 +135,8 @@ The issue is at line 47 in src/main.rs. Here's the fix:
 <p align="center">
   <strong>Built with 💜 by <a href="https://www.kindly.software">Kindly Software</a></strong>
 </p>
+
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/kindly-software-kdb).
+
